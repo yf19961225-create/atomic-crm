@@ -1,4 +1,7 @@
 import { CRM } from "@/components/atomic-crm/root/CRM";
+import { RomikuLayout } from "@/components/romiku/layout/RomikuLayout";
+import { romikuRoutes } from "@/components/romiku/routes/RomikuRoutes";
+import { RomikuWorkbench } from "@/components/romiku/workbench/RomikuWorkbench";
 
 /**
  * Application entry point
@@ -31,6 +34,13 @@ import { CRM } from "@/components/atomic-crm/root/CRM";
  *    />
  * );
  */
-const App = () => <CRM />;
+const App = () => (
+  <CRM
+    additionalRoutes={romikuRoutes}
+    dashboard={RomikuWorkbench}
+    layout={RomikuLayout}
+    title="ROMIKU CRM 2.0"
+  />
+);
 
 export default App;

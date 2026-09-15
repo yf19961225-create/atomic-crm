@@ -5,7 +5,7 @@ import type {
   LayoutComponent,
 } from "ra-core";
 import { CustomRoutes, localStorageStore, Resource } from "ra-core";
-import { useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { Route } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -70,6 +70,7 @@ export type CRMProps = {
   store?: CoreAdminProps["store"];
   dashboard?: DashboardComponent;
   layout?: LayoutComponent;
+  additionalRoutes?: ReactNode;
 } & Partial<ConfigurationContextValue>;
 
 /**
@@ -130,6 +131,7 @@ export const CRM = ({
   i18nProvider = defaulti18nProvider,
   store = defaultStore,
   disableTelemetry,
+  additionalRoutes,
   ...rest
 }: CRMProps) => {
   useEffect(() => {
@@ -225,6 +227,7 @@ export const CRM = ({
       loginPage={StartPage}
       requireAuth
       disableTelemetry
+      additionalRoutes={additionalRoutes}
       {...rest}
     />
   );
@@ -232,6 +235,7 @@ export const CRM = ({
 
 const DesktopAdmin = (
   props: CoreAdminProps & {
+    additionalRoutes?: ReactNode;
     dashboard?: DashboardComponent;
     layout?: LayoutComponent;
   },
@@ -257,6 +261,7 @@ const DesktopAdmin = (
       </CustomRoutes>
 
       <CustomRoutes>
+        {props.additionalRoutes}
         <Route path={ProfilePage.path} element={<ProfilePage />} />
         <Route path={SettingsPage.path} element={<SettingsPage />} />
         <Route path={ImportPage.path} element={<ImportPage />} />
@@ -276,6 +281,7 @@ const DesktopAdmin = (
 
 const MobileAdmin = (
   props: CoreAdminProps & {
+    additionalRoutes?: ReactNode;
     dashboard?: DashboardComponent;
     layout?: LayoutComponent;
   },
@@ -320,6 +326,7 @@ const MobileAdmin = (
           <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
         </CustomRoutes>
         <CustomRoutes>
+          {props.additionalRoutes}
           <Route
             path={SettingsPageMobile.path}
             element={<SettingsPageMobile />}
