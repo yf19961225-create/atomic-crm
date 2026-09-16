@@ -1,7 +1,25 @@
+import {
+  createContext,
+  createElement,
+  useContext,
+  type ReactNode,
+} from "react";
+
 export type SanityProductMatch = {
   sanityProductId: string;
   sku: string;
   title?: string;
+  imageUrl?: string;
+  parameters?: unknown;
+  category?: unknown;
+  moqQuantity?: number;
+  moqUnit?: unknown;
+  packaging?: unknown;
+  cartonQty?: number;
+  powerSupply?: unknown;
+  isPublished?: boolean;
+  sortOrder?: number;
+  colors?: unknown;
 };
 
 export type SanitySkuLookupResult =
@@ -22,6 +40,26 @@ export type SanityProductSource = {
   initialState: { status: "loading" };
   findBySku: (sku: string) => Promise<SanitySkuLookupResult>;
 };
+
+const sanityProductSourceContext = createContext<SanityProductSource | null>(
+  null,
+);
+
+export const SanityProductSourceProvider = ({
+  source,
+  children,
+}: {
+  source: SanityProductSource;
+  children: ReactNode;
+}) =>
+  createElement(
+    sanityProductSourceContext.Provider,
+    { value: source },
+    children,
+  );
+
+export const useSanityProductSource = () =>
+  useContext(sanityProductSourceContext) ?? createSanityProductSource();
 
 const unmatched = (sku: string): SanitySkuLookupResult => ({
   status: "unmatched",

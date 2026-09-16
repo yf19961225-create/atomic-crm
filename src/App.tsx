@@ -2,6 +2,7 @@ import { CRM } from "@/components/atomic-crm/root/CRM";
 import { RomikuLayout } from "@/components/romiku/layout/RomikuLayout";
 import { romikuRoutes } from "@/components/romiku/routes/RomikuRoutes";
 import { RomikuWorkbench } from "@/components/romiku/workbench/RomikuWorkbench";
+import { romikuResources } from "@/components/romiku/resources";
 
 /**
  * Application entry point
@@ -37,6 +38,7 @@ import { RomikuWorkbench } from "@/components/romiku/workbench/RomikuWorkbench";
 const App = () => (
   <CRM
     additionalRoutes={romikuRoutes}
+    additionalResources={romikuResources}
     dashboard={RomikuWorkbench}
     layout={RomikuLayout}
     title="ROMIKU CRM 2.0"

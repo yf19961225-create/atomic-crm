@@ -59,20 +59,6 @@ import { ContactListMobile } from "../contacts/ContactList.tsx";
 import { ContactShow } from "../contacts/ContactShow.tsx";
 import { CompanyShow } from "../companies/CompanyShow.tsx";
 import { NoteShowPage } from "../notes/NoteShowPage.tsx";
-import {
-  ProductExtensionCreate,
-  ProductExtensionEdit,
-  ProductSupplierCreate,
-  ProductSupplierEdit,
-  ProcurementCostCreate,
-} from "../../romiku/products";
-import {
-  SupplierContactCreate,
-  SupplierContactEdit,
-  SupplierCreate,
-  SupplierEdit,
-  SupplierList,
-} from "../../romiku/suppliers";
 
 const defaultStore = localStorageStore(undefined, "CRM");
 
@@ -85,6 +71,7 @@ export type CRMProps = {
   dashboard?: DashboardComponent;
   layout?: LayoutComponent;
   additionalRoutes?: ReactNode;
+  additionalResources?: ReactNode;
 } & Partial<ConfigurationContextValue>;
 
 /**
@@ -146,6 +133,7 @@ export const CRM = ({
   store = defaultStore,
   disableTelemetry,
   additionalRoutes,
+  additionalResources,
   ...rest
 }: CRMProps) => {
   useEffect(() => {
@@ -242,6 +230,7 @@ export const CRM = ({
       requireAuth
       disableTelemetry
       additionalRoutes={additionalRoutes}
+      additionalResources={additionalResources}
       {...rest}
     />
   );
@@ -250,6 +239,7 @@ export const CRM = ({
 const DesktopAdmin = (
   props: CoreAdminProps & {
     additionalRoutes?: ReactNode;
+    additionalResources?: ReactNode;
     dashboard?: DashboardComponent;
     layout?: LayoutComponent;
   },
@@ -289,37 +279,7 @@ const DesktopAdmin = (
       <Resource name="tasks" />
       <Resource name="sales" {...sales} />
       <Resource name="tags" />
-      <Resource
-        name="romiku_suppliers"
-        list={SupplierList}
-        create={SupplierCreate}
-        edit={SupplierEdit}
-        recordRepresentation="name"
-      />
-      <Resource
-        name="romiku_supplier_contacts"
-        create={SupplierContactCreate}
-        edit={SupplierContactEdit}
-        recordRepresentation="name"
-      />
-      <Resource
-        name="romiku_product_extensions"
-        create={ProductExtensionCreate}
-        edit={ProductExtensionEdit}
-        recordRepresentation="sku"
-      />
-      <Resource
-        name="romiku_product_suppliers"
-        create={ProductSupplierCreate}
-        edit={ProductSupplierEdit}
-        recordRepresentation="sku"
-      />
-      <Resource
-        name="romiku_procurement_cost_history"
-        create={ProcurementCostCreate}
-        recordRepresentation="cost"
-      />
-      <Resource name="romiku_current_reference_cost" />
+      {props.additionalResources}
     </Admin>
   );
 };
@@ -327,6 +287,7 @@ const DesktopAdmin = (
 const MobileAdmin = (
   props: CoreAdminProps & {
     additionalRoutes?: ReactNode;
+    additionalResources?: ReactNode;
     dashboard?: DashboardComponent;
     layout?: LayoutComponent;
   },
@@ -388,36 +349,7 @@ const MobileAdmin = (
         </Resource>
         <Resource name="companies" show={CompanyShow} />
         <Resource name="tasks" list={MobileTasksList} />
-        <Resource
-          name="romiku_suppliers"
-          create={SupplierCreate}
-          edit={SupplierEdit}
-          recordRepresentation="name"
-        />
-        <Resource
-          name="romiku_supplier_contacts"
-          create={SupplierContactCreate}
-          edit={SupplierContactEdit}
-          recordRepresentation="name"
-        />
-        <Resource
-          name="romiku_product_extensions"
-          create={ProductExtensionCreate}
-          edit={ProductExtensionEdit}
-          recordRepresentation="sku"
-        />
-        <Resource
-          name="romiku_product_suppliers"
-          create={ProductSupplierCreate}
-          edit={ProductSupplierEdit}
-          recordRepresentation="sku"
-        />
-        <Resource
-          name="romiku_procurement_cost_history"
-          create={ProcurementCostCreate}
-          recordRepresentation="cost"
-        />
-        <Resource name="romiku_current_reference_cost" />
+        {props.additionalResources}
       </Admin>
     </PersistQueryClientProvider>
   );
