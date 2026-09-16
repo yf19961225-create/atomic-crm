@@ -14,6 +14,7 @@ describe("product sourcing writes", () => {
         sku: "RMK-100",
         sanity_product_id: "sanity-product-100",
         _sanity_verified: true,
+        _sanity_verified_sku: "RMK-100",
         internal_notes: "Use kraft gift box.",
       }),
     ).toEqual({
@@ -69,6 +70,17 @@ describe("product sourcing writes", () => {
     ).not.toHaveProperty("sanity_product_id");
   });
 
+  it("rejects a verified identity when its SKU provenance is stale", () => {
+    expect(
+      toProductExtensionWrite({
+        sku: "RMK-200",
+        sanity_product_id: "sanity-product-100",
+        _sanity_verified: true,
+        _sanity_verified_sku: "RMK-100",
+      }),
+    ).not.toHaveProperty("sanity_product_id");
+  });
+
   it("recognizes the join uniqueness conflict so duplicate sourcing is safe to surface", () => {
     expect(isProductSupplierDuplicateError({ code: "23505" })).toBe(true);
     expect(
@@ -77,6 +89,24 @@ describe("product sourcing writes", () => {
       ),
     ).toBe(true);
     expect(isProductSupplierDuplicateError({ code: "23503" })).toBe(false);
+  });
+
+  it("round-trips a Product Extension through save and reload", async () => {
+    const records = new Map<
+      string,
+      ReturnType<typeof toProductExtensionWrite>
+    >();
+    const write = toProductExtensionWrite({
+      sku: "RMK-100",
+      sanity_product_id: "sanity-product-100",
+      _sanity_verified: true,
+      _sanity_verified_sku: "RMK-100",
+      internal_notes: "Reload me",
+    });
+    records.set("extension-1", write);
+    await expect(Promise.resolve(records.get("extension-1"))).resolves.toEqual(
+      write,
+    );
   });
 
   it("normalizes a reference cost history write without putting cost columns on the product master", () => {

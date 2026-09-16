@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   SanityProductSource,
   SanitySkuLookupResult,
@@ -8,10 +8,12 @@ export const SanityProductLookup = ({
   sku,
   source,
   onMatched,
+  onCleared,
 }: {
   sku: string;
   source: SanityProductSource;
   onMatched: (sanityProductId: string) => void;
+  onCleared?: () => void;
 }) => {
   const [result, setResult] = useState<
     SanitySkuLookupResult | { status: "loading" }
@@ -19,13 +21,26 @@ export const SanityProductLookup = ({
     status: "unmatched",
     sku,
   });
+  const requestVersion = useRef(0);
+  const skuRef = useRef(sku);
 
   const lookup = async () => {
+    const version = ++requestVersion.current;
+    const requestedSku = sku;
     setResult({ status: "loading" });
     const next = await source.findBySku(sku);
+    if (version !== requestVersion.current || requestedSku !== skuRef.current)
+      return;
     setResult(next);
     if (next.status === "matched") onMatched(next.product.sanityProductId);
+    else onCleared?.();
   };
+
+  useEffect(() => {
+    skuRef.current = sku;
+    requestVersion.current += 1;
+    setResult({ status: "unmatched", sku });
+  }, [sku]);
 
   return (
     <div className="space-y-2" aria-live="polite">

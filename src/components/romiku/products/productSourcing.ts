@@ -2,6 +2,7 @@ export type ProductExtensionWrite = {
   sku: string;
   sanity_product_id?: string | null;
   _sanity_verified?: boolean;
+  _sanity_verified_sku?: string;
   internal_notes?: string | null;
 };
 
@@ -45,7 +46,9 @@ export const toProductExtensionWrite = (
   values: ProductExtensionWrite,
 ): ProductExtensionWrite => ({
   sku: values.sku,
-  ...(values._sanity_verified && values.sanity_product_id
+  ...(values._sanity_verified &&
+  values._sanity_verified_sku === values.sku &&
+  values.sanity_product_id
     ? { sanity_product_id: values.sanity_product_id }
     : {}),
   internal_notes: values.internal_notes || null,

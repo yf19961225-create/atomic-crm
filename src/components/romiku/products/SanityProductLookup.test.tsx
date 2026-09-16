@@ -79,4 +79,67 @@ describe("SanityProductLookup", () => {
       .element(error.getByText("Sanity product lookup failed.").last())
       .toBeVisible();
   });
+
+  it("clears a previously matched identity when a later lookup is unmatched", async () => {
+    const onMatched = vi.fn();
+    const lookup = vi
+      .fn<SanityProductSource["findBySku"]>()
+      .mockResolvedValueOnce({
+        status: "matched",
+        product: { sanityProductId: "sanity-a", sku: "A" },
+      })
+      .mockResolvedValueOnce({ status: "unmatched", sku: "B" });
+    const screen = await render(
+      <SanityProductLookup
+        sku="A"
+        source={source(lookup)}
+        onMatched={onMatched}
+      />,
+    );
+    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    expect(onMatched).toHaveBeenCalledWith("sanity-a");
+    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    await expect
+      .element(screen.getByText("No Sanity product matched this SKU."))
+      .toBeVisible();
+    expect(onMatched).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a late response for SKU A after switching to SKU B", async () => {
+    let resolve!: (
+      value: Awaited<ReturnType<SanityProductSource["findBySku"]>>,
+    ) => void;
+    const lookup = vi.fn(
+      () =>
+        new Promise<Awaited<ReturnType<SanityProductSource["findBySku"]>>>(
+          (r) => {
+            resolve = r;
+          },
+        ),
+    );
+    const onMatched = vi.fn();
+    const screen = await render(
+      <SanityProductLookup
+        sku="A"
+        source={source(lookup)}
+        onMatched={onMatched}
+      />,
+    );
+    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    await screen.rerender(
+      <SanityProductLookup
+        sku="B"
+        source={source(lookup)}
+        onMatched={onMatched}
+      />,
+    );
+    resolve({
+      status: "matched",
+      product: { sanityProductId: "sanity-a", sku: "A" },
+    });
+    await expect
+      .element(screen.getByText("No Sanity product matched this SKU."))
+      .toBeVisible();
+    expect(onMatched).not.toHaveBeenCalled();
+  });
 });
