@@ -1,5 +1,6 @@
 --
 -- Tables
+-- ROMIKU business tables are declared below the Atomic foundation.
 -- This file declares all tables in the public schema.
 --
 
@@ -181,3 +182,625 @@ create index contact_notes_contact_id_idx on public.contact_notes using btree (c
 create index contacts_company_id_idx on public.contacts using btree (company_id);
 create index deal_notes_deal_id_idx on public.deal_notes using btree (deal_id);
 create index deals_company_id_idx on public.deals using btree (company_id);
+
+-- ROMIKU operational model. Product JSON is a document snapshot, never a CMS master.
+create sequence public.romiku_document_number_seq;
+
+create table public.romiku_numbering_rules (
+    id uuid primary key default gen_random_uuid(),
+    document_kind text not null unique check (document_kind in ('inquiry','quote','pi','order','production','packing')),
+    prefix text not null check (prefix ~ '^[A-Za-z0-9-]{1,16}$'),
+    min_digits integer not null default 6 check (min_digits between 1 and 12),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_outbound_companies (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    brand_name text,
+    country text,
+    city text,
+    address text,
+    registration_number text,
+    customer_type text,
+    website text,
+    social_urls jsonb not null default '{}',
+    purchasing_categories text[],
+    business_intelligence jsonb not null default '{}',
+    grade text check (grade in ('A','B','C','D')),
+    status text not null default 'to_develop',
+    next_follow_up_at timestamptz,
+    notes text,
+    archived_at timestamptz,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_outbound_contacts (
+    id uuid primary key default gen_random_uuid(),
+    outbound_company_id uuid not null references public.romiku_outbound_companies(id),
+    name text not null,
+    title text,
+    department text,
+    role text,
+    email text,
+    phone text,
+    whatsapp text,
+    wechat text,
+    social_urls jsonb not null default '{}',
+    is_primary boolean not null default false,
+    is_active boolean not null default true,
+    notes text,
+    unique(id,outbound_company_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_outbound_followups (
+    id uuid primary key default gen_random_uuid(),
+    outbound_company_id uuid not null references public.romiku_outbound_companies(id),
+    contact_id uuid,
+    method text not null,
+    summary text not null,
+    contacted_at timestamptz not null default now(),
+    next_follow_up_at timestamptz,
+    notes text,
+    attachments jsonb not null default '[]',
+    foreign key(contact_id,outbound_company_id) references public.romiku_outbound_contacts(id,outbound_company_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_source_urls (
+    id uuid primary key default gen_random_uuid(),
+    outbound_company_id uuid not null references public.romiku_outbound_companies(id),
+    source_type text not null,
+    url text not null check (url ~ '^https?://'),
+    label text,
+    notes text,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_formal_customers (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    country text,
+    status text not null default 'active',
+    source_outbound_company_id uuid references public.romiku_outbound_companies(id),
+    logistics jsonb not null default '{}',
+    requirements jsonb not null default '{}',
+    notes text,
+    archived_at timestamptz,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_customer_contacts (
+    id uuid primary key default gen_random_uuid(),
+    formal_customer_id uuid not null references public.romiku_formal_customers(id),
+    name text not null,
+    title text,
+    department text,
+    role text,
+    email text,
+    phone text,
+    whatsapp text,
+    wechat text,
+    social_urls jsonb not null default '{}',
+    is_primary boolean not null default false,
+    is_active boolean not null default true,
+    notes text,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_website_inquiries (
+    id uuid primary key default gen_random_uuid(),
+    document_number text not null unique,
+    submitted_at timestamptz not null default now(),
+    customer_name text not null,
+    company text,
+    email text,
+    whatsapp text,
+    country text,
+    message text,
+    status text not null default 'new' check (status in ('new','pending','following_up','processed','invalid')),
+    raw_payload jsonb not null default '{}',
+    processing_notes text,
+    next_follow_up_at timestamptz,
+    outbound_company_id uuid references public.romiku_outbound_companies(id),
+    formal_customer_id uuid references public.romiku_formal_customers(id),
+    archived_at timestamptz,
+    owner_id uuid references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_website_inquiry_items (
+    id uuid primary key default gen_random_uuid(),
+    inquiry_id uuid not null references public.romiku_website_inquiries(id),
+    sku text not null,
+    quantity numeric(18,4) not null check (quantity > 0),
+    requirement text,
+    sanity_product_id text,
+    product_snapshot jsonb not null default '{}',
+    match_status text not null default 'unresolved' check (match_status in ('unresolved','matched','not_found','error')),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_website_inquiry_followups (
+    id uuid primary key default gen_random_uuid(),
+    inquiry_id uuid not null references public.romiku_website_inquiries(id),
+    method text not null,
+    summary text not null,
+    contacted_at timestamptz not null default now(),
+    next_follow_up_at timestamptz,
+    notes text,
+    attachments jsonb not null default '[]',
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_quotes (
+    id uuid primary key default gen_random_uuid(),
+    document_number text not null unique,
+    status text not null default 'draft',
+    counterparty_snapshot jsonb not null default '{}',
+    bank_snapshot jsonb not null default '{}',
+    terms_snapshot jsonb not null default '{}',
+    currency text not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
+    document_date date not null default current_date,
+    follow_up_at timestamptz,
+    due_at timestamptz,
+    freight numeric(18,2) not null default 0 check (freight >= 0),
+    discount numeric(18,2) not null default 0 check (discount >= 0),
+    other_expenses numeric(18,2) not null default 0 check (other_expenses >= 0),
+    deposit_percent numeric(5,2) not null default 30 check (deposit_percent between 0 and 100),
+    deposit_due_at timestamptz,
+    balance_due_at timestamptz,
+    price_term text,
+    shipment_method text,
+    notes text,
+    archived_at timestamptz,
+    source_website_inquiry_id uuid references public.romiku_website_inquiries(id),
+    outbound_company_id uuid references public.romiku_outbound_companies(id),
+    formal_customer_id uuid references public.romiku_formal_customers(id),
+    valid_until date,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_quote_items (
+    id uuid primary key default gen_random_uuid(),
+    quote_id uuid not null references public.romiku_quotes(id),
+    source_website_inquiry_item_id uuid references public.romiku_website_inquiry_items(id),
+    sanity_product_id text,
+    sku text not null,
+    product_snapshot jsonb not null default '{}',
+    packing_snapshot jsonb not null default '{}',
+    quantity numeric(18,4) not null check (quantity > 0),
+    unit_price numeric(18,4) not null default 0 check (unit_price >= 0),
+    amount numeric(18,2) generated always as (round(quantity * unit_price, 2)) stored,
+    requirement text,
+    customer_code text,
+    notes text,
+    position integer not null default 0,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_quote_versions (
+    id uuid primary key default gen_random_uuid(),
+    quote_id uuid not null references public.romiku_quotes(id),
+    version integer not null check (version > 0),
+    document_snapshot jsonb not null,
+    items_snapshot jsonb not null,
+    unique(quote_id,version),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_pis (
+    id uuid primary key default gen_random_uuid(),
+    document_number text not null unique,
+    status text not null default 'draft',
+    counterparty_snapshot jsonb not null default '{}',
+    bank_snapshot jsonb not null default '{}',
+    terms_snapshot jsonb not null default '{}',
+    currency text not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
+    document_date date not null default current_date,
+    follow_up_at timestamptz,
+    due_at timestamptz,
+    freight numeric(18,2) not null default 0 check (freight >= 0),
+    discount numeric(18,2) not null default 0 check (discount >= 0),
+    other_expenses numeric(18,2) not null default 0 check (other_expenses >= 0),
+    deposit_percent numeric(5,2) not null default 30 check (deposit_percent between 0 and 100),
+    deposit_due_at timestamptz,
+    balance_due_at timestamptz,
+    price_term text,
+    shipment_method text,
+    notes text,
+    archived_at timestamptz,
+    source_website_inquiry_id uuid references public.romiku_website_inquiries(id),
+    outbound_company_id uuid references public.romiku_outbound_companies(id),
+    formal_customer_id uuid references public.romiku_formal_customers(id),
+    source_quote_id uuid references public.romiku_quotes(id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_pi_items (
+    id uuid primary key default gen_random_uuid(),
+    pi_id uuid not null references public.romiku_pis(id),
+    source_quote_item_id uuid references public.romiku_quote_items(id),
+    sanity_product_id text,
+    sku text not null,
+    product_snapshot jsonb not null default '{}',
+    packing_snapshot jsonb not null default '{}',
+    quantity numeric(18,4) not null check (quantity > 0),
+    unit_price numeric(18,4) not null default 0 check (unit_price >= 0),
+    amount numeric(18,2) generated always as (round(quantity * unit_price, 2)) stored,
+    requirement text,
+    customer_code text,
+    notes text,
+    position integer not null default 0,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_orders (
+    id uuid primary key default gen_random_uuid(),
+    document_number text not null unique,
+    status text not null default 'draft',
+    counterparty_snapshot jsonb not null default '{}',
+    bank_snapshot jsonb not null default '{}',
+    terms_snapshot jsonb not null default '{}',
+    currency text not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
+    document_date date not null default current_date,
+    follow_up_at timestamptz,
+    due_at timestamptz,
+    freight numeric(18,2) not null default 0 check (freight >= 0),
+    discount numeric(18,2) not null default 0 check (discount >= 0),
+    other_expenses numeric(18,2) not null default 0 check (other_expenses >= 0),
+    deposit_percent numeric(5,2) not null default 30 check (deposit_percent between 0 and 100),
+    deposit_due_at timestamptz,
+    balance_due_at timestamptz,
+    price_term text,
+    shipment_method text,
+    notes text,
+    archived_at timestamptz,
+    source_website_inquiry_id uuid references public.romiku_website_inquiries(id),
+    outbound_company_id uuid references public.romiku_outbound_companies(id),
+    formal_customer_id uuid references public.romiku_formal_customers(id),
+    source_quote_id uuid references public.romiku_quotes(id),
+    source_pi_id uuid references public.romiku_pis(id),
+    expected_delivery_at timestamptz,
+    actual_delivery_at timestamptz,
+    co_owner_id uuid references auth.users(id),
+    purchase_order_number text,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_order_items (
+    id uuid primary key default gen_random_uuid(),
+    order_id uuid not null references public.romiku_orders(id),
+    source_quote_item_id uuid references public.romiku_quote_items(id),
+    source_pi_item_id uuid references public.romiku_pi_items(id),
+    sanity_product_id text,
+    sku text not null,
+    product_snapshot jsonb not null default '{}',
+    packing_snapshot jsonb not null default '{}',
+    quantity numeric(18,4) not null check (quantity > 0),
+    unit_price numeric(18,4) not null default 0 check (unit_price >= 0),
+    amount numeric(18,2) generated always as (round(quantity * unit_price, 2)) stored,
+    requirement text,
+    customer_code text,
+    notes text,
+    position integer not null default 0,
+    unique(id,order_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_payments (
+    id uuid primary key default gen_random_uuid(),
+    order_id uuid not null references public.romiku_orders(id),
+    kind text not null check (kind in ('deposit','balance','other')),
+    amount numeric(18,2) not null check (amount > 0),
+    received_at timestamptz not null default now(),
+    proof jsonb not null default '[]',
+    notes text,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_suppliers (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    categories text[],
+    region text,
+    address text,
+    shipping_address text,
+    default_lead_days integer check (default_lead_days >= 0),
+    grade text check (grade in ('A','B','C')),
+    status text not null default 'active' check (status in ('active','paused','inactive')),
+    notes text,
+    archived_at timestamptz,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_supplier_contacts (
+    id uuid primary key default gen_random_uuid(),
+    supplier_id uuid not null references public.romiku_suppliers(id),
+    name text not null,
+    title text,
+    department text,
+    role text,
+    email text,
+    phone text,
+    whatsapp text,
+    wechat text,
+    social_urls jsonb not null default '{}',
+    is_primary boolean not null default false,
+    is_active boolean not null default true,
+    notes text,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_product_extensions (
+    id uuid primary key default gen_random_uuid(),
+    sanity_product_id text unique,
+    sku text not null unique,
+    internal_notes text,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_product_suppliers (
+    id uuid primary key default gen_random_uuid(),
+    sanity_product_id text,
+    sku text not null,
+    supplier_id uuid not null references public.romiku_suppliers(id),
+    supplier_item_number text,
+    moq numeric(18,4) check (moq >= 0),
+    lead_days integer check (lead_days >= 0),
+    qty_per_carton numeric(18,4) check (qty_per_carton > 0),
+    length_cm numeric(12,4) check (length_cm >= 0),
+    width_cm numeric(12,4) check (width_cm >= 0),
+    height_cm numeric(12,4) check (height_cm >= 0),
+    carton_weight_kg numeric(12,4) check (carton_weight_kg >= 0),
+    preferred boolean not null default false,
+    active boolean not null default true,
+    reference_date date,
+    notes text,
+    unique(sku,supplier_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_procurement_cost_history (
+    id uuid primary key default gen_random_uuid(),
+    product_supplier_id uuid not null references public.romiku_product_suppliers(id),
+    cost numeric(18,4) not null check (cost >= 0),
+    currency text not null check (currency ~ '^[A-Z]{3}$'),
+    effective_date date not null,
+    source_type text not null,
+    source_note text,
+    source_file jsonb,
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_production_orders (
+    id uuid primary key default gen_random_uuid(),
+    document_number text not null unique,
+    name text,
+    order_id uuid not null references public.romiku_orders(id),
+    supplier_id uuid not null references public.romiku_suppliers(id),
+    supplier_snapshot jsonb not null default '{}',
+    status text not null default 'pending',
+    factory_due_at timestamptz,
+    co_owner_id uuid references auth.users(id),
+    anomaly_flags text[] not null default '{}',
+    anomaly_notes text,
+    notes text,
+    archived_at timestamptz,
+    unique(id,order_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_production_items (
+    id uuid primary key default gen_random_uuid(),
+    production_order_id uuid not null,
+    order_id uuid not null,
+    source_order_item_id uuid not null,
+    sanity_product_id text,
+    sku text not null,
+    quantity numeric(18,4) not null check (quantity > 0),
+    product_snapshot jsonb not null default '{}',
+    packaging_snapshot jsonb not null default '{}',
+    production_note_zh text,
+    foreign key(production_order_id,order_id) references public.romiku_production_orders(id,order_id),
+    foreign key(source_order_item_id,order_id) references public.romiku_order_items(id,order_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_production_followups (
+    id uuid primary key default gen_random_uuid(),
+    production_order_id uuid not null references public.romiku_production_orders(id),
+    method text not null,
+    summary text not null,
+    contacted_at timestamptz not null default now(),
+    next_follow_up_at timestamptz,
+    notes text,
+    attachments jsonb not null default '[]',
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_packing_lists (
+    id uuid primary key default gen_random_uuid(),
+    document_number text not null unique,
+    name text,
+    order_id uuid not null references public.romiku_orders(id),
+    packing_at timestamptz,
+    shipping_mark text,
+    batch_label text,
+    notes text,
+    archived_at timestamptz,
+    unique(id,order_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_packing_items (
+    id uuid primary key default gen_random_uuid(),
+    packing_list_id uuid not null,
+    order_id uuid not null,
+    source_order_item_id uuid not null,
+    sanity_product_id text,
+    sku text not null,
+    product_snapshot jsonb not null default '{}',
+    quantity numeric(18,4) not null check (quantity > 0),
+    cartons integer not null default 0 check (cartons >= 0),
+    qty_per_carton numeric(18,4) check (qty_per_carton > 0),
+    length_cm numeric(12,4) not null default 0 check (length_cm >= 0),
+    width_cm numeric(12,4) not null default 0 check (width_cm >= 0),
+    height_cm numeric(12,4) not null default 0 check (height_cm >= 0),
+    carton_weight_kg numeric(12,4) not null default 0 check (carton_weight_kg >= 0),
+    total_cbm numeric generated always as (length_cm * width_cm * height_cm * cartons / 1000000) stored,
+    total_weight_kg numeric generated always as (carton_weight_kg * cartons) stored,
+    remark text,
+    foreign key(packing_list_id,order_id) references public.romiku_packing_lists(id,order_id),
+    foreign key(source_order_item_id,order_id) references public.romiku_order_items(id,order_id),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+
+create table public.romiku_manual_tasks (
+    id uuid primary key default gen_random_uuid(),
+    title text not null,
+    due_at timestamptz,
+    completed_at timestamptz,
+    priority text not null default 'normal' check (priority in ('low','normal','high','urgent')),
+    co_owner_id uuid references auth.users(id),
+    recurrence jsonb,
+    notes text,
+    outbound_company_id uuid references public.romiku_outbound_companies(id),
+    formal_customer_id uuid references public.romiku_formal_customers(id),
+    quote_id uuid references public.romiku_quotes(id),
+    pi_id uuid references public.romiku_pis(id),
+    order_id uuid references public.romiku_orders(id),
+    production_order_id uuid references public.romiku_production_orders(id),
+    supplier_id uuid references public.romiku_suppliers(id),
+    check (num_nonnulls(outbound_company_id,formal_customer_id,quote_id,pi_id,order_id,production_order_id,supplier_id) <= 1),
+    owner_id uuid default auth.uid() references auth.users(id),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    created_by uuid default auth.uid() references auth.users(id),
+    updated_by uuid default auth.uid() references auth.users(id)
+);
+create index romiku_outbound_contacts_outbound_company_id_idx on public.romiku_outbound_contacts (outbound_company_id);
+create index romiku_outbound_followups_outbound_company_id_idx on public.romiku_outbound_followups (outbound_company_id);
+create index romiku_website_inquiry_items_inquiry_id_idx on public.romiku_website_inquiry_items (inquiry_id);
+create index romiku_website_inquiry_followups_inquiry_id_idx on public.romiku_website_inquiry_followups (inquiry_id);
+create index romiku_quote_items_quote_id_idx on public.romiku_quote_items (quote_id);
+create index romiku_pi_items_pi_id_idx on public.romiku_pi_items (pi_id);
+create index romiku_order_items_order_id_idx on public.romiku_order_items (order_id);
+create index romiku_payments_order_id_idx on public.romiku_payments (order_id);
+create index romiku_production_orders_order_id_idx on public.romiku_production_orders (order_id);
+create index romiku_production_items_source_order_item_id_idx on public.romiku_production_items (source_order_item_id);
+create index romiku_packing_lists_order_id_idx on public.romiku_packing_lists (order_id);
+create index romiku_packing_items_source_order_item_id_idx on public.romiku_packing_items (source_order_item_id);
+create index romiku_procurement_cost_history_product_supplier_id_idx on public.romiku_procurement_cost_history (product_supplier_id);

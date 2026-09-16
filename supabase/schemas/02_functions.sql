@@ -442,6 +442,248 @@ BEGIN
 END;
 $$;
 
+-- ROMIKU invariants and transactional conversions. No function bypasses RLS.
+
+CREATE OR REPLACE FUNCTION "public"."romiku_audit"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.created_at := now();
+    NEW.created_by := auth.uid();
+  ELSE
+    IF NEW.id IS DISTINCT FROM OLD.id THEN
+      RAISE EXCEPTION 'Record identity is immutable' USING ERRCODE = '23514';
+    END IF;
+    NEW.created_at := OLD.created_at;
+    NEW.created_by := OLD.created_by;
+  END IF;
+  NEW.updated_at := clock_timestamp();
+  NEW.updated_by := auth.uid();
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_assign_number"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  prefix_value text;
+  digits integer;
+  sequence_value text;
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.document_number IS DISTINCT FROM OLD.document_number THEN
+      RAISE EXCEPTION 'Document number is immutable' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF NEW.document_number IS NOT NULL THEN
+    RAISE EXCEPTION 'Document number is server generated' USING ERRCODE = '23514';
+  END IF;
+  SELECT r.prefix, r.min_digits INTO prefix_value, digits
+    FROM public.romiku_numbering_rules r WHERE r.document_kind = TG_ARGV[0];
+  prefix_value := coalesce(prefix_value, TG_ARGV[1]);
+  digits := coalesce(digits, 6);
+  sequence_value := nextval('public.romiku_document_number_seq')::text;
+  NEW.document_number := prefix_value || '-' || lpad(sequence_value, greatest(digits, length(sequence_value)), '0');
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_preserve_inquiry"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'Archive inquiry originals instead of deleting' USING ERRCODE = '23514';
+  END IF;
+  IF TG_TABLE_NAME = 'romiku_website_inquiries' THEN
+    IF (NEW.customer_name,NEW.company,NEW.email,NEW.whatsapp,NEW.country,NEW.message,NEW.raw_payload,NEW.submitted_at)
+       IS DISTINCT FROM
+       (OLD.customer_name,OLD.company,OLD.email,OLD.whatsapp,OLD.country,OLD.message,OLD.raw_payload,OLD.submitted_at) THEN
+      RAISE EXCEPTION 'Website submission is immutable' USING ERRCODE = '23514';
+    END IF;
+  ELSE
+    IF (NEW.inquiry_id,NEW.sku,NEW.quantity,NEW.requirement)
+       IS DISTINCT FROM (OLD.inquiry_id,OLD.sku,OLD.quantity,OLD.requirement) THEN
+      RAISE EXCEPTION 'Original inquiry item is immutable' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_preserve_history"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'History is append only' USING ERRCODE = '23514';
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_lock_document_parent"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $_$
+DECLARE
+  parent_id uuid;
+BEGIN
+  IF TG_OP = 'UPDATE' AND (to_jsonb(NEW)->>TG_ARGV[1]) IS DISTINCT FROM (to_jsonb(OLD)->>TG_ARGV[1]) THEN
+    RAISE EXCEPTION 'Document item parent is immutable' USING ERRCODE = '23514';
+  END IF;
+  parent_id := (CASE WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD) ELSE to_jsonb(NEW) END ->> TG_ARGV[1])::uuid;
+  EXECUTE format('SELECT id FROM public.%I WHERE id = $1 FOR UPDATE', TG_ARGV[0]) USING parent_id;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$_$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_check_packing_quantity"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  ordered numeric;
+  packed numeric;
+BEGIN
+  -- A fixed snapshot cannot refresh the SUM after waiting for a packing writer.
+  IF current_setting('transaction_isolation') <> 'read committed' THEN
+    RAISE EXCEPTION 'Packing requires READ COMMITTED; retry the transaction' USING ERRCODE = '40001';
+  END IF;
+  IF TG_OP = 'UPDATE' AND (NEW.source_order_item_id,NEW.order_id,NEW.packing_list_id)
+    IS DISTINCT FROM (OLD.source_order_item_id,OLD.order_id,OLD.packing_list_id) THEN
+    RAISE EXCEPTION 'Packing item source is immutable' USING ERRCODE = '23514';
+  END IF;
+  -- Serialize every allocation against the source row. The following aggregate
+  -- is a new READ COMMITTED statement after the lock, so it sees committed peers.
+  SELECT i.quantity INTO ordered FROM public.romiku_order_items i
+    WHERE i.id = NEW.source_order_item_id AND i.order_id = NEW.order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Packing source must belong to the order' USING ERRCODE = '23503';
+  END IF;
+  SELECT coalesce(sum(i.quantity),0) INTO packed FROM public.romiku_packing_items i
+    WHERE i.source_order_item_id = NEW.source_order_item_id AND i.id <> NEW.id;
+  IF packed + NEW.quantity > ordered THEN
+    RAISE EXCEPTION 'Packed quantity exceeds remaining ordered quantity' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_check_order_quantity"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF current_setting('transaction_isolation') <> 'read committed' THEN
+    RAISE EXCEPTION 'Packing requires READ COMMITTED; retry the transaction' USING ERRCODE = '40001';
+  END IF;
+  IF NEW.quantity < (SELECT coalesce(sum(p.quantity),0) FROM public.romiku_packing_items p WHERE p.source_order_item_id = NEW.id) THEN
+    RAISE EXCEPTION 'Order quantity cannot fall below packed quantity' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_quote_from_inquiry"("inquiry_id" "uuid", "selected_item_ids" "uuid"[]) RETURNS "uuid"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  source public.romiku_website_inquiries;
+  new_id uuid;
+  selected_count integer;
+BEGIN
+  SELECT * INTO STRICT source FROM public.romiku_website_inquiries WHERE id = inquiry_id FOR UPDATE;
+  SELECT count(*) INTO selected_count FROM public.romiku_website_inquiry_items i
+    WHERE i.inquiry_id = source.id AND i.id = ANY(selected_item_ids);
+  IF selected_count = 0 OR selected_count <> cardinality(selected_item_ids) THEN
+    RAISE EXCEPTION 'Select distinct items belonging to the inquiry' USING ERRCODE = '23514';
+  END IF;
+  INSERT INTO public.romiku_quotes(source_website_inquiry_id,outbound_company_id,formal_customer_id,counterparty_snapshot)
+  VALUES (source.id,source.outbound_company_id,source.formal_customer_id,
+    jsonb_build_object('name',source.customer_name,'company',source.company,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
+  RETURNING id INTO new_id;
+  INSERT INTO public.romiku_quote_items(quote_id,source_website_inquiry_item_id,sanity_product_id,sku,quantity,requirement,product_snapshot,position)
+  SELECT new_id,i.id,i.sanity_product_id,i.sku,i.quantity,i.requirement,i.product_snapshot,array_position(selected_item_ids,i.id)
+    FROM public.romiku_website_inquiry_items i WHERE i.id = ANY(selected_item_ids);
+  RETURN new_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_convert_document"("source_kind" "text", "source_id" "uuid", "target_kind" "text") RETURNS "uuid"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $_$
+DECLARE
+  source_table text;
+  target_table text;
+  source_items text;
+  target_items text;
+  source_fk text;
+  target_fk text;
+  lineage_column text;
+  source_json jsonb;
+  new_id uuid;
+BEGIN
+  IF source_kind = 'quote' AND target_kind IN ('pi','order') THEN
+    source_table := 'romiku_quotes'; source_items := 'romiku_quote_items'; source_fk := 'quote_id';
+    lineage_column := 'source_quote_item_id';
+  ELSIF source_kind = 'pi' AND target_kind = 'order' THEN
+    source_table := 'romiku_pis'; source_items := 'romiku_pi_items'; source_fk := 'pi_id';
+    lineage_column := 'source_pi_item_id';
+  ELSE
+    RAISE EXCEPTION 'Unsupported document conversion' USING ERRCODE = '23514';
+  END IF;
+  IF target_kind = 'pi' THEN
+    target_table := 'romiku_pis'; target_items := 'romiku_pi_items'; target_fk := 'pi_id';
+  ELSE
+    target_table := 'romiku_orders'; target_items := 'romiku_order_items'; target_fk := 'order_id';
+  END IF;
+  EXECUTE format('SELECT to_jsonb(s) FROM public.%I s WHERE id = $1 FOR UPDATE',source_table)
+    INTO source_json USING source_id;
+  IF source_json IS NULL THEN
+    RAISE EXCEPTION 'Source document not found' USING ERRCODE = 'P0002';
+  END IF;
+  -- Item writes also lock this header, preserving a coherent copy while converting.
+  source_json := source_json || jsonb_build_object('source_' || source_kind || '_id',source_id);
+  EXECUTE format('INSERT INTO public.%I (counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s)
+    SELECT counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s FROM jsonb_populate_record(NULL::public.%I,$1) RETURNING id',
+    target_table,CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,
+    CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,target_table)
+    INTO new_id USING source_json;
+  EXECUTE format('INSERT INTO public.%I (%I,%I,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,requirement,customer_code,notes,position)
+    SELECT $1,id,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,requirement,customer_code,notes,position FROM public.%I WHERE %I=$2',
+    target_items,target_fk,lineage_column,source_items,source_fk) USING new_id,source_id;
+  RETURN new_id;
+END;
+$_$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_publish_quote_version"("quote_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  source_json jsonb;
+  version_number integer;
+  new_id uuid;
+BEGIN
+  SELECT to_jsonb(q) INTO STRICT source_json FROM public.romiku_quotes q WHERE q.id = quote_id FOR UPDATE;
+  SELECT coalesce(max(v.version),0)+1 INTO version_number FROM public.romiku_quote_versions v WHERE v.quote_id = romiku_publish_quote_version.quote_id;
+  INSERT INTO public.romiku_quote_versions(quote_id,version,document_snapshot,items_snapshot)
+  SELECT romiku_publish_quote_version.quote_id,version_number,source_json,coalesce(jsonb_agg(to_jsonb(i) ORDER BY i.position,i.id),'[]'::jsonb)
+    FROM public.romiku_quote_items i WHERE i.quote_id = romiku_publish_quote_version.quote_id
+  RETURNING id INTO new_id;
+  RETURN new_id;
+END;
+$$;
+
+
 CREATE OR REPLACE FUNCTION "public"."set_sales_id_default"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
