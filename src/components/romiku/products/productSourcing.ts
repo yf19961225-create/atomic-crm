@@ -1,6 +1,7 @@
 export type ProductExtensionWrite = {
   sku: string;
   sanity_product_id?: string | null;
+  _sanity_verified?: boolean;
   internal_notes?: string | null;
 };
 
@@ -31,12 +32,22 @@ export type ProcurementCostWrite = {
   source_note?: string | null;
 };
 
+export const isProductSupplierDuplicateError = (error: unknown) => {
+  const value = error as { code?: string; message?: string };
+  return (
+    value?.code === "23505" ||
+    value?.message?.includes("sku,supplier_id") === true
+  );
+};
+
 /** Selects only the columns owned by the CRM extension table. */
 export const toProductExtensionWrite = (
   values: ProductExtensionWrite,
 ): ProductExtensionWrite => ({
   sku: values.sku,
-  sanity_product_id: values.sanity_product_id || null,
+  ...(values._sanity_verified && values.sanity_product_id
+    ? { sanity_product_id: values.sanity_product_id }
+    : {}),
   internal_notes: values.internal_notes || null,
 });
 
@@ -44,7 +55,6 @@ export const toProductExtensionWrite = (
 export const toProductSupplierWrite = (
   values: ProductSupplierWrite,
 ): ProductSupplierWrite => ({
-  sanity_product_id: values.sanity_product_id || null,
   sku: values.sku,
   supplier_id: values.supplier_id,
   supplier_item_number: values.supplier_item_number || null,

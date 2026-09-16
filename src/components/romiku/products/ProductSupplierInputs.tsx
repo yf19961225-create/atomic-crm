@@ -9,11 +9,6 @@ import { TextInput } from "@/components/admin/text-input";
 export const ProductSupplierInputs = () => (
   <div className="grid max-w-4xl gap-4 md:grid-cols-2">
     <TextInput source="sku" validate={required()} helperText={false} />
-    <TextInput
-      source="sanity_product_id"
-      label="Sanity product ID"
-      helperText={false}
-    />
     <ReferenceInput source="supplier_id" reference="romiku_suppliers">
       <SelectInput optionText="name" validate={required()} helperText={false} />
     </ReferenceInput>

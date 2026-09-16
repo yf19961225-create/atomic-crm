@@ -13,18 +13,8 @@ import {
   SupplierEdit,
   SupplierList,
 } from "./suppliers";
-import {
-  SanityProductSourceProvider,
-  type SanityProductSource,
-} from "./products/sanityProductSource";
-import { createRomikuSanityProductSource } from "./products/romikuSanityProductSource";
-
-export const RomikuResources = ({
-  sanityProductSource = createRomikuSanityProductSource(),
-}: {
-  sanityProductSource?: SanityProductSource;
-}) => (
-  <SanityProductSourceProvider source={sanityProductSource}>
+export const RomikuResources = () => (
+  <>
     <Resource
       name="romiku_suppliers"
       list={SupplierList}
@@ -56,7 +46,7 @@ export const RomikuResources = ({
       recordRepresentation="cost"
     />
     <Resource name="romiku_current_reference_cost" />
-  </SanityProductSourceProvider>
+  </>
 );
 
 export const romikuResources = <RomikuResources />;

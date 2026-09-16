@@ -8,6 +8,7 @@ export const ProductExtensionInputs = () => {
   const sku = (useWatch({ name: "sku" }) as string | undefined) ?? "";
   const source = useSanityProductSource();
   const sanityId = useInput({ source: "sanity_product_id" });
+  const verified = useInput({ source: "_sanity_verified" });
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -15,12 +16,10 @@ export const ProductExtensionInputs = () => {
       <SanityProductLookup
         sku={sku}
         source={source}
-        onMatched={sanityId.field.onChange}
-      />
-      <TextInput
-        source="sanity_product_id"
-        label="Sanity product ID"
-        helperText="Optional; set only from an explicitly configured read match."
+        onMatched={(id) => {
+          sanityId.field.onChange(id);
+          verified.field.onChange(true);
+        }}
       />
       <TextInput source="internal_notes" multiline helperText={false} />
     </div>

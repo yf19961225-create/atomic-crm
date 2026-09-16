@@ -9,6 +9,8 @@ import {
 import { ProductExtensionInputs } from "./ProductExtensionInputs";
 import { ProductSupplierInputs } from "./ProductSupplierInputs";
 import { ProcurementCostInputs } from "./ProcurementCostInputs";
+import { SanityProductSourceProvider } from "./sanityProductSource";
+import { createRomikuSanityProductSource } from "./romikuSanityProductSource";
 
 const ProductFormCard = ({
   children,
@@ -17,17 +19,19 @@ const ProductFormCard = ({
   children: React.ReactNode;
   title: string;
 }) => (
-  <Card className="max-w-4xl">
-    <CardHeader>
-      <CardTitle>{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <Form className="flex flex-col gap-4">
-        {children}
-        <FormToolbar />
-      </Form>
-    </CardContent>
-  </Card>
+  <SanityProductSourceProvider source={createRomikuSanityProductSource()}>
+    <Card className="max-w-4xl">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form className="flex flex-col gap-4">
+          {children}
+          <FormToolbar />
+        </Form>
+      </CardContent>
+    </Card>
+  </SanityProductSourceProvider>
 );
 
 export const ProductExtensionCreate = () => (

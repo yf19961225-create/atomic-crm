@@ -4,6 +4,7 @@ import {
   toProductExtensionWrite,
   toProductSupplierWrite,
   toProcurementCostWrite,
+  isProductSupplierDuplicateError,
 } from "./productSourcing";
 
 describe("product sourcing writes", () => {
@@ -12,6 +13,7 @@ describe("product sourcing writes", () => {
       toProductExtensionWrite({
         sku: "RMK-100",
         sanity_product_id: "sanity-product-100",
+        _sanity_verified: true,
         internal_notes: "Use kraft gift box.",
       }),
     ).toEqual({
@@ -46,6 +48,35 @@ describe("product sourcing writes", () => {
       moq: 500,
     });
     expect(firstSupplier).not.toEqual(secondSupplier);
+  });
+
+  it("drops unverified Sanity identity fields from product-supplier writes", () => {
+    expect(
+      toProductSupplierWrite({
+        sku: "RMK-100",
+        supplier_id: "supplier-a",
+        sanity_product_id: "typed-by-user",
+      }),
+    ).not.toHaveProperty("sanity_product_id");
+  });
+
+  it("does not persist a manually entered Product Extension identity", () => {
+    expect(
+      toProductExtensionWrite({
+        sku: "RMK-100",
+        sanity_product_id: "typed-by-user",
+      }),
+    ).not.toHaveProperty("sanity_product_id");
+  });
+
+  it("recognizes the join uniqueness conflict so duplicate sourcing is safe to surface", () => {
+    expect(isProductSupplierDuplicateError({ code: "23505" })).toBe(true);
+    expect(
+      isProductSupplierDuplicateError(
+        new Error("sku,supplier_id unique violation"),
+      ),
+    ).toBe(true);
+    expect(isProductSupplierDuplicateError({ code: "23503" })).toBe(false);
   });
 
   it("normalizes a reference cost history write without putting cost columns on the product master", () => {

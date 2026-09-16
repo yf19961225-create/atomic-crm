@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormToolbar } from "@/components/atomic-crm/layout/FormToolbar";
 import { SupplierContactInputs } from "./SupplierContactInputs";
 import { SupplierInputs } from "./SupplierInputs";
+import { toSupplierContactWrite } from "./supplierWrites";
 
 const SupplierFormCard = ({
   children,
@@ -41,7 +42,11 @@ export const SupplierEdit = () => (
 );
 
 export const SupplierContactCreate = () => (
-  <CreateBase resource="romiku_supplier_contacts" redirect="/supplier-contacts">
+  <CreateBase
+    resource="romiku_supplier_contacts"
+    redirect="/supplier-contacts"
+    transform={toSupplierContactWrite}
+  >
     <SupplierFormCard title="New supplier contact">
       <SupplierContactInputs />
     </SupplierFormCard>
@@ -49,7 +54,11 @@ export const SupplierContactCreate = () => (
 );
 
 export const SupplierContactEdit = () => (
-  <EditBase resource="romiku_supplier_contacts" redirect="/supplier-contacts">
+  <EditBase
+    resource="romiku_supplier_contacts"
+    redirect="/supplier-contacts"
+    transform={toSupplierContactWrite}
+  >
     <SupplierFormCard title="Edit supplier contact">
       <SupplierContactInputs />
     </SupplierFormCard>
