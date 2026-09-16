@@ -4172,5 +4172,3 @@ revoke all on function public.romiku_convert_document(text, uuid, text) from pub
 grant execute on function public.romiku_convert_document(text, uuid, text) to authenticated, service_role;
 revoke all on function public.romiku_publish_quote_version(uuid) from public, anon, authenticated;
 grant execute on function public.romiku_publish_quote_version(uuid) to authenticated, service_role;
-
-

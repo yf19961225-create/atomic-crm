@@ -17,7 +17,7 @@ service writes without a user have null audit-user references.
 Anonymous roles have no ROMIKU table, view, sequence or RPC privileges.
 Core document headers and original inquiry items cannot be deleted by business
 users; use `archived_at` on headers. Quote versions and cost history are append-only.
-Numbering configuration writes require Atomic's existing admin check.
+Both authenticated V1 users can maintain numbering configuration.
 The MVP shares procurement and bank snapshots with authenticated users; finer
 field-level permissions remain a future permissions task.
 
@@ -44,20 +44,24 @@ using the version RPC. Temporary items need only a SKU and quantity.
 
 Numbers are generated on insert, unique within each document table, and immutable.
 The global PostgreSQL sequence avoids concurrent collisions; gaps are normal.
-Default prefixes are WI, Q, PI, SO, PO and PL. Admins may override prefix and
+Default prefixes are WI, Q, PI, SO, PO and PL. Authenticated users may override prefix and
 minimum digits by document kind in `romiku_numbering_rules`.
 
 ## Quantities and financial data
 
 Amounts are generated from quantity × unit price, rounded per line to two decimals.
 The totals views derive subtotal + freight + other expenses − discount. No client
-total is stored or trusted. Payment currency is inherited from the order.
+total is stored or trusted. Payment currency is inherited from the order and the
+order currency cannot change after a payment exists. Payments cannot move to another
+order. Payment writes lock the order to serialize against currency edits.
 `romiku_order_totals` includes received, remaining and deposit amounts.
 
 Production headers require exactly one supplier. Items inherit that supplier.
 Composite foreign keys prevent production and packing items from referencing a
 different order. Production quantities and unallocated quantities are derived for
-auditing; this MVP does not automatically select suppliers or block reallocations.
+auditing; cancelled production orders release their active allocation while their
+items remain in history. This MVP does not automatically select suppliers or block
+reallocations.
 
 Packing supports multiple partial lists. A row lock serializes allocations against
 the source order item; inserts, updates and reductions of the ordered quantity
@@ -76,7 +80,11 @@ object. Recurrence is stored as metadata; no background expansion is implemented
 
 Other views cover document totals, remaining packing/production quantities,
 packing carton/CBM/weight totals, outbound follow-up statistics, and latest
-applicable supplier cost per currency. Follow-up record history and the parent
+applicable supplier cost per currency. Once procurement cost history exists, its
+ProductSupplier SKU, Sanity ID and supplier ID are immutable; other attributes
+remain editable. History inserts lock the relationship to serialize against identity
+edits. ProductSupplier identity and order currency changes require READ COMMITTED.
+Follow-up record history and the parent
 record's current next-follow-up schedule are distinct fields; callers update the
 current schedule explicitly without changing business status.
 
@@ -100,4 +108,3 @@ with explicit view options and the exact ROMIKU grant/revoke block from the
 declarative schema. Keep these corrections when regenerating: a no-diff report
 alone does not validate permissions. The SQL suite checks actual post-reset
 privileges and view options.
-

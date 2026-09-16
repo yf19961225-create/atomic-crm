@@ -71,7 +71,7 @@ create policy "Enable access for authenticated users only" on public.favicons_ex
 -- ROMIKU shared-team MVP access; no anonymous policies.
 alter table public.romiku_numbering_rules enable row level security;
 create policy romiku_read on public.romiku_numbering_rules for select to authenticated using (true);
-create policy romiku_admin_write on public.romiku_numbering_rules for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy romiku_write on public.romiku_numbering_rules for all to authenticated using (true) with check (true);
 alter table public.romiku_outbound_companies enable row level security;
 create policy romiku_read on public.romiku_outbound_companies for select to authenticated using (true);
 create policy romiku_insert on public.romiku_outbound_companies for insert to authenticated with check (true);

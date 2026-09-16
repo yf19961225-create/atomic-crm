@@ -125,3 +125,7 @@ create trigger romiku_parent_lock before insert or update or delete on public.ro
 create trigger romiku_parent_lock before insert or update or delete on public.romiku_website_inquiry_items for each row execute function public.romiku_lock_document_parent('romiku_website_inquiries','inquiry_id');
 create trigger romiku_packing_quantity before insert or update on public.romiku_packing_items for each row execute function public.romiku_check_packing_quantity();
 create trigger romiku_order_quantity before update of quantity on public.romiku_order_items for each row execute function public.romiku_check_order_quantity();
+create trigger romiku_cost_identity before update of sku, sanity_product_id, supplier_id on public.romiku_product_suppliers for each row execute function public.romiku_preserve_cost_identity();
+create trigger romiku_parent_lock before insert on public.romiku_procurement_cost_history for each row execute function public.romiku_lock_document_parent('romiku_product_suppliers','product_supplier_id');
+create trigger romiku_payment_currency before update of currency on public.romiku_orders for each row execute function public.romiku_preserve_payment_currency();
+create trigger romiku_parent_lock before insert or update or delete on public.romiku_payments for each row execute function public.romiku_lock_document_parent('romiku_orders','order_id');

@@ -165,7 +165,13 @@ select i.id,i.order_id,i.sku,i.quantity as ordered_quantity,
     coalesce(w.quantity,0) as production_quantity,i.quantity-coalesce(w.quantity,0) as unallocated_quantity
     from public.romiku_order_items i
     left join (select source_order_item_id,sum(quantity) as quantity from public.romiku_packing_items group by source_order_item_id) p on p.source_order_item_id=i.id
-    left join (select source_order_item_id,sum(quantity) as quantity from public.romiku_production_items group by source_order_item_id) w on w.source_order_item_id=i.id;
+    left join (
+      select pi.source_order_item_id,sum(pi.quantity) as quantity
+      from public.romiku_production_items pi
+      join public.romiku_production_orders po on po.id=pi.production_order_id
+      where po.status <> 'cancelled'
+      group by pi.source_order_item_id
+    ) w on w.source_order_item_id=i.id;
 
 create or replace view public.romiku_packing_totals with (security_invoker = true) as
 select p.*,coalesce(i.total_cartons,0) as total_cartons,coalesce(i.total_cbm,0) as total_cbm,coalesce(i.total_weight_kg,0) as total_weight_kg

@@ -70,6 +70,25 @@ select '41000000-0000-0000-0000-000000000001',order_id,id,sku,100,product_snapsh
 select throws_ok($$insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select '41000000-0000-0000-0000-000000000001',order_id,id,sku,10 from romiku_order_items where order_id=(select id from test_ids where kind='direct_order')$$,'23503',null,'production cannot attach another order item');
 update romiku_suppliers set name='Changed factory';
 select is((select supplier_snapshot->>'name' from romiku_production_orders limit 1),'Factory A','supplier edits never rewrite production snapshot');
+insert into romiku_product_suppliers(id,sku,sanity_product_id,supplier_id)
+values ('42000000-0000-0000-0000-000000000001','SUNS15','sanity-original','40000000-0000-0000-0000-000000000001');
+insert into romiku_procurement_cost_history(product_supplier_id,cost,currency,effective_date,source_type)
+values ('42000000-0000-0000-0000-000000000001',12.5,'USD','2026-01-01','supplier_quote');
+select throws_ok($$update romiku_product_suppliers set supplier_id='40000000-0000-0000-0000-000000000002' where id='42000000-0000-0000-0000-000000000001'$$,'23514',null,'cost history prevents supplier identity changes');
+select throws_ok($$update romiku_product_suppliers set sku='OTHER-SKU' where id='42000000-0000-0000-0000-000000000001'$$,'23514',null,'cost history prevents SKU identity changes');
+select throws_ok($$update romiku_product_suppliers set sanity_product_id='sanity-other' where id='42000000-0000-0000-0000-000000000001'$$,'23514',null,'cost history prevents Sanity identity changes');
+select is((select p.sku || ':' || p.sanity_product_id || ':' || p.supplier_id::text from romiku_procurement_cost_history h join romiku_product_suppliers p on p.id=h.product_supplier_id),'SUNS15:sanity-original:40000000-0000-0000-0000-000000000001','historical cost still identifies the original product and supplier');
+select lives_ok($$update romiku_product_suppliers set notes='Revised lead time notes' where id='42000000-0000-0000-0000-000000000001'$$,'nonidentity supplier attributes remain editable');
+select is((select unallocated_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),140::numeric,'active production initially consumes allocation');
+update romiku_production_orders set status='cancelled' where id='41000000-0000-0000-0000-000000000001';
+select is((select production_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),0::numeric,'cancelled production no longer consumes active allocation');
+select is((select unallocated_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),240::numeric,'cancellation restores the full quantity for reallocation');
+insert into romiku_production_orders(id,order_id,supplier_id)
+select '41000000-0000-0000-0000-000000000002',id,'40000000-0000-0000-0000-000000000002' from test_ids where kind='order';
+insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity)
+select '41000000-0000-0000-0000-000000000002',order_id,id,sku,240 from romiku_order_items where order_id=(select id from test_ids where kind='order');
+select is((select unallocated_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),0::numeric,'replacement production uses the released allocation once');
+select is((select quantity from romiku_production_items where production_order_id='41000000-0000-0000-0000-000000000001'),100::numeric,'cancelled production remains retained for history');
 
 insert into romiku_packing_lists(id,order_id) select '50000000-0000-0000-0000-000000000001',id from test_ids where kind='order';
 insert into romiku_packing_lists(id,order_id) select '50000000-0000-0000-0000-000000000002',id from test_ids where kind='order';
@@ -87,6 +106,10 @@ select is((select total_weight_kg from romiku_packing_totals where id='50000000-
 
 insert into romiku_payments(order_id,kind,amount) select id,'deposit',100 from test_ids where kind='order';
 select is((select remaining_amount from romiku_order_totals where id=(select id from test_ids where kind='order')),405::numeric,'actual payment reduces receivable');
+select throws_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='order')$$,'23514',null,'orders with payments cannot reinterpret the payment currency');
+select is((select currency from romiku_orders where id=(select id from test_ids where kind='order')),'USD','payment remains denominated in its original order currency');
+select lives_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='direct_order')$$,'unpaid order currency remains editable');
+select throws_ok($$update romiku_payments set order_id=(select id from test_ids where kind='direct_order') where order_id=(select id from test_ids where kind='order')$$,'23514',null,'payment cannot move to a different order and currency');
 update romiku_outbound_companies set next_follow_up_at=now()-interval '1 day';
 select is((select count(*) from romiku_calendar where event_type='outbound_follow_up'),1::bigint,'calendar derives outbound dates');
 select is((select count(*) from romiku_workbench where event_type='outbound_follow_up' and is_overdue),1::bigint,'workbench derives overdue work');
@@ -108,9 +131,13 @@ select throws_ok($$update romiku_quotes set other_expenses=-1$$,'23514',null,'ne
 select throws_ok($$select romiku_convert_document('order',(select id from test_ids where kind='order'),'quote')$$,'23514',null,'reverse mutation is not a conversion');
 insert into romiku_numbering_rules(document_kind,prefix,min_digits) values ('quote','CUSTOM',4);
 insert into romiku_quotes(notes) values ('numbering configuration test');
-select matches((select document_number from romiku_quotes where notes='numbering configuration test'),'^CUSTOM-[0-9]+$','admin numbering configuration applied server side');
+select matches((select document_number from romiku_quotes where notes='numbering configuration test'),'^CUSTOM-[0-9]+$','first user numbering configuration applied server side');
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
-select throws_ok($$insert into romiku_numbering_rules(document_kind,prefix) values ('pi','FORGED')$$,'42501',null,'numbering settings restricted to admin');
+select lives_ok($$insert into romiku_numbering_rules(document_kind,prefix) values ('pi','TEAM')$$,'second authenticated user can create numbering settings');
+update romiku_numbering_rules set prefix='SHARED' where document_kind='quote';
+select is((select prefix from romiku_numbering_rules where document_kind='quote'),'SHARED','second authenticated user can update shared numbering settings');
+delete from romiku_numbering_rules where document_kind='quote';
+select is((select count(*) from romiku_numbering_rules where document_kind='quote'),0::bigint,'second authenticated user can delete shared numbering settings');
 
 
 
@@ -118,6 +145,7 @@ reset role;
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='r' and not c.relrowsecurity),'RLS enabled on every ROMIKU table');
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='v' and not coalesce(c.reloptions @> array['security_invoker=true'],false)),'all ROMIKU derived views use security invoker');
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind in ('r','v') and has_table_privilege('anon',c.oid,'SELECT')),'anon has no ROMIKU table or view grants');
+select ok(not exists(select 1 from pg_proc p where p.pronamespace='public'::regnamespace and p.proname like 'romiku_%' and has_function_privilege('anon',p.oid,'EXECUTE')),'anon has no ROMIKU function execution grants');
 set local role anon;
 select throws_ok($$select * from romiku_website_inquiries$$,'42501',null,'anon cannot read inbound');
 select throws_ok($$select * from romiku_calendar$$,'42501',null,'anon cannot read derived events');

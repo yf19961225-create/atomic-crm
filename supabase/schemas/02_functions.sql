@@ -684,6 +684,45 @@ END;
 $$;
 
 
+-- A historical cost keeps the ProductSupplier identity it was recorded against.
+-- History inserts lock this same parent row, serializing the first cost with edits.
+CREATE OR REPLACE FUNCTION "public"."romiku_preserve_cost_identity"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF (NEW.sku,NEW.sanity_product_id,NEW.supplier_id)
+     IS DISTINCT FROM (OLD.sku,OLD.sanity_product_id,OLD.supplier_id) THEN
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+      RAISE EXCEPTION 'Product identity edits require READ COMMITTED; retry the transaction' USING ERRCODE = '40001';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.romiku_procurement_cost_history h WHERE h.product_supplier_id=OLD.id) THEN
+      RAISE EXCEPTION 'Product supplier identity is immutable after cost history exists' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- Payments inherit the order currency. Once a payment exists that currency is fixed.
+-- Payment inserts lock the order, so an overlapping currency change cannot race it.
+CREATE OR REPLACE FUNCTION "public"."romiku_preserve_payment_currency"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF NEW.currency IS DISTINCT FROM OLD.currency THEN
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+      RAISE EXCEPTION 'Order currency edits require READ COMMITTED; retry the transaction' USING ERRCODE = '40001';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.romiku_payments p WHERE p.order_id=OLD.id) THEN
+      RAISE EXCEPTION 'Order currency is immutable after payments exist' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION "public"."set_sales_id_default"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
