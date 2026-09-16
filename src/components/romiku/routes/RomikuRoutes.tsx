@@ -1,4 +1,6 @@
 import { Route } from "react-router";
+import { ProductLibrary } from "../products";
+import { SupplierContactList, SupplierList } from "../suppliers";
 import { romikuNavigation } from "./navigation";
 
 const RomikuPlaceholder = ({ label }: { label: string }) => (
@@ -19,8 +21,13 @@ const RomikuPlaceholder = ({ label }: { label: string }) => (
   </section>
 );
 
-export const romikuRoutes = romikuNavigation
-  .filter((item) => item.path !== "/")
+const placeholderRoutes = romikuNavigation
+  .filter(
+    (item) =>
+      item.path !== "/" &&
+      item.path !== "/suppliers" &&
+      item.path !== "/product-library",
+  )
   .map((item) => (
     <Route
       key={item.path}
@@ -28,3 +35,18 @@ export const romikuRoutes = romikuNavigation
       element={<RomikuPlaceholder label={item.label} />}
     />
   ));
+
+export const romikuRoutes = [
+  ...placeholderRoutes,
+  <Route key="/suppliers" path="/suppliers" element={<SupplierList />} />,
+  <Route
+    key="/supplier-contacts"
+    path="/supplier-contacts"
+    element={<SupplierContactList />}
+  />,
+  <Route
+    key="/product-library"
+    path="/product-library"
+    element={<ProductLibrary />}
+  />,
+];
