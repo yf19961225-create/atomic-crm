@@ -24,30 +24,35 @@ export function QuoteItems({
   quoteId,
   items,
   onChanged,
+  kind = "quote",
 }: {
   quoteId: string;
   items: RaRecord[];
   onChanged: () => Promise<unknown>;
+  kind?: "quote" | "pi" | "order";
 }) {
   const [adding, setAdding] = useState(false);
+  const label = kind === "pi" ? "PI" : kind === "order" ? "Order" : "Quote";
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">
         Save each item separately. MOQ, specification and packaging are stored
-        in this Quote's snapshots.
+        in this {label}'s snapshots.
       </p>
       {items.map((item) => (
         <ItemEditor
           key={`${item.id}:${item.updated_at || JSON.stringify(item)}`}
           quoteId={quoteId}
+          kind={kind}
           item={item}
           onChanged={onChanged}
         />
       ))}
-      {!items.length && !adding && <p>No Quote items yet.</p>}
+      {!items.length && !adding && <p>No {label} items yet.</p>}
       {adding ? (
         <ItemEditor
           quoteId={quoteId}
+          kind={kind}
           onChanged={async () => {
             await onChanged();
             setAdding(false);
@@ -65,13 +70,16 @@ function ItemEditor({
   item,
   onChanged,
   onCancel,
+  kind,
 }: {
   quoteId: string;
   item?: RaRecord;
   onChanged: () => Promise<unknown>;
   onCancel?: () => void;
+  kind: "quote" | "pi" | "order";
 }) {
   const provider = useDataProvider();
+  const resource = `romiku_${kind}_items`;
   const [values, setValues] = useState<Values>(
     item || {
       sku: "",
@@ -88,7 +96,7 @@ function ItemEditor({
     setFailure("");
     try {
       if (remove && item)
-        await provider.delete("romiku_quote_items", {
+        await provider.delete(resource, {
           id: item.id,
           previousData: item,
         });
@@ -98,14 +106,14 @@ function ItemEditor({
         // SKU changes must not leave a stale match attached to a different product.
         if (item && data.sku !== item.sku) data.sanity_product_id = null;
         if (item)
-          await provider.update("romiku_quote_items", {
+          await provider.update(resource, {
             id: item.id,
             data,
             previousData: item,
           });
         else
-          await provider.create("romiku_quote_items", {
-            data: { ...data, quote_id: quoteId },
+          await provider.create(resource, {
+            data: { ...data, [`${kind}_id`]: quoteId },
           });
       }
       await onChanged();

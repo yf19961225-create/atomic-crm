@@ -13,6 +13,7 @@ import { readRelated } from "../outbound/workflow";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { quoteHeaderWrite, quoteStatuses, quoteTotals } from "./quoteWorkflow";
 import { QuoteItems } from "./QuoteItems";
+import { DocumentConversion } from "../orders/DocumentConversion";
 
 function SourceLinks({ record }: { record: RaRecord }) {
   return (
@@ -290,6 +291,7 @@ function QuoteEditor({
         {record.document_number || "Draft Quote"}
       </h1>
       <SourceLinks record={record} />
+      <DocumentConversion source="quote" sourceId={String(record.id)} />
       <p className="text-muted-foreground text-sm">
         Source links are retained. Quote edits apply only to this document.
       </p>

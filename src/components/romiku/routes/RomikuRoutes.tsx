@@ -7,6 +7,12 @@ import { OutboundPage } from "../outbound/OutboundPage";
 import { CustomerPage } from "../customers/CustomerPage";
 import { QuoteList, QuoteDetail } from "../quotes/QuotePages";
 import { QuoteCreate } from "../quotes/QuoteCreate";
+import { PiList, PiCreate, PiDetail } from "../pi/PiPages";
+import {
+  DocumentCreate,
+  DocumentDetail,
+  DocumentList,
+} from "../orders/DocumentPages";
 
 const RomikuPlaceholder = ({ label }: { label: string }) => (
   <section
@@ -35,6 +41,8 @@ const placeholderRoutes = romikuNavigation
       item.path !== "/outbound-development" &&
       item.path !== "/formal-customers" &&
       item.path !== "/quotes" &&
+      item.path !== "/pi" &&
+      item.path !== "/orders" &&
       item.path !== "/product-library",
   )
   .map((item) => (
@@ -47,6 +55,24 @@ const placeholderRoutes = romikuNavigation
 
 export const romikuRoutes = [
   ...placeholderRoutes,
+  <Route key="/pi" path="/pi" element={<PiList />} />,
+  <Route key="/pi/new" path="/pi/new" element={<PiCreate />} />,
+  <Route key="/pi/:id" path="/pi/:id" element={<PiDetail />} />,
+  <Route
+    key="/orders"
+    path="/orders"
+    element={<DocumentList kind="order" />}
+  />,
+  <Route
+    key="/orders/new"
+    path="/orders/new"
+    element={<DocumentCreate kind="order" />}
+  />,
+  <Route
+    key="/orders/:id"
+    path="/orders/:id"
+    element={<DocumentDetail kind="order" />}
+  />,
   <Route key="/quotes" path="/quotes" element={<QuoteList />} />,
   <Route key="/quotes/new" path="/quotes/new" element={<QuoteCreate />} />,
   <Route key="/quotes/:id" path="/quotes/:id" element={<QuoteDetail />} />,
