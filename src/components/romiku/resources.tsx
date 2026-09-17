@@ -19,6 +19,9 @@ import {
 } from "./suppliers";
 export const RomikuResources = () => (
   <>
+    <Resource name="romiku_calendar" />
+    <Resource name="romiku_workbench" />
+    <Resource name="romiku_manual_tasks" recordRepresentation="title" />
     <Resource
       name="romiku_production_orders"
       recordRepresentation="document_number"

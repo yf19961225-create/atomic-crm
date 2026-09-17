@@ -1,4 +1,6 @@
 import { Route } from "react-router";
+import { RomikuCalendar } from "../calendar/RomikuCalendar";
+import { ManualTaskList, ManualTaskPage } from "../calendar/ManualTasks";
 import { ProductLibrary } from "../products";
 import { SupplierContactList, SupplierList } from "../suppliers";
 import { romikuNavigation } from "./navigation";
@@ -42,6 +44,7 @@ const placeholderRoutes = romikuNavigation
   .filter(
     (item) =>
       item.path !== "/" &&
+      item.path !== "/calendar" &&
       item.path !== "/suppliers" &&
       item.path !== "/website-inquiries" &&
       item.path !== "/outbound-development" &&
@@ -63,6 +66,17 @@ const placeholderRoutes = romikuNavigation
 
 export const romikuRoutes = [
   ...placeholderRoutes,
+  <Route key="/calendar" path="/calendar" element={<RomikuCalendar />} />,
+  <Route
+    key="/calendar/tasks"
+    path="/calendar/tasks"
+    element={<ManualTaskList />}
+  />,
+  <Route
+    key="/calendar/tasks/:id"
+    path="/calendar/tasks/:id"
+    element={<ManualTaskPage />}
+  />,
   <Route
     key="/production"
     path="/production"
