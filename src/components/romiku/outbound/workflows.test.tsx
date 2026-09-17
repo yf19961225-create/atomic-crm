@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -9,6 +9,10 @@ import { page } from "vitest/browser";
 
 beforeEach(async () => {
   await page.viewport(1440, 1000);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 const list = {
@@ -155,6 +159,28 @@ describe("independent ROMIKU workflows", () => {
             .data.status,
       )
       .toBe("replied");
+  });
+
+  it("resets a saved follow-up with a new contacted timestamp", async () => {
+    vi.setSystemTime(new Date("2026-09-17T10:00:00Z"));
+    const { screen } = await setup("/outbound-development?record=out-1");
+    await screen.getByRole("tab", { name: "Follow-ups" }).click();
+    const contactedAt = screen.getByLabelText("Contacted at", { exact: true });
+    const initialContactedAt = (contactedAt.element() as HTMLInputElement)
+      .value;
+
+    vi.setSystemTime(new Date("2026-09-17T10:01:00Z"));
+    await screen
+      .getByLabelText("Summary", { exact: true })
+      .fill("Sent introduction");
+    await screen
+      .getByRole("button", { name: "Add follow-up", exact: true })
+      .click();
+    await expect
+      .element(screen.getByText("Sent introduction", { exact: true }))
+      .toBeVisible();
+
+    await expect.element(contactedAt).not.toHaveValue(initialContactedAt);
   });
 
   it("keeps submitted inquiry items and raw values immutable when handling and following up", async () => {

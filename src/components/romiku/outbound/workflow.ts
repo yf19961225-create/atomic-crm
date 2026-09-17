@@ -33,7 +33,15 @@ export const followupMethods = [
 export type Followup = RaRecord & {
   contacted_at: string;
   next_follow_up_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
+
+const timestamp = (value?: string | null) => {
+  const parsed = Date.parse(value || "");
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
 export function deriveFollowupState(
   followups: Followup[],
   status: string,
@@ -41,8 +49,9 @@ export function deriveFollowupState(
 ) {
   const latest = [...followups].sort(
     (a, b) =>
-      Date.parse(b.contacted_at) - Date.parse(a.contacted_at) ||
-      String(b.id).localeCompare(String(a.id)),
+      timestamp(b.contacted_at) - timestamp(a.contacted_at) ||
+      timestamp(b.updated_at) - timestamp(a.updated_at) ||
+      timestamp(b.created_at) - timestamp(a.created_at),
   )[0];
   const next = latest?.next_follow_up_at || null;
   return {

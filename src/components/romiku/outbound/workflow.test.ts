@@ -33,6 +33,34 @@ describe("workflow write boundaries and calculated state", () => {
       overdue: false,
     });
   });
+  it("uses persisted chronology to let a newer same-minute cancellation win", () => {
+    expect(
+      deriveFollowupState(
+        [
+          {
+            id: "z-random-id",
+            contacted_at: "2026-09-10T10:00:00Z",
+            created_at: "2026-09-10T10:00:01Z",
+            updated_at: "2026-09-10T10:00:01Z",
+            next_follow_up_at: "2026-09-19T10:00:00Z",
+          },
+          {
+            id: "a-random-id",
+            contacted_at: "2026-09-10T10:00:00Z",
+            created_at: "2026-09-10T10:00:02Z",
+            updated_at: "2026-09-10T10:00:02Z",
+            next_follow_up_at: null,
+          },
+        ],
+        "replied",
+        new Date("2026-09-17"),
+      ),
+    ).toMatchObject({
+      last_contact_at: "2026-09-10T10:00:00Z",
+      next_follow_up_at: null,
+      overdue: false,
+    });
+  });
   it("calculates overdue without promoting or reclassifying any business status", () => {
     const history = [
       {

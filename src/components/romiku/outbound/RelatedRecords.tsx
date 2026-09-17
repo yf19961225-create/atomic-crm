@@ -70,6 +70,8 @@ export function RelatedRecords({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const [needsSync, setNeedsSync] = useState(false);
+  const resetValues = () =>
+    followupKind ? { ...defaults, contacted_at: localDateTime() } : defaults;
   const reload = async () => {
     await client.invalidateQueries({ queryKey: ["romiku-related"] });
     refresh();
@@ -105,7 +107,7 @@ export function RelatedRecords({
         });
       else await provider.create(resource, { data: payload });
       setEditing(undefined);
-      setValues(defaults);
+      setValues(resetValues());
       // A retry after a schedule failure must not insert a duplicate follow-up.
       if (followupKind) {
         try {
@@ -225,7 +227,7 @@ export function RelatedRecords({
               variant="outline"
               onClick={() => {
                 setEditing(undefined);
-                setValues(defaults);
+                setValues(resetValues());
               }}
             >
               Cancel edit
