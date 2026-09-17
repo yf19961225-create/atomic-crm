@@ -1,4 +1,7 @@
 import { Resource } from "ra-core";
+import { InquiryPage } from "./inquiries/InquiryPage";
+import { OutboundPage } from "./outbound/OutboundPage";
+import { CustomerPage } from "./customers/CustomerPage";
 import {
   ProductExtensionCreate,
   ProductExtensionEdit,
@@ -15,6 +18,27 @@ import {
 } from "./suppliers";
 export const RomikuResources = () => (
   <>
+    <Resource
+      name="romiku_website_inquiries"
+      list={InquiryPage}
+      recordRepresentation="document_number"
+    />
+    <Resource name="romiku_website_inquiry_items" />
+    <Resource name="romiku_website_inquiry_followups" />
+    <Resource
+      name="romiku_outbound_companies"
+      list={OutboundPage}
+      recordRepresentation="name"
+    />
+    <Resource name="romiku_outbound_contacts" />
+    <Resource name="romiku_outbound_followups" />
+    <Resource name="romiku_source_urls" />
+    <Resource
+      name="romiku_formal_customers"
+      list={CustomerPage}
+      recordRepresentation="name"
+    />
+    <Resource name="romiku_customer_contacts" />
     <Resource
       name="romiku_suppliers"
       list={SupplierList}

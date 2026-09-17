@@ -2,6 +2,9 @@ import { Route } from "react-router";
 import { ProductLibrary } from "../products";
 import { SupplierContactList, SupplierList } from "../suppliers";
 import { romikuNavigation } from "./navigation";
+import { InquiryPage } from "../inquiries/InquiryPage";
+import { OutboundPage } from "../outbound/OutboundPage";
+import { CustomerPage } from "../customers/CustomerPage";
 
 const RomikuPlaceholder = ({ label }: { label: string }) => (
   <section
@@ -26,6 +29,9 @@ const placeholderRoutes = romikuNavigation
     (item) =>
       item.path !== "/" &&
       item.path !== "/suppliers" &&
+      item.path !== "/website-inquiries" &&
+      item.path !== "/outbound-development" &&
+      item.path !== "/formal-customers" &&
       item.path !== "/product-library",
   )
   .map((item) => (
@@ -38,6 +44,21 @@ const placeholderRoutes = romikuNavigation
 
 export const romikuRoutes = [
   ...placeholderRoutes,
+  <Route
+    key="/website-inquiries"
+    path="/website-inquiries"
+    element={<InquiryPage />}
+  />,
+  <Route
+    key="/outbound-development"
+    path="/outbound-development"
+    element={<OutboundPage />}
+  />,
+  <Route
+    key="/formal-customers"
+    path="/formal-customers"
+    element={<CustomerPage />}
+  />,
   <Route key="/suppliers" path="/suppliers" element={<SupplierList />} />,
   <Route
     key="/supplier-contacts"
