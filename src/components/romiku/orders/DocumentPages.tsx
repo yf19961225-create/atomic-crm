@@ -429,6 +429,19 @@ function DocumentEditor({
         {record.document_number || `Draft ${config.label}`}
       </h1>
       <DocumentSources record={record} />
+      {kind === "order" && (
+        <div className="flex gap-4">
+          <Link className="underline" to={`/production?order=${record.id}`}>
+            Production Orders
+          </Link>
+          <Link
+            className="underline"
+            to={`/packing-shipping?order=${record.id}`}
+          >
+            Packing Lists
+          </Link>
+        </div>
+      )}
       {kind === "pi" && (
         <DocumentConversion source="pi" sourceId={String(record.id)} />
       )}

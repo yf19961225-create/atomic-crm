@@ -9,6 +9,12 @@ import { QuoteList, QuoteDetail } from "../quotes/QuotePages";
 import { QuoteCreate } from "../quotes/QuoteCreate";
 import { PiList, PiCreate, PiDetail } from "../pi/PiPages";
 import {
+  FulfillmentList,
+  FulfillmentDetail,
+} from "../production/FulfillmentPages";
+import { ProductionCreate } from "../production/ProductionCreate";
+import { PackingCreate } from "../packing/PackingCreate";
+import {
   DocumentCreate,
   DocumentDetail,
   DocumentList,
@@ -43,6 +49,8 @@ const placeholderRoutes = romikuNavigation
       item.path !== "/quotes" &&
       item.path !== "/pi" &&
       item.path !== "/orders" &&
+      item.path !== "/production" &&
+      item.path !== "/packing-shipping" &&
       item.path !== "/product-library",
   )
   .map((item) => (
@@ -55,6 +63,36 @@ const placeholderRoutes = romikuNavigation
 
 export const romikuRoutes = [
   ...placeholderRoutes,
+  <Route
+    key="/production"
+    path="/production"
+    element={<FulfillmentList kind="production" />}
+  />,
+  <Route
+    key="/production/new"
+    path="/production/new"
+    element={<ProductionCreate />}
+  />,
+  <Route
+    key="/production/:id"
+    path="/production/:id"
+    element={<FulfillmentDetail kind="production" />}
+  />,
+  <Route
+    key="/packing-shipping"
+    path="/packing-shipping"
+    element={<FulfillmentList kind="packing" />}
+  />,
+  <Route
+    key="/packing-shipping/new"
+    path="/packing-shipping/new"
+    element={<PackingCreate />}
+  />,
+  <Route
+    key="/packing-shipping/:id"
+    path="/packing-shipping/:id"
+    element={<FulfillmentDetail kind="packing" />}
+  />,
   <Route key="/pi" path="/pi" element={<PiList />} />,
   <Route key="/pi/new" path="/pi/new" element={<PiCreate />} />,
   <Route key="/pi/:id" path="/pi/:id" element={<PiDetail />} />,

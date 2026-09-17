@@ -20,6 +20,19 @@ import {
 export const RomikuResources = () => (
   <>
     <Resource
+      name="romiku_production_orders"
+      recordRepresentation="document_number"
+    />
+    <Resource name="romiku_production_items" />
+    <Resource name="romiku_production_followups" />
+    <Resource
+      name="romiku_packing_lists"
+      recordRepresentation="document_number"
+    />
+    <Resource name="romiku_packing_items" />
+    <Resource name="romiku_packing_totals" />
+    <Resource name="romiku_order_item_remaining" />
+    <Resource
       name="romiku_quotes"
       list={QuoteList}
       recordRepresentation="document_number"
