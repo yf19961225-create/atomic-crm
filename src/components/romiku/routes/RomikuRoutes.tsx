@@ -5,6 +5,8 @@ import { romikuNavigation } from "./navigation";
 import { InquiryPage } from "../inquiries/InquiryPage";
 import { OutboundPage } from "../outbound/OutboundPage";
 import { CustomerPage } from "../customers/CustomerPage";
+import { QuoteList, QuoteDetail } from "../quotes/QuotePages";
+import { QuoteCreate } from "../quotes/QuoteCreate";
 
 const RomikuPlaceholder = ({ label }: { label: string }) => (
   <section
@@ -32,6 +34,7 @@ const placeholderRoutes = romikuNavigation
       item.path !== "/website-inquiries" &&
       item.path !== "/outbound-development" &&
       item.path !== "/formal-customers" &&
+      item.path !== "/quotes" &&
       item.path !== "/product-library",
   )
   .map((item) => (
@@ -44,6 +47,9 @@ const placeholderRoutes = romikuNavigation
 
 export const romikuRoutes = [
   ...placeholderRoutes,
+  <Route key="/quotes" path="/quotes" element={<QuoteList />} />,
+  <Route key="/quotes/new" path="/quotes/new" element={<QuoteCreate />} />,
+  <Route key="/quotes/:id" path="/quotes/:id" element={<QuoteDetail />} />,
   <Route
     key="/website-inquiries"
     path="/website-inquiries"

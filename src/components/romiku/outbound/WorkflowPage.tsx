@@ -424,6 +424,15 @@ function RecordEditor({
   };
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      {record && (
+        <Button asChild variant="outline">
+          <Link
+            to={`/quotes/new?source=${config.kind}&sourceId=${encodeURIComponent(record.id)}`}
+          >
+            Create Quote
+          </Link>
+        </Button>
+      )}
       <TabsList className="h-auto flex-wrap justify-start">
         <TabsTrigger value="Profile">Profile</TabsTrigger>
         {config.extraTabs?.map((tab) => (
