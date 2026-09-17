@@ -76,8 +76,13 @@ export function buildActions(data: ActionData, now = new Date()): Action[] {
         ...e,
         group: isOverdue(e, now) ? "outbound_overdue" : "outbound",
       });
-    if (e.event_type === "order_delivery")
+    if (e.event_type === "order_delivery" && e.status !== "cancelled")
       actions.push({ ...e, group: "delivery" });
+    if (
+      e.event_type === "production_anomaly" &&
+      ["completed", "received", "cancelled"].includes(e.status)
+    )
+      actions.push({ ...e, group: "production", urgent: true });
   }
   for (const [resource, group] of [
     ["romiku_quotes", "quote"],

@@ -49,6 +49,113 @@ it("excludes archived or completed work and caps deposit at the actual remaining
   expect(actions).toHaveLength(1);
   expect(actions[0]).toMatchObject({ group: "deposit", amount: 20 });
 });
+it("excludes cancelled order-delivery events from the workbench feed", () => {
+  const actions = buildActions(
+    {
+      romiku_workbench: [
+        {
+          id: "order_delivery:open",
+          source_id: "open",
+          event_type: "order_delivery",
+          source_table: "romiku_orders",
+          title: "Open order",
+          status: "confirmed",
+          due_at: "2026-09-20T10:00:00Z",
+        },
+        {
+          id: "order_delivery:cancelled",
+          source_id: "cancelled",
+          event_type: "order_delivery",
+          source_table: "romiku_orders",
+          title: "Cancelled order",
+          status: "cancelled",
+          due_at: "2026-09-20T10:00:00Z",
+        },
+      ],
+    },
+    now,
+  );
+
+  expect(actions.map((action) => action.source_id)).toEqual(["open"]);
+});
+it("keeps unresolved production anomalies actionable after completion without duplicates", () => {
+  const actions = buildActions(
+    {
+      romiku_workbench: [
+        {
+          id: "production_anomaly:active",
+          source_id: "active",
+          event_type: "production_anomaly",
+          source_table: "romiku_production_orders",
+          title: "Active production",
+          status: "in_production",
+          due_at: "2026-09-20T10:00:00Z",
+        },
+        {
+          id: "production_anomaly:completed",
+          source_id: "completed",
+          event_type: "production_anomaly",
+          source_table: "romiku_production_orders",
+          title: "Completed production",
+          status: "completed",
+          due_at: "2026-09-20T10:00:00Z",
+        },
+        {
+          id: "production_anomaly:received",
+          source_id: "received",
+          event_type: "production_anomaly",
+          source_table: "romiku_production_orders",
+          title: "Received production",
+          status: "received",
+          due_at: "2026-09-20T10:00:00Z",
+        },
+        {
+          id: "production_anomaly:cancelled",
+          source_id: "cancelled",
+          event_type: "production_anomaly",
+          source_table: "romiku_production_orders",
+          title: "Cancelled production with unresolved anomaly",
+          status: "cancelled",
+          due_at: "2026-09-20T10:00:00Z",
+        },
+      ],
+      romiku_production_orders: [
+        {
+          id: "active",
+          status: "in_production",
+          factory_due_at: "2026-09-20T10:00:00Z",
+          anomaly_flags: ["delay"],
+        },
+        {
+          id: "completed",
+          status: "completed",
+          anomaly_flags: ["quality"],
+        },
+        {
+          id: "received",
+          status: "received",
+          anomaly_flags: ["quantity"],
+        },
+        {
+          id: "cancelled",
+          status: "cancelled",
+          anomaly_flags: ["supplier_dispute"],
+        },
+        { id: "cleared", status: "completed", anomaly_flags: [] },
+      ],
+    },
+    now,
+  );
+
+  const production = actions.filter((action) => action.group === "production");
+  expect(production.map((action) => action.source_id).sort()).toEqual([
+    "active",
+    "cancelled",
+    "completed",
+    "received",
+  ]);
+  expect(production.every((action) => action.urgent)).toBe(true);
+});
 it.each([
   ["romiku_website_inquiries", "/website-inquiries?record=a%2Fb"],
   ["romiku_outbound_companies", "/outbound-development?record=a%2Fb"],

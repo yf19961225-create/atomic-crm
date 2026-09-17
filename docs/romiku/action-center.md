@@ -34,10 +34,12 @@ list. No recurrence, reminder engine, calendar drag editing or external sync is
 implemented.
 
 Packing lists do not have a shipment-completed status in the existing schema;
-all unarchived lists remain in the packing/shipping card. Order delivery appears
-as a separate action while its expected delivery date is set and actual delivery
-is unset. Pending document cards use document status; the calendar retains the
-dated Quote/PI behavior defined by the original view.
+all unarchived lists remain in the packing/shipping card. The UI currently
+cannot archive a list, so removing an actionable Packing action requires a
+database/API action. Order delivery appears as a separate action while its
+expected delivery date is set and actual delivery is unset. Pending document
+cards use document status; the calendar retains the dated Quote/PI behavior
+defined by the original view.
 
 Verification (Node 22):
 
