@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.smoke.tsbuildinfo",
+    "types": ["node", "vitest/globals", "faker"]
+  },
+  "include": ["e2e/today-mvp.spec.ts", "playwright.today.config.ts"]
+}

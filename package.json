@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "test:smoke:today": "playwright test --config playwright.today.config.ts",
     "test:unit:app": "vitest --config vitest.config.ts",
     "test:unit:claude": "vitest --config vitest.config.ts --project claude",
     "test:unit:functions": "vitest --config vitest.config.ts --project functions",
@@ -11,7 +12,7 @@
     "build": "tsc && tsc --project tsconfig.server.json && vite build",
     "build:e2e": "vite build --mode e2e",
     "build:demo": "tsc && vite build --config vite.demo.config",
-    "typecheck": "tsc --noEmit --project tsconfig.app.json && tsc --project tsconfig.server.json",
+    "typecheck": "tsc --noEmit --project tsconfig.app.json && tsc --project tsconfig.server.json && tsc --project tsconfig.smoke.json",
     "preview": "vite preview",
     "lint:apply": "eslint **/*.{mjs,ts,tsx} --fix",
     "lint": "eslint **/*.{mjs,ts,tsx}",
