@@ -9,6 +9,7 @@ describe("ROMIKU product shell", () => {
     expect(romikuBrand.darkModeLogo).toMatch(/romiku-wordmark/);
     expect(romikuBrand.lightModeLogo).toMatch(/romiku-wordmark/);
     expect(romikuBrand.darkModeLogo).toContain("fill='%23ffffff'");
+    expect(romikuBrand.darkModeLogo).toContain("href='/romiku-wordmark.png'");
   });
 
   it("keeps ROMIKU presentation when an existing server configuration loads", () => {

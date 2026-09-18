@@ -186,6 +186,8 @@ const chineseMessages = {
     },
     common: {
       account_manager: "客户经理",
+      copy: "复制",
+      copied: "已复制！",
       activity: "动态",
       details: "详情",
       load_more: "加载更多",
@@ -216,9 +218,16 @@ const chineseMessages = {
         currency: "货币",
         pipeline_statuses: "管道状态",
         stages: "阶段",
+        pipeline_help: "选择应计入商机管道的阶段。",
       },
       notes: { statuses: "状态" },
       tasks: { types: "类型" },
+      validation: {
+        duplicate: "重复的 %{display_name}：%{items}",
+        in_use: "无法移除仍被商机使用的 %{display_name}：%{items}",
+        validating: "验证中…",
+        entities: { categories: "类别", stages: "阶段" },
+      },
       preferences: "偏好设置",
       title: "设置",
       app_title: "应用名称",
@@ -234,6 +243,11 @@ const chineseMessages = {
         title: "收件邮件",
         description:
           "您可以将邮件发送至服务器的收件邮箱地址；ROMIKU CRM 2.0 会处理邮件并将备注添加至对应联系人。",
+      },
+      mcp: {
+        title: "MCP 服务器",
+        description:
+          "使用此 URL 通过模型上下文协议（MCP）将 AI 助手连接至您的 CRM 数据。",
       },
       password_reset_sent: "密码重置邮件已发送至您的邮箱。",
       record_not_found: "未找到记录",
