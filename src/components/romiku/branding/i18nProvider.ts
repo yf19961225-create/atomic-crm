@@ -140,8 +140,10 @@ const chineseMessages = {
     auth: {
       password_reset: "请查收用于重置密码的邮件。",
       forgot_password: "忘记密码？",
+      missing_tokens: "缺少重置密码所需的验证信息。",
     },
     set_password: { new_password: "设置新密码" },
+    validation: { password_mismatch: "两次输入的密码不一致。" },
     reset_password: {
       forgot_password: "忘记密码？",
       forgot_password_details: "请输入邮箱地址，我们会向您发送重置密码链接。",
@@ -202,6 +204,21 @@ const chineseMessages = {
     },
     settings: {
       about: "关于",
+      dark_mode_logo: "深色模式标志",
+      light_mode_logo: "浅色模式标志",
+      reset_defaults: "恢复默认设置",
+      save_error: "保存配置失败",
+      saved: "配置已保存",
+      saving: "保存中…",
+      companies: { sectors: "行业" },
+      deals: {
+        categories: "类别",
+        currency: "货币",
+        pipeline_statuses: "管道状态",
+        stages: "阶段",
+      },
+      notes: { statuses: "状态" },
+      tasks: { types: "类型" },
       preferences: "偏好设置",
       title: "设置",
       app_title: "应用名称",
@@ -210,7 +227,19 @@ const chineseMessages = {
     theme: { dark: "深色", label: "主题", light: "浅色", system: "跟随系统" },
     language: "语言",
     navigation: { label: "CRM 导航" },
-    profile: { title: "个人资料", password: { change: "修改密码" } },
+    profile: {
+      title: "个人资料",
+      password: { change: "修改密码" },
+      inbound: {
+        title: "收件邮件",
+        description:
+          "您可以将邮件发送至服务器的收件邮箱地址；ROMIKU CRM 2.0 会处理邮件并将备注添加至对应联系人。",
+      },
+      password_reset_sent: "密码重置邮件已发送至您的邮箱。",
+      record_not_found: "未找到记录",
+      updated: "个人资料已更新",
+      update_error: "发生错误，请重试。",
+    },
   },
 };
 

@@ -5,6 +5,30 @@ import { RomikuWorkbench } from "@/components/romiku/workbench/RomikuWorkbench";
 import { romikuResources } from "@/components/romiku/resources";
 import { romikuBrand } from "@/components/romiku/branding/brand";
 import { romikuI18nProvider } from "@/components/romiku/branding/i18nProvider";
+import { applyRomikuBrand } from "@/components/romiku/branding/configuration";
+import { localStorageStore, type Store } from "ra-core";
+
+const baseStore = localStorageStore(undefined, "CRM");
+const romikuStore: Store = {
+  ...baseStore,
+  getItem: (key, defaultValue) =>
+    key === "app.configuration"
+      ? (applyRomikuBrand(
+          baseStore.getItem(key, defaultValue) ?? {},
+        ) as typeof defaultValue)
+      : baseStore.getItem(key, defaultValue),
+  setItem: (key, value) =>
+    baseStore.setItem(
+      key,
+      key === "app.configuration" ? applyRomikuBrand(value ?? {}) : value,
+    ),
+  subscribe: (key, callback) =>
+    baseStore.subscribe(key, (value) =>
+      callback(
+        key === "app.configuration" ? applyRomikuBrand(value ?? {}) : value,
+      ),
+    ),
+};
 
 /**
  * Application entry point
@@ -46,6 +70,7 @@ const App = () => (
     i18nProvider={romikuI18nProvider}
     layout={RomikuLayout}
     lightModeLogo={romikuBrand.lightModeLogo}
+    store={romikuStore}
     title={romikuBrand.title}
   />
 );

@@ -1,12 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { romikuBrand } from "./brand";
 import { romikuI18nProvider } from "./i18nProvider";
+import { applyRomikuBrand } from "./configuration";
 
 describe("ROMIKU product shell", () => {
   it("uses the official brand name and route-safe wordmark assets", () => {
     expect(romikuBrand.title).toBe("ROMIKU CRM 2.0");
     expect(romikuBrand.darkModeLogo).toMatch(/romiku-wordmark/);
     expect(romikuBrand.lightModeLogo).toMatch(/romiku-wordmark/);
+    expect(romikuBrand.darkModeLogo).toContain("fill='%23ffffff'");
+  });
+
+  it("keeps ROMIKU presentation when an existing server configuration loads", () => {
+    expect(
+      applyRomikuBrand({
+        title: "Atomic CRM",
+        darkModeLogo: "atomic-dark.svg",
+        lightModeLogo: "atomic-light.svg",
+      }),
+    ).toMatchObject({
+      title: "ROMIKU CRM 2.0",
+      darkModeLogo: romikuBrand.darkModeLogo,
+      lightModeLogo: romikuBrand.lightModeLogo,
+    });
   });
 
   it("defaults every CRM session to Simplified Chinese", () => {
