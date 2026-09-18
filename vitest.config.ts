@@ -57,6 +57,7 @@ export default defineConfig({
             "**/node_modules/**",
             "doc/**",
             "supabase/**",
+            "server/**",
             ".supabase-e2e/**",
             "e2e/**/*.spec.{ts,tsx}",
             // Harness hook tests are Node-only (they import node:fs / node:path
@@ -68,6 +69,13 @@ export default defineConfig({
               external: [/playwright/],
             },
           },
+        },
+      },
+      {
+        test: {
+          name: "server",
+          environment: "node",
+          include: ["server/**/*.test.ts"],
         },
       },
       {

@@ -308,3 +308,5 @@ revoke all on function public.romiku_preserve_cost_identity() from public, anon,
 grant execute on function public.romiku_preserve_cost_identity() to authenticated, service_role;
 revoke all on function public.romiku_preserve_payment_currency() from public, anon, authenticated;
 grant execute on function public.romiku_preserve_payment_currency() to authenticated, service_role;
+revoke all on function public.romiku_submit_website_inquiry(jsonb) from public, anon, authenticated;
+grant execute on function public.romiku_submit_website_inquiry(jsonb) to service_role;
