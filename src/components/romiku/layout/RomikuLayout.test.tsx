@@ -75,5 +75,10 @@ describe("RomikuLayout", () => {
     await expect
       .element(screen.getByRole("button", { name: "打开主导航" }))
       .toBeVisible();
+
+    await screen.getByRole("button", { name: "打开主导航" }).click();
+    await expect
+      .element(screen.getByText("移动端侧边栏", { exact: true }))
+      .toBeVisible();
   });
 });

@@ -34,8 +34,7 @@ const RomikuPlaceholder = ({ label }: { label: string }) => (
       {label}
     </h1>
     <p className="text-muted-foreground">
-      This ROMIKU workspace is coming next. No records or actions are available
-      yet.
+      此 ROMIKU 工作区即将推出，暂时没有可用记录或操作。
     </p>
   </section>
 );

@@ -89,12 +89,12 @@ describe("workflow write boundaries and calculated state", () => {
   it("rejects unsupported statuses and empty companies even from a non-profile tab", () => {
     expect(() =>
       toWorkflowWrite("outbound", { name: "A", status: "customer" }),
-    ).toThrow("approved status");
+    ).toThrow("请选择允许的状态");
     expect(() =>
       toWorkflowWrite("outbound", { name: "   ", status: "to_develop" }),
-    ).toThrow("name");
+    ).toThrow("公司／客户名称为必填项");
     expect(() => toWorkflowWrite("customer", { status: "active" })).toThrow(
-      "name",
+      "公司／客户名称为必填项",
     );
   });
   it("writes handling fields only and cannot overwrite website originals or computed fields", () => {

@@ -24,7 +24,7 @@ const paths: Record<string, string> = {
 };
 export function sourceHref(table: string, id: string) {
   const path = paths[table];
-  if (!path) throw new Error("Unsupported source record.");
+  if (!path) throw new Error("不支持的来源记录。");
   return `${path}${encodeURIComponent(id)}`;
 }
 export function localDay(date: Date) {
@@ -80,14 +80,14 @@ export function taskWrite(
   sourceId: string,
 ) {
   const title = String(values.title || "").trim();
-  if (!title) throw new Error("Task title is required.");
+  if (!title) throw new Error("任务标题为必填项。");
   if (!["low", "normal", "high", "urgent"].includes(String(values.priority)))
-    throw new Error("Choose a valid priority.");
+    throw new Error("请选择有效的优先级。");
   if (relation && (!(relation in taskSources) || !sourceId))
-    throw new Error("Choose a supported source record.");
+    throw new Error("请选择支持的关联记录。");
   const due = values.due_at ? new Date(String(values.due_at)) : null;
   if (due && Number.isNaN(due.getTime()))
-    throw new Error("Choose a valid due date.");
+    throw new Error("请选择有效的截止日期。");
   return {
     title,
     priority: values.priority,

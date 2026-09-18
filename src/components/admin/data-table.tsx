@@ -288,7 +288,7 @@ const isPromise = (value: any): value is Promise<any> =>
 const DataTableEmpty = () => {
   return (
     <Alert>
-      <AlertDescription>No results found.</AlertDescription>
+      <AlertDescription>未找到结果。</AlertDescription>
     </Alert>
   );
 };

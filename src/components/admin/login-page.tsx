@@ -58,24 +58,28 @@ export const LoginPage = (props: { redirectTo?: string }) => {
         <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
           <div className="absolute inset-0 bg-zinc-900" />
           <div className="relative z-20 flex items-center text-lg font-medium">
-            <img className="h-6 mr-2" src={darkModeLogo} alt={title} />
+            <img
+              className="mr-2 h-8 w-auto rounded-sm bg-white p-1"
+              src={darkModeLogo}
+              alt={title}
+            />
             {title}
           </div>
         </div>
         <div className="flex flex-col justify-center w-full p-4 lg:p-8">
           <div className="w-full space-y-6 lg:mx-auto lg:w-[350px]">
             <div className="text-center">
-              <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">登录</h1>
             </div>
             <Form className="space-y-8" onSubmit={handleSubmit}>
               <TextInput
-                label="Email"
+                label="电子邮箱"
                 source="email"
                 type="email"
                 validate={required()}
               />
               <TextInput
-                label="Password"
+                label="密码"
                 source="password"
                 type="password"
                 validate={required()}
@@ -85,7 +89,7 @@ export const LoginPage = (props: { redirectTo?: string }) => {
                 className="w-full cursor-pointer"
                 disabled={loading}
               >
-                Sign in
+                登录
               </Button>
             </Form>
 
@@ -93,7 +97,7 @@ export const LoginPage = (props: { redirectTo?: string }) => {
               to={"/forgot-password"}
               className="block text-sm text-center hover:underline"
             >
-              Forgot your password?
+              忘记密码？
             </Link>
           </div>
         </div>

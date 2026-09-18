@@ -210,10 +210,10 @@ it("filters inclusive local calendar dates and keeps two events for distinct dat
 it("rejects unsupported manual task relations and clears the previous relationship on relinking", () => {
   expect(() =>
     taskWrite({ title: "Call", priority: "normal" }, "inquiry_id", "i"),
-  ).toThrow("supported source");
+  ).toThrow("请选择支持的关联记录");
   expect(() =>
     taskWrite({ title: "Call", priority: "normal" }, "quote_id", ""),
-  ).toThrow("supported source");
+  ).toThrow("请选择支持的关联记录");
   expect(
     taskWrite(
       { title: "Call", priority: "normal", quote_id: "old" },

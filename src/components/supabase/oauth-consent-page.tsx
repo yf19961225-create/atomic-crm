@@ -39,12 +39,12 @@ export function OAuthConsentPage() {
   useEffect(() => {
     async function loadAuthDetails() {
       if (!authorizationId) {
-        setError("Missing authorization_id");
+        setError("缺少授权请求标识。");
         setLoading(false);
         return;
       }
       if (!authProvider) {
-        setError("Auth provider not available");
+        setError("认证服务不可用。");
         setLoading(false);
         return;
       }

@@ -24,8 +24,8 @@ export const RomikuLayout = ({ children }: { children: ReactNode }) => (
         >
           <img
             alt=""
-            className="mb-1 h-auto w-32 group-data-[collapsible=icon]:hidden"
-            src={romikuBrand.lightModeLogo}
+            className="mb-1 h-auto w-32 rounded-sm bg-white p-1 group-data-[collapsible=icon]:hidden"
+            src={romikuBrand.darkModeLogo}
           />
           <span className="group-data-[collapsible=icon]:hidden">
             {romikuBrand.title}

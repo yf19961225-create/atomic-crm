@@ -1,5 +1,4 @@
 import wordmark from "./romiku-wordmark.png";
-import wordmarkOnWhite from "./romiku-wordmark-on-white.svg";
 
 /**
  * Product-only configuration kept outside Atomic CRM defaults so the upstream
@@ -7,6 +6,6 @@ import wordmarkOnWhite from "./romiku-wordmark-on-white.svg";
  */
 export const romikuBrand = {
   title: "ROMIKU CRM 2.0",
-  darkModeLogo: wordmarkOnWhite,
+  darkModeLogo: wordmark,
   lightModeLogo: wordmark,
 } as const;

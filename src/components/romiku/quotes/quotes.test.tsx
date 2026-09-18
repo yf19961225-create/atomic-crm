@@ -84,7 +84,7 @@ const setup = async (path: string) => {
 
 it("opens inquiry selection without creating a Quote, then confirms only the selected originals", async () => {
   const { screen } = await setup("/website-inquiries?record=in");
-  await screen.getByRole("link", { name: "Create Quote" }).click();
+  await screen.getByRole("link", { name: "新建报价单" }).click();
   await expect
     .element(screen.getByRole("heading", { name: "确认询盘产品项" }))
     .toBeVisible();

@@ -264,10 +264,94 @@ const chineseCatalog = mergeTranslations(
   chineseMessages,
 );
 
+const resourceFallbacks: Record<string, string> = {
+  "resources.companies.fields.name": "公司名称",
+  "resources.companies.fields.website": "网站",
+  "resources.companies.fields.linkedin_url": "LinkedIn 链接",
+  "resources.companies.fields.phone_number": "电话号码",
+  "resources.companies.fields.created_at": "创建时间",
+  "resources.companies.fields.nb_contacts": "联系人数量",
+  "resources.companies.fields.revenue": "营收",
+  "resources.companies.fields.sector": "行业",
+  "resources.companies.fields.size": "规模",
+  "resources.companies.fields.tax_identifier": "税号",
+  "resources.companies.fields.address": "地址",
+  "resources.companies.fields.city": "城市",
+  "resources.companies.fields.country": "国家／地区",
+  "resources.companies.fields.description": "描述",
+  "resources.companies.action.create": "新建公司",
+  "resources.companies.action.edit": "编辑公司",
+  "resources.companies.action.new": "新建公司",
+  "resources.contacts.fields.first_name": "名字",
+  "resources.contacts.fields.last_name": "姓氏",
+  "resources.contacts.fields.title": "职位",
+  "resources.contacts.fields.company_id": "公司",
+  "resources.contacts.fields.email": "电子邮箱",
+  "resources.contacts.fields.phone_number": "电话号码",
+  "resources.contacts.fields.linkedin_url": "LinkedIn 链接",
+  "resources.contacts.fields.sales_id": "客户经理",
+  "resources.contacts.action.add": "添加联系人",
+  "resources.contacts.action.create": "新建联系人",
+  "resources.contacts.action.edit": "编辑联系人",
+  "resources.contacts.action.new": "新建联系人",
+  "resources.contacts.action.show": "查看联系人",
+  "resources.deals.fields.name": "名称",
+  "resources.deals.fields.description": "描述",
+  "resources.deals.fields.company_id": "公司",
+  "resources.deals.fields.contact_ids": "联系人",
+  "resources.deals.fields.category": "类别",
+  "resources.deals.fields.amount": "预算",
+  "resources.deals.fields.expected_closing_date": "预计成交日期",
+  "resources.deals.fields.stage": "阶段",
+  "resources.deals.action.create": "新建商机",
+  "resources.deals.action.new": "新建商机",
+  "resources.notes.fields.status": "状态",
+  "resources.notes.fields.date": "日期",
+  "resources.notes.fields.attachments": "附件",
+  "resources.notes.action.add": "添加备注",
+  "resources.notes.action.create": "新建备注",
+  "resources.notes.action.edit": "编辑备注",
+  "resources.tasks.fields.text": "任务说明",
+  "resources.tasks.fields.due_date": "截止日期",
+  "resources.tasks.fields.type": "类型",
+  "resources.tasks.fields.contact_id": "联系人",
+  "resources.tasks.action.add": "添加任务",
+  "resources.tasks.action.create": "新建任务",
+  "resources.tasks.action.edit": "编辑任务",
+  "resources.sales.fields.first_name": "名字",
+  "resources.sales.fields.last_name": "姓氏",
+  "resources.sales.fields.email": "电子邮箱",
+  "resources.sales.fields.administrator": "管理员",
+  "resources.sales.action.new": "新建用户",
+  "resources.tags.action.add": "添加标签",
+  "resources.tags.action.create": "新建标签",
+};
+
 /** The product deliberately ignores browser locale and exposes Chinese only. */
-export const romikuI18nProvider = polyglotI18nProvider(
-  () => chineseCatalog,
+const baseRomikuI18nProvider = polyglotI18nProvider(
+  () =>
+    mergeTranslations(
+      chineseCatalog,
+      objectFromTranslationKeys(resourceFallbacks),
+    ),
   "zh-CN",
   [{ locale: "zh-CN", name: "简体中文" }],
   { allowMissing: true },
 );
+
+export const romikuI18nProvider = baseRomikuI18nProvider;
+
+function objectFromTranslationKeys(translations: Record<string, string>) {
+  return Object.entries(translations).reduce<Record<string, unknown>>(
+    (catalog, [key, value]) => {
+      const path = key.split(".");
+      let target = catalog;
+      for (const segment of path.slice(0, -1)) {
+        target = (target[segment] ??= {}) as Record<string, unknown>;
+      }
+      target[path.at(-1)!] = value;
+      return catalog;
+    },
+    {},
+  );
+}

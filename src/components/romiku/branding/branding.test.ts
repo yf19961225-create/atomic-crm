@@ -8,8 +8,8 @@ describe("ROMIKU product shell", () => {
     expect(romikuBrand.title).toBe("ROMIKU CRM 2.0");
     expect(romikuBrand.darkModeLogo).toMatch(/romiku-wordmark/);
     expect(romikuBrand.lightModeLogo).toMatch(/romiku-wordmark/);
-    expect(romikuBrand.darkModeLogo).toContain("fill='%23ffffff'");
-    expect(romikuBrand.darkModeLogo).toContain("href='/romiku-wordmark.png'");
+    expect(romikuBrand.darkModeLogo).toMatch(/\.png$/);
+    expect(romikuBrand.darkModeLogo).not.toContain("data:image/svg+xml");
   });
 
   it("keeps ROMIKU presentation when an existing server configuration loads", () => {
@@ -42,5 +42,11 @@ describe("ROMIKU product shell", () => {
     expect(romikuI18nProvider.translate("crm.auth.welcome_title")).toBe(
       "欢迎使用 ROMIKU CRM 2.0",
     );
+    expect(
+      romikuI18nProvider.translate("resources.contacts.fields.first_name"),
+    ).toBe("名字");
+    expect(
+      romikuI18nProvider.translate("resources.companies.fields.tax_identifier"),
+    ).toBe("税号");
   });
 });

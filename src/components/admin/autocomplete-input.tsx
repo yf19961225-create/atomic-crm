@@ -257,7 +257,7 @@ export const AutocompleteInput = (
               {/* We handle the filtering ourselves */}
               <Command shouldFilter={!isFromReference}>
                 <CommandInput
-                  placeholder="Search..."
+                  placeholder="搜索…"
                   value={filterValue}
                   onValueChange={(filter) => {
                     setFilterValue(filter);
@@ -272,7 +272,7 @@ export const AutocompleteInput = (
                   }}
                 />
                 <CommandList ref={listRef}>
-                  <CommandEmpty>No matching item found.</CommandEmpty>
+                  <CommandEmpty>未找到匹配项。</CommandEmpty>
                   <CommandGroup>
                     {finalChoices.map((choice) => {
                       const isCreateItem =

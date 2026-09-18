@@ -136,7 +136,7 @@ export function toWorkflowWrite(
   values: Record<string, unknown>,
 ) {
   if (kind !== "inquiry" && !String(values.name || "").trim())
-    throw new Error("Company / customer name is required.");
+    throw new Error("公司／客户名称为必填项。");
   const allowed =
     kind === "outbound"
       ? outboundStatuses
@@ -144,7 +144,7 @@ export function toWorkflowWrite(
         ? inquiryStatuses
         : undefined;
   if (allowed && !allowed.includes(String(values.status)))
-    throw new Error("Choose an approved status.");
+    throw new Error("请选择允许的状态。");
   return Object.fromEntries(
     writableFields[kind]
       .filter((key) => key in values)
