@@ -13,55 +13,55 @@ export const defaultCurrency = "USD";
 export const defaultTitle = "Atomic CRM";
 
 export const defaultCompanySectors = [
-  { value: "communication-services", label: "Communication Services" },
-  { value: "consumer-discretionary", label: "Consumer Discretionary" },
-  { value: "consumer-staples", label: "Consumer Staples" },
-  { value: "energy", label: "Energy" },
-  { value: "financials", label: "Financials" },
-  { value: "health-care", label: "Health Care" },
-  { value: "industrials", label: "Industrials" },
-  { value: "information-technology", label: "Information Technology" },
-  { value: "materials", label: "Materials" },
-  { value: "real-estate", label: "Real Estate" },
-  { value: "utilities", label: "Utilities" },
+  { value: "communication-services", label: "通信服务" },
+  { value: "consumer-discretionary", label: "可选消费" },
+  { value: "consumer-staples", label: "必选消费" },
+  { value: "energy", label: "能源" },
+  { value: "financials", label: "金融" },
+  { value: "health-care", label: "医疗健康" },
+  { value: "industrials", label: "工业" },
+  { value: "information-technology", label: "信息技术" },
+  { value: "materials", label: "材料" },
+  { value: "real-estate", label: "房地产" },
+  { value: "utilities", label: "公用事业" },
 ];
 
 export const defaultDealStages = [
-  { value: "opportunity", label: "Opportunity" },
-  { value: "proposal-sent", label: "Proposal Sent" },
-  { value: "in-negociation", label: "In Negotiation" },
-  { value: "won", label: "Won" },
-  { value: "lost", label: "Lost" },
-  { value: "delayed", label: "Delayed" },
+  { value: "opportunity", label: "商机" },
+  { value: "proposal-sent", label: "已发送方案" },
+  { value: "in-negociation", label: "谈判中" },
+  { value: "won", label: "已成交" },
+  { value: "lost", label: "已失单" },
+  { value: "delayed", label: "已延期" },
 ];
 
 export const defaultDealPipelineStatuses = ["won"];
 
 export const defaultDealCategories = [
-  { value: "other", label: "Other" },
-  { value: "copywriting", label: "Copywriting" },
-  { value: "print-project", label: "Print project" },
-  { value: "ui-design", label: "UI Design" },
-  { value: "website-design", label: "Website design" },
+  { value: "other", label: "其他" },
+  { value: "copywriting", label: "文案服务" },
+  { value: "print-project", label: "印刷项目" },
+  { value: "ui-design", label: "界面设计" },
+  { value: "website-design", label: "网站设计" },
 ];
 
 export const defaultNoteStatuses = [
-  { value: "cold", label: "Cold", color: "#7dbde8" },
-  { value: "warm", label: "Warm", color: "#e8cb7d" },
-  { value: "hot", label: "Hot", color: "#e88b7d" },
-  { value: "in-contract", label: "In Contract", color: "#a4e87d" },
+  { value: "cold", label: "冷", color: "#7dbde8" },
+  { value: "warm", label: "温", color: "#e8cb7d" },
+  { value: "hot", label: "热", color: "#e88b7d" },
+  { value: "in-contract", label: "合同中", color: "#a4e87d" },
 ];
 
 export const defaultTaskTypes = [
-  { value: "none", label: "None" },
-  { value: "email", label: "Email" },
-  { value: "demo", label: "Demo" },
-  { value: "lunch", label: "Lunch" },
-  { value: "meeting", label: "Meeting" },
-  { value: "follow-up", label: "Follow-up" },
-  { value: "thank-you", label: "Thank you" },
-  { value: "ship", label: "Ship" },
-  { value: "call", label: "Call" },
+  { value: "none", label: "无" },
+  { value: "email", label: "电子邮件" },
+  { value: "demo", label: "演示" },
+  { value: "lunch", label: "午餐" },
+  { value: "meeting", label: "会议" },
+  { value: "follow-up", label: "跟进" },
+  { value: "thank-you", label: "致谢" },
+  { value: "ship", label: "发运" },
+  { value: "call", label: "电话" },
 ];
 
 export const defaultConfiguration: ConfigurationContextValue = {

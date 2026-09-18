@@ -64,7 +64,7 @@ const config: WorkflowConfig = {
         ...["instagram", "facebook", "tiktok", "linkedin", "other"].map(
           (key) => ({
             key: `social_urls.${key}`,
-            label: `${key} 链接`,
+            label: `${key === "other" ? "其他" : key} 链接`,
             type: "url" as const,
           }),
         ),
