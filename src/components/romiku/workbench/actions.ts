@@ -2,18 +2,18 @@ import type { RaRecord } from "ra-core";
 import type { SourceEvent } from "../calendar/aggregation";
 
 export const actionGroups = {
-  website_new: "New Website inquiries",
-  website_pending: "Pending Website inquiries / follow-ups",
-  outbound: "Outbound follow-ups",
-  outbound_overdue: "Overdue Outbound follow-ups",
-  quote: "Pending Quotes",
-  pi: "Pending PI",
-  deposit: "Deposit receivable",
-  balance: "Balance receivable",
-  production: "Production / due",
-  packing: "Packing / shipping",
-  delivery: "Order delivery",
-  task: "Manual tasks",
+  website_new: "新网站询盘",
+  website_pending: "待处理网站询盘／跟进",
+  outbound: "外贸开发跟进",
+  outbound_overdue: "逾期外贸开发跟进",
+  quote: "待处理报价单",
+  pi: "待处理形式发票",
+  deposit: "待收定金",
+  balance: "待收尾款",
+  production: "生产／到期事项",
+  packing: "装箱／发运",
+  delivery: "订单交付",
+  task: "手动任务",
 };
 export type ActionGroup = keyof typeof actionGroups;
 export type Action = SourceEvent & {

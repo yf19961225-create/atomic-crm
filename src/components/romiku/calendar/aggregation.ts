@@ -1,4 +1,5 @@
 import type { RaRecord } from "ra-core";
+import { taskSourceLabel } from "../relationshipLabels";
 
 export type SourceEvent = RaRecord & {
   event_type: string;
@@ -53,21 +54,24 @@ export function calendarEvents(
 }
 export const taskSources = {
   outbound_company_id: {
-    label: "Outbound company",
+    label: taskSourceLabel("outbound_company_id"),
     resource: "romiku_outbound_companies",
   },
   formal_customer_id: {
-    label: "Formal Customer",
+    label: taskSourceLabel("formal_customer_id"),
     resource: "romiku_formal_customers",
   },
-  quote_id: { label: "Quote", resource: "romiku_quotes" },
-  pi_id: { label: "PI", resource: "romiku_pis" },
-  order_id: { label: "Order", resource: "romiku_orders" },
+  quote_id: { label: taskSourceLabel("quote_id"), resource: "romiku_quotes" },
+  pi_id: { label: taskSourceLabel("pi_id"), resource: "romiku_pis" },
+  order_id: { label: taskSourceLabel("order_id"), resource: "romiku_orders" },
   production_order_id: {
-    label: "Production Order",
+    label: taskSourceLabel("production_order_id"),
     resource: "romiku_production_orders",
   },
-  supplier_id: { label: "Supplier", resource: "romiku_suppliers" },
+  supplier_id: {
+    label: taskSourceLabel("supplier_id"),
+    resource: "romiku_suppliers",
+  },
 };
 export type TaskSource = keyof typeof taskSources;
 export function taskWrite(

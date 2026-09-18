@@ -5,84 +5,84 @@ import { outboundStatuses } from "./workflow";
 
 const config: WorkflowConfig = {
   kind: "outbound",
-  title: "Outbound Development",
-  createLabel: "New outbound company",
+  title: "外贸开发",
+  createLabel: "新建外贸开发公司",
   statuses: outboundStatuses,
   fields: [
-    { key: "name", label: "Company name", required: true },
-    { key: "brand_name", label: "Brand / commercial name" },
-    { key: "registration_number", label: "Registration / RUC / NIT" },
-    { key: "country", label: "Country" },
-    { key: "city", label: "City" },
-    { key: "address", label: "Address" },
-    { key: "customer_type", label: "Company type" },
-    { key: "website", label: "Website", type: "url" },
-    { key: "grade", label: "Value level", options: ["A", "B", "C", "D"] },
+    { key: "name", label: "公司名称", required: true },
+    { key: "brand_name", label: "品牌／商业名称" },
+    { key: "registration_number", label: "注册号／RUC／NIT" },
+    { key: "country", label: "国家／地区" },
+    { key: "city", label: "城市" },
+    { key: "address", label: "地址" },
+    { key: "customer_type", label: "公司类型" },
+    { key: "website", label: "网站", type: "url" },
+    { key: "grade", label: "价值等级", options: ["A", "B", "C", "D"] },
     {
       key: "status",
-      label: "Status",
+      label: "状态",
       options: outboundStatuses,
       required: true,
     },
     ownerField,
     {
       key: "purchasing_categories",
-      label: "Purchasing categories (comma separated)",
+      label: "采购品类（以逗号分隔）",
     },
-    { key: "notes", label: "Notes", type: "textarea" },
+    { key: "notes", label: "备注", type: "textarea" },
   ],
   extraTabs: [
     {
-      title: "Research",
+      title: "调研",
       fields: [
         {
           key: "business_intelligence.operations",
-          label: "Establishment / operations",
+          label: "成立／运营情况",
         },
         {
           key: "business_intelligence.purchasing_scale",
-          label: "Purchasing scale / frequency",
+          label: "采购规模／频率",
         },
         {
           key: "business_intelligence.previous_suppliers",
-          label: "Previous suppliers",
+          label: "历史供应商",
         },
         {
           key: "business_intelligence.china_suppliers",
-          label: "China suppliers / sourcing companies",
+          label: "中国供应商／采购公司",
         },
         {
           key: "business_intelligence.recent_imports",
-          label: "Recent import information",
+          label: "近期进口信息",
           type: "textarea",
         },
         {
           key: "business_intelligence.entry_angle",
-          label: "ROMIKU advantages / entry angle",
+          label: "ROMIKU 优势／切入角度",
           type: "textarea",
         },
         ...["instagram", "facebook", "tiktok", "linkedin", "other"].map(
           (key) => ({
             key: `social_urls.${key}`,
-            label: `${key} URL`,
+            label: `${key} 链接`,
             type: "url" as const,
           }),
         ),
       ],
     },
     {
-      title: "Sources",
+      title: "来源",
       render: (record) => (
         <RelatedRecords
           resource="romiku_source_urls"
           parentKey="outbound_company_id"
           parentId={record.id}
-          noun="source URL"
+          noun="来源链接"
           defaults={{ source_type: "website" }}
           fields={[
             {
               key: "source_type",
-              label: "Source type",
+              label: "来源类型",
               required: true,
               options: [
                 "website",
@@ -93,9 +93,9 @@ const config: WorkflowConfig = {
                 "other",
               ],
             },
-            { key: "url", label: "Source URL", type: "url", required: true },
-            { key: "label", label: "Source label" },
-            { key: "notes", label: "Source notes", type: "textarea" },
+            { key: "url", label: "来源链接", type: "url", required: true },
+            { key: "label", label: "来源名称" },
+            { key: "notes", label: "来源备注", type: "textarea" },
           ]}
         />
       ),

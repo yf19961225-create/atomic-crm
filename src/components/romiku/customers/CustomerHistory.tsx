@@ -48,20 +48,18 @@ export function CustomerHistory({ record }: { record: RaRecord }) {
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">
-        Links record source history only. Original inquiries and outbound
-        records remain independent and unchanged apart from the explicit
-        relationship.
+        关联仅记录来源历史。除明确建立的关联外，原始询盘和外贸开发记录仍保持独立且不变。
       </p>
       {record.source_outbound_company_id && (
         <Link
           className="block underline"
           to={`/outbound-development?record=${encodeURIComponent(record.source_outbound_company_id)}`}
         >
-          Open source outbound company
+          打开来源外贸开发公司
         </Link>
       )}
-      {isPending && <p>Loading inquiry history…</p>}
-      {error && <p role="alert">Could not load inquiry history.</p>}
+      {isPending && <p>正在加载询盘历史…</p>}
+      {error && <p role="alert">无法加载询盘历史。</p>}
       <ul className="space-y-2">
         {linked.map((inquiry) => (
           <li key={inquiry.id}>
@@ -75,18 +73,18 @@ export function CustomerHistory({ record }: { record: RaRecord }) {
         ))}
       </ul>
       {!isPending && !error && linked.length === 0 && (
-        <p>No linked website inquiries.</p>
+        <p>暂无关联的网站询盘。</p>
       )}
       <label className="flex flex-col gap-1 text-sm">
-        Website inquiry to link
+        要关联的网站询盘
         <select
-          aria-label="Website inquiry to link"
+          aria-label="要关联的网站询盘"
           className="rounded border p-2"
           value={selected}
           onChange={(event) => setSelected(event.target.value)}
           disabled={isPending || !!error}
         >
-          <option value="">Choose an unlinked inquiry</option>
+          <option value="">请选择未关联的询盘</option>
           {available.map((inquiry) => (
             <option key={inquiry.id} value={inquiry.id}>
               {inquiry.document_number} · {inquiry.customer_name} ·{" "}
@@ -96,7 +94,7 @@ export function CustomerHistory({ record }: { record: RaRecord }) {
         </select>
       </label>
       <Button disabled={!selected || busy} onClick={link}>
-        {busy ? "Linking…" : "Link selected inquiry"}
+        {busy ? "正在关联…" : "关联所选询盘"}
       </Button>
       {failure && <p role="alert">{failure}</p>}
     </div>

@@ -130,23 +130,23 @@ async function setup(path = "/") {
 it("separates Website and Outbound action counts and links every action to its source", async () => {
   const { screen } = await setup();
   for (const title of [
-    "New Website inquiries",
-    "Pending Website inquiries / follow-ups",
-    "Outbound follow-ups",
-    "Overdue Outbound follow-ups",
-    "Pending Quotes",
-    "Pending PI",
-    "Deposit receivable",
-    "Balance receivable",
-    "Production / due",
-    "Packing / shipping",
+    "新网站询盘",
+    "待处理网站询盘／跟进",
+    "外贸开发跟进",
+    "逾期外贸开发跟进",
+    "待处理报价单",
+    "待处理形式发票",
+    "待收定金",
+    "待收尾款",
+    "生产／到期事项",
+    "装箱／发运",
   ]) {
     await expect
       .element(screen.getByRole("button", { name: `${title}: 1`, exact: true }))
       .toBeVisible();
   }
   await screen
-    .getByRole("button", { name: "New Website inquiries: 1", exact: true })
+    .getByRole("button", { name: "新网站询盘: 1", exact: true })
     .click();
   await expect
     .element(screen.getByRole("link", { name: "WI-new", exact: true }))
@@ -154,9 +154,7 @@ it("separates Website and Outbound action counts and links every action to its s
   await expect
     .element(screen.getByRole("link", { name: "OUT-old", exact: true }))
     .not.toBeInTheDocument();
-  await screen
-    .getByRole("button", { name: "All actions", exact: true })
-    .click();
+  await screen.getByRole("button", { name: "全部待办", exact: true }).click();
   await expect
     .element(screen.getByRole("link", { name: "Q-open", exact: true }))
     .toHaveAttribute("href", "/quotes/Q-open");
@@ -170,21 +168,21 @@ it("separates Website and Outbound action counts and links every action to its s
 });
 it("shows date aggregation with owner and only-mine filters using auth UUID mapping", async () => {
   const { screen } = await setup("/calendar");
-  await screen.getByLabelText("From date", { exact: true }).fill("2026-09-01");
-  await screen.getByLabelText("To date", { exact: true }).fill("2026-09-30");
+  await screen.getByLabelText("开始日期", { exact: true }).fill("2026-09-01");
+  await screen.getByLabelText("结束日期", { exact: true }).fill("2026-09-30");
   await expect
     .element(screen.getByRole("link", { name: "WI-due", exact: true }))
     .toHaveAttribute("href", "/website-inquiries?record=WI-due");
   await expect
     .element(screen.getByRole("link", { name: "OUT-due", exact: true }))
     .toHaveAttribute("href", "/outbound-development?record=OUT-due");
-  await screen.getByLabelText("Only mine", { exact: true }).click();
+  await screen.getByLabelText("仅看我的", { exact: true }).click();
   await expect
     .element(screen.getByRole("link", { name: "OUT-due", exact: true }))
     .not.toBeInTheDocument();
-  await screen.getByLabelText("Only mine", { exact: true }).click();
+  await screen.getByLabelText("仅看我的", { exact: true }).click();
   await screen
-    .getByLabelText("Owner", { exact: true })
+    .getByLabelText("负责人", { exact: true })
     .selectOptions("user-two");
   await expect
     .element(screen.getByRole("link", { name: "OUT-due", exact: true }))
@@ -195,21 +193,19 @@ it("shows date aggregation with owner and only-mine filters using auth UUID mapp
 });
 it("creates and completes manual tasks with one supported source without writing calendar events", async () => {
   const { screen, provider } = await setup("/calendar/tasks/new");
-  await screen.getByLabelText("Task title", { exact: true }).fill("Call buyer");
+  await screen.getByLabelText("任务标题", { exact: true }).fill("Call buyer");
   await screen
-    .getByLabelText("Related source", { exact: true })
+    .getByLabelText("关联来源", { exact: true })
     .selectOptions("outbound_company_id");
   await screen
-    .getByLabelText("Source record", { exact: true })
+    .getByLabelText("来源记录", { exact: true })
     .selectOptions("OUT-old");
   await screen
-    .getByLabelText("Priority", { exact: true })
+    .getByLabelText("优先级", { exact: true })
     .selectOptions("urgent");
-  await screen.getByRole("button", { name: "Save task", exact: true }).click();
+  await screen.getByRole("button", { name: "保存任务", exact: true }).click();
   await expect
-    .element(
-      screen.getByRole("link", { name: "Open related source", exact: true }),
-    )
+    .element(screen.getByRole("link", { name: "打开关联来源", exact: true }))
     .toHaveAttribute("href", "/outbound-development?record=OUT-old");
   const list = {
     pagination: { page: 1, perPage: 100 },
@@ -227,8 +223,8 @@ it("creates and completes manual tasks with one supported source without writing
   expect((await provider.getList("romiku_calendar", list)).data).toHaveLength(
     2,
   );
-  await screen.getByLabelText("Completed", { exact: true }).click();
-  await screen.getByRole("button", { name: "Save task", exact: true }).click();
+  await screen.getByLabelText("已完成", { exact: true }).click();
+  await screen.getByRole("button", { name: "保存任务", exact: true }).click();
   await expect
     .poll(
       async () =>

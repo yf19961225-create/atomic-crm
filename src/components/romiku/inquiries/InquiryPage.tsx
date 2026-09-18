@@ -3,6 +3,10 @@ import { WorkflowPage, type WorkflowConfig } from "../outbound/WorkflowPage";
 import { ownerField } from "../outbound/WorkflowFields";
 import { formatDate, useRelated } from "../outbound/RelatedRecords";
 import { inquiryStatuses } from "../outbound/workflow";
+import {
+  inquiryFieldLabel,
+  relationshipStatusLabel,
+} from "../relationshipLabels";
 
 function OriginalSubmission({ record }: { record: RaRecord }) {
   const {
@@ -24,23 +28,23 @@ function OriginalSubmission({ record }: { record: RaRecord }) {
         ].map((key) => (
           <div key={key}>
             <dt className="text-muted-foreground text-sm">
-              {key.replaceAll("_", " ")}
+              {inquiryFieldLabel(key)}
             </dt>
             <dd className="whitespace-pre-wrap">{record[key] || "—"}</dd>
           </div>
         ))}
       </dl>
-      <p>Submitted: {formatDate(record.submitted_at)}</p>
-      <h3 className="font-medium">Original requested items</h3>
-      {isPending && <p>Loading original items…</p>}
-      {error && <p role="alert">Original items could not be loaded.</p>}
+      <p>提交时间：{formatDate(record.submitted_at)}</p>
+      <h3 className="font-medium">原始需求商品</h3>
+      {isPending && <p>正在加载原始商品…</p>}
+      {error && <p role="alert">无法加载原始商品。</p>}
       <table className="w-full text-left text-sm">
         <thead>
           <tr>
             <th>SKU</th>
-            <th>Quantity</th>
-            <th>Requirement</th>
-            <th>Product match</th>
+            <th>数量</th>
+            <th>需求</th>
+            <th>商品匹配</th>
           </tr>
         </thead>
         <tbody>
@@ -49,51 +53,50 @@ function OriginalSubmission({ record }: { record: RaRecord }) {
               <td className="py-3">{item.sku}</td>
               <td>{item.quantity}</td>
               <td className="whitespace-pre-wrap">{item.requirement}</td>
-              <td>Product match: {item.match_status}</td>
+              <td>商品匹配：{relationshipStatusLabel(item.match_status)}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <details>
-        <summary className="cursor-pointer">Raw website payload</summary>
+        <summary className="cursor-pointer">网站原始载荷</summary>
         <pre className="overflow-x-auto whitespace-pre-wrap rounded border p-3 text-xs">
           {JSON.stringify(record.raw_payload, null, 2)}
         </pre>
       </details>
       <p className="text-muted-foreground text-sm">
-        Original SKU, quantity, requirement and raw submission remain unchanged
-        even if product matching fails.
+        即使商品匹配失败，原始 SKU、数量、需求和提交载荷也会保持不变。
       </p>
     </div>
   );
 }
 const config: WorkflowConfig = {
   kind: "inquiry",
-  title: "Website Inquiries",
+  title: "网站询盘",
   statuses: inquiryStatuses,
   fields: [
     {
       key: "status",
-      label: "Status",
+      label: "状态",
       required: true,
       options: inquiryStatuses,
     },
     ownerField,
-    { key: "processing_notes", label: "Processing notes", type: "textarea" },
+    { key: "processing_notes", label: "处理备注", type: "textarea" },
     {
       key: "outbound_company_id",
-      label: "Related outbound company",
+      label: "关联外贸开发公司",
       reference: "romiku_outbound_companies",
     },
     {
       key: "formal_customer_id",
-      label: "Related formal customer",
+      label: "关联正式客户",
       reference: "romiku_formal_customers",
     },
   ],
   extraTabs: [
     {
-      title: "Original submission",
+      title: "原始提交",
       render: (record) => <OriginalSubmission record={record} />,
     },
   ],

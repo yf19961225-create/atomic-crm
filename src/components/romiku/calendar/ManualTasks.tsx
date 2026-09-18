@@ -12,6 +12,7 @@ import {
   type TaskSource,
 } from "./aggregation";
 import { OwnerFilter, useOwnerFilter, useOwners } from "./OwnerFilter";
+import { priorityLabel } from "../relationshipLabels";
 
 export function ManualTaskList() {
   const provider = useDataProvider();
@@ -30,13 +31,13 @@ export function ManualTaskList() {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Manual tasks</h1>
+        <h1 className="text-3xl font-semibold">手动任务</h1>
         <Button asChild>
-          <Link to="/calendar/tasks/new">New manual task</Link>
+          <Link to="/calendar/tasks/new">新建手动任务</Link>
         </Button>
       </div>
       <Link className="underline" to="/calendar">
-        Back to Calendar
+        返回日历
       </Link>
       <OwnerFilter state={owner} />
       <label className="flex items-center gap-2">
@@ -45,13 +46,12 @@ export function ManualTaskList() {
           checked={completed}
           onChange={(e) => setCompleted(e.target.checked)}
         />
-        Include completed
+        包含已完成任务
       </label>
-      {query.isPending && <p>Loading tasks…</p>}
+      {query.isPending && <p>正在加载任务…</p>}
       {query.error && (
         <p role="alert">
-          Could not load tasks.{" "}
-          <button onClick={() => query.refetch()}>Retry</button>
+          无法加载任务。 <button onClick={() => query.refetch()}>重试</button>
         </p>
       )}
       <ul className="divide-y rounded border">
@@ -68,14 +68,15 @@ export function ManualTaskList() {
             </Link>
             <span>
               {task.due_at
-                ? new Date(task.due_at).toLocaleString()
-                : "Unscheduled"}{" "}
-              · {task.priority} · {task.completed_at ? "Completed" : "Pending"}
+                ? new Date(task.due_at).toLocaleString("zh-CN")
+                : "未安排"}{" "}
+              · {priorityLabel(task.priority)} ·{" "}
+              {task.completed_at ? "已完成" : "待处理"}
             </span>
           </li>
         ))}
       </ul>
-      {query.data && !tasks.length && <p>No tasks in this selection.</p>}
+      {query.data && !tasks.length && <p>当前选择中没有任务。</p>}
     </section>
   );
 }
@@ -88,18 +89,18 @@ export function ManualTaskPage() {
     { enabled: !!id && id !== "new" },
   );
   if (owners.isPending || (id !== "new" && query.isPending))
-    return <p>Loading task…</p>;
+    return <p>正在加载任务…</p>;
   if (owners.error || (id !== "new" && query.error))
     return (
       <p role="alert">
-        Could not load task.{" "}
+        无法加载任务。{" "}
         <Button
           onClick={() => {
             owners.refetch();
             if (id !== "new") query.refetch();
           }}
         >
-          Retry
+          重试
         </Button>
       </p>
     );
@@ -176,7 +177,7 @@ function TaskEditor({
       });
       if (!record)
         navigate(`/calendar/tasks/${encodeURIComponent(result.data.id)}`);
-      else setMessage("Task saved.");
+      else setMessage("任务已保存。");
     } catch (cause) {
       setFailed(true);
       setMessage(errorMessage(cause));
@@ -191,14 +192,14 @@ function TaskEditor({
   return (
     <section className="max-w-3xl space-y-4">
       <h1 className="text-3xl font-semibold">
-        {record ? "Edit manual task" : "New manual task"}
+        {record ? "编辑手动任务" : "新建手动任务"}
       </h1>
       <div className="flex gap-4">
         <Link className="underline" to="/calendar/tasks">
-          Manual tasks
+          手动任务
         </Link>
         <Link className="underline" to="/calendar">
-          Calendar
+          日历
         </Link>
         {savedRelation && (
           <Link
@@ -208,17 +209,16 @@ function TaskEditor({
               String(record![savedRelation]),
             )}
           >
-            Open related source
+            打开关联来源
           </Link>
         )}
       </div>
       <p className="text-muted-foreground">
-        A task can stand alone or link to one source. Add a due date to show it
-        in Calendar.
+        任务可以独立存在，也可以关联一个来源。设置截止日期后会显示在日历中。
       </p>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">
-          Task title
+          任务标题
           <input
             className={inputClass}
             required
@@ -227,7 +227,7 @@ function TaskEditor({
           />
         </label>
         <label className="block">
-          Due date
+          截止日期
           <input
             className={inputClass}
             type="datetime-local"
@@ -236,29 +236,29 @@ function TaskEditor({
           />
         </label>
         <label className="block">
-          Priority
+          优先级
           <select
-            aria-label="Priority"
+            aria-label="优先级"
             className={inputClass}
             value={String(values.priority)}
             onChange={(e) => set("priority", e.target.value)}
           >
             {["low", "normal", "high", "urgent"].map((p) => (
               <option key={p} value={p}>
-                {p}
+                {priorityLabel(p)}
               </option>
             ))}
           </select>
         </label>
         <label className="block">
-          Task owner
+          任务负责人
           <select
-            aria-label="Task owner"
+            aria-label="任务负责人"
             className={inputClass}
             value={String(values.owner_id || "")}
             onChange={(e) => set("owner_id", e.target.value)}
           >
-            <option value="">Unassigned</option>
+            <option value="">未分配</option>
             {owners.map((o) => (
               <option key={o.id} value={o.user_id}>
                 {o.first_name} {o.last_name}
@@ -267,9 +267,9 @@ function TaskEditor({
           </select>
         </label>
         <label className="block">
-          Related source
+          关联来源
           <select
-            aria-label="Related source"
+            aria-label="关联来源"
             className={inputClass}
             value={relation}
             onChange={(e) => {
@@ -277,7 +277,7 @@ function TaskEditor({
               setSourceId("");
             }}
           >
-            <option value="">No source</option>
+            <option value="">不关联来源</option>
             {Object.entries(taskSources).map(([key, config]) => (
               <option key={key} value={key}>
                 {config.label}
@@ -287,16 +287,16 @@ function TaskEditor({
         </label>
         {resource && (
           <label className="block">
-            Source record
+            来源记录
             <select
-              aria-label="Source record"
+              aria-label="来源记录"
               className={inputClass}
               required
               value={sourceId}
               disabled={choices.isPending || !!choices.error}
               onChange={(e) => setSourceId(e.target.value)}
             >
-              <option value="">Choose source</option>
+              <option value="">请选择来源</option>
               {choices.data?.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.document_number || r.name || r.id}
@@ -307,14 +307,14 @@ function TaskEditor({
         )}
         {choices.error && (
           <p role="alert">
-            Could not load source records.{" "}
+            无法加载来源记录。{" "}
             <button type="button" onClick={() => choices.refetch()}>
-              Retry
+              重试
             </button>
           </p>
         )}
         <label className="block">
-          Notes
+          备注
           <textarea
             className={inputClass}
             value={String(values.notes || "")}
@@ -332,7 +332,7 @@ function TaskEditor({
               )
             }
           />
-          Completed
+          已完成
         </label>
         <Button
           type="submit"
@@ -340,7 +340,7 @@ function TaskEditor({
             busy || (!!resource && (choices.isPending || !!choices.error))
           }
         >
-          {busy ? "Saving…" : "Save task"}
+          {busy ? "正在保存…" : "保存任务"}
         </Button>
         {message && <p role={failed ? "alert" : "status"}>{message}</p>}
       </form>

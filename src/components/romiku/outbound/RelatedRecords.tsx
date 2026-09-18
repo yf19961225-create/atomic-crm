@@ -19,6 +19,10 @@ import {
   syncNextFollowup,
   type WorkflowKind,
 } from "./workflow";
+import {
+  followupMethodLabel,
+  relationshipStatusLabel,
+} from "../relationshipLabels";
 
 export function useRelated(resource: string, key: string, id: Identifier) {
   const provider = useDataProvider();
@@ -27,10 +31,18 @@ export function useRelated(resource: string, key: string, id: Identifier) {
     queryFn: () => readRelated(provider, resource, { [key]: id }),
   });
 }
+const localizedErrors: Record<string, string> = {
+  "Company / customer name is required.": "请填写公司／客户名称。",
+  "Choose an approved status.": "请选择允许的状态。",
+  "Task title is required.": "请填写任务标题。",
+  "Choose a valid priority.": "请选择有效的优先级。",
+  "Choose a supported source record.": "请选择支持的来源记录。",
+  "Choose a valid due date.": "请选择有效的截止日期。",
+};
 export const errorMessage = (error: unknown) =>
   error instanceof Error
-    ? error.message
-    : "Could not save. Your changes are still in the form.";
+    ? (localizedErrors[error.message] ?? error.message)
+    : "无法保存，您的修改仍保留在表单中。";
 export const localDateTime = (value = new Date().toISOString()) => {
   const date = new Date(value);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -38,7 +50,7 @@ export const localDateTime = (value = new Date().toISOString()) => {
     .slice(0, 16);
 };
 export const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleString() : "—";
+  value ? new Date(value).toLocaleString("zh-CN") : "—";
 
 export function RelatedRecords({
   resource,
@@ -114,9 +126,7 @@ export function RelatedRecords({
           await sync();
         } catch (cause) {
           setNeedsSync(true);
-          setFailure(
-            `Follow-up saved; calendar schedule needs retry. ${errorMessage(cause)}`,
-          );
+          setFailure(`跟进已保存；日历排期需要重试。${errorMessage(cause)}`);
         }
       }
       await reload();
@@ -128,10 +138,10 @@ export function RelatedRecords({
   };
   return (
     <div className="space-y-5">
-      {isPending && <p>Loading {noun}s…</p>}
-      {error && <p role="alert">Could not load {noun}s.</p>}
+      {isPending && <p>正在加载{noun}…</p>}
+      {error && <p role="alert">无法加载{noun}。</p>}
       {data.length === 0 && !isPending && (
-        <p className="text-muted-foreground">No {noun}s yet.</p>
+        <p className="text-muted-foreground">暂无{noun}。</p>
       )}
       <ul className="space-y-3">
         {data.map((record) => (
@@ -143,11 +153,12 @@ export function RelatedRecords({
                 </p>
                 {record.email && <p>{record.email}</p>}
                 {record.whatsapp && <p>{record.whatsapp}</p>}
-                {record.is_primary && <p>Primary contact</p>}
-                {record.is_active === false && <p>Former / inactive contact</p>}
+                {record.is_primary && <p>主要联系人</p>}
+                {record.is_active === false && <p>离职／无效联系人</p>}
                 {record.contacted_at && (
                   <p>
-                    {record.method} · {formatDate(record.contacted_at)} · Next:{" "}
+                    {followupMethodLabel(record.method)} ·{" "}
+                    {formatDate(record.contacted_at)} · 下次：{" "}
                     {formatDate(record.next_follow_up_at)}
                   </p>
                 )}
@@ -158,7 +169,7 @@ export function RelatedRecords({
                     rel="noreferrer"
                     className="underline"
                   >
-                    {record.source_type}: {record.url}
+                    {relationshipStatusLabel(record.source_type)}：{record.url}
                   </a>
                 )}
                 {record.notes && (
@@ -184,7 +195,7 @@ export function RelatedRecords({
                   );
                 }}
               >
-                Edit {record.name || noun}
+                编辑{record.name || noun}
               </Button>
             </div>
           </li>
@@ -192,7 +203,8 @@ export function RelatedRecords({
       </ul>
       <form onSubmit={save} className="space-y-4 rounded-md border p-4">
         <h3 className="font-medium">
-          {editing ? "Edit" : "Add"} {noun}
+          {editing ? "编辑" : "新增"}
+          {noun}
         </h3>
         <WorkflowFields fields={fields} values={values} onChange={setValues} />
         {failure && <p role="alert">{failure}</p>}
@@ -214,12 +226,12 @@ export function RelatedRecords({
               }
             }}
           >
-            Retry calendar schedule
+            重试日历排期
           </Button>
         )}
         <div className="flex gap-2">
           <Button type="submit" disabled={busy || needsSync}>
-            {busy ? "Saving…" : editing ? `Save ${noun}` : `Add ${noun}`}
+            {busy ? "正在保存…" : editing ? `保存${noun}` : `新增${noun}`}
           </Button>
           {editing && (
             <Button
@@ -230,7 +242,7 @@ export function RelatedRecords({
                 setValues(resetValues());
               }}
             >
-              Cancel edit
+              取消编辑
             </Button>
           )}
         </div>
@@ -258,7 +270,7 @@ export function Contacts({
       }
       parentId={id}
       fields={contactFields}
-      noun="contact"
+      noun="联系人"
       defaults={{ is_primary: false, is_active: true, social_urls: {} }}
     />
   );
@@ -287,7 +299,7 @@ export function Followups({
         }
         parentKey={kind === "inquiry" ? "inquiry_id" : "outbound_company_id"}
         parentId={id}
-        noun="follow-up"
+        noun="跟进"
         followupKind={kind}
         defaults={{
           method: "Email",
@@ -298,33 +310,33 @@ export function Followups({
         fields={[
           {
             key: "method",
-            label: "Method",
+            label: "方式",
             options: followupMethods,
             required: true,
           },
           {
             key: "summary",
-            label: "Summary",
+            label: "摘要",
             type: "textarea",
             required: true,
           },
           {
             key: "contacted_at",
-            label: "Contacted at",
+            label: "联系时间",
             type: "datetime-local",
             required: true,
           },
           {
             key: "next_follow_up_at",
-            label: "Next follow-up",
+            label: "下次跟进",
             type: "datetime-local",
           },
-          { key: "notes", label: "Follow-up notes", type: "textarea" },
+          { key: "notes", label: "跟进备注", type: "textarea" },
           ...(kind === "outbound"
             ? [
                 {
                   key: "contact_id",
-                  label: "Related contact",
+                  label: "关联联系人",
                   choices: (contacts.data || []).map((contact) => ({
                     id: String(contact.id),
                     label: contact.name,

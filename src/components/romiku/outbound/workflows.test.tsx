@@ -71,13 +71,27 @@ const setup = async (path: string, data = seed()) => {
 };
 
 describe("independent ROMIKU workflows", () => {
+  it("presents relationship workflow labels in Simplified Chinese while preserving stored identifiers", async () => {
+    const { screen } = await setup("/outbound-development");
+
+    await expect
+      .element(screen.getByRole("heading", { name: "外贸开发" }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByRole("button", { name: "新建外贸开发公司" }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByLabelText("筛选状态", { exact: true }))
+      .toBeVisible();
+  });
+
   it("creates outbound companies without creating or merging inquiries or customers", async () => {
     const { screen, provider } = await setup("/outbound-development");
-    await screen.getByRole("button", { name: "New outbound company" }).click();
+    await screen.getByRole("button", { name: "新建外贸开发公司" }).click();
     await screen
-      .getByLabelText("Company name", { exact: true })
+      .getByLabelText("公司名称", { exact: true })
       .fill("Original company");
-    await screen.getByRole("button", { name: "Save record" }).click();
+    await screen.getByRole("button", { name: "保存记录" }).click();
     await expect
       .poll(
         async () =>
@@ -97,34 +111,32 @@ describe("independent ROMIKU workflows", () => {
     const { screen, provider } = await setup(
       "/outbound-development?record=out-1",
     );
-    await screen.getByRole("tab", { name: "Contacts" }).click();
+    await screen.getByRole("tab", { name: "联系人" }).click();
     for (const name of ["Buyer", "Director"]) {
-      await screen.getByLabelText("Contact name", { exact: true }).fill(name);
+      await screen.getByLabelText("联系人姓名", { exact: true }).fill(name);
       await screen
-        .getByRole("button", { name: "Add contact", exact: true })
+        .getByRole("button", { name: "新增联系人", exact: true })
         .click();
       await expect
-        .element(screen.getByRole("button", { name: `Edit ${name}` }))
+        .element(screen.getByRole("button", { name: `编辑${name}` }))
         .toBeVisible();
     }
-    await screen.getByRole("tab", { name: "Follow-ups" }).click();
+    await screen.getByRole("tab", { name: "跟进" }).click();
     await screen
-      .getByLabelText("Related contact", { exact: true })
+      .getByLabelText("关联联系人", { exact: true })
       .selectOptions(
         screen.getByRole("option", { name: "Buyer", exact: true }),
       );
     await screen
-      .getByLabelText("Summary", { exact: true })
+      .getByLabelText("摘要", { exact: true })
       .fill("Sent introduction");
     await screen
-      .getByLabelText("Contacted at", { exact: true })
+      .getByLabelText("联系时间", { exact: true })
       .fill("2026-09-10T10:00");
     await screen
-      .getByLabelText("Next follow-up", { exact: true })
+      .getByLabelText("下次跟进", { exact: true })
       .fill("2026-09-12T10:00");
-    await screen
-      .getByRole("button", { name: "Add follow-up", exact: true })
-      .click();
+    await screen.getByRole("button", { name: "新增跟进", exact: true }).click();
     await expect
       .element(screen.getByText("Sent introduction", { exact: true }))
       .toBeVisible();
@@ -147,11 +159,11 @@ describe("independent ROMIKU workflows", () => {
     expect(
       (await provider.getList("romiku_formal_customers", list)).data,
     ).toEqual([]);
-    await screen.getByRole("tab", { name: "Profile" }).click();
+    await screen.getByRole("tab", { name: "档案" }).click();
     await screen
-      .getByLabelText("Status", { exact: true })
+      .getByLabelText("状态", { exact: true })
       .selectOptions("replied");
-    await screen.getByRole("button", { name: "Save record" }).click();
+    await screen.getByRole("button", { name: "保存记录" }).click();
     await expect
       .poll(
         async () =>
@@ -164,18 +176,16 @@ describe("independent ROMIKU workflows", () => {
   it("resets a saved follow-up with a new contacted timestamp", async () => {
     vi.setSystemTime(new Date("2026-09-17T10:00:00Z"));
     const { screen } = await setup("/outbound-development?record=out-1");
-    await screen.getByRole("tab", { name: "Follow-ups" }).click();
-    const contactedAt = screen.getByLabelText("Contacted at", { exact: true });
+    await screen.getByRole("tab", { name: "跟进" }).click();
+    const contactedAt = screen.getByLabelText("联系时间", { exact: true });
     const initialContactedAt = (contactedAt.element() as HTMLInputElement)
       .value;
 
     vi.setSystemTime(new Date("2026-09-17T10:01:00Z"));
     await screen
-      .getByLabelText("Summary", { exact: true })
+      .getByLabelText("摘要", { exact: true })
       .fill("Sent introduction");
-    await screen
-      .getByRole("button", { name: "Add follow-up", exact: true })
-      .click();
+    await screen.getByRole("button", { name: "新增跟进", exact: true }).click();
     await expect
       .element(screen.getByText("Sent introduction", { exact: true }))
       .toBeVisible();
@@ -189,24 +199,22 @@ describe("independent ROMIKU workflows", () => {
       "/website-inquiries?record=in-1",
       before,
     );
-    await screen.getByRole("tab", { name: "Original submission" }).click();
+    await screen.getByRole("tab", { name: "原始提交" }).click();
     await expect
       .element(screen.getByText("UNKNOWN", { exact: true }))
       .toBeVisible();
     await expect
       .element(screen.getByText("White packaging", { exact: true }))
       .toBeVisible();
-    await expect
-      .element(screen.getByText("Product match: not_found"))
-      .toBeVisible();
-    await screen.getByRole("tab", { name: "Profile" }).click();
+    await expect.element(screen.getByText("商品匹配：未匹配")).toBeVisible();
+    await screen.getByRole("tab", { name: "档案" }).click();
     await screen
-      .getByLabelText("Processing notes", { exact: true })
+      .getByLabelText("处理备注", { exact: true })
       .fill("Manual review");
     await screen
-      .getByLabelText("Status", { exact: true })
+      .getByLabelText("状态", { exact: true })
       .selectOptions("processed");
-    await screen.getByRole("button", { name: "Save record" }).click();
+    await screen.getByRole("button", { name: "保存记录" }).click();
     await expect
       .poll(
         async () =>
@@ -214,13 +222,11 @@ describe("independent ROMIKU workflows", () => {
             .data.status,
       )
       .toBe("processed");
-    await screen.getByRole("tab", { name: "Follow-ups" }).click();
+    await screen.getByRole("tab", { name: "跟进" }).click();
     await screen
-      .getByLabelText("Summary", { exact: true })
+      .getByLabelText("摘要", { exact: true })
       .fill("Replied to website request");
-    await screen
-      .getByRole("button", { name: "Add follow-up", exact: true })
-      .click();
+    await screen.getByRole("button", { name: "新增跟进", exact: true }).click();
     await expect
       .element(screen.getByText("Replied to website request", { exact: true }))
       .toBeVisible();
@@ -244,14 +250,14 @@ describe("independent ROMIKU workflows", () => {
 
   it("manually creates a customer and links source history without moving the source", async () => {
     const { screen, provider } = await setup("/formal-customers");
-    await screen.getByRole("button", { name: "New formal customer" }).click();
+    await screen.getByRole("button", { name: "新建正式客户" }).click();
     await screen
-      .getByLabelText("Customer name", { exact: true })
+      .getByLabelText("客户名称", { exact: true })
       .fill("Actual customer");
     await screen
-      .getByLabelText("Source outbound company", { exact: true })
+      .getByLabelText("来源外贸开发公司", { exact: true })
       .selectOptions("out-1");
-    await screen.getByRole("button", { name: "Save record" }).click();
+    await screen.getByRole("button", { name: "保存记录" }).click();
     await expect
       .poll(
         async () =>
@@ -265,25 +271,25 @@ describe("independent ROMIKU workflows", () => {
       (await provider.getOne("romiku_outbound_companies", { id: "out-1" }))
         .data,
     ).toEqual(seed().romiku_outbound_companies[0]);
-    await screen.getByRole("tab", { name: "Contacts" }).click();
+    await screen.getByRole("tab", { name: "联系人" }).click();
     for (const name of ["Accounts", "Receiving"]) {
-      await screen.getByLabelText("Contact name", { exact: true }).fill(name);
+      await screen.getByLabelText("联系人姓名", { exact: true }).fill(name);
       await screen
-        .getByRole("button", { name: "Add contact", exact: true })
+        .getByRole("button", { name: "新增联系人", exact: true })
         .click();
       await expect
-        .element(screen.getByRole("button", { name: `Edit ${name}` }))
+        .element(screen.getByRole("button", { name: `编辑${name}` }))
         .toBeVisible();
     }
     expect(
       (await provider.getList("romiku_customer_contacts", list)).data,
     ).toHaveLength(2);
-    await screen.getByRole("tab", { name: "Source history" }).click();
+    await screen.getByRole("tab", { name: "来源历史" }).click();
     await screen
-      .getByLabelText("Website inquiry to link", { exact: true })
+      .getByLabelText("要关联的网站询盘", { exact: true })
       .selectOptions("in-1");
     await screen
-      .getByRole("button", { name: "Link selected inquiry", exact: true })
+      .getByRole("button", { name: "关联所选询盘", exact: true })
       .click();
     await expect
       .element(screen.getByRole("link", { name: "WI-001 · Ana" }))
@@ -301,19 +307,19 @@ describe("independent ROMIKU workflows", () => {
       "/outbound-development?record=out-1",
     );
     await screen
-      .getByLabelText("Company name", { exact: true })
+      .getByLabelText("公司名称", { exact: true })
       .fill("Not saved yet");
-    await screen.getByRole("tab", { name: "Sources", exact: true }).click();
+    await screen.getByRole("tab", { name: "来源", exact: true }).click();
     await screen
-      .getByLabelText("Source URL", { exact: true })
+      .getByLabelText("来源链接", { exact: true })
       .fill("https://example.com/research");
     await screen
-      .getByRole("button", { name: "Add source URL", exact: true })
+      .getByRole("button", { name: "新增来源链接", exact: true })
       .click();
     await expect
       .element(
         screen.getByRole("link", {
-          name: "website: https://example.com/research",
+          name: "网站：https://example.com/research",
         }),
       )
       .toBeVisible();

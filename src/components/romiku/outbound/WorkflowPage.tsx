@@ -38,6 +38,7 @@ import {
   type Followup,
   type WorkflowKind,
 } from "./workflow";
+import { relationshipStatusLabel } from "../relationshipLabels";
 
 export type WorkflowConfig = {
   kind: WorkflowKind;
@@ -69,7 +70,7 @@ function FollowupCells({
   if (!data)
     return (
       <td colSpan={4} className="p-3">
-        {error ? "Follow-up data unavailable" : "Loading…"}
+        {error ? "无法加载跟进数据" : "正在加载…"}
       </td>
     );
   const state = deriveFollowupState(data as Followup[], record.status);
@@ -78,7 +79,7 @@ function FollowupCells({
       <td className="p-3">{formatDate(state.last_contact_at)}</td>
       <td className="p-3">{formatDate(state.next_follow_up_at)}</td>
       <td className="p-3">{state.follow_up_count}</td>
-      <td className="p-3">{state.overdue ? "Overdue" : "—"}</td>
+      <td className="p-3">{state.overdue ? "已逾期" : "—"}</td>
     </>
   );
 }
@@ -106,9 +107,9 @@ function ContactCell({
   return (
     <td className="p-3">
       {isPending ? (
-        "Loading…"
+        "正在加载…"
       ) : error ? (
-        "Contacts unavailable"
+        "无法加载联系人"
       ) : (
         <>
           {primary?.name || "—"}
@@ -167,16 +168,17 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
       </div>
       <p className="text-muted-foreground text-sm">
         {config.kind === "inquiry"
-          ? "Each website submission stays independent. Original values are read-only."
+          ? "每条网站提交均独立保存，原始信息只读。"
           : config.kind === "outbound"
-            ? "Research and outreach stay independent of inquiries and formal customers."
-            : "Create customer archives manually when real business is established."}{" "}
-        Status changes are manual.
+            ? "调研和外贸开发与网站询盘、正式客户相互独立。"
+            : "实际业务建立后，请手动创建客户档案。"}{" "}
+        状态变更需手动操作。
       </p>
       <div className="flex flex-wrap gap-3">
         <label>
-          Search{" "}
+          搜索{" "}
           <input
+            aria-label="搜索"
             className="rounded border p-2"
             value={search}
             onChange={(event) => {
@@ -186,8 +188,9 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           />
         </label>
         <label>
-          Filter status{" "}
+          筛选状态{" "}
           <select
+            aria-label="筛选状态"
             className="rounded border p-2"
             value={status}
             onChange={(event) => {
@@ -195,7 +198,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
               setPage(1);
             }}
           >
-            <option value="">All statuses</option>
+            <option value="">全部状态</option>
             {config.statuses.map((value) => (
               <option key={value} value={value}>
                 {labelFor(value)}
@@ -204,12 +207,12 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           </select>
         </label>
       </div>
-      {isPending && <p>Loading records…</p>}
+      {isPending && <p>正在加载记录…</p>}
       {error && (
         <div role="alert">
-          Records could not be loaded.{" "}
+          无法加载记录。{" "}
           <Button variant="outline" onClick={() => refetch()}>
-            Retry
+            重试
           </Button>
         </div>
       )}
@@ -218,23 +221,18 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           <thead className="bg-muted">
             <tr>
               {[
-                config.kind === "inquiry" ? "Inquiry / customer" : "Company",
-                "Country",
+                config.kind === "inquiry" ? "询盘／客户" : "公司",
+                "国家／地区",
                 ...(config.kind === "inquiry"
-                  ? ["Submitted", "Email"]
-                  : ["Primary contact"]),
+                  ? ["提交时间", "电子邮箱"]
+                  : ["主要联系人"]),
                 ...(config.kind === "outbound"
-                  ? ["Brand", "Purchasing categories", "Grade"]
+                  ? ["品牌", "采购品类", "价值等级"]
                   : []),
-                "Status",
-                "Owner",
+                "状态",
+                "负责人",
                 ...(config.kind !== "customer"
-                  ? [
-                      "Last contact",
-                      "Next follow-up",
-                      "Follow-ups",
-                      "Due state",
-                    ]
+                  ? ["最近联系", "下次跟进", "跟进次数", "到期状态"]
                   : []),
               ].map((title) => (
                 <th className="whitespace-nowrap p-3 font-medium" key={title}>
@@ -274,13 +272,15 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                     <td className="p-3">{record.grade}</td>
                   </>
                 )}
-                <td className="p-3">{labelFor(record.status)}</td>
+                <td className="p-3">
+                  {relationshipStatusLabel(record.status)}
+                </td>
                 <td className="p-3">
                   {record.owner_id
                     ? owners.data?.find(
                         (owner) => owner.user_id === record.owner_id,
-                      )?.first_name || "Assigned"
-                    : "Unassigned"}
+                      )?.first_name || "已分配"
+                    : "未分配"}
                 </td>
                 {config.kind !== "customer" && (
                   <FollowupCells record={record} kind={config.kind} />
@@ -290,7 +290,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           </tbody>
         </table>
         {!isPending && !error && data.length === 0 && (
-          <p className="p-6 text-center text-sm">No records found.</p>
+          <p className="p-6 text-center text-sm">未找到记录。</p>
         )}
       </div>
       <div className="flex items-center gap-3">
@@ -299,18 +299,17 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           disabled={page === 1}
           onClick={() => setPage(page - 1)}
         >
-          Previous
+          上一页
         </Button>
         <span>
-          Page {page}
-          {total !== undefined && ` · ${total} records`}
+          第 {page} 页{total !== undefined && ` · 共 ${total} 条记录`}
         </span>
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
           onClick={() => setPage(page + 1)}
         >
-          Next
+          下一页
         </Button>
       </div>
       <Sheet
@@ -325,7 +324,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
               {selected === "new" ? config.createLabel : config.title}
             </SheetTitle>
             <SheetDescription>
-              Manual updates preserve the identity and history of each record.
+              手动更新会保留每条记录的身份和历史。
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-8">
@@ -362,10 +361,10 @@ function WorkflowDrawer({
     return config.createLabel ? (
       <RecordEditor config={config} onCreated={onCreated} />
     ) : (
-      <p>Inquiries arrive from the website.</p>
+      <p>网站询盘会从网站自动进入。</p>
     );
-  if (isPending) return <p>Loading record…</p>;
-  if (error || !data) return <p role="alert">Could not load this record.</p>;
+  if (isPending) return <p>正在加载记录…</p>;
+  if (error || !data) return <p role="alert">无法加载此记录。</p>;
   return <RecordEditor config={config} record={data} onCreated={onCreated} />;
 }
 function RecordEditor({
@@ -390,9 +389,9 @@ function RecordEditor({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
-  const [activeTab, setActiveTab] = useState("Profile");
+  const [activeTab, setActiveTab] = useState("档案");
   const editingRecord =
-    activeTab === "Profile" ||
+    activeTab === "档案" ||
     config.extraTabs?.some((tab) => tab.title === activeTab && tab.fields);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -413,7 +412,7 @@ function RecordEditor({
         record,
       );
       refresh();
-      setMessage("Record saved.");
+      setMessage("记录已保存。");
       if (!record) onCreated(String(result.data.id));
     } catch (cause) {
       setFailed(true);
@@ -429,26 +428,26 @@ function RecordEditor({
           <Link
             to={`/quotes/new?source=${config.kind}&sourceId=${encodeURIComponent(record.id)}`}
           >
-            Create Quote
+            新建报价单
           </Link>
         </Button>
       )}
       <TabsList className="h-auto flex-wrap justify-start">
-        <TabsTrigger value="Profile">Profile</TabsTrigger>
+        <TabsTrigger value="档案">档案</TabsTrigger>
         {config.extraTabs?.map((tab) => (
           <TabsTrigger key={tab.title} value={tab.title}>
             {tab.title}
           </TabsTrigger>
         ))}
         {record && config.kind !== "inquiry" && (
-          <TabsTrigger value="Contacts">Contacts</TabsTrigger>
+          <TabsTrigger value="联系人">联系人</TabsTrigger>
         )}
         {record && config.kind !== "customer" && (
-          <TabsTrigger value="Follow-ups">Follow-ups</TabsTrigger>
+          <TabsTrigger value="跟进">跟进</TabsTrigger>
         )}
       </TabsList>
       <form onSubmit={submit} className="space-y-4" hidden={!editingRecord}>
-        <TabsContent value="Profile" className="space-y-4">
+        <TabsContent value="档案" className="space-y-4">
           <WorkflowFields
             fields={config.fields}
             values={values}
@@ -461,8 +460,7 @@ function RecordEditor({
           )}
           {config.kind === "customer" && (
             <p className="text-muted-foreground text-sm">
-              Source links are advisory history. Linking never moves, merges, or
-              converts the source record.
+              来源关联仅用于查看历史；关联不会移动、合并或转换来源记录。
             </p>
           )}
         </TabsContent>
@@ -479,7 +477,7 @@ function RecordEditor({
           ))}
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={busy}>
-            {busy ? "Saving…" : "Save record"}
+            {busy ? "正在保存…" : "保存记录"}
           </Button>
           {message && <p role={failed ? "alert" : "status"}>{message}</p>}
         </div>
@@ -488,23 +486,23 @@ function RecordEditor({
         ?.filter((tab) => tab.render)
         .map((tab) => (
           <TabsContent key={tab.title} value={tab.title}>
-            {record ? tab.render?.(record) : <p>Save this record first.</p>}
+            {record ? tab.render?.(record) : <p>请先保存此记录。</p>}
           </TabsContent>
         ))}
       {record && config.kind !== "inquiry" && (
-        <TabsContent value="Contacts">
+        <TabsContent value="联系人">
           <Contacts kind={config.kind} id={record.id} />
         </TabsContent>
       )}
       {record && config.kind !== "customer" && (
-        <TabsContent value="Follow-ups">
+        <TabsContent value="跟进">
           <Followups kind={config.kind} id={record.id} />
         </TabsContent>
       )}
       {record && config.kind === "customer" && (
         <p className="text-sm">
           <Link className="underline" to="/website-inquiries">
-            Open website inquiries to manually link source history
+            打开网站询盘以手动关联来源历史
           </Link>
         </p>
       )}

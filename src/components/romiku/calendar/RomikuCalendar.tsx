@@ -11,6 +11,10 @@ import {
   type SourceEvent,
 } from "./aggregation";
 import { OwnerFilter, useOwnerFilter } from "./OwnerFilter";
+import {
+  calendarEventLabel,
+  relationshipStatusLabel,
+} from "../relationshipLabels";
 
 export function RomikuCalendar() {
   const provider = useDataProvider();
@@ -41,34 +45,30 @@ export function RomikuCalendar() {
   for (const event of events)
     (grouped[localDay(new Date(event.due_at!))] ||= []).push(event);
   const rows =
-    mode === "list"
-      ? [["All dates", events] as const]
-      : Object.entries(grouped);
+    mode === "list" ? [["全部日期", events] as const] : Object.entries(grouped);
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold">Calendar</h1>
+        <h1 className="text-3xl font-semibold">日历</h1>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/calendar/tasks">Manual tasks</Link>
+            <Link to="/calendar/tasks">手动任务</Link>
           </Button>
           <Button asChild>
-            <Link to="/calendar/tasks/new">New manual task</Link>
+            <Link to="/calendar/tasks/new">新建手动任务</Link>
           </Button>
           <Button variant="outline" onClick={() => query.refetch()}>
-            Refresh
+            刷新
           </Button>
         </div>
       </div>
       <p className="text-muted-foreground">
-        Follow-ups and due dates from your source records. Open a source to
-        change its date; this calendar refreshes automatically every minute and
-        when reopened. Times use your local timezone.
+        此处汇总来源记录的跟进和到期日期。打开来源记录可修改日期；日历会在重新打开时及每分钟自动刷新。时间使用您的本地时区。
       </p>
       <OwnerFilter state={owner} />
       <div className="flex flex-wrap gap-3">
         <label>
-          From date{" "}
+          开始日期{" "}
           <input
             className="rounded border p-2"
             type="date"
@@ -77,7 +77,7 @@ export function RomikuCalendar() {
           />
         </label>
         <label>
-          To date{" "}
+          结束日期{" "}
           <input
             className="rounded border p-2"
             type="date"
@@ -86,35 +86,35 @@ export function RomikuCalendar() {
           />
         </label>
         <label>
-          View{" "}
+          视图{" "}
           <select
-            aria-label="View"
+            aria-label="视图"
             className="rounded border p-2"
             value={mode}
             onChange={(e) => setMode(e.target.value)}
           >
-            <option value="dates">By date</option>
-            <option value="list">List</option>
+            <option value="dates">按日期</option>
+            <option value="list">列表</option>
           </select>
         </label>
         <label>
-          Source type{" "}
+          来源类型{" "}
           <select
-            aria-label="Source type"
+            aria-label="来源类型"
             className="rounded border p-2"
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
-            <option value="">All sources</option>
+            <option value="">全部来源</option>
             {[
-              ["romiku_website_inquiries", "Website"],
-              ["romiku_outbound_companies", "Outbound"],
-              ["romiku_quotes", "Quote"],
-              ["romiku_pis", "PI"],
-              ["romiku_orders", "Order"],
-              ["romiku_production_orders", "Production"],
-              ["romiku_packing_lists", "Packing"],
-              ["romiku_manual_tasks", "Manual task"],
+              ["romiku_website_inquiries", "网站询盘"],
+              ["romiku_outbound_companies", "外贸开发"],
+              ["romiku_quotes", "报价单"],
+              ["romiku_pis", "形式发票"],
+              ["romiku_orders", "订单"],
+              ["romiku_production_orders", "生产"],
+              ["romiku_packing_lists", "装箱"],
+              ["romiku_manual_tasks", "手动任务"],
             ].map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -129,7 +129,7 @@ export function RomikuCalendar() {
             setTo(localDay(today));
           }}
         >
-          Today
+          今天
         </Button>
         <Button
           variant="outline"
@@ -138,29 +138,28 @@ export function RomikuCalendar() {
             setTo("");
           }}
         >
-          All dates
+          全部日期
         </Button>
       </div>
       {from && to && from > to && (
-        <p role="alert">From date must be on or before To date.</p>
+        <p role="alert">开始日期不得晚于结束日期。</p>
       )}
-      {query.isPending && <p>Loading calendar…</p>}
+      {query.isPending && <p>正在加载日历…</p>}
       {query.error && (
         <p role="alert">
-          Could not load calendar.{" "}
-          <button onClick={() => query.refetch()}>Retry</button>
+          无法加载日历。 <button onClick={() => query.refetch()}>重试</button>
         </p>
       )}
       {query.data && (
         <>
-          <p className="text-sm">{events.length} events</p>
+          <p className="text-sm">{events.length} 项日程</p>
           {rows.map(([date, items]) => (
             <section key={date} className="overflow-x-auto rounded border">
               <h2 className="bg-muted p-3 font-medium">{date}</h2>
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr>
-                    {["Source", "Event", "Date / time", "Owner", "Status"].map(
+                    {["来源", "事项", "日期／时间", "负责人", "状态"].map(
                       (label) => (
                         <th key={label} className="p-3">
                           {label}
@@ -181,24 +180,25 @@ export function RomikuCalendar() {
                         </Link>
                       </td>
                       <td className="p-3">
-                        {e.event_type.replaceAll("_", " ")}
+                        {calendarEventLabel(e.event_type)}
                       </td>
                       <td className="p-3">
-                        {new Date(e.due_at!).toLocaleString()}
+                        {new Date(e.due_at!).toLocaleString("zh-CN")}
                       </td>
                       <td className="p-3">
                         {owner.owners.find((o) => o.user_id === e.owner_id)
-                          ?.first_name ||
-                          (e.owner_id ? "Assigned" : "Unassigned")}
+                          ?.first_name || (e.owner_id ? "已分配" : "未分配")}
                       </td>
-                      <td className="p-3">{e.status}</td>
+                      <td className="p-3">
+                        {relationshipStatusLabel(e.status)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </section>
           ))}
-          {!events.length && <p>No events in this selection.</p>}
+          {!events.length && <p>当前选择中没有日程。</p>}
         </>
       )}
     </section>

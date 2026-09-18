@@ -147,14 +147,12 @@ export function RomikuWorkbench() {
           </div>
           {shown.length > limit && (
             <Button variant="outline" onClick={() => setLimit(limit + 50)}>
-              Show more actions
+              显示更多待办
             </Button>
           )}
           <p className="text-xs text-muted-foreground">
-            Counts are actionable records per category. An Order can have both
-            deposit and balance outstanding. Packing lists stay here until
-            archived. Completed tasks remain available in Calendar → Manual
-            tasks.
+            数量按分类统计可处理记录。一张订单可能同时有待收定金和尾款；装箱单会保留在此处直到归档。已完成任务仍可在“日历
+            → 手动任务”中查看。
           </p>
         </>
       )}

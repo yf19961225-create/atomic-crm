@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { RaRecord } from "ra-core";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  followupMethodLabel,
+  relationshipStatusLabel,
+} from "../relationshipLabels";
 import { readRelated } from "./workflow";
 
 export type Field = {
@@ -15,7 +19,18 @@ export type Field = {
   reference?: string;
 };
 export type Values = Record<string, unknown>;
-export const labelFor = (value: string) => value.replaceAll("_", " ");
+export const labelFor = (value: string) =>
+  [
+    "WhatsApp",
+    "Email",
+    "Phone",
+    "Instagram",
+    "Facebook",
+    "LinkedIn",
+    "Other",
+  ].includes(value)
+    ? followupMethodLabel(value)
+    : relationshipStatusLabel(value);
 export function valueAt(values: Values, key: string): unknown {
   return key
     .split(".")
@@ -72,7 +87,7 @@ function ReferenceSelect({
         disabled={isPending || !!error}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="">Unassigned / no link</option>
+        <option value="">未分配／不关联</option>
         {value && !choices.some((choice) => choice.id === value) && (
           <option value={value}>{value}</option>
         )}
@@ -82,9 +97,7 @@ function ReferenceSelect({
           </option>
         ))}
       </select>
-      {error && (
-        <p role="alert">Could not load {field.label.toLowerCase()} choices.</p>
-      )}
+      {error && <p role="alert">无法加载{field.label}选项。</p>}
     </>
   );
 }
@@ -123,7 +136,7 @@ export function WorkflowFields({
                 value={String(value ?? "")}
                 onChange={(event) => change(event.target.value)}
               >
-                {!field.required && <option value="">None</option>}
+                {!field.required && <option value="">无</option>}
                 {(
                   field.choices ||
                   field.options!.map((option) => ({
@@ -164,16 +177,16 @@ export function WorkflowFields({
 }
 export const ownerField: Field = {
   key: "owner_id",
-  label: "Owner",
+  label: "负责人",
   reference: "sales",
 };
 export const contactFields: Field[] = [
-  { key: "name", label: "Contact name", required: true },
-  { key: "title", label: "Job title" },
-  { key: "department", label: "Department" },
+  { key: "name", label: "联系人姓名", required: true },
+  { key: "title", label: "职位" },
+  { key: "department", label: "部门" },
   {
     key: "role",
-    label: "Role",
+    label: "角色",
     options: [
       "owner",
       "decision_maker",
@@ -183,13 +196,13 @@ export const contactFields: Field[] = [
       "other",
     ],
   },
-  { key: "email", label: "Email", type: "email" },
-  { key: "phone", label: "Phone" },
+  { key: "email", label: "电子邮箱", type: "email" },
+  { key: "phone", label: "电话" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "wechat", label: "WeChat" },
   { key: "social_urls.linkedin", label: "LinkedIn", type: "url" },
   { key: "social_urls.instagram", label: "Instagram", type: "url" },
-  { key: "is_primary", label: "Primary contact", type: "checkbox" },
-  { key: "is_active", label: "Currently employed / active", type: "checkbox" },
-  { key: "notes", label: "Contact notes", type: "textarea" },
+  { key: "is_primary", label: "主要联系人", type: "checkbox" },
+  { key: "is_active", label: "当前在职／有效", type: "checkbox" },
+  { key: "notes", label: "联系人备注", type: "textarea" },
 ];

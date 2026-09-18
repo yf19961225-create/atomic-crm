@@ -37,15 +37,15 @@ export function OwnerFilter({
   return (
     <div className="flex flex-wrap items-center gap-4">
       <label>
-        Owner{" "}
+        负责人{" "}
         <select
-          aria-label="Owner"
+          aria-label="负责人"
           className="rounded border p-2"
           value={state.owner}
           disabled={state.onlyMine || state.isPending || !!state.error}
           onChange={(e) => state.setOwner(e.target.value)}
         >
-          <option value="">All owners</option>
+          <option value="">全部负责人</option>
           {state.owners.map((o) => (
             <option key={o.id} value={o.user_id}>
               {o.first_name} {o.last_name}
@@ -60,12 +60,12 @@ export function OwnerFilter({
           disabled={!state.mine}
           onChange={(e) => state.setOnlyMine(e.target.checked)}
         />
-        Only mine
+        仅看我的
       </label>
       {state.error && (
         <p role="alert">
-          Owners could not be loaded.{" "}
-          <button onClick={() => state.refetch()}>Retry owners</button>
+          无法加载负责人。{" "}
+          <button onClick={() => state.refetch()}>重试加载负责人</button>
         </p>
       )}
     </div>
