@@ -9,7 +9,7 @@ import {
 import { romikuNavigation } from "../routes/navigation";
 
 export const RomikuPrimaryNavigation = () => (
-  <nav aria-label="Primary navigation">
+  <nav aria-label="主导航">
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>

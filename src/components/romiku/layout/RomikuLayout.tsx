@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Error } from "@/components/admin/error";
 import { RomikuPrimaryNavigation } from "./RomikuPrimaryNavigation";
+import { romikuBrand } from "../branding/brand";
 
 export const RomikuLayout = ({ children }: { children: ReactNode }) => (
   <SidebarProvider>
@@ -18,10 +19,16 @@ export const RomikuLayout = ({ children }: { children: ReactNode }) => (
       <SidebarHeader>
         <Link
           to="/"
+          aria-label={romikuBrand.title}
           className="px-3 py-2 text-base font-semibold text-sidebar-foreground no-underline"
         >
+          <img
+            alt=""
+            className="mb-1 h-auto w-32 group-data-[collapsible=icon]:hidden"
+            src={romikuBrand.lightModeLogo}
+          />
           <span className="group-data-[collapsible=icon]:hidden">
-            ROMIKU CRM 2.0
+            {romikuBrand.title}
           </span>
           <span className="hidden group-data-[collapsible=icon]:inline">R</span>
         </Link>
@@ -32,7 +39,7 @@ export const RomikuLayout = ({ children }: { children: ReactNode }) => (
     </Sidebar>
     <main className="min-h-svh flex-1 px-4 py-6 md:px-8" id="main-content">
       <header className="mb-4 flex md:hidden">
-        <SidebarTrigger aria-label="Open primary navigation" />
+        <SidebarTrigger aria-label="打开主导航" />
       </header>
       <ErrorBoundary FallbackComponent={Error}>
         <Suspense fallback={<Skeleton className="h-12 w-12 rounded-full" />}>

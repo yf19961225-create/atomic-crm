@@ -12,7 +12,7 @@ describe("RomikuLayout", () => {
     mockUseIsMobile.mockReturnValue(false);
   });
 
-  it("renders ROMIKU navigation instead of Atomic business modules", async () => {
+  it("renders the ROMIKU wordmark and Chinese primary navigation", async () => {
     const screen = await render(
       <MemoryRouter>
         <RomikuLayout>
@@ -25,25 +25,23 @@ describe("RomikuLayout", () => {
       .element(screen.getByRole("link", { name: "ROMIKU CRM 2.0" }))
       .toBeVisible();
 
-    const navigation = screen.getByRole("navigation", {
-      name: "Primary navigation",
-    });
+    const navigation = screen.getByRole("navigation", { name: "主导航" });
     await expect.element(navigation).toBeVisible();
 
     const expectedLinks = [
-      ["Workbench", "/"],
-      ["Website Inquiries", "/website-inquiries"],
-      ["Outbound Development", "/outbound-development"],
-      ["Formal Customers", "/formal-customers"],
-      ["Quotes", "/quotes"],
+      ["工作台", "/"],
+      ["网站询盘", "/website-inquiries"],
+      ["外贸开发", "/outbound-development"],
+      ["正式客户", "/formal-customers"],
+      ["报价单", "/quotes"],
       ["PI", "/pi"],
-      ["Orders", "/orders"],
-      ["Production", "/production"],
-      ["Packing & Shipping", "/packing-shipping"],
-      ["Calendar", "/calendar"],
-      ["Suppliers", "/suppliers"],
-      ["Product Library", "/product-library"],
-      ["Settings", "/settings"],
+      ["订单", "/orders"],
+      ["生产", "/production"],
+      ["装箱与发货", "/packing-shipping"],
+      ["日历", "/calendar"],
+      ["供应商", "/suppliers"],
+      ["产品库", "/product-library"],
+      ["设置", "/settings"],
     ];
 
     for (const [name, href] of expectedLinks) {
@@ -75,7 +73,7 @@ describe("RomikuLayout", () => {
     );
 
     await expect
-      .element(screen.getByRole("button", { name: "Open primary navigation" }))
+      .element(screen.getByRole("button", { name: "打开主导航" }))
       .toBeVisible();
   });
 });

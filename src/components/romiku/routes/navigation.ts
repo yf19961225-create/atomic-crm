@@ -22,29 +22,29 @@ export type RomikuNavigationItem = {
 };
 
 export const romikuNavigation: RomikuNavigationItem[] = [
-  { icon: Workflow, label: "Workbench", path: "/" },
+  { icon: Workflow, label: "工作台", path: "/" },
   {
     icon: ClipboardList,
-    label: "Website Inquiries",
+    label: "网站询盘",
     path: "/website-inquiries",
   },
   {
     icon: Send,
-    label: "Outbound Development",
+    label: "外贸开发",
     path: "/outbound-development",
   },
-  { icon: UsersRound, label: "Formal Customers", path: "/formal-customers" },
-  { icon: FileText, label: "Quotes", path: "/quotes" },
+  { icon: UsersRound, label: "正式客户", path: "/formal-customers" },
+  { icon: FileText, label: "报价单", path: "/quotes" },
   { icon: ReceiptText, label: "PI", path: "/pi" },
-  { icon: Handshake, label: "Orders", path: "/orders" },
-  { icon: Factory, label: "Production", path: "/production" },
+  { icon: Handshake, label: "订单", path: "/orders" },
+  { icon: Factory, label: "生产", path: "/production" },
   {
     icon: ShipWheel,
-    label: "Packing & Shipping",
+    label: "装箱与发货",
     path: "/packing-shipping",
   },
-  { icon: CalendarDays, label: "Calendar", path: "/calendar" },
-  { icon: PackageCheck, label: "Suppliers", path: "/suppliers" },
-  { icon: Boxes, label: "Product Library", path: "/product-library" },
-  { icon: Settings, label: "Settings", path: "/settings" },
+  { icon: CalendarDays, label: "日历", path: "/calendar" },
+  { icon: PackageCheck, label: "供应商", path: "/suppliers" },
+  { icon: Boxes, label: "产品库", path: "/product-library" },
+  { icon: Settings, label: "设置", path: "/settings" },
 ];

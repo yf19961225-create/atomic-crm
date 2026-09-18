@@ -3,6 +3,8 @@ import { RomikuLayout } from "@/components/romiku/layout/RomikuLayout";
 import { romikuRoutes } from "@/components/romiku/routes/RomikuRoutes";
 import { RomikuWorkbench } from "@/components/romiku/workbench/RomikuWorkbench";
 import { romikuResources } from "@/components/romiku/resources";
+import { romikuBrand } from "@/components/romiku/branding/brand";
+import { romikuI18nProvider } from "@/components/romiku/branding/i18nProvider";
 
 /**
  * Application entry point
@@ -40,8 +42,11 @@ const App = () => (
     additionalRoutes={romikuRoutes}
     additionalResources={romikuResources}
     dashboard={RomikuWorkbench}
+    darkModeLogo={romikuBrand.darkModeLogo}
+    i18nProvider={romikuI18nProvider}
     layout={RomikuLayout}
-    title="ROMIKU CRM 2.0"
+    lightModeLogo={romikuBrand.lightModeLogo}
+    title={romikuBrand.title}
   />
 );
 
