@@ -24,15 +24,15 @@ import {
 
 function DocumentSources({ record }: { record: RaRecord }) {
   const links = [
-    [record.source_quote_id, "/quotes/", "Quote"],
+    [record.source_quote_id, "/quotes/", "报价单"],
     [record.source_pi_id, "/pi/", "PI"],
     [
       record.source_website_inquiry_id,
       "/website-inquiries?record=",
-      "Website Inquiry",
+      "网站询盘",
     ],
-    [record.outbound_company_id, "/outbound-development?record=", "Outbound"],
-    [record.formal_customer_id, "/formal-customers?record=", "Formal Customer"],
+    [record.outbound_company_id, "/outbound-development?record=", "主动开发"],
+    [record.formal_customer_id, "/formal-customers?record=", "正式客户"],
   ].filter(([id]) => id);
   return (
     <div className="flex gap-3 text-sm">
@@ -47,7 +47,7 @@ function DocumentSources({ record }: { record: RaRecord }) {
           </Link>
         ))
       ) : (
-        <span>Direct</span>
+        <span>直接创建</span>
       )}
     </div>
   );
@@ -76,16 +76,15 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">{config.plural}</h1>
         <Button asChild>
-          <Link to={`${config.path}/new`}>New {config.label}</Link>
+          <Link to={`${config.path}/new`}>新建{config.label}</Link>
         </Button>
       </div>
       <p className="text-muted-foreground">
-        Independent buyer, product and commercial snapshots with retained source
-        history.
+        独立保存采购方、产品和商务快照，并保留来源历史。
       </p>
       <div className="flex gap-4">
         <label>
-          Document number{" "}
+          单据编号{" "}
           <input
             className="rounded border p-2"
             value={search}
@@ -96,7 +95,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           />
         </label>
         <label>
-          Status{" "}
+          状态{" "}
           <select
             className="rounded border p-2"
             value={status}
@@ -105,7 +104,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
               setPage(1);
             }}
           >
-            <option value="">All statuses</option>
+            <option value="">全部状态</option>
             {config.statuses.map((status) => (
               <option value={status} key={status}>
                 {status.replaceAll("_", " ")}
@@ -114,11 +113,11 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           </select>
         </label>
       </div>
-      {isPending && <p>Loading {config.plural}…</p>}
+      {isPending && <p>正在加载{config.plural}…</p>}
       {error && (
         <p role="alert">
-          Could not load {config.plural}.{" "}
-          <Button onClick={() => refetch()}>Retry</Button>
+          无法加载{config.plural}。{" "}
+          <Button onClick={() => refetch()}>重试</Button>
         </p>
       )}
       <div className="overflow-auto rounded border">
@@ -127,12 +126,12 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
             <tr>
               {[
                 config.label,
-                "Buyer",
-                "Source",
-                "Status",
-                "Date",
-                "Total",
-                ...(kind === "order" ? ["Outstanding"] : []),
+                "采购方",
+                "来源",
+                "状态",
+                "日期",
+                "合计",
+                ...(kind === "order" ? ["待收款"] : []),
               ].map((label) => (
                 <th className="p-3" key={label}>
                   {label}
@@ -171,7 +170,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           </tbody>
         </table>
         {!isPending && !error && !data.length && (
-          <p className="p-6 text-center">No {config.plural} found.</p>
+          <p className="p-6 text-center">未找到{config.plural}。</p>
         )}
       </div>
       <div className="flex items-center gap-3">
@@ -180,18 +179,17 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           disabled={page === 1}
           onClick={() => setPage(page - 1)}
         >
-          Previous
+          上一页
         </Button>
         <span>
-          Page {page}
-          {total !== undefined && ` · ${total} records`}
+          第 {page} 页{total !== undefined && ` · 共 ${total} 条`}
         </span>
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
           onClick={() => setPage(page + 1)}
         >
-          Next
+          下一页
         </Button>
       </div>
     </section>
@@ -224,21 +222,21 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
   return (
     <section className="max-w-3xl space-y-4">
       <Link className="underline" to={config.path}>
-        Back to {config.plural}
+        返回{config.plural}
       </Link>
-      <h1 className="text-3xl font-semibold">New {config.label}</h1>
+      <h1 className="text-3xl font-semibold">新建{config.label}</h1>
       <p>
-        Create a direct {config.label}. To copy an existing document, open its
-        detail page and use Create {config.label}.
+        直接创建{config.label}。如需复制已有单据，请打开其详情页并使用“创建
+        {config.label}”。
       </p>
       <form className="space-y-4" onSubmit={create}>
         <fieldset disabled={busy} className="space-y-4">
           <WorkflowFields
-            fields={[{ key: "name", label: "Buyer name", required: true }]}
+            fields={[{ key: "name", label: "采购方名称", required: true }]}
             values={values}
             onChange={setValues}
           />
-          <Button type="submit">Create {config.label}</Button>
+          <Button type="submit">创建{config.label}</Button>
         </fieldset>
         {failure && <p role="alert">{failure}</p>}
       </form>
@@ -251,13 +249,13 @@ export function DocumentDetail({ kind }: { kind: DocumentKind }) {
   const { data, isPending, error, refetch } = useGetOne(config.resource, {
     id,
   });
-  if (isPending) return <p>Loading {config.label}…</p>;
+  if (isPending) return <p>正在加载{config.label}…</p>;
   if (error || !data)
     return (
       <p role="alert">
-        Could not load this {config.label}.{" "}
+        无法加载此{config.label}。{" "}
         <Link className="underline" to={config.path}>
-          Back to {config.plural}
+          返回{config.plural}
         </Link>
       </p>
     );
@@ -271,62 +269,62 @@ export function DocumentDetail({ kind }: { kind: DocumentKind }) {
   );
 }
 const buyerFields: Field[] = [
-  { key: "counterparty_snapshot.name", label: "Buyer name", required: true },
-  { key: "counterparty_snapshot.company", label: "Company" },
-  { key: "counterparty_snapshot.contact", label: "Contact name" },
-  { key: "counterparty_snapshot.email", label: "Email", type: "email" },
-  { key: "counterparty_snapshot.phone", label: "Phone" },
+  { key: "counterparty_snapshot.name", label: "采购方名称", required: true },
+  { key: "counterparty_snapshot.company", label: "公司名称" },
+  { key: "counterparty_snapshot.contact", label: "联系人姓名" },
+  { key: "counterparty_snapshot.email", label: "邮箱", type: "email" },
+  { key: "counterparty_snapshot.phone", label: "电话" },
   { key: "counterparty_snapshot.whatsapp", label: "WhatsApp" },
-  { key: "counterparty_snapshot.country", label: "Country" },
+  { key: "counterparty_snapshot.country", label: "国家/地区" },
   {
     key: "counterparty_snapshot.address",
-    label: "Buyer address",
+    label: "采购方地址",
     type: "textarea",
   },
-  { key: "counterparty_snapshot.consignee", label: "Consignee" },
+  { key: "counterparty_snapshot.consignee", label: "收货人" },
   {
     key: "counterparty_snapshot.consignee_contact",
-    label: "Consignee contact",
+    label: "收货联系人",
   },
   {
     key: "counterparty_snapshot.shipping_address",
-    label: "Shipping address",
+    label: "收货地址",
     type: "textarea",
   },
   {
     key: "counterparty_snapshot.billing_address",
-    label: "Billing address",
+    label: "账单地址",
     type: "textarea",
   },
-  { key: "currency", label: "Currency", required: true },
-  { key: "document_date", label: "Document date (YYYY-MM-DD)" },
+  { key: "currency", label: "币种", required: true },
+  { key: "document_date", label: "单据日期（YYYY-MM-DD）" },
 ];
 const termsFields: Field[] = [
-  { key: "price_term", label: "Price term" },
-  { key: "shipment_method", label: "Shipment method" },
+  { key: "price_term", label: "价格条款" },
+  { key: "shipment_method", label: "运输方式" },
   {
     key: "terms_snapshot.payment_terms",
-    label: "Payment terms",
+    label: "付款条款",
     type: "textarea",
   },
   {
     key: "terms_snapshot.delivery_terms",
-    label: "Delivery terms",
+    label: "交付条款",
     type: "textarea",
   },
-  { key: "terms_snapshot.lead_time", label: "Lead time" },
+  { key: "terms_snapshot.lead_time", label: "交期" },
   {
     key: "terms_snapshot.clauses",
-    label: "Commercial clauses",
+    label: "商务条款",
     type: "textarea",
   },
-  { key: "bank_snapshot.details", label: "Bank details", type: "textarea" },
-  { key: "freight", label: "Freight" },
-  { key: "other_expenses", label: "Other expenses" },
-  { key: "discount", label: "Discount" },
-  { key: "deposit_percent", label: "Deposit percentage", required: true },
-  { key: "deposit_due_at", label: "Deposit due (ISO / timezone)" },
-  { key: "balance_due_at", label: "Balance due (ISO / timezone)" },
+  { key: "bank_snapshot.details", label: "银行信息", type: "textarea" },
+  { key: "freight", label: "运费" },
+  { key: "other_expenses", label: "其他费用" },
+  { key: "discount", label: "折扣" },
+  { key: "deposit_percent", label: "定金比例", required: true },
+  { key: "deposit_due_at", label: "定金到期日（ISO / 时区）" },
+  { key: "balance_due_at", label: "尾款到期日（ISO / 时区）" },
 ];
 function DocumentEditor({
   kind,
@@ -362,7 +360,7 @@ function DocumentEditor({
       });
       setValues(result.data);
       await onSaved();
-      setMessage(`${config.label} saved.`);
+      setMessage(`${config.label}已保存。`);
     } catch (cause) {
       setFailed(true);
       setMessage(errorMessage(cause));
@@ -374,7 +372,7 @@ function DocumentEditor({
     ...buyerFields,
     {
       key: "status",
-      label: `${config.label} status`,
+      label: `${config.label}状态`,
       options: config.statuses,
       required: true,
     },
@@ -382,39 +380,39 @@ function DocumentEditor({
       ? [
           {
             key: "terms_snapshot.valid_until",
-            label: "Valid until (YYYY-MM-DD)",
+            label: "有效期至（YYYY-MM-DD）",
           },
         ]
-      : [{ key: "purchase_order_number", label: "Customer PO number" }]),
+      : [{ key: "purchase_order_number", label: "客户 PO 编号" }]),
   ];
   const delivery: Field[] =
     kind === "order"
       ? [
           {
             key: "expected_delivery_at",
-            label: "Expected delivery (ISO / timezone)",
+            label: "预计交付（ISO / 时区）",
           },
           {
             key: "actual_delivery_at",
-            label: "Actual delivery (ISO / timezone)",
+            label: "实际交付（ISO / 时区）",
           },
         ]
       : [
           {
             key: "terms_snapshot.expected_delivery",
-            label: "Expected delivery (YYYY-MM-DD)",
+            label: "预计交付（YYYY-MM-DD）",
           },
         ];
   const tabs = [
-    { name: "Buyer & details", fields: details },
-    { name: "Terms & expenses", fields: termsFields },
+    { name: "采购方与详情", fields: details },
+    { name: "条款与费用", fields: termsFields },
     {
-      name: "Delivery & notes",
+      name: "交付与备注",
       fields: [
         ...delivery,
         {
           key: "notes",
-          label: `${config.label} notes`,
+          label: `${config.label}备注`,
           type: "textarea" as const,
         },
       ],
@@ -423,22 +421,22 @@ function DocumentEditor({
   return (
     <section className="max-w-6xl space-y-4">
       <Link className="underline" to={config.path}>
-        Back to {config.plural}
+        返回{config.plural}
       </Link>
       <h1 className="text-3xl font-semibold">
-        {record.document_number || `Draft ${config.label}`}
+        {record.document_number || `草稿${config.label}`}
       </h1>
       <DocumentSources record={record} />
       {kind === "order" && (
         <div className="flex gap-4">
           <Link className="underline" to={`/production?order=${record.id}`}>
-            Production Orders
+            生产单
           </Link>
           <Link
             className="underline"
             to={`/packing-shipping?order=${record.id}`}
           >
-            Packing Lists
+            装箱单
           </Link>
         </div>
       )}
@@ -446,40 +444,37 @@ function DocumentEditor({
         <DocumentConversion source="pi" sourceId={String(record.id)} />
       )}
       <p className="text-muted-foreground text-sm">
-        Edits apply to this {config.label}'s snapshots. Source documents retain
-        their original values.
+        修改仅应用于此{config.label}的快照；来源单据保留原始值。
       </p>
       {items.error ? (
         <p role="alert">
-          Could not load items or totals.{" "}
-          <Button onClick={() => items.refetch()}>Retry</Button>
+          无法加载产品项或合计。{" "}
+          <Button onClick={() => items.refetch()}>重试</Button>
         </p>
       ) : items.isPending ? (
-        <p>Loading totals…</p>
+        <p>正在加载合计…</p>
       ) : (
         <div className="bg-muted flex gap-6 rounded p-4">
           <span>
-            Subtotal: {record.currency} {totals.subtotal.toFixed(2)}
+            小计：{record.currency} {totals.subtotal.toFixed(2)}
           </span>
           <strong>
-            Total: {record.currency} {totals.total.toFixed(2)}
+            合计：{record.currency} {totals.total.toFixed(2)}
           </strong>
-          <span className="text-muted-foreground text-sm">Saved values</span>
+          <span className="text-muted-foreground text-sm">已保存的值</span>
         </div>
       )}
-      <Tabs defaultValue="Items" className="space-y-4">
+      <Tabs defaultValue="items" className="space-y-4">
         <TabsList className="flex h-auto flex-wrap">
-          <TabsTrigger value="Items">Items</TabsTrigger>
+          <TabsTrigger value="items">产品项</TabsTrigger>
           {tabs.map((tab) => (
             <TabsTrigger key={tab.name} value={tab.name}>
               {tab.name}
             </TabsTrigger>
           ))}
-          {kind === "order" && (
-            <TabsTrigger value="Payments">Payments</TabsTrigger>
-          )}
+          {kind === "order" && <TabsTrigger value="payments">收款</TabsTrigger>}
         </TabsList>
-        <TabsContent value="Items">
+        <TabsContent value="items">
           {items.data && (
             <QuoteItems
               kind={kind}
@@ -498,13 +493,13 @@ function DocumentEditor({
                   values={values}
                   onChange={setValues}
                 />
-                <Button type="submit">Save {config.label}</Button>
+                <Button type="submit">保存{config.label}</Button>
               </fieldset>
             </form>
           </TabsContent>
         ))}
         {kind === "order" && (
-          <TabsContent value="Payments">
+          <TabsContent value="payments">
             {items.data && (
               <OrderPayments order={record} total={totals.total} />
             )}

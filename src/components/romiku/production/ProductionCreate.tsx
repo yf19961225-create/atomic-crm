@@ -55,12 +55,12 @@ export function ProductionCreate() {
   return (
     <section className="space-y-4">
       <Link className="underline" to="/production">
-        Back to Production
+        返回生产管理
       </Link>
-      <h1 className="text-3xl font-semibold">New Production Orders</h1>
+      <h1 className="text-3xl font-semibold">新建生产单</h1>
       <p>
-        Select items and one supplier for each. One Production Order is created
-        per supplier, with independent Order item and supplier snapshots.
+        选择产品项并为每项指定一个供应商。每个供应商将创建一张生产单，并拥有独立
+        的订单产品项和供应商快照。
       </p>
       <form className="space-y-4" onSubmit={create}>
         <fieldset disabled={busy || created !== null} className="space-y-4">
@@ -73,7 +73,7 @@ export function ProductionCreate() {
           />
           {(items.error || suppliers.error) && (
             <p role="alert">
-              Could not load Order items or suppliers.{" "}
+              无法加载订单产品项或供应商。{" "}
               <Button
                 type="button"
                 onClick={() => {
@@ -81,26 +81,22 @@ export function ProductionCreate() {
                   void suppliers.refetch();
                 }}
               >
-                Retry
+                重试
               </Button>
             </p>
           )}
-          {orderId && items.isPending && <p>Loading Order items…</p>}
+          {orderId && items.isPending && <p>正在加载订单产品项…</p>}
           <div className="overflow-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
-                  {[
-                    "Select",
-                    "SKU / product",
-                    "Ordered",
-                    "Production quantity",
-                    "Supplier",
-                  ].map((s) => (
-                    <th key={s} className="p-3">
-                      {s}
-                    </th>
-                  ))}
+                  {["选择", "SKU / 产品", "订购数量", "生产数量", "供应商"].map(
+                    (s) => (
+                      <th key={s} className="p-3">
+                        {s}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -116,7 +112,7 @@ export function ProductionCreate() {
                       <td className="p-3">
                         <input
                           type="checkbox"
-                          aria-label={`Select ${item.sku}`}
+                          aria-label={`选择 ${item.sku}`}
                           checked={!!selected}
                           onChange={(e) => {
                             if (e.target.checked)
@@ -151,7 +147,7 @@ export function ProductionCreate() {
                           min="0.0001"
                           required={!!selected}
                           disabled={!selected}
-                          aria-label={`Production quantity ${item.sku}`}
+                          aria-label={`生产数量 ${item.sku}`}
                           value={selected?.quantity ?? ""}
                           onChange={(e) =>
                             change({ quantity: Number(e.target.value) })
@@ -167,13 +163,13 @@ export function ProductionCreate() {
                             suppliers.isPending ||
                             !!suppliers.error
                           }
-                          aria-label={`Supplier ${item.sku}`}
+                          aria-label={`供应商 ${item.sku}`}
                           value={selected?.supplierId || ""}
                           onChange={(e) =>
                             change({ supplierId: e.target.value })
                           }
                         >
-                          <option value="">Choose supplier</option>
+                          <option value="">请选择供应商</option>
                           {suppliers.data?.map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name}
@@ -187,7 +183,7 @@ export function ProductionCreate() {
               </tbody>
             </table>
           </div>
-          {items.data?.length === 0 && <p>This Order has no items.</p>}
+          {items.data?.length === 0 && <p>此订单没有产品项。</p>}
           <Button
             type="submit"
             disabled={
@@ -196,7 +192,7 @@ export function ProductionCreate() {
               !!suppliers.error
             }
           >
-            Create Production Orders
+            创建生产单
           </Button>
         </fieldset>
       </form>
@@ -204,9 +200,7 @@ export function ProductionCreate() {
       {created && (
         <div className="space-y-2">
           <p role="status">
-            {failure
-              ? "Saved documents to review"
-              : `Created ${created.length} Production Orders`}
+            {failure ? "已保存单据待复核" : `已创建 ${created.length} 张生产单`}
           </p>
           {created.map((record) => (
             <p key={record.id}>

@@ -67,20 +67,14 @@ async function setup(path: string) {
 }
 it("creates selected production items under separate supplier snapshots through the ROMIKU route", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
-  await screen.getByLabelText("Select A", { exact: true }).click();
-  await screen
-    .getByLabelText("Supplier A", { exact: true })
-    .selectOptions("s1");
-  await screen.getByLabelText("Select B", { exact: true }).click();
-  await screen
-    .getByLabelText("Supplier B", { exact: true })
-    .selectOptions("s2");
-  await screen
-    .getByRole("button", { name: "Create Production Orders", exact: true })
-    .click();
+  await screen.getByLabelText("选择 A", { exact: true }).click();
+  await screen.getByLabelText("供应商 A", { exact: true }).selectOptions("s1");
+  await screen.getByLabelText("选择 B", { exact: true }).click();
+  await screen.getByLabelText("供应商 B", { exact: true }).selectOptions("s2");
+  await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
   await expect
     .element(screen.getByRole("status"))
-    .toHaveTextContent("Created 2 Production Orders");
+    .toHaveTextContent("已创建 2 张生产单");
   const rows = await readRelated(provider, "romiku_production_orders", {});
   expect(rows.map((r) => r.supplier_snapshot.name)).toEqual([
     "Factory One",
@@ -92,38 +86,32 @@ it("creates selected production items under separate supplier snapshots through 
 });
 it("shows ordered, packed and remaining quantities and blocks packing over the remaining amount", async () => {
   const { screen, provider } = await setup("/packing-shipping/p");
-  await screen.getByRole("button", { name: "Add packing item" }).click();
-  await screen.getByLabelText("Order item", { exact: true }).selectOptions("i");
+  await screen.getByRole("button", { name: "添加装箱产品项" }).click();
+  await screen.getByLabelText("订单产品项", { exact: true }).selectOptions("i");
   await expect
     .element(
-      screen.getByText("Ordered: 100 · Already packed: 40 · Remaining: 60", {
+      screen.getByText("已订购：100 · 已装箱： 40 · 剩余： 60", {
         exact: true,
       }),
     )
     .toBeVisible();
-  await screen.getByLabelText("Quantity", { exact: true }).fill("61");
-  await screen.getByRole("button", { name: "Save packing item" }).click();
-  await expect
-    .element(screen.getByRole("alert"))
-    .toHaveTextContent(/remaining/i);
+  await screen.getByLabelText("数量", { exact: true }).fill("61");
+  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
+  await expect.element(screen.getByRole("alert")).toHaveTextContent(/剩余/);
   expect(await readRelated(provider, "romiku_packing_items", {})).toHaveLength(
     0,
   );
-  await screen.getByLabelText("Quantity", { exact: true }).fill("20");
-  await screen.getByLabelText("Cartons", { exact: true }).fill("2");
-  await screen
-    .getByLabelText("Quantity per carton", { exact: true })
-    .fill("10");
-  await screen.getByLabelText("Length (cm)", { exact: true }).fill("50");
-  await screen.getByLabelText("Width (cm)", { exact: true }).fill("40");
-  await screen.getByLabelText("Height (cm)", { exact: true }).fill("30");
-  await screen
-    .getByLabelText("Weight per carton (kg)", { exact: true })
-    .fill("8");
-  await screen.getByRole("button", { name: "Save packing item" }).click();
+  await screen.getByLabelText("数量", { exact: true }).fill("20");
+  await screen.getByLabelText("箱数", { exact: true }).fill("2");
+  await screen.getByLabelText("每箱数量", { exact: true }).fill("10");
+  await screen.getByLabelText("长度（cm）", { exact: true }).fill("50");
+  await screen.getByLabelText("宽度（cm）", { exact: true }).fill("40");
+  await screen.getByLabelText("高度（cm）", { exact: true }).fill("30");
+  await screen.getByLabelText("每箱重量（kg）", { exact: true }).fill("8");
+  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
   await expect
     .element(
-      screen.getByText("Total: 2 cartons · 0.120 m³ · 16.00 kg", {
+      screen.getByText("合计：2 箱 · 0.120 m³ · 16.00 kg", {
         exact: true,
       }),
     )
@@ -134,22 +122,16 @@ it("shows ordered, packed and remaining quantities and blocks packing over the r
 });
 it("creates multiple Packing Lists for the same Order and edits only the copied line", async () => {
   const { screen, provider } = await setup("/packing-shipping/new?order=o");
-  await screen
-    .getByRole("button", { name: "Create Packing List", exact: true })
-    .click();
-  await screen.getByRole("button", { name: "Add packing item" }).click();
-  await screen.getByLabelText("Order item", { exact: true }).selectOptions("i");
-  await screen.getByLabelText("Quantity", { exact: true }).fill("10");
-  await screen
-    .getByLabelText("Product name", { exact: true })
-    .fill("Packing copy");
-  await screen
-    .getByLabelText("Item shipping mark", { exact: true })
-    .fill("MARK");
-  await screen.getByRole("button", { name: "Save packing item" }).click();
-  await screen.getByRole("button", { name: "Edit packing item" }).click();
-  await screen.getByLabelText("Quantity", { exact: true }).fill("15");
-  await screen.getByRole("button", { name: "Save packing item" }).click();
+  await screen.getByRole("button", { name: "创建装箱单", exact: true }).click();
+  await screen.getByRole("button", { name: "添加装箱产品项" }).click();
+  await screen.getByLabelText("订单产品项", { exact: true }).selectOptions("i");
+  await screen.getByLabelText("数量", { exact: true }).fill("10");
+  await screen.getByLabelText("产品名称", { exact: true }).fill("Packing copy");
+  await screen.getByLabelText("产品唛头", { exact: true }).fill("MARK");
+  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
+  await screen.getByRole("button", { name: "编辑装箱产品项" }).click();
+  await screen.getByLabelText("数量", { exact: true }).fill("15");
+  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
   await expect
     .poll(
       async () =>
@@ -171,24 +153,18 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
 });
 it("edits a Production Order copy while retaining its single supplier and Order source", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
-  await screen.getByLabelText("Select A", { exact: true }).click();
-  await screen
-    .getByLabelText("Supplier A", { exact: true })
-    .selectOptions("s1");
-  await screen
-    .getByRole("button", { name: "Create Production Orders", exact: true })
-    .click();
+  await screen.getByLabelText("选择 A", { exact: true }).click();
+  await screen.getByLabelText("供应商 A", { exact: true }).selectOptions("s1");
+  await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
   await screen.getByRole("link", { name: "Factory One", exact: true }).click();
-  await screen.getByRole("button", { name: "Edit production item" }).click();
+  await screen.getByRole("button", { name: "编辑生产产品项" }).click();
   await expect
-    .element(screen.getByLabelText("Order item", { exact: true }))
+    .element(screen.getByLabelText("订单产品项", { exact: true }))
     .toBeDisabled();
+  await screen.getByLabelText("产品名称", { exact: true }).fill("Factory copy");
+  await screen.getByLabelText("数量", { exact: true }).fill("30");
   await screen
-    .getByLabelText("Product name", { exact: true })
-    .fill("Factory copy");
-  await screen.getByLabelText("Quantity", { exact: true }).fill("30");
-  await screen
-    .getByRole("button", { name: "Save production item", exact: true })
+    .getByRole("button", { name: "保存生产产品项", exact: true })
     .click();
   await expect
     .poll(

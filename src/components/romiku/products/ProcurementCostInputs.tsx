@@ -11,26 +11,43 @@ export const ProcurementCostInputs = () => (
       source="product_supplier_id"
       reference="romiku_product_suppliers"
     >
-      <SelectInput optionText="sku" validate={required()} helperText={false} />
+      <SelectInput
+        optionText="sku"
+        label="产品供应商"
+        validate={required()}
+        helperText={false}
+      />
     </ReferenceInput>
     <NumberInput
       source="cost"
+      label="成本"
       min={0}
       validate={required()}
       helperText={false}
     />
     <TextInput
       source="currency"
-      label="Currency (ISO 4217)"
+      label="币种（ISO 4217）"
       validate={required()}
       helperText={false}
     />
     <DateInput
       source="effective_date"
+      label="生效日期"
       validate={required()}
       helperText={false}
     />
-    <TextInput source="source_type" validate={required()} helperText={false} />
-    <TextInput source="source_note" multiline helperText={false} />
+    <TextInput
+      source="source_type"
+      label="来源类型"
+      validate={required()}
+      helperText={false}
+    />
+    <TextInput
+      source="source_note"
+      label="来源备注"
+      multiline
+      helperText={false}
+    />
   </div>
 );

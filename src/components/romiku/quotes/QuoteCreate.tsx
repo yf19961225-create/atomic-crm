@@ -56,17 +56,16 @@ export function QuoteCreate() {
   return (
     <section className="max-w-4xl space-y-5">
       <Link to="/quotes" className="underline">
-        Back to Quotes
+        返回报价单
       </Link>
-      <h1 className="text-3xl font-semibold">New Quote</h1>
+      <h1 className="text-3xl font-semibold">新建报价单</h1>
       <p className="text-muted-foreground">
-        Create an independent quotation. Buyer and product snapshots belong to
-        this Quote; no formal customer is created.
+        创建独立报价单。采购方和产品快照仅属于此报价单；不会创建正式客户。
       </p>
       <form onSubmit={create} className="space-y-4">
         <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            Source
+            来源
             <select
               className="rounded border p-2"
               value={source}
@@ -76,15 +75,15 @@ export function QuoteCreate() {
                 setFailure("");
               }}
             >
-              <option value="direct">Direct</option>
-              <option value="inquiry">Website Inquiry</option>
-              <option value="outbound">Outbound</option>
-              <option value="customer">Formal Customer</option>
+              <option value="direct">直接创建</option>
+              <option value="inquiry">网站询盘</option>
+              <option value="outbound">主动开发</option>
+              <option value="customer">正式客户</option>
             </select>
           </label>
           {source === "direct" ? (
             <label className="flex flex-col gap-1">
-              Buyer name
+              采购方名称
               <input
                 className="rounded border p-2"
                 required
@@ -94,7 +93,7 @@ export function QuoteCreate() {
             </label>
           ) : (
             <label className="flex flex-col gap-1">
-              Source record
+              来源记录
               <select
                 className="rounded border p-2"
                 required
@@ -102,7 +101,7 @@ export function QuoteCreate() {
                 value={sourceId}
                 onChange={(event) => setSourceId(event.target.value)}
               >
-                <option value="">Choose a record</option>
+                <option value="">请选择记录</option>
                 {choices.data?.map((row) => (
                   <option key={row.id} value={row.id}>
                     {row.document_number
@@ -115,7 +114,7 @@ export function QuoteCreate() {
           )}
         </fieldset>
         {source !== "direct" && choices.error && (
-          <p role="alert">Source records could not be loaded.</p>
+          <p role="alert">无法加载来源记录。</p>
         )}
         {source !== "inquiry" && (
           <Button
@@ -126,7 +125,7 @@ export function QuoteCreate() {
                 (!sourceId || choices.isPending || !!choices.error))
             }
           >
-            {busy ? "Creating…" : "Create Quote"}
+            {busy ? "创建中…" : "创建报价单"}
           </Button>
         )}
         {failure && <p role="alert">{failure}</p>}
@@ -177,25 +176,24 @@ function InquiryConfirmation({
       setBusy(false);
     }
   };
-  if (inquiry.isPending || items.isPending)
-    return <p>Loading original inquiry…</p>;
+  if (inquiry.isPending || items.isPending) return <p>正在加载原始询盘…</p>;
   if (inquiry.error || items.error || !inquiry.data)
-    return <p role="alert">Could not load the original inquiry.</p>;
+    return <p role="alert">无法加载原始询盘。</p>;
   return (
     <section className="space-y-4 rounded border p-4">
-      <h2 className="text-xl font-semibold">Confirm inquiry items</h2>
+      <h2 className="text-xl font-semibold">确认询盘产品项</h2>
       <p>
         {inquiry.data.document_number} · {inquiry.data.customer_name} ·{" "}
         {inquiry.data.email}
       </p>
       <p className="text-muted-foreground text-sm">
-        Select all or a subset. Confirmation copies the selected original items
-        into a new Quote. You can edit the Quote copies afterward.
+        可选择全部或部分产品项。确认后将选中的原始产品项复制到新的报价单；之后可
+        编辑报价单副本。
       </p>
       <fieldset disabled={busy} className="space-y-4">
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => setExcluded([])}>
-            Select all
+            全选
           </Button>
           <Button
             variant="outline"
@@ -203,16 +201,16 @@ function InquiryConfirmation({
               setExcluded((items.data || []).map((item) => String(item.id)))
             }
           >
-            Clear selection
+            清除选择
           </Button>
         </div>
         <table className="w-full text-left text-sm">
           <thead>
             <tr>
-              <th>Include</th>
+              <th>包含</th>
               <th>SKU</th>
-              <th>Original quantity</th>
-              <th>Original requirement</th>
+              <th>原始数量</th>
+              <th>原始要求</th>
             </tr>
           </thead>
           <tbody>
@@ -221,7 +219,7 @@ function InquiryConfirmation({
                 <td className="py-3">
                   <input
                     type="checkbox"
-                    aria-label={`Include ${item.sku}`}
+                    aria-label={`包含 ${item.sku}`}
                     checked={!excluded.includes(String(item.id))}
                     onChange={(event) =>
                       setExcluded(
@@ -239,10 +237,10 @@ function InquiryConfirmation({
             ))}
           </tbody>
         </table>
-        {!items.data?.length && <p>This inquiry has no items to quote.</p>}
-        <p>{selected.length} selected</p>
+        {!items.data?.length && <p>此询盘没有可报价的产品项。</p>}
+        <p>已选择 {selected.length} 项</p>
         <Button onClick={confirm} disabled={!selected.length || busy}>
-          {busy ? "Creating snapshot…" : "Confirm and create Quote"}
+          {busy ? "正在创建快照…" : "确认并创建报价单"}
         </Button>
       </fieldset>
       {failure && <p role="alert">{failure}</p>}

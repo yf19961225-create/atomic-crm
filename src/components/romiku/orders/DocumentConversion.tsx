@@ -57,7 +57,7 @@ export function DocumentConversion({
               setTarget(kind as DocumentKind);
             }}
           >
-            Create {documentConfig[kind as DocumentKind].label}
+            创建{documentConfig[kind as DocumentKind].label}
           </Button>
         ))}
       </div>
@@ -70,26 +70,25 @@ export function DocumentConversion({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Create {target && documentConfig[target].label}
+              创建{target && documentConfig[target].label}
             </DialogTitle>
             <DialogDescription>
-              Copy the saved buyer, products, prices and commercial terms into
-              an independent document. Unsaved edits are excluded. The source
-              remains unchanged.
+              将已保存的采购方、产品、价格和商务条款复制到独立单据中。未保存的
+              修改不会包含在内，来源单据保持不变。
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3">
             <Button disabled={busy} onClick={convert}>
               {busy
-                ? "Creating…"
-                : `Confirm and create ${target && documentConfig[target].label}`}
+                ? "创建中…"
+                : `确认并创建${target && documentConfig[target].label}`}
             </Button>
             <Button
               variant="outline"
               disabled={busy}
               onClick={() => setTarget(null)}
             >
-              Cancel
+              取消
             </Button>
           </div>
           {failure && <p role="alert">{failure}</p>}

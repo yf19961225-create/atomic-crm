@@ -30,7 +30,7 @@ it("rejects unsupported conversions and failed server copies", async () => {
     .fn()
     .mockResolvedValue({ data: null, error: { message: "Source missing" } });
   await expect(convertDocument({ rpc }, "pi", "id", "pi")).rejects.toThrow(
-    "Unsupported",
+    "不支持",
   );
   expect(rpc).not.toHaveBeenCalled();
   await expect(
@@ -38,7 +38,7 @@ it("rejects unsupported conversions and failed server copies", async () => {
   ).rejects.toThrow("Source missing");
   rpc.mockResolvedValue({ data: null, error: null });
   await expect(convertDocument({ rpc }, "quote", "id", "pi")).rejects.toThrow(
-    "no document",
+    "未返回单据",
   );
 });
 it("creates distinct direct PI and Order without creating Formal Customers", async () => {
@@ -67,7 +67,9 @@ it("creates distinct direct PI and Order without creating Formal Customers", asy
       })
     ).data,
   ).toEqual([]);
-  await expect(createDocument(provider, "order", " ")).rejects.toThrow("Buyer");
+  await expect(createDocument(provider, "order", " ")).rejects.toThrow(
+    "采购方",
+  );
 });
 it("permits independent commercial and delivery snapshots while stripping lineage and computed values", () => {
   expect(
@@ -153,5 +155,5 @@ it("validates receipts and excludes currency/order reassignment from payment upd
     ).toThrow();
   expect(() =>
     paymentWrite({ kind: "balance", amount: 10, received_at: "invalid" }),
-  ).toThrow("date");
+  ).toThrow("日期");
 });

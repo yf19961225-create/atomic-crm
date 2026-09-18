@@ -14,23 +14,23 @@ import { saveProductionItem } from "./productionWorkflow";
 import type { FulfillmentKind } from "./fulfillmentShared";
 
 const snapshotFields: Field[] = [
-  { key: "product_snapshot.name", label: "Product name" },
+  { key: "product_snapshot.name", label: "产品名称" },
   {
     key: "product_snapshot.image_url",
-    label: "Product image URL",
+    label: "产品图片 URL",
     type: "url",
   },
-  { key: "quantity", label: "Quantity", required: true },
+  { key: "quantity", label: "数量", required: true },
 ];
 const packingFields: Field[] = [
-  { key: "cartons", label: "Cartons" },
-  { key: "qty_per_carton", label: "Quantity per carton" },
-  { key: "length_cm", label: "Length (cm)" },
-  { key: "width_cm", label: "Width (cm)" },
-  { key: "height_cm", label: "Height (cm)" },
-  { key: "carton_weight_kg", label: "Weight per carton (kg)" },
-  { key: "product_snapshot.shipping_mark", label: "Item shipping mark" },
-  { key: "remark", label: "Remark", type: "textarea" },
+  { key: "cartons", label: "箱数" },
+  { key: "qty_per_carton", label: "每箱数量" },
+  { key: "length_cm", label: "长度（cm）" },
+  { key: "width_cm", label: "宽度（cm）" },
+  { key: "height_cm", label: "高度（cm）" },
+  { key: "carton_weight_kg", label: "每箱重量（kg）" },
+  { key: "product_snapshot.shipping_mark", label: "产品唛头" },
+  { key: "remark", label: "备注", type: "textarea" },
 ];
 export function FulfillmentItems({
   kind,
@@ -48,14 +48,14 @@ export function FulfillmentItems({
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
-        <h2 className="text-xl font-semibold">Items</h2>
+        <h2 className="text-xl font-semibold">产品项</h2>
         <Button disabled={editing !== null} onClick={() => setEditing("new")}>
-          Add {kind} item
+          添加{kind === "packing" ? "装箱" : "生产"}产品项
         </Button>
       </div>
       {kind === "packing" && (
         <p>
-          Total: {totals.cartons} cartons · {totals.cbm.toFixed(3)} m³ ·{" "}
+          合计：{totals.cartons} 箱 · {totals.cbm.toFixed(3)} m³ ·{" "}
           {totals.weight.toFixed(2)} kg
         </p>
       )}
@@ -64,13 +64,13 @@ export function FulfillmentItems({
           <thead>
             <tr>
               {[
-                "SKU / image",
-                "Product",
-                "Quantity",
+                "SKU / 图片",
+                "产品",
+                "数量",
                 ...(kind === "packing"
-                  ? ["Cartons", "CBM", "Weight", "Mark / remark"]
-                  : ["Production note"]),
-                "Action",
+                  ? ["箱数", "CBM", "重量", "唛头 / 备注"]
+                  : ["生产备注"]),
+                "操作",
               ].map((label) => (
                 <th className="p-3" key={label}>
                   {label}
@@ -115,7 +115,7 @@ export function FulfillmentItems({
                       disabled={editing !== null}
                       onClick={() => setEditing(item)}
                     >
-                      Edit {kind} item
+                      编辑{kind === "packing" ? "装箱" : "生产"}产品项
                     </Button>
                   </td>
                 </tr>
@@ -124,7 +124,7 @@ export function FulfillmentItems({
           </tbody>
         </table>
       </div>
-      {!items.length && <p>No items yet.</p>}
+      {!items.length && <p>暂无产品项。</p>}
       {editing !== null && (
         <ItemEditor
           key={editing === "new" ? "new" : editing.id}
@@ -185,7 +185,7 @@ function ItemEditor({
     setBusy(true);
     setFailure("");
     try {
-      if (!sourceId) throw new Error("Choose an Order item.");
+      if (!sourceId) throw new Error("请选择订单产品项。");
       if (kind === "packing")
         await savePackingItem(provider, parent, sourceId, values, previous);
       else
@@ -202,14 +202,15 @@ function ItemEditor({
   return (
     <form className="space-y-4 rounded border p-4" onSubmit={save}>
       <h3 className="font-semibold">
-        {previous ? "Edit" : "New"} {kind} item
+        {previous ? "编辑" : "新建"}
+        {kind === "packing" ? "装箱" : "生产"}产品项
       </h3>
       <fieldset className="space-y-4" disabled={busy}>
         <label className="block">
-          Order item{" "}
+          订单产品项{" "}
           <select
             className="rounded border p-2"
-            aria-label="Order item"
+            aria-label="订单产品项"
             required
             disabled={!!previous || sources.isPending || !!sources.error}
             value={sourceId}
@@ -230,7 +231,7 @@ function ItemEditor({
               });
             }}
           >
-            <option value="">Choose Order item</option>
+            <option value="">请选择订单产品项</option>
             {sources.data?.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.sku} · {s.product_snapshot?.name}
@@ -240,7 +241,7 @@ function ItemEditor({
         </label>
         {(sources.error || remaining.error) && (
           <p role="alert">
-            Could not load Order items or remaining quantities.{" "}
+            无法加载订单产品项或剩余数量。{" "}
             <Button
               type="button"
               onClick={() => {
@@ -248,22 +249,18 @@ function ItemEditor({
                 void remaining.refetch();
               }}
             >
-              Retry
+              重试
             </Button>
           </p>
         )}
         {kind === "packing" && available && (
           <p>
-            Ordered: {available.ordered_quantity} · Already packed:{" "}
-            {available.packed_quantity} · Remaining:{" "}
-            {available.remaining_quantity}
+            已订购：{available.ordered_quantity} · 已装箱：{" "}
+            {available.packed_quantity} · 剩余： {available.remaining_quantity}
           </p>
         )}
         {kind === "packing" && previous && (
-          <p>
-            This line already holds {previous.quantity}; that quantity is
-            available when editing it.
-          </p>
+          <p>此行已占用 {previous.quantity}；编辑时可使用该数量。</p>
         )}
         <WorkflowFields
           fields={[
@@ -273,12 +270,12 @@ function ItemEditor({
               : [
                   {
                     key: "production_note_zh",
-                    label: "Production note (Chinese)",
+                    label: "生产备注（中文）",
                     type: "textarea" as const,
                   },
                   {
                     key: "packaging_snapshot.notes",
-                    label: "Packaging notes",
+                    label: "包装备注",
                     type: "textarea" as const,
                   },
                 ]),
@@ -295,10 +292,10 @@ function ItemEditor({
               (kind === "packing" && (remaining.isPending || !!remaining.error))
             }
           >
-            Save {kind} item
+            保存{kind === "packing" ? "装箱" : "生产"}产品项
           </Button>
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            取消
           </Button>
         </div>
       </fieldset>

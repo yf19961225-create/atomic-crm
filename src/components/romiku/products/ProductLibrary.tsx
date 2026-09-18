@@ -10,14 +10,14 @@ const ProductExtensionsList = () => (
     resource="romiku_product_extensions"
     title={false}
     sort={{ field: "sku", order: "ASC" }}
-    actions={<CreateButton label="New extension" />}
+    actions={<CreateButton label="新建扩展信息" />}
   >
     <DataTable bulkActionButtons={false}>
       <DataTable.Col source="sku" />
-      <DataTable.Col source="sanity_product_id" label="Sanity product ID" />
-      <DataTable.Col source="internal_notes" />
+      <DataTable.Col source="sanity_product_id" label="Sanity 产品 ID" />
+      <DataTable.Col source="internal_notes" label="内部备注" />
       <DataTable.Col label="">
-        <EditButton label="Edit extension" />
+        <EditButton label="编辑扩展信息" />
       </DataTable.Col>
     </DataTable>
   </List>
@@ -28,17 +28,17 @@ const ProductSuppliersList = () => (
     resource="romiku_product_suppliers"
     title={false}
     sort={{ field: "sku", order: "ASC" }}
-    actions={<CreateButton label="New product supplier" />}
+    actions={<CreateButton label="新建产品供应商" />}
   >
     <DataTable bulkActionButtons={false}>
       <DataTable.Col source="sku" />
-      <DataTable.Col source="supplier_item_number" />
-      <DataTable.Col source="moq" />
-      <DataTable.Col source="lead_days" />
-      <DataTable.Col source="preferred" />
-      <DataTable.Col source="active" />
+      <DataTable.Col source="supplier_item_number" label="供应商货号" />
+      <DataTable.Col source="moq" label="最小起订量" />
+      <DataTable.Col source="lead_days" label="交期（天）" />
+      <DataTable.Col source="preferred" label="首选" />
+      <DataTable.Col source="active" label="启用" />
       <DataTable.Col label="">
-        <EditButton label="Edit sourcing" />
+        <EditButton label="编辑采购信息" />
       </DataTable.Col>
     </DataTable>
   </List>
@@ -49,15 +49,15 @@ const ReferenceCostsList = () => (
     resource="romiku_procurement_cost_history"
     title={false}
     sort={{ field: "effective_date", order: "DESC" }}
-    actions={<CreateButton label="New reference cost" />}
+    actions={<CreateButton label="新建参考成本" />}
   >
     <DataTable bulkActionButtons={false}>
-      <DataTable.Col source="product_supplier_id" label="Product supplier" />
-      <DataTable.Col source="cost" />
-      <DataTable.Col source="currency" />
-      <DataTable.Col source="effective_date" />
-      <DataTable.Col source="source_type" label="Source" />
-      <DataTable.Col source="source_note" />
+      <DataTable.Col source="product_supplier_id" label="产品供应商" />
+      <DataTable.Col source="cost" label="成本" />
+      <DataTable.Col source="currency" label="币种" />
+      <DataTable.Col source="effective_date" label="生效日期" />
+      <DataTable.Col source="source_type" label="来源" />
+      <DataTable.Col source="source_note" label="来源备注" />
     </DataTable>
   </List>
 );
@@ -69,18 +69,17 @@ export const ProductLibrary = () => (
         id="product-library-heading"
         className="text-3xl font-semibold tracking-tight"
       >
-        Product library
+        产品库
       </h1>
       <p className="text-muted-foreground">
-        CRM-owned product notes and supplier sourcing. Product masters remain
-        read-only in Sanity.
+        由 CRM 管理产品备注和供应商采购信息；产品主数据在 Sanity 中保持只读。
       </p>
     </div>
     <Tabs defaultValue="extensions">
       <TabsList>
-        <TabsTrigger value="extensions">Extensions</TabsTrigger>
-        <TabsTrigger value="suppliers">Product suppliers</TabsTrigger>
-        <TabsTrigger value="costs">Reference costs</TabsTrigger>
+        <TabsTrigger value="extensions">扩展信息</TabsTrigger>
+        <TabsTrigger value="suppliers">产品供应商</TabsTrigger>
+        <TabsTrigger value="costs">参考成本</TabsTrigger>
       </TabsList>
       <TabsContent value="extensions">
         <ProductExtensionsList />
@@ -93,7 +92,7 @@ export const ProductLibrary = () => (
       </TabsContent>
     </Tabs>
     <Link to="/suppliers" className="text-sm text-primary underline">
-      Manage suppliers
+      管理供应商
     </Link>
   </section>
 );

@@ -82,7 +82,7 @@ export const createSanityProductSource = (
       return {
         status: "error",
         sku,
-        message: "Sanity product lookup failed.",
+        message: "Sanity 产品查询失败。",
       };
     }
   },

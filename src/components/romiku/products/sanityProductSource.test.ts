@@ -69,7 +69,7 @@ describe("createSanityProductSource", () => {
     await expect(source.findBySku("RMK-100")).resolves.toEqual({
       status: "error",
       sku: "RMK-100",
-      message: "Sanity product lookup failed.",
+      message: "Sanity 产品查询失败。",
     });
   });
 });

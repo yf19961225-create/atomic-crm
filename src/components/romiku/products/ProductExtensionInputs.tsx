@@ -33,7 +33,12 @@ export const ProductExtensionInputs = () => {
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <TextInput source="sku" validate={required()} helperText={false} />
+      <TextInput
+        source="sku"
+        label="SKU"
+        validate={required()}
+        helperText={false}
+      />
       <SanityProductLookup
         sku={sku}
         source={source}
@@ -48,7 +53,12 @@ export const ProductExtensionInputs = () => {
           verifiedSku.field.onChange(null);
         }}
       />
-      <TextInput source="internal_notes" multiline helperText={false} />
+      <TextInput
+        source="internal_notes"
+        label="内部备注"
+        multiline
+        helperText={false}
+      />
     </div>
   );
 };

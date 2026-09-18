@@ -9,6 +9,13 @@ const dimensions = [
   "height_cm",
   "carton_weight_kg",
 ];
+const dimensionLabels: Record<(typeof dimensions)[number], string> = {
+  cartons: "箱数",
+  length_cm: "长度",
+  width_cm: "宽度",
+  height_cm: "高度",
+  carton_weight_kg: "每箱重量",
+};
 export function packingTotals(items: Values[]) {
   return items.reduce<{ cartons: number; cbm: number; weight: number }>(
     (total, item) => ({
@@ -40,7 +47,7 @@ export async function savePackingItem(
       previous.order_id !== parent.order_id ||
       previous.source_order_item_id !== sourceId)
   )
-    throw new Error("Packing item source cannot change.");
+    throw new Error("装箱产品项的来源不可更改。");
   const quantity = positiveQuantity(values.quantity);
   const data: Values = { quantity };
   for (const key of dimensions) {
@@ -50,7 +57,7 @@ export async function savePackingItem(
       value < 0 ||
       (key === "cartons" && !Number.isInteger(value))
     )
-      throw new Error(`Enter a valid nonnegative ${key.replaceAll("_", " ")}.`);
+      throw new Error(`请输入有效的非负${dimensionLabels[key]}。`);
     data[key] = value;
   }
   data.qty_per_carton =
@@ -62,7 +69,7 @@ export async function savePackingItem(
     id: sourceId,
   });
   if (source.order_id !== parent.order_id)
-    throw new Error("Packing source must belong to this Order.");
+    throw new Error("装箱来源必须属于该订单。");
   // Fresh server availability catches stale forms; the Task2 trigger also serializes concurrent saves.
   const { data: remaining } = await provider.getOne(
     "romiku_order_item_remaining",
@@ -71,7 +78,7 @@ export async function savePackingItem(
   const available =
     Number(remaining.remaining_quantity) + Number(previous?.quantity || 0);
   if (!Number.isFinite(available) || quantity > available)
-    throw new Error(`Quantity exceeds remaining amount (${available}).`);
+    throw new Error(`数量超过剩余可装箱数量（${available}）。`);
   data.sku = previous?.sku || source.sku;
   data.product_snapshot = {
     ...structuredClone(

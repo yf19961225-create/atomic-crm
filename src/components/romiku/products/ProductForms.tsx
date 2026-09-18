@@ -40,7 +40,7 @@ export const ProductExtensionCreate = () => (
     redirect="/product-library"
     transform={toProductExtensionWrite}
   >
-    <ProductFormCard title="New product extension">
+    <ProductFormCard title="新建产品扩展信息">
       <ProductExtensionInputs />
     </ProductFormCard>
   </CreateBase>
@@ -52,7 +52,7 @@ export const ProductExtensionEdit = () => (
     redirect="/product-library"
     transform={toProductExtensionWrite}
   >
-    <ProductFormCard title="Edit product extension">
+    <ProductFormCard title="编辑产品扩展信息">
       <ProductExtensionInputs />
     </ProductFormCard>
   </EditBase>
@@ -64,7 +64,7 @@ export const ProductSupplierCreate = () => (
     redirect="/product-library"
     transform={toProductSupplierWrite}
   >
-    <ProductFormCard title="New product supplier">
+    <ProductFormCard title="新建产品供应商">
       <ProductSupplierInputs />
     </ProductFormCard>
   </CreateBase>
@@ -76,7 +76,7 @@ export const ProductSupplierEdit = () => (
     redirect="/product-library"
     transform={toProductSupplierWrite}
   >
-    <ProductFormCard title="Edit product supplier">
+    <ProductFormCard title="编辑产品供应商">
       <ProductSupplierInputs />
     </ProductFormCard>
   </EditBase>
@@ -88,7 +88,7 @@ export const ProcurementCostCreate = () => (
     redirect="/product-library"
     transform={toProcurementCostWrite}
   >
-    <ProductFormCard title="New reference cost">
+    <ProductFormCard title="新建参考成本">
       <ProcurementCostInputs />
     </ProductFormCard>
   </CreateBase>

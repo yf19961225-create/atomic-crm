@@ -23,7 +23,7 @@ function SourceLinks({ record }: { record: RaRecord }) {
           className="underline"
           to={`/website-inquiries?record=${encodeURIComponent(record.source_website_inquiry_id)}`}
         >
-          Website Inquiry
+          网站询盘
         </Link>
       )}
       {record.outbound_company_id && (
@@ -31,7 +31,7 @@ function SourceLinks({ record }: { record: RaRecord }) {
           className="underline"
           to={`/outbound-development?record=${encodeURIComponent(record.outbound_company_id)}`}
         >
-          Outbound
+          主动开发
         </Link>
       )}
       {record.formal_customer_id && (
@@ -39,12 +39,12 @@ function SourceLinks({ record }: { record: RaRecord }) {
           className="underline"
           to={`/formal-customers?record=${encodeURIComponent(record.formal_customer_id)}`}
         >
-          Formal Customer
+          正式客户
         </Link>
       )}
       {!record.source_website_inquiry_id &&
         !record.outbound_company_id &&
-        !record.formal_customer_id && <span>Direct</span>}
+        !record.formal_customer_id && <span>直接创建</span>}
     </div>
   );
 }
@@ -69,18 +69,17 @@ export function QuoteList() {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Quotes</h1>
+        <h1 className="text-3xl font-semibold">报价单</h1>
         <Button asChild>
-          <Link to="/quotes/new">New Quote</Link>
+          <Link to="/quotes/new">新建报价单</Link>
         </Button>
       </div>
       <p className="text-muted-foreground">
-        Independent quotations with source history and editable buyer, product
-        and commercial snapshots.
+        独立报价单保留来源历史，并可编辑采购方、产品和商务快照。
       </p>
       <div className="flex flex-wrap gap-4">
         <label>
-          Quote number{" "}
+          报价单编号{" "}
           <input
             className="rounded border p-2"
             value={search}
@@ -91,7 +90,7 @@ export function QuoteList() {
           />
         </label>
         <label>
-          Status{" "}
+          状态{" "}
           <select
             className="rounded border p-2"
             value={status}
@@ -100,7 +99,7 @@ export function QuoteList() {
               setPage(1);
             }}
           >
-            <option value="">All statuses</option>
+            <option value="">全部状态</option>
             {quoteStatuses.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -109,12 +108,12 @@ export function QuoteList() {
           </select>
         </label>
       </div>
-      {isPending && <p>Loading Quotes…</p>}
+      {isPending && <p>正在加载报价单…</p>}
       {error && (
         <div role="alert">
-          Could not load Quotes.{" "}
+          无法加载报价单。{" "}
           <Button variant="outline" onClick={() => refetch()}>
-            Retry
+            重试
           </Button>
         </div>
       )}
@@ -123,13 +122,13 @@ export function QuoteList() {
           <thead className="bg-muted">
             <tr>
               {[
-                "Quote",
-                "Buyer",
-                "Source",
-                "Status",
-                "Date",
-                "Valid until",
-                "Total",
+                "报价单",
+                "采购方",
+                "来源",
+                "状态",
+                "日期",
+                "有效期至",
+                "合计",
               ].map((label) => (
                 <th key={label} className="p-3">
                   {label}
@@ -163,7 +162,7 @@ export function QuoteList() {
           </tbody>
         </table>
         {!isPending && !error && !data.length && (
-          <p className="p-6 text-center">No Quotes found.</p>
+          <p className="p-6 text-center">未找到报价单。</p>
         )}
       </div>
       <div className="flex items-center gap-3">
@@ -172,18 +171,17 @@ export function QuoteList() {
           disabled={page === 1}
           onClick={() => setPage(page - 1)}
         >
-          Previous
+          上一页
         </Button>
         <span>
-          Page {page}
-          {total !== undefined && ` · ${total} Quotes`}
+          第 {page} 页{total !== undefined && ` · 共 ${total} 张报价单`}
         </span>
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
           onClick={() => setPage(page + 1)}
         >
-          Next
+          下一页
         </Button>
       </div>
     </section>
@@ -194,54 +192,54 @@ export function QuoteDetail() {
   const { data, isPending, error, refetch } = useGetOne("romiku_quotes", {
     id,
   });
-  if (isPending) return <p>Loading Quote…</p>;
+  if (isPending) return <p>正在加载报价单…</p>;
   if (error || !data)
     return (
       <p role="alert">
-        Could not load this Quote.{" "}
+        无法加载此报价单。{" "}
         <Link to="/quotes" className="underline">
-          Back to Quotes
+          返回报价单
         </Link>
       </p>
     );
   return <QuoteEditor key={id} record={data} onSaved={refetch} />;
 }
 const buyerFields: Field[] = [
-  { key: "counterparty_snapshot.name", label: "Buyer name", required: true },
-  { key: "counterparty_snapshot.company", label: "Company" },
-  { key: "counterparty_snapshot.email", label: "Email", type: "email" },
+  { key: "counterparty_snapshot.name", label: "采购方名称", required: true },
+  { key: "counterparty_snapshot.company", label: "公司名称" },
+  { key: "counterparty_snapshot.email", label: "邮箱", type: "email" },
   { key: "counterparty_snapshot.whatsapp", label: "WhatsApp" },
-  { key: "counterparty_snapshot.country", label: "Country" },
-  { key: "counterparty_snapshot.address", label: "Address", type: "textarea" },
+  { key: "counterparty_snapshot.country", label: "国家/地区" },
+  { key: "counterparty_snapshot.address", label: "地址", type: "textarea" },
   {
     key: "status",
-    label: "Quote status",
+    label: "报价单状态",
     required: true,
     options: quoteStatuses,
   },
-  { key: "currency", label: "Currency", required: true },
-  { key: "document_date", label: "Document date (YYYY-MM-DD)" },
-  { key: "valid_until", label: "Valid until (YYYY-MM-DD)" },
+  { key: "currency", label: "币种", required: true },
+  { key: "document_date", label: "单据日期（YYYY-MM-DD）" },
+  { key: "valid_until", label: "有效期至（YYYY-MM-DD）" },
 ];
 const termsFields: Field[] = [
-  { key: "price_term", label: "Price term" },
-  { key: "shipment_method", label: "Shipment method" },
+  { key: "price_term", label: "价格条款" },
+  { key: "shipment_method", label: "运输方式" },
   {
     key: "terms_snapshot.payment_terms",
-    label: "Payment terms",
+    label: "付款条款",
     type: "textarea",
   },
   {
     key: "terms_snapshot.delivery_terms",
-    label: "Delivery terms",
+    label: "交付条款",
     type: "textarea",
   },
-  { key: "terms_snapshot.lead_time", label: "Lead time" },
-  { key: "bank_snapshot.details", label: "Bank details", type: "textarea" },
-  { key: "freight", label: "Freight" },
-  { key: "other_expenses", label: "Other expenses" },
-  { key: "discount", label: "Discount" },
-  { key: "notes", label: "Quote notes", type: "textarea" },
+  { key: "terms_snapshot.lead_time", label: "交期" },
+  { key: "bank_snapshot.details", label: "银行信息", type: "textarea" },
+  { key: "freight", label: "运费" },
+  { key: "other_expenses", label: "其他费用" },
+  { key: "discount", label: "折扣" },
+  { key: "notes", label: "报价单备注", type: "textarea" },
 ];
 function QuoteEditor({
   record,
@@ -274,7 +272,7 @@ function QuoteEditor({
       });
       setValues(result.data);
       await onSaved();
-      setMessage("Quote saved.");
+      setMessage("报价单已保存。");
     } catch (cause) {
       setFailed(true);
       setMessage(errorMessage(cause));
@@ -285,48 +283,46 @@ function QuoteEditor({
   return (
     <section className="max-w-6xl space-y-4">
       <Link to="/quotes" className="underline">
-        Back to Quotes
+        返回报价单
       </Link>
       <h1 className="text-3xl font-semibold">
-        {record.document_number || "Draft Quote"}
+        {record.document_number || "草稿报价单"}
       </h1>
       <SourceLinks record={record} />
       <DocumentConversion source="quote" sourceId={String(record.id)} />
       <p className="text-muted-foreground text-sm">
-        Source links are retained. Quote edits apply only to this document.
+        保留来源链接；报价单修改仅应用于此单据。
       </p>
       {items.error ? (
         <p role="alert">
-          Could not load Quote items or totals.{" "}
+          无法加载报价单产品项或合计。{" "}
           <Button variant="outline" onClick={() => items.refetch()}>
-            Retry
+            重试
           </Button>
         </p>
       ) : items.isPending ? (
-        <p>Loading totals…</p>
+        <p>正在加载合计…</p>
       ) : (
         <div className="bg-muted flex flex-wrap gap-6 rounded p-4">
           <span>
-            Subtotal: {record.currency} {totals.subtotal.toFixed(2)}
+            小计：{record.currency} {totals.subtotal.toFixed(2)}
           </span>
-          <span>Freight: {Number(record.freight || 0).toFixed(2)}</span>
-          <span>
-            Other expenses: {Number(record.other_expenses || 0).toFixed(2)}
-          </span>
-          <span>Discount: {Number(record.discount || 0).toFixed(2)}</span>
+          <span>运费：{Number(record.freight || 0).toFixed(2)}</span>
+          <span>其他费用：{Number(record.other_expenses || 0).toFixed(2)}</span>
+          <span>折扣：{Number(record.discount || 0).toFixed(2)}</span>
           <strong>
-            Total: {record.currency} {totals.total.toFixed(2)}
+            合计：{record.currency} {totals.total.toFixed(2)}
           </strong>
-          <span className="text-muted-foreground text-xs">Saved values</span>
+          <span className="text-muted-foreground text-xs">已保存的值</span>
         </div>
       )}
-      <Tabs defaultValue="Items" className="space-y-4">
+      <Tabs defaultValue="items" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="Items">Items</TabsTrigger>
-          <TabsTrigger value="Buyer">Buyer & details</TabsTrigger>
-          <TabsTrigger value="Terms">Terms & expenses</TabsTrigger>
+          <TabsTrigger value="items">产品项</TabsTrigger>
+          <TabsTrigger value="buyer">采购方与详情</TabsTrigger>
+          <TabsTrigger value="terms">条款与费用</TabsTrigger>
         </TabsList>
-        <TabsContent value="Items">
+        <TabsContent value="items">
           {items.data && (
             <QuoteItems
               quoteId={String(record.id)}
@@ -336,7 +332,7 @@ function QuoteEditor({
           )}
         </TabsContent>
         <form onSubmit={save} className="space-y-4">
-          <TabsContent value="Buyer">
+          <TabsContent value="buyer">
             <fieldset disabled={busy} className="space-y-4">
               <WorkflowFields
                 fields={buyerFields}
@@ -344,11 +340,11 @@ function QuoteEditor({
                 onChange={setValues}
               />
               <Button type="submit" disabled={busy}>
-                Save Quote
+                保存报价单
               </Button>
             </fieldset>
           </TabsContent>
-          <TabsContent value="Terms">
+          <TabsContent value="terms">
             <fieldset disabled={busy} className="space-y-4">
               <WorkflowFields
                 fields={termsFields}
@@ -356,7 +352,7 @@ function QuoteEditor({
                 onChange={setValues}
               />
               <Button type="submit" disabled={busy}>
-                Save Quote
+                保存报价单
               </Button>
             </fieldset>
           </TabsContent>

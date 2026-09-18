@@ -11,14 +11,14 @@ import { quoteItemWrite } from "./quoteWorkflow";
 
 const fields: Field[] = [
   { key: "sku", label: "SKU", required: true },
-  { key: "customer_code", label: "Customer code" },
-  { key: "quantity", label: "Quantity", required: true },
-  { key: "unit_price", label: "Unit price", required: true },
-  { key: "product_snapshot.moq", label: "MOQ" },
-  { key: "product_snapshot.specification", label: "Specification" },
-  { key: "packing_snapshot.description", label: "Packaging" },
-  { key: "requirement", label: "Requirement", type: "textarea" },
-  { key: "notes", label: "Item notes", type: "textarea" },
+  { key: "customer_code", label: "客户编码" },
+  { key: "quantity", label: "数量", required: true },
+  { key: "unit_price", label: "单价", required: true },
+  { key: "product_snapshot.moq", label: "最小起订量" },
+  { key: "product_snapshot.specification", label: "规格" },
+  { key: "packing_snapshot.description", label: "包装" },
+  { key: "requirement", label: "要求", type: "textarea" },
+  { key: "notes", label: "产品项备注", type: "textarea" },
 ];
 export function QuoteItems({
   quoteId,
@@ -32,12 +32,11 @@ export function QuoteItems({
   kind?: "quote" | "pi" | "order";
 }) {
   const [adding, setAdding] = useState(false);
-  const label = kind === "pi" ? "PI" : kind === "order" ? "Order" : "Quote";
+  const label = kind === "pi" ? "PI" : kind === "order" ? "订单" : "报价单";
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">
-        Save each item separately. MOQ, specification and packaging are stored
-        in this {label}'s snapshots.
+        请分别保存每个产品项。最小起订量、规格和包装将保存在此{label}的快照中。
       </p>
       {items.map((item) => (
         <ItemEditor
@@ -48,7 +47,7 @@ export function QuoteItems({
           onChanged={onChanged}
         />
       ))}
-      {!items.length && !adding && <p>No {label} items yet.</p>}
+      {!items.length && !adding && <p>暂无{label}产品项。</p>}
       {adding ? (
         <ItemEditor
           quoteId={quoteId}
@@ -60,7 +59,7 @@ export function QuoteItems({
           onCancel={() => setAdding(false)}
         />
       ) : (
-        <Button onClick={() => setAdding(true)}>Add item</Button>
+        <Button onClick={() => setAdding(true)}>添加产品项</Button>
       )}
     </div>
   );
@@ -132,27 +131,27 @@ function ItemEditor({
       }}
     >
       <fieldset disabled={busy} className="space-y-3">
-        <h3 className="font-semibold">{item ? item.sku : "New item"}</h3>
+        <h3 className="font-semibold">{item ? item.sku : "新产品项"}</h3>
         {item?.source_website_inquiry_item_id && (
           <p className="text-muted-foreground text-xs">
-            Copied from inquiry item · {item.source_website_inquiry_item_id}
+            已从询盘产品项复制 · {item.source_website_inquiry_item_id}
           </p>
         )}
         <WorkflowFields fields={fields} values={values} onChange={setValues} />
         <div className="flex gap-3">
-          <Button type="submit">{busy ? "Saving…" : "Save item"}</Button>
+          <Button type="submit">{busy ? "保存中…" : "保存产品项"}</Button>
           {item && (
             <Button
               type="button"
               variant="outline"
               onClick={() => mutate(true)}
             >
-              Remove item
+              删除产品项
             </Button>
           )}
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              取消
             </Button>
           )}
         </div>

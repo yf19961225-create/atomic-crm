@@ -23,12 +23,12 @@ export function OrderPayments({
   const [editing, setEditing] = useState<RaRecord | null | undefined>(
     undefined,
   );
-  if (payments.isPending) return <p>Loading payments…</p>;
+  if (payments.isPending) return <p>正在加载收款记录…</p>;
   if (payments.error)
     return (
       <p role="alert">
-        Could not load payments.{" "}
-        <Button onClick={() => payments.refetch()}>Retry</Button>
+        无法加载收款记录。{" "}
+        <Button onClick={() => payments.refetch()}>重试</Button>
       </p>
     );
   const summary = paymentSummary(
@@ -37,23 +37,23 @@ export function OrderPayments({
     payments.data,
   );
   const labels = {
-    expectedDeposit: "Expected deposit",
-    expectedBalance: "Expected balance",
-    depositReceived: "Deposit received",
-    balanceReceived: "Balance received",
-    otherReceived: "Other received",
-    totalReceived: "Total received",
-    depositRemaining: "Deposit remaining",
-    balanceRemaining: "Balance remaining",
-    outstanding: "Outstanding",
-    overpaid: "Overpaid",
+    expectedDeposit: "应收定金",
+    expectedBalance: "应收尾款",
+    depositReceived: "已收定金",
+    balanceReceived: "已收尾款",
+    otherReceived: "其他已收款",
+    totalReceived: "已收合计",
+    depositRemaining: "定金待收",
+    balanceRemaining: "尾款待收",
+    outstanding: "待收款",
+    overpaid: "超收",
   };
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">
-        Receipts use the Order currency ({order.currency}). Its currency is
-        fixed after a payment is recorded. Category remaining amounts compare
-        each category's receipts; outstanding includes every receipt.
+        收款使用订单币种（{order.currency}
+        ）。记录收款后币种不可更改。分类待收金额
+        仅比较该类别收款；待收款包含全部收款。
       </p>
       <div className="bg-muted grid gap-3 rounded p-4 sm:grid-cols-2">
         {Object.entries(labels).map(([key, label]) => (
@@ -64,11 +64,11 @@ export function OrderPayments({
         ))}
       </div>
       <p>
-        Deposit due:{" "}
+        定金到期日：{" "}
         {order.deposit_due_at
           ? new Date(order.deposit_due_at).toLocaleString()
           : "—"}{" "}
-        · Balance due:{" "}
+        · 尾款到期日：{" "}
         {order.balance_due_at
           ? new Date(order.balance_due_at).toLocaleString()
           : "—"}
@@ -77,13 +77,7 @@ export function OrderPayments({
         <table className="w-full text-left text-sm">
           <thead>
             <tr>
-              {[
-                "Kind",
-                "Amount received",
-                "Received date",
-                "Notes",
-                "Actions",
-              ].map((label) => (
+              {["类型", "收款金额", "收款日期", "备注", "操作"].map((label) => (
                 <th className="p-2" key={label}>
                   {label}
                 </th>
@@ -103,7 +97,7 @@ export function OrderPayments({
                 <td className="p-2">{payment.notes}</td>
                 <td className="p-2">
                   <Button variant="outline" onClick={() => setEditing(payment)}>
-                    Edit payment
+                    编辑收款
                   </Button>
                 </td>
               </tr>
@@ -111,9 +105,9 @@ export function OrderPayments({
           </tbody>
         </table>
       </div>
-      {!payments.data.length && <p>No payments recorded.</p>}
+      {!payments.data.length && <p>暂无收款记录。</p>}
       {editing === undefined ? (
-        <Button onClick={() => setEditing(null)}>Add payment</Button>
+        <Button onClick={() => setEditing(null)}>添加收款</Button>
       ) : (
         <PaymentForm
           key={editing?.id || "new"}
@@ -178,31 +172,31 @@ function PaymentForm({
     <form className="space-y-4 rounded border p-4" onSubmit={save}>
       <fieldset disabled={busy} className="space-y-4">
         <h3>
-          {payment ? "Correct payment" : "New payment"} · {order.currency}
+          {payment ? "更正收款" : "新建收款"} · {order.currency}
         </h3>
         <WorkflowFields
           fields={[
             {
               key: "kind",
-              label: "Payment kind",
+              label: "收款类型",
               required: true,
               options: ["deposit", "balance", "other"],
             },
-            { key: "amount", label: "Amount received", required: true },
+            { key: "amount", label: "收款金额", required: true },
             {
               key: "received_at",
-              label: "Received date (ISO / timezone)",
+              label: "收款日期（ISO / 时区）",
               required: true,
             },
-            { key: "notes", label: "Payment notes", type: "textarea" },
+            { key: "notes", label: "收款备注", type: "textarea" },
           ]}
           values={values}
           onChange={setValues}
         />
         <div className="flex gap-3">
-          <Button type="submit">Save payment</Button>
+          <Button type="submit">保存收款</Button>
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            取消
           </Button>
         </div>
       </fieldset>

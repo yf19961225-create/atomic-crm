@@ -15,8 +15,8 @@ export const documentConfig = {
     statuses: ["draft", "sent", "confirmed", "cancelled"],
   },
   order: {
-    label: "Order",
-    plural: "Orders",
+    label: "订单",
+    plural: "订单",
     path: "/orders",
     resource: "romiku_orders",
     items: "romiku_order_items",
@@ -52,15 +52,14 @@ export async function convertDocument(
       (source === "pi" && target === "order")
     )
   )
-    throw new Error("Unsupported document conversion.");
+    throw new Error("不支持此单据转换。");
   const { data, error } = await client.rpc("romiku_convert_document", {
     source_kind: source,
     source_id: sourceId,
     target_kind: target,
   });
   if (error) throw new Error(error.message);
-  if (typeof data !== "string" || !data)
-    throw new Error("Conversion returned no document.");
+  if (typeof data !== "string" || !data) throw new Error("转换后未返回单据。");
   return data;
 }
 export async function createDocument(
@@ -68,7 +67,7 @@ export async function createDocument(
   kind: DocumentKind,
   buyerName: string,
 ) {
-  if (!buyerName.trim()) throw new Error("Buyer name is required.");
+  if (!buyerName.trim()) throw new Error("采购方名称为必填项。");
   return provider.create(documentConfig[kind].resource, {
     data: {
       status: "draft",
@@ -84,13 +83,13 @@ export function documentHeaderWrite(kind: DocumentKind, values: Values) {
   const write = quoteHeaderWrite(commercial);
   if (status !== undefined) {
     if (!documentConfig[kind].statuses.includes(String(status)))
-      throw new Error("Choose an approved document status.");
+      throw new Error("请选择有效的单据状态。");
     write.status = status;
   }
   if (values.deposit_percent !== undefined) {
     const percent = Number(values.deposit_percent);
     if (!Number.isFinite(percent) || percent < 0 || percent > 100)
-      throw new Error("Deposit percentage must be between 0 and 100.");
+      throw new Error("定金比例必须介于 0 到 100 之间。");
     write.deposit_percent = percent;
   }
   const dates = [
@@ -104,7 +103,7 @@ export function documentHeaderWrite(kind: DocumentKind, values: Values) {
       else {
         const date = new Date(String(values[key]));
         if (!Number.isFinite(date.getTime()))
-          throw new Error("Enter a valid date.");
+          throw new Error("请输入有效日期。");
         write[key] = date.toISOString();
       }
     }

@@ -31,27 +31,26 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           <Link
             to={`${config.path}/new${orderId ? `?order=${encodeURIComponent(orderId)}` : ""}`}
           >
-            New {config.label}
+            新建{config.label}
           </Link>
         </Button>
       </div>
       {orderId && (
         <p>
-          Order:{" "}
+          订单：{" "}
           <Link className="underline" to={`/orders/${orderId}`}>
             {orderId}
           </Link>{" "}
           ·{" "}
           <Link className="underline" to={config.path}>
-            All records
+            全部记录
           </Link>
         </p>
       )}
-      {query.isPending && <p>Loading {config.plural}…</p>}
+      {query.isPending && <p>正在加载{config.plural}…</p>}
       {query.error && (
         <p role="alert">
-          Could not load records.{" "}
-          <Button onClick={() => query.refetch()}>Retry</Button>
+          无法加载记录。 <Button onClick={() => query.refetch()}>重试</Button>
         </p>
       )}
       <div className="overflow-auto rounded border">
@@ -59,11 +58,11 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           <thead>
             <tr>
               {[
-                "Document",
-                "Order",
+                "单据",
+                "订单",
                 ...(kind === "production"
-                  ? ["Supplier", "Status", "Factory due"]
-                  : ["Batch", "Packing date", "Shipping mark"]),
+                  ? ["供应商", "状态", "工厂交期"]
+                  : ["批次", "装箱日期", "唛头"]),
               ].map((title) => (
                 <th className="p-3" key={title}>
                   {title}
@@ -107,13 +106,13 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
             ))}
           </tbody>
         </table>
-        {query.data?.length === 0 && <p className="p-6">No records found.</p>}
+        {query.data?.length === 0 && <p className="p-6">未找到记录。</p>}
       </div>
       <div className="flex gap-3">
         <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
-          Previous
+          上一页
         </Button>
-        <span>Page {page}</span>
+        <span>第 {page} 页</span>
         <Button
           disabled={
             query.total !== undefined
@@ -122,7 +121,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           }
           onClick={() => setPage(page + 1)}
         >
-          Next
+          下一页
         </Button>
       </div>
     </section>
@@ -132,12 +131,12 @@ export function FulfillmentDetail({ kind }: { kind: FulfillmentKind }) {
   const { id = "" } = useParams(),
     config = fulfillmentConfig[kind];
   const query = useGetOne(config.resource, { id });
-  if (query.isPending) return <p>Loading {config.label}…</p>;
+  if (query.isPending) return <p>正在加载{config.label}…</p>;
   if (query.error || !query.data)
     return (
       <p role="alert">
-        Could not load {config.label}.{" "}
-        <Button onClick={() => query.refetch()}>Retry</Button>
+        无法加载{config.label}。{" "}
+        <Button onClick={() => query.refetch()}>重试</Button>
       </p>
     );
   return (
@@ -150,23 +149,23 @@ export function FulfillmentDetail({ kind }: { kind: FulfillmentKind }) {
   );
 }
 const productionFields: Field[] = [
-  { key: "name", label: "Production name" },
+  { key: "name", label: "生产名称" },
   {
     key: "status",
-    label: "Production status",
+    label: "生产状态",
     required: true,
     options: ["pending", "in_production", "completed", "received", "cancelled"],
   },
-  { key: "factory_due_at", label: "Factory due (ISO / timezone)" },
-  { key: "anomaly_notes", label: "Anomaly notes", type: "textarea" },
-  { key: "notes", label: "Production notes", type: "textarea" },
+  { key: "factory_due_at", label: "工厂交期（ISO / 时区）" },
+  { key: "anomaly_notes", label: "异常备注", type: "textarea" },
+  { key: "notes", label: "生产备注", type: "textarea" },
 ];
 const packingFields: Field[] = [
-  { key: "name", label: "Packing name" },
-  { key: "batch_label", label: "Batch" },
-  { key: "packing_at", label: "Packing date (ISO / timezone)" },
-  { key: "shipping_mark", label: "List shipping mark" },
-  { key: "notes", label: "Packing notes", type: "textarea" },
+  { key: "name", label: "装箱名称" },
+  { key: "batch_label", label: "批次" },
+  { key: "packing_at", label: "装箱日期（ISO / 时区）" },
+  { key: "shipping_mark", label: "装箱单唛头" },
+  { key: "notes", label: "装箱备注", type: "textarea" },
 ];
 function FulfillmentEditor({
   kind,
@@ -202,7 +201,7 @@ function FulfillmentEditor({
       if (data[dateKey]) {
         const date = new Date(String(data[dateKey]));
         if (!Number.isFinite(date.getTime()))
-          throw new Error("Enter a valid date.");
+          throw new Error("请输入有效日期。");
         data[dateKey] = date.toISOString();
       }
       const result = await provider.update(config.resource, {
@@ -222,13 +221,13 @@ function FulfillmentEditor({
   return (
     <section className="max-w-6xl space-y-5">
       <Link className="underline" to={config.path}>
-        Back to {config.plural}
+        返回{config.plural}
       </Link>
       <h1 className="text-3xl font-semibold">
         {record.document_number || config.label}
       </h1>
       <p>
-        Source Order:{" "}
+        来源订单：{" "}
         <Link className="underline" to={`/orders/${record.order_id}`}>
           {record.order_id}
         </Link>
@@ -236,7 +235,7 @@ function FulfillmentEditor({
       {kind === "production" && (
         <div className="rounded border p-4">
           <p>
-            Supplier:{" "}
+            供应商：{" "}
             <Link
               className="underline"
               to={`/romiku_suppliers/${record.supplier_id}`}
@@ -246,13 +245,12 @@ function FulfillmentEditor({
           </p>
           <p>{record.supplier_snapshot?.address}</p>
           <p className="text-muted-foreground text-sm">
-            This Production Order has one supplier. Its supplier and product
-            snapshots are independent of the Order.
+            此生产单只有一个供应商。其供应商和产品快照独立于订单。
           </p>
         </div>
       )}
       <details>
-        <summary className="cursor-pointer">{config.label} details</summary>
+        <summary className="cursor-pointer">{config.label}详情</summary>
         <form className="space-y-4 py-4" onSubmit={save}>
           <fieldset disabled={busy} className="space-y-4">
             <WorkflowFields
@@ -260,19 +258,18 @@ function FulfillmentEditor({
               values={values}
               onChange={setValues}
             />
-            <Button type="submit">Save {config.label}</Button>
+            <Button type="submit">保存{config.label}</Button>
           </fieldset>
         </form>
       </details>
       {failure && <p role="alert">{failure}</p>}
-      {saved && <p role="status">{config.label} saved.</p>}
+      {saved && <p role="status">{config.label}已保存。</p>}
       {items.error ? (
         <p role="alert">
-          Could not load items.{" "}
-          <Button onClick={() => items.refetch()}>Retry</Button>
+          无法加载产品项。 <Button onClick={() => items.refetch()}>重试</Button>
         </p>
       ) : items.isPending ? (
-        <p>Loading items…</p>
+        <p>正在加载产品项…</p>
       ) : (
         <FulfillmentItems
           kind={kind}

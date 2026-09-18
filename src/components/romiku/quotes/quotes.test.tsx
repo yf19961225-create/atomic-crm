@@ -86,13 +86,11 @@ it("opens inquiry selection without creating a Quote, then confirms only the sel
   const { screen } = await setup("/website-inquiries?record=in");
   await screen.getByRole("link", { name: "Create Quote" }).click();
   await expect
-    .element(screen.getByRole("heading", { name: "Confirm inquiry items" }))
+    .element(screen.getByRole("heading", { name: "确认询盘产品项" }))
     .toBeVisible();
   expect(rpc).not.toHaveBeenCalled();
-  await screen.getByLabelText("Include B").click();
-  await screen
-    .getByRole("button", { name: "Confirm and create Quote" })
-    .click();
+  await screen.getByLabelText("包含 B").click();
+  await screen.getByRole("button", { name: "确认并创建报价单" }).click();
   await expect
     .element(screen.getByRole("heading", { name: "Q-001" }))
     .toBeVisible();
@@ -107,14 +105,12 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   const original = (
     await provider.getList("romiku_website_inquiry_items", list)
   ).data;
-  await screen.getByRole("tab", { name: "Items", exact: true }).click();
-  await screen.getByLabelText("Quantity", { exact: true }).fill("240");
-  await screen.getByLabelText("MOQ", { exact: true }).fill("120");
-  await screen
-    .getByLabelText("Specification", { exact: true })
-    .fill("Blue finish");
-  await screen.getByLabelText("Packaging", { exact: true }).fill("Carton");
-  await screen.getByRole("button", { name: "Save item", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByLabelText("数量", { exact: true }).fill("240");
+  await screen.getByLabelText("最小起订量", { exact: true }).fill("120");
+  await screen.getByLabelText("规格", { exact: true }).fill("Blue finish");
+  await screen.getByLabelText("包装", { exact: true }).fill("Carton");
+  await screen.getByRole("button", { name: "保存产品项", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -134,14 +130,12 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     packing_snapshot: { description: "Carton" },
   });
   await expect
-    .element(screen.getByText("Total: USD 505.00", { exact: true }))
+    .element(screen.getByText("合计：USD 505.00", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("tab", { name: "Terms & expenses" }).click();
-  await screen.getByLabelText("Other expenses", { exact: true }).fill("25");
-  await screen
-    .getByLabelText("Payment terms", { exact: true })
-    .fill("50% deposit");
-  await screen.getByRole("button", { name: "Save Quote" }).click();
+  await screen.getByRole("tab", { name: "条款与费用" }).click();
+  await screen.getByLabelText("其他费用", { exact: true }).fill("25");
+  await screen.getByLabelText("付款条款", { exact: true }).fill("50% deposit");
+  await screen.getByRole("button", { name: "保存报价单" }).click();
   await expect
     .poll(
       async () =>
@@ -150,10 +144,10 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     )
     .toBe(25);
   await expect
-    .element(screen.getByText("Total: USD 515.00", { exact: true }))
+    .element(screen.getByText("合计：USD 515.00", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("tab", { name: "Items", exact: true }).click();
-  await screen.getByRole("button", { name: "Remove item" }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByRole("button", { name: "删除产品项" }).click();
   await expect
     .poll(
       async () =>
@@ -170,21 +164,19 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
 
 it("creates a direct Quote and supports adding its own items", async () => {
   const { screen, provider } = await setup("/quotes");
-  await screen.getByRole("link", { name: "New Quote" }).click();
+  await screen.getByRole("link", { name: "新建报价单" }).click();
   await screen
-    .getByLabelText("Buyer name", { exact: true })
+    .getByLabelText("采购方名称", { exact: true })
     .fill("Direct buyer");
-  await screen
-    .getByRole("button", { name: "Create Quote", exact: true })
-    .click();
-  await screen.getByRole("tab", { name: "Items", exact: true }).click();
-  await screen.getByRole("button", { name: "Add item" }).click();
+  await screen.getByRole("button", { name: "创建报价单", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByRole("button", { name: "添加产品项" }).click();
   await screen.getByLabelText("SKU", { exact: true }).fill("MANUAL");
-  await screen.getByLabelText("Quantity", { exact: true }).fill("10");
-  await screen.getByLabelText("Unit price", { exact: true }).fill("3.5");
-  await screen.getByRole("button", { name: "Save item" }).click();
+  await screen.getByLabelText("数量", { exact: true }).fill("10");
+  await screen.getByLabelText("单价", { exact: true }).fill("3.5");
+  await screen.getByRole("button", { name: "保存产品项" }).click();
   await expect
-    .element(screen.getByText("Total: USD 35.00", { exact: true }))
+    .element(screen.getByText("合计：USD 35.00", { exact: true }))
     .toBeVisible();
   expect(
     (await provider.getList("romiku_formal_customers", list)).data,

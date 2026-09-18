@@ -91,25 +91,23 @@ it("shows the database receivable in the Orders list and opens its detail", asyn
 });
 it.each([
   ["/quotes/q", "PI", "PI-001"],
-  ["/quotes/q", "Order", "SO-001"],
-  ["/pi/p", "Order", "SO-001"],
+  ["/quotes/q", "订单", "SO-001"],
+  ["/pi/p", "订单", "SO-001"],
 ])(
   "confirms conversion from %s to %s before server copy",
   async (path, target, heading) => {
     const { screen } = await setup(path);
     await screen
-      .getByRole("button", { name: `Create ${target}`, exact: true })
+      .getByRole("button", { name: `创建${target}`, exact: true })
       .click();
     expect(rpc).not.toHaveBeenCalled();
     await expect.element(screen.getByRole("dialog")).toBeVisible();
-    await screen.getByRole("button", { name: "Cancel", exact: true }).click();
+    await screen.getByRole("button", { name: "取消", exact: true }).click();
     expect(rpc).not.toHaveBeenCalled();
     await screen
-      .getByRole("button", { name: `Create ${target}`, exact: true })
+      .getByRole("button", { name: `创建${target}`, exact: true })
       .click();
-    await screen
-      .getByRole("button", { name: `Confirm and create ${target}` })
-      .click();
+    await screen.getByRole("button", { name: `确认并创建${target}` }).click();
     await expect
       .element(screen.getByRole("heading", { name: heading }))
       .toBeVisible();
@@ -122,23 +120,23 @@ it.each([
 );
 it.each([
   ["pi", "PI"],
-  ["orders", "Order"],
+  ["orders", "订单"],
 ])("creates direct %s and saves its own item", async (path, label) => {
   const { screen, provider } = await setup(`/${path}`);
-  await screen.getByRole("link", { name: `New ${label}`, exact: true }).click();
+  await screen.getByRole("link", { name: `新建${label}`, exact: true }).click();
   await screen
-    .getByLabelText("Buyer name", { exact: true })
+    .getByLabelText("采购方名称", { exact: true })
     .fill("Direct buyer");
   await screen
-    .getByRole("button", { name: `Create ${label}`, exact: true })
+    .getByRole("button", { name: `创建${label}`, exact: true })
     .click();
-  await screen.getByRole("button", { name: "Add item" }).click();
+  await screen.getByRole("button", { name: "添加产品项" }).click();
   await screen.getByLabelText("SKU", { exact: true }).fill("MANUAL");
-  await screen.getByLabelText("Quantity", { exact: true }).fill("10");
-  await screen.getByLabelText("Unit price", { exact: true }).fill("3.50");
-  await screen.getByRole("button", { name: "Save item", exact: true }).click();
+  await screen.getByLabelText("数量", { exact: true }).fill("10");
+  await screen.getByLabelText("单价", { exact: true }).fill("3.50");
+  await screen.getByRole("button", { name: "保存产品项", exact: true }).click();
   await expect
-    .element(screen.getByText("Total: USD 35.00", { exact: true }))
+    .element(screen.getByText("合计：USD 35.00", { exact: true }))
     .toBeVisible();
   expect(
     (await provider.getList("romiku_formal_customers", list)).data,
@@ -146,7 +144,7 @@ it.each([
 });
 it.each([
   ["pi", "PI", "romiku_pi_items", "pii"],
-  ["orders", "Order", "romiku_order_items", "oi"],
+  ["orders", "订单", "romiku_order_items", "oi"],
 ])(
   "edits %s snapshots independently of Quote and PI sources",
   async (path, label, resource, itemId) => {
@@ -162,12 +160,12 @@ it.each([
         { id: path === "pi" ? "qi" : "pii" },
       )
     ).data;
-    await screen.getByLabelText("Quantity", { exact: true }).fill("200");
+    await screen.getByLabelText("数量", { exact: true }).fill("200");
     await screen
-      .getByLabelText("Specification", { exact: true })
+      .getByLabelText("规格", { exact: true })
       .fill("Own specification");
     await screen
-      .getByRole("button", { name: "Save item", exact: true })
+      .getByRole("button", { name: "保存产品项", exact: true })
       .click();
     await expect
       .poll(
@@ -175,16 +173,16 @@ it.each([
           (await provider.getOne(resource, { id: itemId })).data.quantity,
       )
       .toBe(200);
-    await screen.getByRole("tab", { name: "Buyer & details" }).click();
+    await screen.getByRole("tab", { name: "采购方与详情" }).click();
     await screen
-      .getByLabelText("Buyer name", { exact: true })
+      .getByLabelText("采购方名称", { exact: true })
       .fill("Changed buyer");
     await screen
-      .getByRole("button", { name: `Save ${label}`, exact: true })
+      .getByRole("button", { name: `保存${label}`, exact: true })
       .click();
     await expect
       .element(screen.getByRole("status"))
-      .toHaveTextContent(`${label} saved.`);
+      .toHaveTextContent(`${label}已保存。`);
     expect((await provider.getOne("romiku_quotes", { id: "q" })).data).toEqual(
       quoteBefore,
     );
@@ -205,36 +203,30 @@ it.each([
 it("records and corrects deposit/balance receipts without changing source documents", async () => {
   const { screen, provider } = await setup("/orders/o");
   const original = (await provider.getOne("romiku_pis", { id: "p" })).data;
-  await screen.getByRole("tab", { name: "Payments", exact: true }).click();
+  await screen.getByRole("tab", { name: "收款", exact: true }).click();
   await expect
-    .element(screen.getByText("Expected deposit: USD 300.00", { exact: true }))
+    .element(screen.getByText("应收定金: USD 300.00", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("button", { name: "Add payment" }).click();
-  await screen.getByLabelText("Amount received", { exact: true }).fill("100");
-  await screen
-    .getByRole("button", { name: "Save payment", exact: true })
-    .click();
+  await screen.getByRole("button", { name: "添加收款" }).click();
+  await screen.getByLabelText("收款金额", { exact: true }).fill("100");
+  await screen.getByRole("button", { name: "保存收款", exact: true }).click();
   await expect
-    .element(screen.getByText("Outstanding: USD 900.00", { exact: true }))
+    .element(screen.getByText("待收款: USD 900.00", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("button", { name: "Edit payment" }).click();
-  await screen.getByLabelText("Amount received", { exact: true }).fill("300");
-  await screen
-    .getByRole("button", { name: "Save payment", exact: true })
-    .click();
+  await screen.getByRole("button", { name: "编辑收款" }).click();
+  await screen.getByLabelText("收款金额", { exact: true }).fill("300");
+  await screen.getByRole("button", { name: "保存收款", exact: true }).click();
   await expect
-    .element(screen.getByText("Deposit remaining: USD 0.00", { exact: true }))
+    .element(screen.getByText("定金待收: USD 0.00", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("button", { name: "Add payment" }).click();
+  await screen.getByRole("button", { name: "添加收款" }).click();
   await screen
-    .getByLabelText("Payment kind", { exact: true })
+    .getByLabelText("收款类型", { exact: true })
     .selectOptions("balance");
-  await screen.getByLabelText("Amount received", { exact: true }).fill("700");
-  await screen
-    .getByRole("button", { name: "Save payment", exact: true })
-    .click();
+  await screen.getByLabelText("收款金额", { exact: true }).fill("700");
+  await screen.getByRole("button", { name: "保存收款", exact: true }).click();
   await expect
-    .element(screen.getByText("Outstanding: USD 0.00", { exact: true }))
+    .element(screen.getByText("待收款: USD 0.00", { exact: true }))
     .toBeVisible();
   expect((await provider.getOne("romiku_pis", { id: "p" })).data).toEqual(
     original,

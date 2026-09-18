@@ -16,12 +16,10 @@ describe("Quote snapshot boundaries", () => {
       inquiry_id: "in-1",
       selected_item_ids: ["i-2", "i-1"],
     });
-    await expect(quoteFromInquiry({ rpc }, "in-1", [])).rejects.toThrow(
-      "Select",
-    );
+    await expect(quoteFromInquiry({ rpc }, "in-1", [])).rejects.toThrow("选择");
     await expect(
       quoteFromInquiry({ rpc }, "in-1", ["i-1", "i-1"]),
-    ).rejects.toThrow("distinct");
+    ).rejects.toThrow("不重复");
     expect(rpc).toHaveBeenCalledTimes(1);
   });
   it("surfaces snapshot failures without returning a phantom Quote", async () => {
@@ -71,7 +69,7 @@ describe("Quote snapshot boundaries", () => {
       ).data,
     ).toHaveLength(1);
     await expect(createQuote(provider, "outbound", "", "")).rejects.toThrow(
-      "source",
+      "来源",
     );
   });
   it("allows commercial edits while stripping source, identity, audit and calculated fields", () => {
@@ -110,8 +108,8 @@ describe("Quote snapshot boundaries", () => {
     });
     expect(() =>
       quoteItemWrite({ sku: "A", quantity: 0, unit_price: 2 }),
-    ).toThrow("Quantity");
-    expect(() => quoteHeaderWrite({ other_expenses: -1 })).toThrow("negative");
+    ).toThrow("数量");
+    expect(() => quoteHeaderWrite({ other_expenses: -1 })).toThrow("非负数");
     expect(() =>
       quoteItemWrite({ sku: "A", quantity: 1, unit_price: Infinity }),
     ).toThrow();

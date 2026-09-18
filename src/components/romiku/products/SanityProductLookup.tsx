@@ -50,17 +50,15 @@ export const SanityProductLookup = ({
         disabled={!sku.trim() || result.status === "loading"}
         onClick={() => void lookup()}
       >
-        Look up SKU
+        查询 SKU
       </button>
-      {result.status === "loading" && <p>Looking up SKU in Sanity…</p>}
+      {result.status === "loading" && <p>正在 Sanity 中查询 SKU…</p>}
       {result.status === "matched" && (
         <p>
-          {result.product.title ?? "Matched product"} ({result.product.sku})
+          {result.product.title ?? "已匹配产品"} ({result.product.sku})
         </p>
       )}
-      {result.status === "unmatched" && (
-        <p>No Sanity product matched this SKU.</p>
-      )}
+      {result.status === "unmatched" && <p>未在 Sanity 中找到匹配的 SKU。</p>}
       {result.status === "error" && <p>{result.message}</p>}
     </div>
   );

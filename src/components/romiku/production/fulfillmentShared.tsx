@@ -7,16 +7,16 @@ export const fulfillmentConfig = {
     resource: "romiku_production_orders",
     items: "romiku_production_items",
     path: "/production",
-    label: "Production Order",
-    plural: "Production",
+    label: "生产单",
+    plural: "生产管理",
     foreignKey: "production_order_id",
   },
   packing: {
     resource: "romiku_packing_lists",
     items: "romiku_packing_items",
     path: "/packing-shipping",
-    label: "Packing List",
-    plural: "Packing & Shipping",
+    label: "装箱单",
+    plural: "装箱与发运",
     foreignKey: "packing_list_id",
   },
 };
@@ -35,16 +35,16 @@ export function OrderSelect({
   });
   return (
     <label className="block">
-      Order{" "}
+      订单{" "}
       <select
         className="rounded border p-2"
-        aria-label="Order"
+        aria-label="订单"
         required
         value={value}
         disabled={query.isPending || !!query.error}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">Choose Order</option>
+        <option value="">请选择订单</option>
         {query.data?.map((o) => (
           <option key={o.id} value={o.id}>
             {o.document_number || o.id} · {o.counterparty_snapshot?.name}
@@ -53,9 +53,9 @@ export function OrderSelect({
       </select>
       {query.error && (
         <span role="alert">
-          Could not load Orders.{" "}
+          无法加载订单。{" "}
           <button type="button" onClick={() => query.refetch()}>
-            Retry
+            重试
           </button>
         </span>
       )}

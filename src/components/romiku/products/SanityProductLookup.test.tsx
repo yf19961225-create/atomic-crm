@@ -11,6 +11,21 @@ const source = (
 });
 
 describe("SanityProductLookup", () => {
+  it("presents Sanity lookup controls and states in Simplified Chinese", async () => {
+    const screen = await render(
+      <SanityProductLookup
+        sku="UNKNOWN"
+        source={source(async (sku) => ({ status: "unmatched", sku }))}
+        onMatched={vi.fn()}
+      />,
+    );
+
+    await screen.getByRole("button", { name: "查询 SKU" }).click();
+    await expect
+      .element(screen.getByText("未在 Sanity 中找到匹配的 SKU。"))
+      .toBeVisible();
+  });
+
   it("shows loading, then matched data and only then offers a configured ID", async () => {
     let resolve!: (
       value: Awaited<ReturnType<SanityProductSource["findBySku"]>>,
@@ -32,9 +47,9 @@ describe("SanityProductLookup", () => {
       />,
     );
 
-    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    await screen.getByRole("button", { name: "查询 SKU" }).click();
     await expect
-      .element(screen.getByText("Looking up SKU in Sanity…"))
+      .element(screen.getByText("正在 Sanity 中查询 SKU…"))
       .toBeVisible();
     resolve({
       status: "matched",
@@ -58,9 +73,9 @@ describe("SanityProductLookup", () => {
         onMatched={vi.fn()}
       />,
     );
-    await unmatched.getByRole("button", { name: "Look up SKU" }).click();
+    await unmatched.getByRole("button", { name: "查询 SKU" }).click();
     await expect
-      .element(unmatched.getByText("No Sanity product matched this SKU."))
+      .element(unmatched.getByText("未在 Sanity 中找到匹配的 SKU。"))
       .toBeVisible();
 
     const error = await render(
@@ -69,14 +84,14 @@ describe("SanityProductLookup", () => {
         source={source(async (sku) => ({
           status: "error",
           sku,
-          message: "Sanity product lookup failed.",
+          message: "Sanity 产品查询失败。",
         }))}
         onMatched={vi.fn()}
       />,
     );
-    await error.getByRole("button", { name: "Look up SKU" }).last().click();
+    await error.getByRole("button", { name: "查询 SKU" }).last().click();
     await expect
-      .element(error.getByText("Sanity product lookup failed.").last())
+      .element(error.getByText("Sanity 产品查询失败。").last())
       .toBeVisible();
   });
 
@@ -96,11 +111,11 @@ describe("SanityProductLookup", () => {
         onMatched={onMatched}
       />,
     );
-    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    await screen.getByRole("button", { name: "查询 SKU" }).click();
     expect(onMatched).toHaveBeenCalledWith("sanity-a");
-    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    await screen.getByRole("button", { name: "查询 SKU" }).click();
     await expect
-      .element(screen.getByText("No Sanity product matched this SKU."))
+      .element(screen.getByText("未在 Sanity 中找到匹配的 SKU。"))
       .toBeVisible();
     expect(onMatched).toHaveBeenCalledTimes(1);
   });
@@ -125,7 +140,7 @@ describe("SanityProductLookup", () => {
         onMatched={onMatched}
       />,
     );
-    await screen.getByRole("button", { name: "Look up SKU" }).click();
+    await screen.getByRole("button", { name: "查询 SKU" }).click();
     await screen.rerender(
       <SanityProductLookup
         sku="B"
@@ -138,7 +153,7 @@ describe("SanityProductLookup", () => {
       product: { sanityProductId: "sanity-a", sku: "A" },
     });
     await expect
-      .element(screen.getByText("No Sanity product matched this SKU."))
+      .element(screen.getByText("未在 Sanity 中找到匹配的 SKU。"))
       .toBeVisible();
     expect(onMatched).not.toHaveBeenCalled();
   });

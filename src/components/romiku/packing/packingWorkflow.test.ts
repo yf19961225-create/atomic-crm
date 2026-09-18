@@ -79,19 +79,19 @@ it("blocks overpacking and invalid dimensions before a write", async () => {
   const p = setup();
   await expect(
     savePackingItem(p, { id: "p2", order_id: "o" }, "i", { quantity: 61 }),
-  ).rejects.toThrow(/remaining/i);
+  ).rejects.toThrow(/剩余/);
   await expect(
     savePackingItem(p, { id: "p2", order_id: "o" }, "i", {
       quantity: 20,
       cartons: 1.5,
     }),
-  ).rejects.toThrow(/cartons/i);
+  ).rejects.toThrow(/箱数/);
   await expect(
     savePackingItem(p, { id: "p2", order_id: "o" }, "i", {
       quantity: 20,
       length_cm: -1,
     }),
-  ).rejects.toThrow(/length/i);
+  ).rejects.toThrow(/长度/);
   expect(await readRelated(p, "romiku_packing_items", {})).toHaveLength(1);
 });
 it("credits the edited line quantity back while retaining its immutable source", async () => {
@@ -115,5 +115,5 @@ it("credits the edited line quantity back while retaining its immutable source",
       { quantity: 1 },
       previous,
     ),
-  ).rejects.toThrow(/source/i);
+  ).rejects.toThrow(/来源/);
 });

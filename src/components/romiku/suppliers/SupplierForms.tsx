@@ -27,7 +27,7 @@ const SupplierFormCard = ({
 
 export const SupplierCreate = () => (
   <CreateBase resource="romiku_suppliers" redirect="/suppliers">
-    <SupplierFormCard title="New supplier">
+    <SupplierFormCard title="新建供应商">
       <SupplierInputs />
     </SupplierFormCard>
   </CreateBase>
@@ -35,7 +35,7 @@ export const SupplierCreate = () => (
 
 export const SupplierEdit = () => (
   <EditBase resource="romiku_suppliers" redirect="/suppliers">
-    <SupplierFormCard title="Edit supplier">
+    <SupplierFormCard title="编辑供应商">
       <SupplierInputs />
     </SupplierFormCard>
   </EditBase>
@@ -47,7 +47,7 @@ export const SupplierContactCreate = () => (
     redirect="/supplier-contacts"
     transform={toSupplierContactWrite}
   >
-    <SupplierFormCard title="New supplier contact">
+    <SupplierFormCard title="新建供应商联系人">
       <SupplierContactInputs />
     </SupplierFormCard>
   </CreateBase>
@@ -59,7 +59,7 @@ export const SupplierContactEdit = () => (
     redirect="/supplier-contacts"
     transform={toSupplierContactWrite}
   >
-    <SupplierFormCard title="Edit supplier contact">
+    <SupplierFormCard title="编辑供应商联系人">
       <SupplierContactInputs />
     </SupplierFormCard>
   </EditBase>

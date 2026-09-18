@@ -18,7 +18,7 @@ export class ProductionCreationError extends Error {
 export function positiveQuantity(value: unknown) {
   const quantity = Number(value);
   if (!Number.isFinite(quantity) || quantity <= 0)
-    throw new Error("Quantity must be greater than zero.");
+    throw new Error("数量必须大于零。");
   return quantity;
 }
 export async function createProductionOrders(
@@ -27,11 +27,11 @@ export async function createProductionOrders(
   selections: ProductionSelection[],
 ) {
   if (!orderId || !selections.length)
-    throw new Error("Choose an Order and at least one item.");
+    throw new Error("请选择订单和至少一个产品项。");
   if (selections.some((s) => !s.supplierId))
-    throw new Error("Choose one supplier for each selected item.");
+    throw new Error("请为每个已选产品项选择供应商。");
   if (new Set(selections.map((s) => s.itemId)).size !== selections.length)
-    throw new Error("Select each Order item once.");
+    throw new Error("每个订单产品项只能选择一次。");
   const sourceItems = await readRelated(provider, "romiku_order_items", {
     order_id: orderId,
   });
@@ -41,7 +41,7 @@ export async function createProductionOrders(
     const source = sourceItems.find(
       (item) => String(item.id) === selection.itemId,
     );
-    if (!source) throw new Error("Selected item must belong to this Order.");
+    if (!source) throw new Error("所选产品项必须属于该订单。");
     const quantity = positiveQuantity(selection.quantity);
     if (!groups.has(selection.supplierId)) {
       const { data } = await provider.getOne("romiku_suppliers", {
@@ -78,7 +78,7 @@ export async function createProductionOrders(
     }
   } catch (cause) {
     throw new ProductionCreationError(
-      `Creation stopped. Review saved documents before creating again; the last document may have incomplete items. ${cause instanceof Error ? cause.message : String(cause)}`,
+      `创建已停止。请在再次创建前检查已保存的单据；最后一张单据可能包含未完成的产品项。${cause instanceof Error ? cause.message : String(cause)}`,
       documents,
     );
   }
@@ -97,12 +97,12 @@ export async function saveProductionItem(
     (previous.production_order_id !== parent.id ||
       previous.source_order_item_id !== sourceId)
   )
-    throw new Error("Production item source cannot change.");
+    throw new Error("生产产品项的来源不可更改。");
   const { data: source } = await provider.getOne("romiku_order_items", {
     id: sourceId,
   });
   if (source.order_id !== parent.order_id)
-    throw new Error("Item must belong to the Order.");
+    throw new Error("产品项必须属于该订单。");
   const copy = previous || {
     sku: source.sku,
     product_snapshot: structuredClone(source.product_snapshot || {}),
