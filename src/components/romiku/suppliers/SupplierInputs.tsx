@@ -4,6 +4,7 @@ import { NumberInput } from "@/components/admin/number-input";
 import { SelectInput } from "@/components/admin/select-input";
 import { SimpleFormIterator } from "@/components/admin/simple-form-iterator";
 import { TextInput } from "@/components/admin/text-input";
+import { supplierStatusChoices } from "../commercialLabels";
 
 export const SupplierInputs = () => (
   <div className="grid max-w-3xl gap-4 md:grid-cols-2">
@@ -16,7 +17,7 @@ export const SupplierInputs = () => (
     <SelectInput
       source="status"
       label="状态"
-      choices={["active", "paused", "inactive"]}
+      choices={supplierStatusChoices}
       helperText={false}
     />
     <SelectInput

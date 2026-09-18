@@ -4,6 +4,7 @@ import { DataTable } from "@/components/admin/data-table";
 import { EditButton } from "@/components/admin/edit-button";
 import { List } from "@/components/admin/list";
 import { Button } from "@/components/ui/button";
+import { supplierStatusLabel } from "../commercialLabels";
 
 const SupplierActions = () => (
   <div className="flex gap-2">
@@ -25,7 +26,11 @@ export const SupplierList = () => (
       <DataTable.Col source="name" label="供应商名称" />
       <DataTable.Col source="region" label="地区" />
       <DataTable.Col source="grade" label="等级" />
-      <DataTable.Col source="status" label="状态" />
+      <DataTable.Col
+        source="status"
+        label="状态"
+        render={(record) => supplierStatusLabel(record.status)}
+      />
       <DataTable.Col source="default_lead_days" label="默认交期（天）" />
       <DataTable.Col label="">
         <EditButton label="编辑供应商" />

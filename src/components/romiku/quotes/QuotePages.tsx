@@ -14,6 +14,7 @@ import { errorMessage } from "../outbound/RelatedRecords";
 import { quoteHeaderWrite, quoteStatuses, quoteTotals } from "./quoteWorkflow";
 import { QuoteItems } from "./QuoteItems";
 import { DocumentConversion } from "../orders/DocumentConversion";
+import { quoteStatusChoices, quoteStatusLabel } from "../commercialLabels";
 
 function SourceLinks({ record }: { record: RaRecord }) {
   return (
@@ -102,7 +103,7 @@ export function QuoteList() {
             <option value="">全部状态</option>
             {quoteStatuses.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {quoteStatusLabel(value)}
               </option>
             ))}
           </select>
@@ -151,7 +152,7 @@ export function QuoteList() {
                 <td className="p-3">
                   <SourceLinks record={record} />
                 </td>
-                <td className="p-3">{record.status}</td>
+                <td className="p-3">{quoteStatusLabel(record.status)}</td>
                 <td className="p-3">{record.document_date}</td>
                 <td className="p-3">{record.valid_until || "—"}</td>
                 <td className="p-3">
@@ -215,7 +216,7 @@ const buyerFields: Field[] = [
     key: "status",
     label: "报价单状态",
     required: true,
-    options: quoteStatuses,
+    choices: quoteStatusChoices,
   },
   { key: "currency", label: "币种", required: true },
   { key: "document_date", label: "单据日期（YYYY-MM-DD）" },

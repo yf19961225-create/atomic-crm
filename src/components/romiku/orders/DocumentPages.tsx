@@ -21,6 +21,10 @@ import {
   documentHeaderWrite,
   type DocumentKind,
 } from "./documentWorkflow";
+import {
+  documentStatusChoices,
+  documentStatusLabel,
+} from "../commercialLabels";
 
 function DocumentSources({ record }: { record: RaRecord }) {
   const links = [
@@ -107,7 +111,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
             <option value="">全部状态</option>
             {config.statuses.map((status) => (
               <option value={status} key={status}>
-                {status.replaceAll("_", " ")}
+                {documentStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -154,7 +158,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                 <td className="p-3">
                   <DocumentSources record={record} />
                 </td>
-                <td className="p-3">{record.status}</td>
+                <td className="p-3">{documentStatusLabel(record.status)}</td>
                 <td className="p-3">{record.document_date}</td>
                 <td className="p-3">
                   {record.currency} {Number(record.total).toFixed(2)}
@@ -373,7 +377,9 @@ function DocumentEditor({
     {
       key: "status",
       label: `${config.label}状态`,
-      options: config.statuses,
+      choices: documentStatusChoices.filter(({ id }) =>
+        config.statuses.includes(id),
+      ),
       required: true,
     },
     ...(kind === "pi"

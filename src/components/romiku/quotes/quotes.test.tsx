@@ -182,3 +182,23 @@ it("creates a direct Quote and supports adding its own items", async () => {
     (await provider.getList("romiku_formal_customers", list)).data,
   ).toEqual([]);
 });
+
+it("renders Chinese Quote status labels while preserving the stored enum value", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+
+  await screen.getByRole("tab", { name: "采购方与详情" }).click();
+  await expect
+    .element(screen.getByRole("option", { name: "已发送" }))
+    .toHaveTextContent("已发送");
+  await screen
+    .getByLabelText("报价单状态", { exact: true })
+    .selectOptions("sent");
+  await screen.getByRole("button", { name: "保存报价单" }).click();
+
+  await expect
+    .poll(
+      async () =>
+        (await provider.getOne("romiku_quotes", { id: "q" })).data.status,
+    )
+    .toBe("sent");
+});

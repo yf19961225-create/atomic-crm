@@ -12,6 +12,10 @@ import { errorMessage } from "../outbound/RelatedRecords";
 import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { FulfillmentItems } from "./FulfillmentItems";
+import {
+  productionStatusChoices,
+  productionStatusLabel,
+} from "../commercialLabels";
 
 export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const config = fulfillmentConfig[kind],
@@ -89,7 +93,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                 {(kind === "production"
                   ? [
                       record.supplier_snapshot?.name,
-                      record.status,
+                      productionStatusLabel(record.status),
                       record.factory_due_at,
                     ]
                   : [
@@ -154,7 +158,7 @@ const productionFields: Field[] = [
     key: "status",
     label: "生产状态",
     required: true,
-    options: ["pending", "in_production", "completed", "received", "cancelled"],
+    choices: productionStatusChoices,
   },
   { key: "factory_due_at", label: "工厂交期（ISO / 时区）" },
   { key: "anomaly_notes", label: "异常备注", type: "textarea" },

@@ -6,6 +6,7 @@ import { WorkflowFields, type Values } from "../outbound/WorkflowFields";
 import { readRelated } from "../outbound/workflow";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { paymentSummary, paymentWrite } from "./paymentWorkflow";
+import { paymentKindChoices, paymentKindLabel } from "../commercialLabels";
 
 export function OrderPayments({
   order,
@@ -87,7 +88,7 @@ export function OrderPayments({
           <tbody>
             {payments.data.map((payment) => (
               <tr className="border-t" key={payment.id}>
-                <td className="p-2">{payment.kind}</td>
+                <td className="p-2">{paymentKindLabel(payment.kind)}</td>
                 <td className="p-2">
                   {order.currency} {Number(payment.amount).toFixed(2)}
                 </td>
@@ -180,7 +181,7 @@ function PaymentForm({
               key: "kind",
               label: "收款类型",
               required: true,
-              options: ["deposit", "balance", "other"],
+              choices: paymentKindChoices,
             },
             { key: "amount", label: "收款金额", required: true },
             {
