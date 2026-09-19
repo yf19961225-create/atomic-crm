@@ -385,39 +385,37 @@ test("Today MVP: two real users, independent snapshots and fulfillment", async (
         (await anonymous.from("romiku_orders").select("id")).error,
       ).toBeTruthy();
     });
-    await test.step("Both users sign in through UI and follow Workbench / Calendar source links", async () => {
+    await test.step("Both users sign in through the Chinese UI and follow Workbench / Calendar source links", async () => {
       for (const email of emails) {
         const context = await browser.newContext();
         contexts.push(context);
         const page = await context.newPage();
         await page.goto(baseURL!);
-        await page.getByLabel("Email").fill(email);
-        await page.getByLabel("Password").fill(password);
-        await page
-          .getByRole("button", { name: "Sign in", exact: true })
-          .click();
+        await page.getByLabel("邮箱").fill(email);
+        await page.getByLabel("密码").fill(password);
+        await page.getByRole("button", { name: "登录", exact: true }).click();
         await expect(
-          page.getByRole("heading", { name: "Workbench", exact: true }),
+          page.getByRole("heading", { name: "工作台", exact: true }),
         ).toBeVisible();
         await page
           .getByRole("link", { name: String(outbound.name), exact: true })
           .click();
-        await expect(
-          page.getByLabel("Company name", { exact: true }),
-        ).toHaveValue(String(outbound.name));
+        await expect(page.getByLabel("公司名称", { exact: true })).toHaveValue(
+          String(outbound.name),
+        );
         await page.goto(`${baseURL}/#/calendar`);
         await expect(
-          page.getByRole("heading", { name: "Calendar", exact: true }),
+          page.getByRole("heading", { name: "日历", exact: true }),
         ).toBeVisible();
         await page
-          .getByRole("button", { name: "All dates", exact: true })
+          .getByRole("button", { name: "全部日期", exact: true })
           .click();
         await page
           .getByRole("link", { name: String(outbound.name), exact: true })
           .click();
-        await expect(
-          page.getByLabel("Company name", { exact: true }),
-        ).toHaveValue(String(outbound.name));
+        await expect(page.getByLabel("公司名称", { exact: true })).toHaveValue(
+          String(outbound.name),
+        );
       }
     });
   } finally {
