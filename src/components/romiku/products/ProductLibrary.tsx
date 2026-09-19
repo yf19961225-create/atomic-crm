@@ -4,6 +4,7 @@ import { DataTable } from "@/components/admin/data-table";
 import { EditButton } from "@/components/admin/edit-button";
 import { List } from "@/components/admin/list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SanityCatalogList } from "./SanityCatalogList";
 
 const ProductExtensionsList = () => (
   <List
@@ -75,12 +76,14 @@ export const ProductLibrary = () => (
         由 CRM 管理产品备注和供应商采购信息；产品主数据在 Sanity 中保持只读。
       </p>
     </div>
-    <Tabs defaultValue="extensions">
+    <Tabs defaultValue="catalog">
       <TabsList>
+        <TabsTrigger value="catalog">产品目录</TabsTrigger>
         <TabsTrigger value="extensions">扩展信息</TabsTrigger>
         <TabsTrigger value="suppliers">产品供应商</TabsTrigger>
         <TabsTrigger value="costs">参考成本</TabsTrigger>
       </TabsList>
+      <TabsContent value="catalog"><SanityCatalogList /></TabsContent>
       <TabsContent value="extensions">
         <ProductExtensionsList />
       </TabsContent>
