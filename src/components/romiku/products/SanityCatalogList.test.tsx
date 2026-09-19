@@ -184,4 +184,135 @@ describe("SanityCatalogList", () => {
     await screen.getByRole("cell", { name: "RMK-100" }).click();
     await expect.element(screen.getByText("产品 Drawer 已打开")).toBeVisible();
   });
+
+  it("uses the catalog image URL and replaces a failed image with a Chinese placeholder", async () => {
+    getPage.mockResolvedValue({
+      products: [
+        product({
+          sku: "005",
+          images: [
+            { url: "https://res.cloudinary.com/example/image/upload/005.jpg" },
+          ],
+        }),
+      ],
+    });
+
+    const screen = await render(<SanityCatalogList />);
+
+    const image = screen.getByRole("img", { name: "005 产品图片" });
+    await expect
+      .element(image)
+      .toHaveAttribute(
+        "src",
+        "https://res.cloudinary.com/example/image/upload/005.jpg",
+      );
+    image.element().dispatchEvent(new Event("error"));
+    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+  });
+
+  it("uses the same Chinese placeholder when a product has no image URL", async () => {
+    getPage.mockResolvedValue({ products: [product({ images: undefined })] });
+
+    const screen = await render(<SanityCatalogList />);
+
+    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+  });
+
+  it("loads 50-product cursor pages forward and backward without changing the cursor chain", async () => {
+    const first = product({ id: "first", sku: "001", skuSort: "001" });
+    const second = product({ id: "second", sku: "051", skuSort: "051" });
+    getPage.mockImplementation(({ after }) =>
+      Promise.resolve(
+        after
+          ? { products: [second], nextCursor: undefined }
+          : {
+              products: [first],
+              nextCursor: { skuSort: "001", id: "first" },
+            },
+      ),
+    );
+
+    const screen = await render(<SanityCatalogList />);
+
+    await expect.element(screen.getByText("第 1 页 · 本页 1 条")).toBeVisible();
+    await screen.getByRole("button", { name: "下一页" }).click();
+    await expect.element(screen.getByText("第 2 页 · 本页 1 条")).toBeVisible();
+    await expect
+      .element(screen.getByRole("cell", { name: "051" }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByRole("button", { name: "下一页" }))
+      .toBeDisabled();
+    await screen.getByRole("button", { name: "上一页" }).click();
+    await expect
+      .element(screen.getByRole("cell", { name: "001" }))
+      .toBeVisible();
+    expect(getPage).toHaveBeenLastCalledWith({
+      search: "",
+      includeUnpublished: false,
+    });
+  });
+
+  it("resets to the first cursor page when the catalog search changes", async () => {
+    getPage.mockResolvedValue({
+      products: [product({ sku: "005", skuSort: "005" })],
+    });
+
+    const screen = await render(<SanityCatalogList />);
+
+    await screen.getByRole("textbox", { name: "搜索产品" }).fill("005");
+    await expect
+      .poll(() => getPage.mock.calls.at(-1)?.[0])
+      .toEqual({ search: "005", includeUnpublished: false });
+    await expect
+      .element(screen.getByRole("cell", { name: "005" }))
+      .toBeVisible();
+    await expect.element(screen.getByText("第 1 页 · 本页 1 条")).toBeVisible();
+  });
+
+  it("keeps the 1,801-product cursor chain reachable across all 37 UI pages", async () => {
+    const allProducts = Array.from({ length: 1801 }, (_, index) =>
+      product({
+        id: `sanity-${index}`,
+        sku: `SKU-${String(index).padStart(4, "0")}`,
+        skuSort: `SKU-${String(index).padStart(4, "0")}`,
+      }),
+    );
+    getPage.mockImplementation(({ after }) => {
+      const start = after ? Number(after.id.replace("sanity-", "")) + 1 : 0;
+      const products = allProducts.slice(start, start + 50);
+      const last = products.at(-1);
+      return Promise.resolve({
+        products,
+        nextCursor:
+          start + 50 < allProducts.length && last
+            ? { skuSort: last.skuSort, id: last.id }
+            : undefined,
+      });
+    });
+
+    const screen = await render(<SanityCatalogList />);
+
+    for (let page = 1; page < 37; page += 1) {
+      await expect
+        .element(screen.getByText(`第 ${page} 页 · 本页 50 条`))
+        .toBeVisible();
+      await screen.getByRole("button", { name: "下一页" }).click();
+    }
+    await expect
+      .element(screen.getByText("第 37 页 · 本页 1 条"))
+      .toBeVisible();
+    await expect
+      .element(screen.getByRole("cell", { name: "SKU-1800" }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByRole("button", { name: "下一页" }))
+      .toBeDisabled();
+    expect(getPage).toHaveBeenCalledTimes(37);
+    expect(
+      new Set(
+        getPage.mock.calls.map(([filter]) => filter.after?.id).filter(Boolean),
+      ).size,
+    ).toBe(36);
+  });
 });
