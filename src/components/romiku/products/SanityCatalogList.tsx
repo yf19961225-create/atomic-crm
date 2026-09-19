@@ -9,6 +9,7 @@ import {
   type ProductOverlay,
 } from "./productProcurementOverlay";
 import { createSupabaseProcurementOverlayClient } from "./supabaseProcurementOverlayClient";
+import { SanityProductDrawer } from "./SanityProductDrawer";
 
 export const SanityCatalogList = () => {
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
@@ -16,6 +17,8 @@ export const SanityCatalogList = () => {
     new Map(),
   );
   const [error, setError] = useState(false);
+  const [selectedProduct, setSelectedProduct] =
+    useState<SanityCatalogProduct | null>(null);
   useEffect(() => {
     createSanityCatalogSource()
       .getPage({ search: "", includeUnpublished: false })
@@ -36,6 +39,25 @@ export const SanityCatalogList = () => {
   }, []);
   if (error) return <p role="alert">产品目录暂时无法加载。</p>;
   if (!products.length) return <p>正在加载产品目录…</p>;
+  const refreshOverlay = async (product: SanityCatalogProduct) => {
+    try {
+      const next = await loadProductProcurementOverlay(
+        [product],
+        createSupabaseProcurementOverlayClient(),
+      );
+      setOverlay((current) => {
+        const updated = new Map(current);
+        updated.set(product.id, next.get(product.id) ?? { supplierCount: 0 });
+        return updated;
+      });
+    } catch {
+      setOverlay((current) => {
+        const updated = new Map(current);
+        updated.set(product.id, unavailableOverlay([product]).get(product.id)!);
+        return updated;
+      });
+    }
+  };
   const procurement = (
     product: SanityCatalogProduct,
     value: string | number | undefined,
@@ -65,7 +87,11 @@ export const SanityCatalogList = () => {
           {products.map((product) => {
             const procurementOverlay = overlay.get(product.id);
             return (
-              <tr key={product.id}>
+              <tr
+                key={product.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedProduct(product)}
+              >
                 <td>
                   {product.images?.[0]?.url ? (
                     <img
@@ -132,6 +158,14 @@ export const SanityCatalogList = () => {
           })}
         </tbody>
       </table>
+      <SanityProductDrawer
+        product={selectedProduct}
+        open={selectedProduct !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProduct(null);
+        }}
+        refreshOverlay={refreshOverlay}
+      />
     </div>
   );
 };

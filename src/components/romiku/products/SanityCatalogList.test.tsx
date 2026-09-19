@@ -6,6 +6,11 @@ import type { SanityCatalogProduct } from "./sanityCatalogSource";
 const getPage = vi.hoisted(() => vi.fn());
 const loadOverlay = vi.hoisted(() => vi.fn());
 
+vi.mock("./SanityProductDrawer", () => ({
+  SanityProductDrawer: ({ open }: { open: boolean }) =>
+    open ? <p>产品 Drawer 已打开</p> : null,
+}));
+
 vi.mock("./sanityCatalogSource", () => ({
   createSanityCatalogSource: () => ({ getPage }),
 }));
@@ -169,5 +174,14 @@ describe("SanityCatalogList", () => {
     await expect
       .element(screen.getByText("暂时无法加载").first())
       .toBeVisible();
+  });
+
+  it("opens the product drawer when a catalog row is clicked", async () => {
+    getPage.mockResolvedValue({ products: [product()] });
+
+    const screen = await render(<SanityCatalogList />);
+
+    await screen.getByRole("cell", { name: "RMK-100" }).click();
+    await expect.element(screen.getByText("产品 Drawer 已打开")).toBeVisible();
   });
 });
