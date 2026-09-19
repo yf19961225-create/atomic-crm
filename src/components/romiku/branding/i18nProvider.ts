@@ -158,9 +158,32 @@ const chineseMessages = {
     },
   },
   resources: {
-    companies: { name: "公司", forcedCaseName: "公司" },
-    contacts: { name: "联系人", forcedCaseName: "联系人" },
-    deals: { name: "商机" },
+    companies: {
+      name: "公司",
+      forcedCaseName: "公司",
+      field_categories: {
+        contact: "公司信息",
+        context: "业务信息",
+        address: "地址",
+        additional_info: "补充信息",
+      },
+    },
+    contacts: {
+      name: "联系人",
+      forcedCaseName: "联系人",
+      field_categories: {
+        identity: "身份信息",
+        position: "职位信息",
+        personal_info: "个人信息",
+        background_info: "背景信息",
+        misc: "其他信息",
+      },
+    },
+    deals: {
+      name: "商机",
+      empty: { title: "暂无商机", description: "当前商机列表为空。" },
+      archived: { title: "已归档商机", list_title: "已归档商机" },
+    },
     notes: { name: "备注", forcedCaseName: "备注" },
     sales: { name: "用户" },
     tasks: { name: "任务", forcedCaseName: "任务" },

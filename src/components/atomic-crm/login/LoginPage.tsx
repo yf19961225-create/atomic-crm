@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/admin/text-input";
 import { Notification } from "@/components/admin/notification";
+import { authErrorMessage } from "@/components/romiku/branding/authError";
 import { useConfigurationContext } from "@/components/atomic-crm/root/ConfigurationContext.tsx";
 import { SSOAuthButton } from "./SSOAuthButton";
 import {
@@ -67,24 +68,9 @@ export const LoginPage = (props: { redirectTo?: string }) => {
       })
       .catch((error) => {
         setLoading(false);
-        notify(
-          typeof error === "string"
-            ? error
-            : typeof error === "undefined" || !error.message
-              ? "ra.auth.sign_in_error"
-              : error.message,
-          {
-            type: "error",
-            messageArgs: {
-              _:
-                typeof error === "string"
-                  ? error
-                  : error && error.message
-                    ? error.message
-                    : undefined,
-            },
-          },
-        );
+        notify(authErrorMessage(error, "登录失败，请重试。"), {
+          type: "error",
+        });
       });
   };
 

@@ -4,6 +4,7 @@ import { useSetPassword, useSupabaseAccessToken } from "ra-supabase-core";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/admin/text-input";
 import { Layout } from "@/components/supabase/layout";
+import { authErrorMessage } from "@/components/romiku/branding/authError";
 
 interface SetPasswordFormData {
   password: string;
@@ -52,24 +53,9 @@ export const SetPasswordPage = () => {
         password: values.password,
       });
     } catch (error: any) {
-      notify(
-        typeof error === "string"
-          ? error
-          : typeof error === "undefined" || !error.message
-            ? "ra.auth.sign_in_error"
-            : error.message,
-        {
-          type: "warning",
-          messageArgs: {
-            _:
-              typeof error === "string"
-                ? error
-                : error && error.message
-                  ? error.message
-                  : undefined,
-          },
-        },
-      );
+      notify(authErrorMessage(error, "无法重置密码，请稍后再试。"), {
+        type: "warning",
+      });
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import { Layout } from "@/components/supabase/layout";
 import type { FieldValues, SubmitHandler } from "react-hook-form";
 import { TextInput } from "@/components/admin/text-input";
 import { Button } from "@/components/ui/button";
+import { authErrorMessage } from "@/components/romiku/branding/authError";
 
 interface FormData {
   email: string;
@@ -30,24 +31,9 @@ export const ForgotPasswordPage = () => {
         email: values.email,
       });
     } catch (error: any) {
-      notify(
-        typeof error === "string"
-          ? error
-          : typeof error === "undefined" || !error.message
-            ? "ra.auth.sign_in_error"
-            : error.message,
-        {
-          type: "warning",
-          messageArgs: {
-            _:
-              typeof error === "string"
-                ? error
-                : error && error.message
-                  ? error.message
-                  : undefined,
-          },
-        },
-      );
+      notify(authErrorMessage(error, "无法发送重置密码邮件，请稍后再试。"), {
+        type: "warning",
+      });
     } finally {
       setLoading(false);
     }

@@ -15,6 +15,7 @@ import { Notification } from "@/components/admin/notification";
 import { ConfirmationRequired } from "./ConfirmationRequired";
 import { SSOAuthButton } from "./SSOAuthButton";
 import { googleWorkplaceDomain } from "./authConfig";
+import { authErrorMessage } from "@/components/romiku/branding/authError";
 
 export const SignupPage = () => {
   const queryClient = useQueryClient();
@@ -67,7 +68,9 @@ export const SignupPage = () => {
         });
     },
     onError: (error) => {
-      notify(error.message);
+      notify(authErrorMessage(error, "注册失败，请稍后再试。"), {
+        type: "error",
+      });
     },
   });
 
