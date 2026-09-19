@@ -5,6 +5,7 @@ import type { SanityCatalogProduct } from "./sanityCatalogSource";
 
 const getPage = vi.hoisted(() => vi.fn());
 const loadOverlay = vi.hoisted(() => vi.fn());
+const loadWebsiteImages = vi.hoisted(() => vi.fn());
 
 vi.mock("./SanityProductDrawer", () => ({
   SanityProductDrawer: ({ open }: { open: boolean }) =>
@@ -24,6 +25,10 @@ vi.mock("./productProcurementOverlay", () => ({
         { supplierCount: 0, unavailable: true },
       ]),
     ),
+}));
+
+vi.mock("./websiteProductImages", () => ({
+  loadWebsiteProductImages: loadWebsiteImages,
 }));
 
 const product = (
@@ -46,6 +51,7 @@ describe("SanityCatalogList", () => {
   beforeEach(() => {
     getPage.mockReset();
     loadOverlay.mockReset().mockResolvedValue(new Map());
+    loadWebsiteImages.mockReset().mockResolvedValue(new Map());
   });
 
   it("renders the published Sanity product fields returned for the catalog page", async () => {
@@ -74,6 +80,11 @@ describe("SanityCatalogList", () => {
   });
 
   it("keeps the catalog readable when optional Sanity fields are missing", async () => {
+    loadWebsiteImages.mockResolvedValue(
+      new Map([
+        ["sanity-1", "https://romiku.com/images/products-local/005_main1.jpg"],
+      ]),
+    );
     getPage.mockResolvedValue({
       products: [
         product({
@@ -186,6 +197,11 @@ describe("SanityCatalogList", () => {
   });
 
   it("uses the catalog image URL and replaces a failed image with a Chinese placeholder", async () => {
+    loadWebsiteImages.mockResolvedValue(
+      new Map([
+        ["sanity-1", "https://romiku.com/images/products-local/005_main1.jpg"],
+      ]),
+    );
     getPage.mockResolvedValue({
       products: [
         product({
@@ -204,7 +220,7 @@ describe("SanityCatalogList", () => {
       .element(image)
       .toHaveAttribute(
         "src",
-        "https://res.cloudinary.com/example/image/upload/005.jpg",
+        "https://romiku.com/images/products-local/005_main1.jpg",
       );
     image.element().dispatchEvent(new Event("error"));
     await expect.element(screen.getByText("暂无产品图片")).toBeVisible();

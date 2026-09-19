@@ -10,6 +10,7 @@ import {
 } from "./productProcurementOverlay";
 import { createSupabaseProcurementOverlayClient } from "./supabaseProcurementOverlayClient";
 import { SanityProductDrawer } from "./SanityProductDrawer";
+import { loadWebsiteProductImages } from "./websiteProductImages";
 
 export const SanityCatalogList = () => {
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
@@ -27,6 +28,9 @@ export const SanityCatalogList = () => {
     { skuSort: string; id: string } | undefined
   >();
   const [failedImageIds, setFailedImageIds] = useState<Set<string>>(new Set());
+  const [websiteImageUrls, setWebsiteImageUrls] = useState<Map<string, string>>(
+    new Map(),
+  );
   const [selectedProduct, setSelectedProduct] =
     useState<SanityCatalogProduct | null>(null);
   const cursor = pageCursors[pageIndex];
@@ -44,6 +48,13 @@ export const SanityCatalogList = () => {
         if (cancelled) return;
         setProducts(page.products);
         setNextCursor(page.nextCursor);
+        loadWebsiteProductImages(page.products)
+          .then((images) => {
+            if (!cancelled) setWebsiteImageUrls(images);
+          })
+          .catch(() => {
+            if (!cancelled) setWebsiteImageUrls(new Map());
+          });
         try {
           const nextOverlay = await loadProductProcurementOverlay(
             page.products,
@@ -154,6 +165,7 @@ export const SanityCatalogList = () => {
           <tbody>
             {products.map((product) => {
               const procurementOverlay = overlay.get(product.id);
+              const websiteImageUrl = websiteImageUrls.get(product.id);
               return (
                 <tr
                   key={product.id}
@@ -161,10 +173,9 @@ export const SanityCatalogList = () => {
                   onClick={() => setSelectedProduct(product)}
                 >
                   <td>
-                    {product.images?.[0]?.url &&
-                    !failedImageIds.has(product.id) ? (
+                    {websiteImageUrl && !failedImageIds.has(product.id) ? (
                       <img
-                        src={product.images[0].url}
+                        src={websiteImageUrl}
                         alt={`${product.sku ?? "未命名"} 产品图片`}
                         className="h-10 w-10 object-cover"
                         onError={() =>
