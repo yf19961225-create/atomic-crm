@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useDataProvider, useGetIdentity, type DataProvider } from "ra-core";
 
-import { useConfigurationContext } from "../root/ConfigurationContext";
+import { useRawConfigurationContext } from "../root/ConfigurationContext";
 import { useCompanyResolver } from "./useCompanyResolver";
 import { createEachRow } from "./createEachRow";
 import { toConfiguredValue, toInteger, toIsoDate, toText } from "./parseCell";
@@ -20,7 +20,7 @@ type DealRow = {
  * holds a company name: matching companies are reused, unknown ones are created.
  */
 export function useDealImport(): ProcessImportBatch {
-  const { dealCategories, dealStages } = useConfigurationContext();
+  const { dealCategories, dealStages } = useRawConfigurationContext();
   const { identity } = useGetIdentity();
   const dataProvider = useDataProvider();
   const getCompanies = useCompanyResolver();

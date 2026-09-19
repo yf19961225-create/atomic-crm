@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useDataProvider, useGetIdentity } from "ra-core";
 
 import { mapSizeToCategory } from "../companies/sizes";
-import { useConfigurationContext } from "../root/ConfigurationContext";
+import { useRawConfigurationContext } from "../root/ConfigurationContext";
 import { createEachRow } from "./createEachRow";
 import { toConfiguredValue, toNumber, toText } from "./parseCell";
 import type { ImportCell, ProcessImportBatch } from "./types";
@@ -12,7 +12,7 @@ import type { ImportCell, ProcessImportBatch } from "./types";
  * left empty — except `name`, which the database requires.
  */
 export function useCompanyImport(): ProcessImportBatch {
-  const { companySectors } = useConfigurationContext();
+  const { companySectors } = useRawConfigurationContext();
   const { identity } = useGetIdentity();
   const dataProvider = useDataProvider();
 

@@ -19,7 +19,39 @@ export interface ConfigurationContextValue {
   lightModeLogo: string;
 }
 
-export const useConfigurationContext = () => {
+const chineseLabels: Record<string, string> = {
+  opportunity: "商机",
+  "proposal-sent": "已发送方案",
+  "in-negociation": "谈判中",
+  won: "已成交",
+  lost: "已失单",
+  delayed: "已延期",
+  other: "其他",
+  copywriting: "文案服务",
+  "print-project": "印刷项目",
+  "ui-design": "界面设计",
+  "website-design": "网站设计",
+  cold: "冷",
+  warm: "温",
+  hot: "热",
+  "in-contract": "合同中",
+  none: "无",
+  email: "电子邮件",
+  demo: "演示",
+  lunch: "午餐",
+  meeting: "会议",
+  "follow-up": "跟进",
+  "thank-you": "致谢",
+  ship: "发运",
+  call: "电话",
+};
+const display = <T extends { value: string; label: string }>(items: T[]) =>
+  items.map((item) => ({
+    ...item,
+    label: chineseLabels[item.value] ?? item.label,
+  }));
+
+export const useRawConfigurationContext = () => {
   const [config] = useStore<ConfigurationContextValue>(
     CONFIGURATION_STORE_KEY,
     defaultConfiguration,
@@ -27,6 +59,21 @@ export const useConfigurationContext = () => {
   // Merge with defaults so that missing fields in stored config
   // fall back to default values (e.g. when new settings are added)
   return useMemo(() => ({ ...defaultConfiguration, ...config }), [config]);
+};
+
+export const useConfigurationContext = () => {
+  const config = useRawConfigurationContext();
+  return useMemo(
+    () => ({
+      ...config,
+      companySectors: display(config.companySectors),
+      dealCategories: display(config.dealCategories),
+      dealStages: display(config.dealStages),
+      noteStatuses: display(config.noteStatuses),
+      taskTypes: display(config.taskTypes),
+    }),
+    [config],
+  );
 };
 
 export const useConfigurationUpdater = () => {
