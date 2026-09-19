@@ -20,6 +20,17 @@ export interface ConfigurationContextValue {
 }
 
 const chineseLabels: Record<string, string> = {
+  "communication-services": "通信服务",
+  "consumer-discretionary": "可选消费",
+  "consumer-staples": "日常消费",
+  energy: "能源",
+  financials: "金融",
+  "health-care": "医疗保健",
+  industrials: "工业",
+  "information-technology": "信息技术",
+  materials: "原材料",
+  "real-estate": "房地产",
+  utilities: "公用事业",
   opportunity: "商机",
   "proposal-sent": "已发送方案",
   "in-negociation": "谈判中",

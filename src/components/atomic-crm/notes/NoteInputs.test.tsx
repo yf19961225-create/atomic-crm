@@ -53,7 +53,7 @@ describe("NoteInputs", () => {
 
     await screen.getByRole("button", { name: "Show options" }).click();
 
-    await expect.element(screen.getByRole("combobox")).toHaveTextContent("Hot");
+    await expect.element(screen.getByRole("combobox")).toHaveTextContent("热");
   });
 
   it("does not render the status selector when showStatus is false", async () => {
