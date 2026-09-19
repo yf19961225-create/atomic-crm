@@ -1,13 +1,13 @@
-import {
-  buildCatalogQuery,
-  catalogPageSize,
-  type CatalogFilter,
-} from "../src/components/romiku/products/sanityCatalogSource";
-
 const maxSearchLength = 200;
 const maxCursorLength = 500;
+const catalogPageSize = 50;
 const sanityCatalogEndpoint =
   "https://gxuvcyaa.api.sanity.io/v2025-07-05/data/query/production";
+type CatalogFilter = {
+  search: string;
+  includeUnpublished: boolean;
+  after?: { skuSort: string; id: string };
+};
 
 const reject = (status: number, error: string, headers?: HeadersInit) =>
   Response.json(
@@ -18,6 +18,20 @@ const reject = (status: number, error: string, headers?: HeadersInit) =>
 const one = (params: URLSearchParams, key: string) => {
   const values = params.getAll(key);
   return values.length > 1 ? null : (values[0] ?? "");
+};
+
+const buildCatalogQuery = (filter: CatalogFilter) => {
+  const after = filter.after
+    ? ' && (coalesce(sku, "") > $afterSku || (coalesce(sku, "") == $afterSku && _id > $afterId))'
+    : "";
+  const published = filter.includeUnpublished ? "" : " && isPublished == true";
+  return {
+    query: `*[_type == "product" && !(_id in path("drafts.**"))${published}${after} && (sku match $search || name.zh match $search || name.en match $search || name.es match $search || category->title.zh match $search || category->title.en match $search || category->title.es match $search)] | order(coalesce(sku, "") asc, _id asc)[0...$limit]{_id,sku,name,images[]{url},category->{_id,title},parameters[]{label,value},moqQuantity,moqUnit,packaging,cartonQty,isPublished}`,
+    search: `*${filter.search}*`,
+    afterSku: filter.after?.skuSort ?? "",
+    afterId: filter.after?.id ?? "",
+    limit: catalogPageSize + 1,
+  };
 };
 
 const parseFilter = (url: URL): CatalogFilter | null => {
@@ -62,9 +76,9 @@ export default {
     const catalog = buildCatalogQuery(filter);
     const params = new URLSearchParams({
       query: catalog.query,
-      $search: JSON.stringify(catalog.params.search),
-      $afterSku: JSON.stringify(catalog.params.afterSku),
-      $afterId: JSON.stringify(catalog.params.afterId),
+      $search: JSON.stringify(catalog.search),
+      $afterSku: JSON.stringify(catalog.afterSku),
+      $afterId: JSON.stringify(catalog.afterId),
       $limit: String(catalog.limit),
     });
     try {
