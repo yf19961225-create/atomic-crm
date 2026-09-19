@@ -24,6 +24,7 @@ import ImageEditorField from "../misc/ImageEditorField";
 import {
   useConfigurationContext,
   useConfigurationUpdater,
+  restoreLegacyConfigurationLabels,
   type ConfigurationContextValue,
 } from "../root/ConfigurationContext";
 import { defaultConfiguration } from "../root/defaultConfiguration";
@@ -117,7 +118,7 @@ const getCurrencyChoices = () => {
 };
 
 const transformFormValues = (data: Record<string, any>) => ({
-  config: {
+  config: restoreLegacyConfigurationLabels({
     title: data.title,
     lightModeLogo: data.lightModeLogo,
     darkModeLogo: data.darkModeLogo,
@@ -128,7 +129,7 @@ const transformFormValues = (data: Record<string, any>) => ({
     dealStages: ensureValues(data.dealStages),
     dealPipelineStatuses: data.dealPipelineStatuses,
     noteStatuses: ensureValues(data.noteStatuses),
-  } as ConfigurationContextValue,
+  } as ConfigurationContextValue),
 });
 
 export const SettingsPage = () => {

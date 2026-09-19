@@ -56,11 +56,49 @@ const chineseLabels: Record<string, string> = {
   ship: "发运",
   call: "电话",
 };
+
+const legacyLabels = Object.fromEntries(
+  [
+    ...defaultConfiguration.companySectors,
+    ...defaultConfiguration.dealCategories,
+    ...defaultConfiguration.dealStages,
+    ...defaultConfiguration.noteStatuses,
+    ...defaultConfiguration.taskTypes,
+  ].map(({ value, label }) => [value, label]),
+);
+
 const display = <T extends { value: string; label: string }>(items: T[]) =>
   items.map((item) => ({
     ...item,
-    label: chineseLabels[item.value] ?? item.label,
+    label:
+      item.label === legacyLabels[item.value]
+        ? (chineseLabels[item.value] ?? item.label)
+        : item.label,
   }));
+
+const raw = <T extends { value: string; label: string }>(items: T[]) =>
+  items.map((item) => ({
+    ...item,
+    label:
+      item.label === chineseLabels[item.value]
+        ? (legacyLabels[item.value] ?? item.label)
+        : item.label,
+  }));
+
+/**
+ * Converts only the built-in Chinese display labels back to their historical
+ * labels before configuration is stored. Custom labels are left untouched.
+ */
+export const restoreLegacyConfigurationLabels = (
+  config: ConfigurationContextValue,
+): ConfigurationContextValue => ({
+  ...config,
+  companySectors: raw(config.companySectors),
+  dealCategories: raw(config.dealCategories),
+  dealStages: raw(config.dealStages),
+  noteStatuses: raw(config.noteStatuses),
+  taskTypes: raw(config.taskTypes),
+});
 
 export const useRawConfigurationContext = () => {
   const [config] = useStore<ConfigurationContextValue>(

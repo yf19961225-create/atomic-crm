@@ -12,7 +12,7 @@ import type { CrmDataProvider } from "../providers/types";
 import type { RAFile, Tag } from "../types";
 import { colors } from "../tags/colors";
 import { mapSizeToCategory } from "../companies/sizes";
-import { useConfigurationContext } from "../root/ConfigurationContext";
+import { useRawConfigurationContext } from "../root/ConfigurationContext";
 import { contactGender } from "../contacts/contactModel";
 
 export type ImportFromJsonStats = {
@@ -98,7 +98,7 @@ export const useImportFromJson = (): [
   const { data: currentSale } = useGetIdentity();
   const dataProvider = useDataProvider<CrmDataProvider>();
   const refresh = useRefresh();
-  const { companySectors } = useConfigurationContext();
+  const { companySectors } = useRawConfigurationContext();
   const [state, setState] = useState<ImportFromJsonState>({
     status: "idle",
     error: null,
