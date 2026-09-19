@@ -24,6 +24,7 @@ import ImageEditorField from "../misc/ImageEditorField";
 import {
   useConfigurationContext,
   useConfigurationUpdater,
+  displayConfigurationLabels,
   restoreLegacyConfigurationLabels,
   type ConfigurationContextValue,
 } from "../root/ConfigurationContext";
@@ -475,7 +476,7 @@ const SettingsFormFields = () => {
               variant="ghost"
               onClick={() =>
                 reset({
-                  ...defaultConfiguration,
+                  ...displayConfigurationLabels(defaultConfiguration),
                   lightModeLogo: {
                     src: defaultConfiguration.lightModeLogo,
                   },

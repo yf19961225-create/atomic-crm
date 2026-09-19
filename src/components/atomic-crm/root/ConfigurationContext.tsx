@@ -100,6 +100,18 @@ export const restoreLegacyConfigurationLabels = (
   taskTypes: raw(config.taskTypes),
 });
 
+/** Converts built-in historical labels to their Chinese UI display labels. */
+export const displayConfigurationLabels = (
+  config: ConfigurationContextValue,
+): ConfigurationContextValue => ({
+  ...config,
+  companySectors: display(config.companySectors),
+  dealCategories: display(config.dealCategories),
+  dealStages: display(config.dealStages),
+  noteStatuses: display(config.noteStatuses),
+  taskTypes: display(config.taskTypes),
+});
+
 export const useRawConfigurationContext = () => {
   const [config] = useStore<ConfigurationContextValue>(
     CONFIGURATION_STORE_KEY,
@@ -112,17 +124,7 @@ export const useRawConfigurationContext = () => {
 
 export const useConfigurationContext = () => {
   const config = useRawConfigurationContext();
-  return useMemo(
-    () => ({
-      ...config,
-      companySectors: display(config.companySectors),
-      dealCategories: display(config.dealCategories),
-      dealStages: display(config.dealStages),
-      noteStatuses: display(config.noteStatuses),
-      taskTypes: display(config.taskTypes),
-    }),
-    [config],
-  );
+  return useMemo(() => displayConfigurationLabels(config), [config]);
 };
 
 export const useConfigurationUpdater = () => {

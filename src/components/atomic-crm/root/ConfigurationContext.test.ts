@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { defaultConfiguration } from "./defaultConfiguration";
-import { restoreLegacyConfigurationLabels } from "./ConfigurationContext";
+import {
+  displayConfigurationLabels,
+  restoreLegacyConfigurationLabels,
+} from "./ConfigurationContext";
 
 describe("restoreLegacyConfigurationLabels", () => {
   it("restores historical labels after the settings form displays defaults in Chinese", () => {
@@ -28,5 +31,15 @@ describe("restoreLegacyConfigurationLabels", () => {
     });
 
     expect(config.dealStages[0].label).toBe("首次商机");
+  });
+
+  it("uses Chinese display labels when settings restores defaults", () => {
+    const config = displayConfigurationLabels(defaultConfiguration);
+
+    expect(config.companySectors[0].label).toBe("通信服务");
+    expect(config.dealCategories[0].label).toBe("其他");
+    expect(config.dealStages[0].label).toBe("商机");
+    expect(config.noteStatuses[0].label).toBe("冷");
+    expect(config.taskTypes[0].label).toBe("无");
   });
 });
