@@ -21,8 +21,8 @@ describe("Sanity catalog source", () => {
       { _id: "b", sku: "A/01 & B", name: { zh: "甲" }, isPublished: true },
       { _id: "c", sku: "A/01 & B", name: { zh: "乙" }, isPublished: true },
     ];
-    expect(mapCatalogPage(records, 2)).toEqual({
-      products: expect.arrayContaining([{ id: "a" }, { id: "b" }]),
+    expect(mapCatalogPage(records, 2)).toMatchObject({
+      products: [{ id: "a" }, { id: "b" }],
       nextCursor: { skuSort: "A/01 & B", id: "b" },
     });
   });
