@@ -15,6 +15,7 @@ type WebsiteProduct = {
   sku?: string;
   image?: string;
   images?: unknown;
+  localizedPowerSupply?: Record<string, string>;
 };
 type WebsiteIndex = {
   chunks?: Record<string, string>;
@@ -127,6 +128,7 @@ export default {
         chunks.set(chunk, [...(chunks.get(chunk) ?? []), sku]);
       }
       const images: Record<string, string> = {};
+      const powerSupplies: Record<string, Record<string, string>> = {};
       await Promise.all(
         [...chunks].map(async ([chunk, chunkSkus]) => {
           const products = jsonObjectAfter(
@@ -144,10 +146,12 @@ export default {
               );
             const url = imageUrl(product ?? {});
             if (url) images[sku] = url;
+            if (product?.localizedPowerSupply)
+              powerSupplies[sku] = product.localizedPowerSupply;
           }
         }),
       );
-      return Response.json({ images });
+      return Response.json({ images, powerSupplies });
     } catch {
       return reject(502, "website_images_unavailable");
     }

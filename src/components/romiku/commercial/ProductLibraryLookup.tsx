@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Ref } from "react";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
-import { loadWebsiteProductImages } from "../products/websiteProductImages";
+import { loadWebsiteProductDetails } from "../products/websiteProductImages";
 
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
 export type DocumentLanguage = "zh" | "en" | "es";
@@ -10,6 +10,11 @@ const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
   zh: ["zh", "en"],
   en: ["en", "zh"],
   es: ["es", "en", "zh"],
+};
+const powerSupplyLabels: Record<DocumentLanguage, string> = {
+  zh: "供电方式",
+  en: "Power Supply",
+  es: "Fuente de alimentación",
 };
 
 function localizedText(value: unknown, language: DocumentLanguage) {
@@ -24,6 +29,15 @@ function localizedText(value: unknown, language: DocumentLanguage) {
   }
   return "";
 }
+
+const isSpecificationsParameter = (parameter: {
+  label?: Record<string, string>;
+}) =>
+  Object.values(parameter.label ?? {}).some((label) =>
+    ["参数", "specifications", "especificaciones"].includes(
+      label.trim().toLowerCase(),
+    ),
+  );
 
 export function shouldImportProductSpecifications(
   kind: "quote" | "pi" | "order",
@@ -49,15 +63,29 @@ export function createItemSnapshot(
   options: {
     includeSpecification?: boolean;
     documentLanguage?: DocumentLanguage;
+    localizedPowerSupply?: Record<string, string>;
   } = {},
 ) {
   const language = options.documentLanguage ?? "zh";
-  const specification = (product.parameters ?? [])
-    .map((parameter) => {
-      const label = localizedText(parameter.label, language);
-      const value = localizedText(parameter.value, language);
-      return label && value ? `${label}: ${value}` : "";
-    })
+  const separator = language === "zh" ? "：" : ": ";
+  const specifications = (product.parameters ?? []).find(
+    isSpecificationsParameter,
+  );
+  const specification = [
+    specifications &&
+    localizedText(specifications.label, language) &&
+    localizedText(specifications.value, language)
+      ? `${localizedText(specifications.label, language)}${separator}${localizedText(specifications.value, language)}`
+      : "",
+    (() => {
+      const powerSupply =
+        localizedText(product.powerSupply, language) ||
+        localizedText(options.localizedPowerSupply, language);
+      return powerSupply
+        ? `${powerSupplyLabels[language]}${separator}${powerSupply}`
+        : "";
+    })(),
+  ]
     .filter(Boolean)
     .join("\n");
   return {
@@ -100,6 +128,9 @@ export function ProductLibraryLookup({
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [images, setImages] = useState<Map<string, string>>(new Map());
+  const [localizedPowerSupplies, setLocalizedPowerSupplies] = useState<
+    Map<string, Record<string, string>>
+  >(new Map());
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -113,12 +144,16 @@ export function ProductLibraryLookup({
     createSanityCatalogSource()
       .getPage({ search: query, includeUnpublished: false })
       .then(async (page) => {
-        const urls = await loadWebsiteProductImages(page.products).catch(
-          () => new Map<string, string>(),
+        const details = await loadWebsiteProductDetails(page.products).catch(
+          () => ({
+            images: new Map<string, string>(),
+            localizedPowerSupplies: new Map<string, Record<string, string>>(),
+          }),
         );
         if (!cancelled) {
           setProducts(page.products);
-          setImages(urls);
+          setImages(details.images);
+          setLocalizedPowerSupplies(details.localizedPowerSupplies);
           setActiveIndex(page.products.length ? 0 : -1);
         }
       })
@@ -137,13 +172,17 @@ export function ProductLibraryLookup({
       optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
   const select = (product: SanityCatalogProduct) => {
+    const importMachineSpecifications =
+      specificationMode === "machines-only" &&
+      shouldImportProductSpecifications("quote", product);
     onSelected(
       createItemSnapshot(product, images.get(product.id), {
         documentLanguage,
+        localizedPowerSupply: importMachineSpecifications
+          ? localizedPowerSupplies.get(product.id)
+          : undefined,
         includeSpecification:
-          specificationMode === "all" ||
-          (specificationMode === "machines-only" &&
-            shouldImportProductSpecifications("quote", product)),
+          specificationMode === "all" || importMachineSpecifications,
       }),
     );
     setSearch(product.sku ?? "");

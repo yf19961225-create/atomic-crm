@@ -13,6 +13,7 @@ export type SanityCatalogRecord = {
   moqUnit?: Record<string, string>;
   packaging?: Record<string, string>;
   cartonQty?: number | string;
+  powerSupply?: Record<string, string> | null;
   isPublished?: boolean;
 };
 export type SanityCatalogProduct = Omit<SanityCatalogRecord, "_id"> & {
