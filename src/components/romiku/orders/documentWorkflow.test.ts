@@ -140,6 +140,8 @@ it("validates receipts and excludes currency/order reassignment from payment upd
       amount: "12.30",
       received_at: "2026-09-17T10:00:00Z",
       notes: "Wire",
+      payment_account: "HSBC USD",
+      payment_reference: "TT-001",
       order_id: "wrong",
       currency: "EUR",
     }),
@@ -148,6 +150,8 @@ it("validates receipts and excludes currency/order reassignment from payment upd
     amount: 12.3,
     received_at: "2026-09-17T10:00:00.000Z",
     notes: "Wire",
+    payment_account: "HSBC USD",
+    payment_reference: "TT-001",
   });
   for (const amount of [0, -1, "NaN", "1.001"])
     expect(() =>

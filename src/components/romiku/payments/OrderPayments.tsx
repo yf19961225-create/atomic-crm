@@ -78,7 +78,15 @@ export function OrderPayments({
         <table className="w-full text-left text-sm">
           <thead>
             <tr>
-              {["类型", "收款金额", "收款日期", "备注", "操作"].map((label) => (
+              {[
+                "类型",
+                "收款金额",
+                "收款日期",
+                "收款账户",
+                "收款单号",
+                "备注",
+                "操作",
+              ].map((label) => (
                 <th className="p-2" key={label}>
                   {label}
                 </th>
@@ -95,6 +103,8 @@ export function OrderPayments({
                 <td className="p-2">
                   {new Date(payment.received_at).toLocaleString()}
                 </td>
+                <td className="p-2">{payment.payment_account || "—"}</td>
+                <td className="p-2">{payment.payment_reference || "—"}</td>
                 <td className="p-2">{payment.notes}</td>
                 <td className="p-2">
                   <Button variant="outline" onClick={() => setEditing(payment)}>
@@ -142,6 +152,8 @@ function PaymentForm({
       amount: "",
       received_at: new Date().toISOString(),
       notes: "",
+      payment_account: "",
+      payment_reference: "",
     },
   );
   const [busy, setBusy] = useState(false),
@@ -190,6 +202,8 @@ function PaymentForm({
               required: true,
             },
             { key: "notes", label: "收款备注", type: "textarea" },
+            { key: "payment_account", label: "收款账户" },
+            { key: "payment_reference", label: "收款单号" },
           ]}
           values={values}
           onChange={setValues}

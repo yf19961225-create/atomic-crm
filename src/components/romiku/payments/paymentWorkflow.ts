@@ -54,5 +54,7 @@ export function paymentWrite(values: Values) {
     amount,
     received_at: date.toISOString(),
     notes: values.notes ?? "",
+    payment_account: String(values.payment_account ?? "").trim() || null,
+    payment_reference: String(values.payment_reference ?? "").trim() || null,
   };
 }

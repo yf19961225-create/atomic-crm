@@ -9,9 +9,9 @@ import {
   type Field,
   type Values,
 } from "../outbound/WorkflowFields";
-import { readRelated } from "../outbound/workflow";
 import { errorMessage } from "../outbound/RelatedRecords";
-import { QuoteItems } from "../quotes/QuoteItems";
+import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
+import { readCommercialItems } from "../commercial/commercialLineItems";
 import { quoteTotals } from "../quotes/quoteWorkflow";
 import { OrderPayments } from "../payments/OrderPayments";
 import { DocumentConversion } from "./DocumentConversion";
@@ -347,8 +347,7 @@ function DocumentEditor({
     [failed, setFailed] = useState(false);
   const items = useQuery({
     queryKey: [`${kind}-items`, record.id],
-    queryFn: () =>
-      readRelated(provider, config.items, { [config.foreignKey]: record.id }),
+    queryFn: () => readCommercialItems(provider, kind, String(record.id)),
   });
   const totals = quoteTotals(items.data || [], record);
   async function save(event: React.FormEvent) {
@@ -478,14 +477,14 @@ function DocumentEditor({
               {tab.name}
             </TabsTrigger>
           ))}
-          {kind === "order" && <TabsTrigger value="payments">收款</TabsTrigger>}
         </TabsList>
         <TabsContent value="items">
           {items.data && (
-            <QuoteItems
+            <CommercialLineItemsTable
               kind={kind}
-              quoteId={String(record.id)}
+              documentId={String(record.id)}
               items={items.data}
+              currency={String(record.currency)}
               onChanged={items.refetch}
             />
           )}
@@ -504,12 +503,11 @@ function DocumentEditor({
             </form>
           </TabsContent>
         ))}
-        {kind === "order" && (
-          <TabsContent value="payments">
-            {items.data && (
-              <OrderPayments order={record} total={totals.total} />
-            )}
-          </TabsContent>
+        {kind === "order" && items.data && (
+          <section className="space-y-3 pt-4">
+            <h2 className="text-xl font-semibold">订单收款</h2>
+            <OrderPayments order={record} total={totals.total} />
+          </section>
         )}
       </Tabs>
       {message && <p role={failed ? "alert" : "status"}>{message}</p>}

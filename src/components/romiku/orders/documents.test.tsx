@@ -130,11 +130,11 @@ it.each([
   await screen
     .getByRole("button", { name: `创建${label}`, exact: true })
     .click();
-  await screen.getByRole("button", { name: "添加产品项" }).click();
-  await screen.getByLabelText("SKU", { exact: true }).fill("MANUAL");
-  await screen.getByLabelText("数量", { exact: true }).fill("10");
-  await screen.getByLabelText("单价", { exact: true }).fill("3.50");
-  await screen.getByRole("button", { name: "保存产品项", exact: true }).click();
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  const numbers = screen.getByRole("spinbutton");
+  await numbers.nth(2).fill("10");
+  await numbers.nth(3).fill("3.50");
+  await screen.getByText("汇总", { exact: true }).click();
   await expect
     .element(screen.getByText("合计：USD 35.00", { exact: true }))
     .toBeVisible();
@@ -160,13 +160,12 @@ it.each([
         { id: path === "pi" ? "qi" : "pii" },
       )
     ).data;
-    await screen.getByLabelText("数量", { exact: true }).fill("200");
+    await screen.getByRole("spinbutton").nth(2).fill("200");
+    await screen.getByRole("button", { name: "详情", exact: true }).click();
     await screen
       .getByLabelText("规格", { exact: true })
       .fill("Own specification");
-    await screen
-      .getByRole("button", { name: "保存产品项", exact: true })
-      .click();
+    await screen.getByRole("button", { name: "关闭", exact: true }).click();
     await expect
       .poll(
         async () =>
@@ -203,7 +202,6 @@ it.each([
 it("records and corrects deposit/balance receipts without changing source documents", async () => {
   const { screen, provider } = await setup("/orders/o");
   const original = (await provider.getOne("romiku_pis", { id: "p" })).data;
-  await screen.getByRole("tab", { name: "收款", exact: true }).click();
   await expect
     .element(screen.getByText("应收定金: USD 300.00", { exact: true }))
     .toBeVisible();
