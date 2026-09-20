@@ -563,6 +563,8 @@ create table public.romiku_payments (
     amount numeric(18,2) not null check (amount > 0),
     received_at timestamptz not null default now(),
     proof jsonb not null default '[]',
+    payment_account text,
+    payment_reference text,
     notes text,
     owner_id uuid default auth.uid() references auth.users(id),
     created_at timestamptz not null default now(),

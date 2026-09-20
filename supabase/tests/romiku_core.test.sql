@@ -104,8 +104,33 @@ select is((select quantity from romiku_order_items where order_id=(select id fro
 select is((select total_cbm from romiku_packing_totals where id='50000000-0000-0000-0000-000000000001'),0.12::numeric,'CBM derived with cm to cubic metre conversion');
 select is((select total_weight_kg from romiku_packing_totals where id='50000000-0000-0000-0000-000000000001'),20::numeric,'weight uses carton count');
 
-insert into romiku_payments(order_id,kind,amount) select id,'deposit',100 from test_ids where kind='order';
+insert into romiku_payments(id,order_id,kind,amount)
+select '52000000-0000-0000-0000-000000000001',id,'deposit',100
+from test_ids where kind='order';
+select is(
+  (select payment_account from romiku_payments where id='52000000-0000-0000-0000-000000000001'),
+  null::text,
+  'historical payment account remains nullable'
+);
+select is(
+  (select payment_reference from romiku_payments where id='52000000-0000-0000-0000-000000000001'),
+  null::text,
+  'historical payment reference remains nullable'
+);
 select is((select remaining_amount from romiku_order_totals where id=(select id from test_ids where kind='order')),405::numeric,'actual payment reduces receivable');
+insert into romiku_payments(order_id,kind,amount,payment_account,payment_reference)
+select id,'other',5,'HSBC USD','TT-001' from test_ids where kind='order';
+select is(
+  (select payment_account from romiku_payments where payment_reference='TT-001'),
+  'HSBC USD',
+  'payment account is retained on an existing payment record'
+);
+select is(
+  (select payment_reference from romiku_payments where payment_reference='TT-001'),
+  'TT-001',
+  'payment reference is retained on an existing payment record'
+);
+select is((select remaining_amount from romiku_order_totals where id=(select id from test_ids where kind='order')),400::numeric,'payment metadata does not change receivable aggregation');
 select throws_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='order')$$,'23514',null,'orders with payments cannot reinterpret the payment currency');
 select is((select currency from romiku_orders where id=(select id from test_ids where kind='order')),'USD','payment remains denominated in its original order currency');
 select lives_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='direct_order')$$,'unpaid order currency remains editable');
