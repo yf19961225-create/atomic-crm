@@ -44,11 +44,15 @@ export function createItemSnapshot(
 }
 
 export function ProductLibraryLookup({
+  sku = "",
   onSelected,
+  onManualSku,
 }: {
+  sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
+  onManualSku: (sku: string) => void;
 }) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(sku);
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [images, setImages] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -87,6 +91,10 @@ export function ProductLibraryLookup({
         className="w-full rounded border p-1"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
+        onBlur={() => {
+          const next = search.trim();
+          if (next && next !== sku) onManualSku(next);
+        }}
         placeholder="SKU / 产品名称"
       />
       {(loading || products.length > 0) && (
@@ -101,7 +109,7 @@ export function ProductLibraryLookup({
                   onSelected(
                     createItemSnapshot(product, images.get(product.id)),
                   );
-                  setSearch("");
+                  setSearch(product.sku ?? "");
                   setProducts([]);
                 }}
               >

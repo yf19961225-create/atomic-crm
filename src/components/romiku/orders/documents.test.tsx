@@ -161,7 +161,8 @@ it.each([
       )
     ).data;
     await screen.getByRole("spinbutton").nth(2).fill("200");
-    await screen.getByRole("button", { name: "详情", exact: true }).click();
+    await screen.getByText("⋯", { exact: true }).click();
+    await screen.getByRole("button", { name: "更多详情", exact: true }).click();
     await screen
       .getByLabelText("规格", { exact: true })
       .fill("Own specification");

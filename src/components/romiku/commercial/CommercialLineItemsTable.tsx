@@ -134,14 +134,13 @@ export function CommercialLineItemsTable({
                   {[
                     "",
                     "序号",
-                    "图片",
-                    "SKU / 选品",
+                    "货号/SKU",
                     "产品名称",
+                    "图片",
                     ...(showCustomerCode ? ["客户货号"] : []),
-                    "规格",
-                    "包装",
-                    "箱数",
+                    "描述与规格",
                     "Qty/Ctn",
+                    "箱数",
                     "总数量",
                     "单价",
                     "金额",
@@ -194,35 +193,18 @@ export function CommercialLineItemsTable({
                             ⠿
                           </td>
                           <td>{index + 1}</td>
-                          <td>
-                            {product.image_url ? (
-                              <img
-                                className="h-9 w-9 object-cover"
-                                src={String(product.image_url)}
-                                alt=""
-                              />
-                            ) : (
-                              "暂无图片"
-                            )}
-                          </td>
                           <td className="p-1">
                             <ProductLibraryLookup
+                              sku={item.sku}
                               onSelected={(snapshot) =>
                                 void save(item, { ...snapshot })
                               }
-                            />
-                            <input
-                              aria-label="SKU"
-                              className="w-full rounded border p-1"
-                              defaultValue={item.sku}
-                              onBlur={(event) => {
-                                const sku = event.target.value.trim();
-                                if (sku && sku !== item.sku)
-                                  void save(
-                                    item,
-                                    clearProductIdentityForManualSku(item, sku),
-                                  );
-                              }}
+                              onManualSku={(sku) =>
+                                void save(
+                                  item,
+                                  clearProductIdentityForManualSku(item, sku),
+                                )
+                              }
                             />
                           </td>
                           <td>
@@ -239,6 +221,17 @@ export function CommercialLineItemsTable({
                               }
                             />
                           </td>
+                          <td>
+                            {product.image_url ? (
+                              <img
+                                className="h-9 w-9 object-cover"
+                                src={String(product.image_url)}
+                                alt=""
+                              />
+                            ) : (
+                              "暂无图片"
+                            )}
+                          </td>
                           {showCustomerCode && (
                             <td>
                               <input
@@ -252,18 +245,18 @@ export function CommercialLineItemsTable({
                               />
                             </td>
                           )}
-                          <td>{String(product.specification ?? "—")}</td>
-                          <td>{String(packing.description ?? "—")}</td>
                           <td>
-                            <input
-                              className="w-16 rounded border p-1"
-                              type="number"
-                              defaultValue={String(packing.cartons ?? "")}
+                            <textarea
+                              aria-label="描述与规格"
+                              className="min-h-8 w-40 resize-y rounded border p-1"
+                              defaultValue={String(product.specification ?? "")}
                               onBlur={(event) =>
-                                void updatePacking(
-                                  "cartons",
-                                  event.target.value,
-                                )
+                                void save(item, {
+                                  product_snapshot: {
+                                    ...product,
+                                    specification: event.target.value,
+                                  },
+                                })
                               }
                             />
                           </td>
@@ -277,6 +270,19 @@ export function CommercialLineItemsTable({
                               onBlur={(event) =>
                                 void updatePacking(
                                   "qty_per_carton",
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="w-16 rounded border p-1"
+                              type="number"
+                              defaultValue={String(packing.cartons ?? "")}
+                              onBlur={(event) =>
+                                void updatePacking(
+                                  "cartons",
                                   event.target.value,
                                 )
                               }
@@ -317,35 +323,40 @@ export function CommercialLineItemsTable({
                               2,
                             )}
                           </td>
-                          <td className="space-x-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setDrawer(item)}
-                            >
-                              详情
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => void copy(item)}
-                            >
-                              复制
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() =>
-                                void provider
-                                  .delete(adapter.resource, {
-                                    id: item.id,
-                                    previousData: item,
-                                  })
-                                  .then(onChanged)
-                              }
-                            >
-                              删除
-                            </Button>
+                          <td>
+                            <details>
+                              <summary className="cursor-pointer">⋯</summary>
+                              <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => void copy(item)}
+                                >
+                                  复制行
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setDrawer(item)}
+                                >
+                                  更多详情
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() =>
+                                    void provider
+                                      .delete(adapter.resource, {
+                                        id: item.id,
+                                        previousData: item,
+                                      })
+                                      .then(onChanged)
+                                  }
+                                >
+                                  删除行
+                                </Button>
+                              </div>
+                            </details>
                           </td>
                         </tr>
                       )}

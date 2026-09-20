@@ -108,7 +108,8 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   const numbers = screen.getByRole("spinbutton");
   await numbers.nth(2).fill("240");
-  await screen.getByRole("button", { name: "详情", exact: true }).click();
+  await screen.getByText("⋯", { exact: true }).click();
+  await screen.getByRole("button", { name: "更多详情", exact: true }).click();
   await screen.getByLabelText("产品名称", { exact: true }).fill("Quoted name");
   await screen.getByLabelText("规格", { exact: true }).fill("Blue finish");
   await screen.getByLabelText("包装", { exact: true }).fill("Carton");
@@ -148,7 +149,8 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     .element(screen.getByText("合计：USD 515.00", { exact: true }))
     .toBeVisible();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
-  await screen.getByRole("button", { name: "删除", exact: true }).click();
+  await screen.getByText("⋯", { exact: true }).click();
+  await screen.getByRole("button", { name: "删除行", exact: true }).click();
   await expect
     .poll(
       async () =>
