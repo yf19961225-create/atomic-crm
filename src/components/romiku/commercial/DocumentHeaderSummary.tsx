@@ -16,6 +16,7 @@ const customerFields: HeaderField[] = [
 const documentFields: HeaderField[] = [
   { key: "document_date", label: "单据日期" },
   { key: "due_at", label: "计划收款日期" },
+  { key: "document_language", label: "表格类型 / 单据语言" },
   { key: "currency", label: "币种" },
   { key: "expected_delivery_at", label: "送货日期", orderOnly: true },
   {
@@ -118,6 +119,21 @@ export function DocumentHeaderSummary({
                     >
                       <option value="USD">USD</option>
                       <option value="CNY">RMB / CNY</option>
+                    </select>
+                  ) : field.key === "document_language" ? (
+                    <select
+                      aria-label={field.label}
+                      className="h-8 w-full rounded border bg-background px-2 text-sm"
+                      value={String(value || "zh")}
+                      onChange={(event) =>
+                        onChange(
+                          setValue(values, field.key, event.target.value),
+                        )
+                      }
+                    >
+                      <option value="zh">中文</option>
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
                     </select>
                   ) : (
                     <input

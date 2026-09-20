@@ -74,3 +74,22 @@ it("copies an existing Formal Customer into only the current document snapshot",
     },
   });
 });
+
+it("stores the document language as a stable locale value independent of currency", async () => {
+  const onChange = vi.fn();
+  const screen = await render(
+    <DocumentHeaderSummary
+      kind="quote"
+      editable
+      values={{ document_language: "zh", currency: "USD" }}
+      onChange={onChange}
+    />,
+  );
+  await screen
+    .getByLabelText("表格类型 / 单据语言", { exact: true })
+    .selectOptions("es");
+  expect(onChange).toHaveBeenLastCalledWith({
+    document_language: "es",
+    currency: "USD",
+  });
+});

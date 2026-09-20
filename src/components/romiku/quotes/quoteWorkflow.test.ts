@@ -114,6 +114,14 @@ describe("Quote snapshot boundaries", () => {
       quoteItemWrite({ sku: "A", quantity: 1, unit_price: Infinity }),
     ).toThrow();
   });
+  it("accepts only stable document language values", () => {
+    expect(quoteHeaderWrite({ document_language: "es" })).toEqual({
+      document_language: "es",
+    });
+    expect(() => quoteHeaderWrite({ document_language: "Spanish" })).toThrow(
+      "单据语言",
+    );
+  });
   it("rounds each line as PostgreSQL does and includes freight, other expenses and discount", () => {
     expect(
       quoteTotals([{ quantity: 240, unit_price: 2 }], {

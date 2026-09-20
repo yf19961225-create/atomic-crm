@@ -72,6 +72,7 @@ export async function createDocument(
     data: {
       status: "draft",
       currency: "USD",
+      document_language: "zh",
       deposit_percent: 30,
       counterparty_snapshot: { name: buyerName.trim() },
     },

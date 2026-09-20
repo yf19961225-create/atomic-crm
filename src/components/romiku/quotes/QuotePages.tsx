@@ -371,6 +371,12 @@ function QuoteEditor({
               documentId={String(record.id)}
               items={session.items}
               currency={String(session.values.currency)}
+              documentLanguage={
+                session.values.document_language === "en" ||
+                session.values.document_language === "es"
+                  ? session.values.document_language
+                  : "zh"
+              }
               onChanged={items.refetch}
               editable={session.editing}
               onItemsChange={session.setItems}

@@ -29,7 +29,7 @@ type SanityRecord = {
   colors?: unknown;
 };
 
-const query = `*[_type == "product" && sku == $sku][0]{_id,sku,name,images[]{url},parameters[]{label,value},category->{_id,title},moqQuantity,moqUnit,packaging,cartonQty,powerSupply,isPublished,sortOrder,colors}`;
+const query = `*[_type == "product" && sku == $sku][0]{_id,sku,name,images[]{url},parameters[]{label,value},category->{_id,title,slug},moqQuantity,moqUnit,packaging,cartonQty,powerSupply,isPublished,sortOrder,colors}`;
 
 export const mapRomikuSanityRecord = (
   record: unknown,

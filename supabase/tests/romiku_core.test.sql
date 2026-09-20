@@ -47,12 +47,18 @@ select throws_ok($$update romiku_quotes set document_number='Q-FORGED'$$,'23514'
 select throws_ok($$insert into romiku_quotes(document_number) values ('FORGED')$$,'23514',null,'clients cannot choose document numbers');
 select throws_ok($$select romiku_quote_from_inquiry('30000000-0000-0000-0000-000000000001',array['ffffffff-ffff-ffff-ffff-ffffffffffff']::uuid[])$$,'23514',null,'invalid selection fails atomically');
 select is((select count(*) from romiku_quotes),1::bigint,'failed conversion leaves no partial document');
+select is((select document_language from romiku_quotes limit 1),'zh','Quote document language defaults safely');
+update romiku_quotes set document_language='es';
+select throws_ok($$update romiku_quotes set document_language='de'$$,'23514',null,'only stable document language values are accepted');
 
 insert into test_ids select 'pi',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'pi');
 insert into test_ids select 'order',romiku_convert_document('pi',(select id from test_ids where kind='pi'),'order');
 insert into test_ids select 'direct_order',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'order');
 select is((select total from romiku_pi_totals),505.00::numeric,'PI financial inputs copied');
 select is((select total from romiku_order_totals where id=(select id from test_ids where kind='order')),505.00::numeric,'order financial inputs copied');
+select is((select document_language from romiku_pis where id=(select id from test_ids where kind='pi')),'es','Quote language is copied to PI');
+select is((select document_language from romiku_orders where id=(select id from test_ids where kind='order')),'es','PI language is copied to Order');
+select is((select document_language from romiku_orders where id=(select id from test_ids where kind='direct_order')),'es','Quote language is copied to direct Order');
 update romiku_quote_items set product_snapshot='{"name":"Later quote edit"}',quantity=999;
 select is((select product_snapshot->>'name' from romiku_pi_items limit 1),'Quoted name','PI has independent product snapshot');
 update romiku_pi_items set quantity=888,product_snapshot='{"name":"Later PI edit"}';

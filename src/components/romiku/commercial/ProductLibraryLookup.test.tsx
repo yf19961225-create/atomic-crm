@@ -58,6 +58,70 @@ describe("Product Library item snapshots", () => {
     ).not.toHaveProperty("specification");
   });
 
+  it("uses the Quote document language for machine names and ordered multilingual parameters", () => {
+    const machine = {
+      id: "lamp-1",
+      sku: "LAMP-1",
+      skuSort: "LAMP-1",
+      isPublished: true,
+      category: { title: { zh: "美甲机器" } },
+      name: { zh: "美甲灯", en: "Nail Lamp", es: "Lámpara de uñas" },
+      parameters: [
+        {
+          label: { zh: "转速", en: "Speed", es: "Velocidad" },
+          value: { zh: "30000 RPM", en: "30000 RPM", es: "30000 RPM" },
+        },
+        {
+          label: {
+            zh: "电源",
+            en: "Power Supply",
+            es: "Fuente de alimentación",
+          },
+          value: { zh: "蓄电", en: "Rechargeable", es: "Recargable" },
+        },
+      ],
+    };
+    expect(
+      createItemSnapshot(machine, undefined, {
+        documentLanguage: "en",
+      }).product_snapshot,
+    ).toMatchObject({
+      name: "Nail Lamp",
+      specification: "Speed: 30000 RPM\nPower Supply: Rechargeable",
+    });
+    expect(
+      createItemSnapshot(machine, undefined, {
+        documentLanguage: "es",
+      }).product_snapshot,
+    ).toMatchObject({
+      name: "Lámpara de uñas",
+      specification: "Velocidad: 30000 RPM\nFuente de alimentación: Recargable",
+    });
+  });
+
+  it("falls back per parameter field without serialising localization objects", () => {
+    const snapshot = createItemSnapshot(
+      {
+        id: "machine-fallback",
+        sku: "M-2",
+        skuSort: "M-2",
+        isPublished: true,
+        category: { title: { en: "Nail machine" } },
+        name: { en: "Drill" },
+        parameters: [{ label: { en: "Speed" }, value: { zh: "30000 RPM" } }],
+      },
+      undefined,
+      { documentLanguage: "es" },
+    );
+    expect(snapshot.product_snapshot).toMatchObject({
+      name: "Drill",
+      specification: "Speed: 30000 RPM",
+    });
+    expect(snapshot.product_snapshot.specification).not.toContain(
+      "[object Object]",
+    );
+  });
+
   it("does not query the catalog merely to display an existing SKU", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

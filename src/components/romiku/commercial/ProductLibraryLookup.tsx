@@ -4,6 +4,26 @@ import { createSanityCatalogSource } from "../products/sanityCatalogSource";
 import { loadWebsiteProductImages } from "../products/websiteProductImages";
 
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
+export type DocumentLanguage = "zh" | "en" | "es";
+
+const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
+  zh: ["zh", "en"],
+  en: ["en", "zh"],
+  es: ["es", "en", "zh"],
+};
+
+function localizedText(value: unknown, language: DocumentLanguage) {
+  if (typeof value === "string" || typeof value === "number")
+    return String(value);
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const translations = value as Record<string, unknown>;
+  for (const locale of languageFallbacks[language]) {
+    const text = translations[locale];
+    if (typeof text === "string" || typeof text === "number")
+      return String(text);
+  }
+  return "";
+}
 
 export function shouldImportProductSpecifications(
   kind: "quote" | "pi" | "order",
@@ -12,6 +32,7 @@ export function shouldImportProductSpecifications(
   if (kind !== "quote") return false;
   const category = [
     product.category?._id,
+    product.category?.slug?.current,
     product.category?.title?.zh,
     product.category?.title?.en,
     product.category?.title?.es,
@@ -25,28 +46,25 @@ export function shouldImportProductSpecifications(
 export function createItemSnapshot(
   product: SanityCatalogProduct,
   resolvedImageUrl?: string,
-  options: { includeSpecification?: boolean } = {},
+  options: {
+    includeSpecification?: boolean;
+    documentLanguage?: DocumentLanguage;
+  } = {},
 ) {
+  const language = options.documentLanguage ?? "zh";
   const specification = (product.parameters ?? [])
     .map((parameter) => {
-      const label =
-        parameter.label?.zh ?? parameter.label?.en ?? parameter.label?.es;
-      return label && parameter.value != null
-        ? `${label}: ${String(parameter.value)}`
-        : "";
+      const label = localizedText(parameter.label, language);
+      const value = localizedText(parameter.value, language);
+      return label && value ? `${label}: ${value}` : "";
     })
     .filter(Boolean)
-    .join("；");
+    .join("\n");
   return {
     sanity_product_id: product.id,
     sku: product.sku ?? "",
     product_snapshot: {
-      name:
-        product.name?.zh ??
-        product.name?.en ??
-        product.name?.es ??
-        product.sku ??
-        "",
+      name: localizedText(product.name, language) || product.sku || "",
       image_url: resolvedImageUrl ?? null,
       moq: product.moqQuantity ?? null,
       ...(options.includeSpecification === false ? {} : { specification }),
@@ -69,12 +87,14 @@ export function ProductLibraryLookup({
   onManualSku,
   inputRef,
   specificationMode = "all",
+  documentLanguage = "zh",
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
   onManualSku: (sku: string) => void;
   inputRef?: Ref<HTMLInputElement>;
   specificationMode?: ProductSpecificationMode;
+  documentLanguage?: DocumentLanguage;
 }) {
   const [search, setSearch] = useState(sku);
   const [query, setQuery] = useState("");
@@ -119,6 +139,7 @@ export function ProductLibraryLookup({
   const select = (product: SanityCatalogProduct) => {
     onSelected(
       createItemSnapshot(product, images.get(product.id), {
+        documentLanguage,
         includeSpecification:
           specificationMode === "all" ||
           (specificationMode === "machines-only" &&

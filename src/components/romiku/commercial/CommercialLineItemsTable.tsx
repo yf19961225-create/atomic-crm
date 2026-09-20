@@ -13,7 +13,10 @@ import {
 } from "@hello-pangea/dnd";
 import { useDataProvider } from "ra-core";
 import { Button } from "@/components/ui/button";
-import { ProductLibraryLookup } from "./ProductLibraryLookup";
+import {
+  ProductLibraryLookup,
+  type DocumentLanguage,
+} from "./ProductLibraryLookup";
 import { CommercialItemDrawer } from "./CommercialItemDrawer";
 import {
   commercialItemAdapter,
@@ -32,6 +35,7 @@ export function CommercialLineItemsTable({
   documentId,
   items,
   currency,
+  documentLanguage = "zh",
   onChanged,
   editable = true,
   onItemsChange,
@@ -40,6 +44,7 @@ export function CommercialLineItemsTable({
   documentId: string;
   items: CommercialItem[];
   currency: string;
+  documentLanguage?: DocumentLanguage;
   onChanged: () => Promise<unknown>;
   editable?: boolean;
   /** When supplied, edits stay in the document session until its Save. */
@@ -316,6 +321,7 @@ export function CommercialLineItemsTable({
                                 specificationMode={
                                   kind === "quote" ? "machines-only" : "none"
                                 }
+                                documentLanguage={documentLanguage}
                                 onSelected={(snapshot) => {
                                   void save(item, { ...snapshot });
                                   setTimeout(
@@ -618,6 +624,7 @@ export function CommercialLineItemsTable({
                           specificationMode={
                             kind === "quote" ? "machines-only" : "none"
                           }
+                          documentLanguage={documentLanguage}
                           inputRef={(element) => {
                             draftSkuRefs.current[draftIndex] = element;
                           }}
