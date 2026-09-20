@@ -1,5 +1,6 @@
 import {
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type HTMLAttributes,
@@ -43,6 +44,10 @@ export function CommercialLineItemsTable({
     items.some((item) => Boolean(item.customer_code)),
   );
   const [drawer, setDrawer] = useState<CommercialItem | null>(null);
+  const [draftRows, setDraftRows] = useState(() =>
+    Array.from({ length: 5 }, (_, id) => id),
+  );
+  const draftSkuRefs = useRef<Array<HTMLInputElement | null>>([]);
   const adapter = commercialItemAdapter(kind);
   const totals = useMemo(
     () =>
@@ -81,6 +86,34 @@ export function CommercialLineItemsTable({
       },
     });
     await onChanged();
+  };
+  const createDraft = async (
+    draftIndex: number,
+    data: Record<string, unknown>,
+  ) => {
+    await provider.create(adapter.resource, {
+      data: {
+        [adapter.parentKey]: documentId,
+        sku: "MANUAL",
+        quantity: 1,
+        unit_price: 0,
+        product_snapshot: {},
+        packing_snapshot: {},
+        position: items.length + 1,
+        ...data,
+      },
+    });
+    await onChanged();
+    setDraftRows((current) =>
+      current.filter((id) => id !== draftRows[draftIndex]),
+    );
+  };
+  const advanceDraft = (draftIndex: number) => {
+    if (draftIndex + 1 < draftRows.length)
+      draftSkuRefs.current[draftIndex + 1]?.focus();
+    else setDraftRows((current) => [...current, Math.max(-1, ...current) + 1]);
+    if (draftIndex + 1 >= draftRows.length)
+      setTimeout(() => draftSkuRefs.current[draftIndex + 1]?.focus(), 0);
   };
   const copy = async (item: CommercialItem) => {
     const { id: _id, ...copyItem } = item;
@@ -363,6 +396,41 @@ export function CommercialLineItemsTable({
                     </Draggable>
                   );
                 })}
+                {draftRows.map((draftId, draftIndex) => (
+                  <tr className="border-t bg-muted/20" key={`draft-${draftId}`}>
+                    <td className="p-2 text-muted-foreground">—</td>
+                    <td className="text-muted-foreground">
+                      {items.length + draftIndex + 1}
+                    </td>
+                    <td className="p-1">
+                      <ProductLibraryLookup
+                        inputRef={(element) => {
+                          draftSkuRefs.current[draftIndex] = element;
+                        }}
+                        onSelected={(snapshot) =>
+                          void createDraft(draftIndex, snapshot)
+                        }
+                        onManualSku={(sku) =>
+                          void createDraft(draftIndex, { sku })
+                        }
+                      />
+                    </td>
+                    <td colSpan={showCustomerCode ? 10 : 9}>
+                      <input
+                        aria-label={`草稿 SKU ${draftIndex + 1}`}
+                        className="w-full bg-transparent p-1 text-muted-foreground"
+                        placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter") return;
+                          event.preventDefault();
+                          const sku = event.currentTarget.value.trim();
+                          if (sku) void createDraft(draftIndex, { sku });
+                          advanceDraft(draftIndex);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
                 {provided.placeholder}
               </tbody>
               <tfoot>

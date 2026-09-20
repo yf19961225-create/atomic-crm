@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Ref } from "react";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
 import { loadWebsiteProductImages } from "../products/websiteProductImages";
@@ -47,10 +47,12 @@ export function ProductLibraryLookup({
   sku = "",
   onSelected,
   onManualSku,
+  inputRef,
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
   onManualSku: (sku: string) => void;
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   const [search, setSearch] = useState(sku);
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
@@ -88,6 +90,7 @@ export function ProductLibraryLookup({
     <div className="relative min-w-48">
       <input
         aria-label="搜索 SKU 或产品"
+        ref={inputRef}
         className="w-full rounded border p-1"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
