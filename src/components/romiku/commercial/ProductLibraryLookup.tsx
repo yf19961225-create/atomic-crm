@@ -3,9 +3,29 @@ import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
 import { loadWebsiteProductImages } from "../products/websiteProductImages";
 
+export type ProductSpecificationMode = "all" | "machines-only" | "none";
+
+export function shouldImportProductSpecifications(
+  kind: "quote" | "pi" | "order",
+  product: SanityCatalogProduct,
+) {
+  if (kind !== "quote") return false;
+  const category = [
+    product.category?._id,
+    product.category?.title?.zh,
+    product.category?.title?.en,
+    product.category?.title?.es,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /machine|设备|机器/.test(category);
+}
+
 export function createItemSnapshot(
   product: SanityCatalogProduct,
   resolvedImageUrl?: string,
+  options: { includeSpecification?: boolean } = {},
 ) {
   const specification = (product.parameters ?? [])
     .map((parameter) => {
@@ -29,7 +49,7 @@ export function createItemSnapshot(
         "",
       image_url: resolvedImageUrl ?? null,
       moq: product.moqQuantity ?? null,
-      specification,
+      ...(options.includeSpecification === false ? {} : { specification }),
     },
     packing_snapshot: {
       description:
@@ -48,11 +68,13 @@ export function ProductLibraryLookup({
   onSelected,
   onManualSku,
   inputRef,
+  specificationMode = "all",
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
   onManualSku: (sku: string) => void;
   inputRef?: Ref<HTMLInputElement>;
+  specificationMode?: ProductSpecificationMode;
 }) {
   const [search, setSearch] = useState(sku);
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
@@ -110,7 +132,12 @@ export function ProductLibraryLookup({
                 className="flex w-full items-center gap-2 p-2 text-left hover:bg-muted"
                 onClick={() => {
                   onSelected(
-                    createItemSnapshot(product, images.get(product.id)),
+                    createItemSnapshot(product, images.get(product.id), {
+                      includeSpecification:
+                        specificationMode === "all" ||
+                        (specificationMode === "machines-only" &&
+                          shouldImportProductSpecifications("quote", product)),
+                    }),
                   );
                   setSearch(product.sku ?? "");
                   setProducts([]);

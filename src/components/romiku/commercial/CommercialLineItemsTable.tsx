@@ -303,6 +303,9 @@ export function CommercialLineItemsTable({
                             {editable ? (
                               <ProductLibraryLookup
                                 sku={item.sku}
+                                specificationMode={
+                                  kind === "quote" ? "machines-only" : "none"
+                                }
                                 onSelected={(snapshot) =>
                                   void save(item, { ...snapshot })
                                 }
@@ -560,6 +563,9 @@ export function CommercialLineItemsTable({
                       </td>
                       <td className="p-1">
                         <ProductLibraryLookup
+                          specificationMode={
+                            kind === "quote" ? "machines-only" : "none"
+                          }
                           inputRef={(element) => {
                             draftSkuRefs.current[draftIndex] = element;
                           }}

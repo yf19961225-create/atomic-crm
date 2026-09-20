@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createItemSnapshot } from "./ProductLibraryLookup";
+import {
+  createItemSnapshot,
+  shouldImportProductSpecifications,
+} from "./ProductLibraryLookup";
 
 describe("Product Library item snapshots", () => {
   it("captures the selected catalog product and website image without master linkage writes", () => {
@@ -28,5 +31,28 @@ describe("Product Library item snapshots", () => {
       },
       packing_snapshot: { description: "12/ctn", qty_per_carton: 24 },
     });
+  });
+
+  it("imports specifications only for machine categories when a Quote selects a product", () => {
+    const machine = {
+      id: "machine",
+      sku: "M-1",
+      skuSort: "M-1",
+      isPublished: true,
+      category: { title: { en: "Nail Machines" } },
+      parameters: [{ label: { en: "Voltage" }, value: "220V" }],
+    };
+    const accessory = {
+      ...machine,
+      id: "accessory",
+      category: { title: { zh: "收纳" } },
+    };
+    expect(shouldImportProductSpecifications("quote", machine)).toBe(true);
+    expect(shouldImportProductSpecifications("quote", accessory)).toBe(false);
+    expect(shouldImportProductSpecifications("pi", machine)).toBe(false);
+    expect(
+      createItemSnapshot(accessory, undefined, { includeSpecification: false })
+        .product_snapshot,
+    ).not.toHaveProperty("specification");
   });
 });
