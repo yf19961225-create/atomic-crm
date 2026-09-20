@@ -106,11 +106,13 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     await provider.getList("romiku_website_inquiry_items", list)
   ).data;
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
-  await screen.getByLabelText("数量", { exact: true }).fill("240");
-  await screen.getByLabelText("最小起订量", { exact: true }).fill("120");
+  const numbers = screen.getByRole("spinbutton");
+  await numbers.nth(2).fill("240");
+  await screen.getByRole("button", { name: "详情", exact: true }).click();
+  await screen.getByLabelText("产品名称", { exact: true }).fill("Quoted name");
   await screen.getByLabelText("规格", { exact: true }).fill("Blue finish");
   await screen.getByLabelText("包装", { exact: true }).fill("Carton");
-  await screen.getByRole("button", { name: "保存产品项", exact: true }).click();
+  await screen.getByRole("button", { name: "关闭", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -123,8 +125,7 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   ).toMatchObject({
     source_website_inquiry_item_id: "i1",
     product_snapshot: {
-      name: "Original snapshot",
-      moq: 120,
+      name: "Quoted name",
       specification: "Blue finish",
     },
     packing_snapshot: { description: "Carton" },
@@ -147,7 +148,7 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     .element(screen.getByText("合计：USD 515.00", { exact: true }))
     .toBeVisible();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
-  await screen.getByRole("button", { name: "删除产品项" }).click();
+  await screen.getByRole("button", { name: "删除", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -170,11 +171,11 @@ it("creates a direct Quote and supports adding its own items", async () => {
     .fill("Direct buyer");
   await screen.getByRole("button", { name: "创建报价单", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
-  await screen.getByRole("button", { name: "添加产品项" }).click();
-  await screen.getByLabelText("SKU", { exact: true }).fill("MANUAL");
-  await screen.getByLabelText("数量", { exact: true }).fill("10");
-  await screen.getByLabelText("单价", { exact: true }).fill("3.5");
-  await screen.getByRole("button", { name: "保存产品项" }).click();
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  const numbers = screen.getByRole("spinbutton");
+  await numbers.nth(2).fill("10");
+  await numbers.nth(3).fill("3.5");
+  await screen.getByText("汇总", { exact: true }).click();
   await expect
     .element(screen.getByText("合计：USD 35.00", { exact: true }))
     .toBeVisible();
