@@ -135,3 +135,65 @@ export function clearProductIdentityForManualSku<
 }
 
 export const commercialItemWrite = quoteItemWrite;
+
+const draftItemPrefix = "draft-commercial-";
+
+export function isDraftCommercialItem(item: Pick<CommercialItem, "id">) {
+  return String(item.id).startsWith(draftItemPrefix);
+}
+
+export function newDraftCommercialItemId() {
+  return `${draftItemPrefix}${crypto.randomUUID()}`;
+}
+
+function withoutId(item: CommercialItem) {
+  const { id: _id, ...data } = item;
+  return data;
+}
+
+function sameItem(left: CommercialItem, right: CommercialItem) {
+  return JSON.stringify(withoutId(left)) === JSON.stringify(withoutId(right));
+}
+
+/**
+ * Applies a whole document's staged item changes at Save time.  The caller
+ * owns the editing session; this helper deliberately has no UI state and
+ * never mutates while a user is typing.
+ */
+export async function commitCommercialItems(
+  provider: DataProvider,
+  kind: CommercialDocumentKind,
+  documentId: string,
+  savedItems: CommercialItem[],
+  stagedItems: CommercialItem[],
+) {
+  const adapter = commercialItemAdapter(kind);
+  const stagedIds = new Set(
+    stagedItems
+      .filter((item) => !isDraftCommercialItem(item))
+      .map((item) => item.id),
+  );
+  const deleted = savedItems.filter((item) => !stagedIds.has(item.id));
+  const updates = stagedItems.filter((item) => {
+    if (isDraftCommercialItem(item)) return false;
+    const saved = savedItems.find((candidate) => candidate.id === item.id);
+    return saved != null && !sameItem(saved, item);
+  });
+  const creates = stagedItems.filter(isDraftCommercialItem);
+
+  for (const item of deleted)
+    await provider.delete(adapter.resource, {
+      id: item.id,
+      previousData: item,
+    });
+  for (const item of updates)
+    await provider.update(adapter.resource, {
+      id: item.id,
+      data: withoutId(item),
+      previousData: savedItems.find((candidate) => candidate.id === item.id),
+    });
+  for (const item of creates)
+    await provider.create(adapter.resource, {
+      data: { ...withoutId(item), [adapter.parentKey]: documentId },
+    });
+}

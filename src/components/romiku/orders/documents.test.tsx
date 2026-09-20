@@ -130,6 +130,7 @@ it.each([
   await screen
     .getByRole("button", { name: `创建${label}`, exact: true })
     .click();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("button", { name: "新增产品行" }).click();
   const numbers = screen.getByRole("spinbutton");
   await numbers.nth(2).fill("10");
@@ -160,6 +161,7 @@ it.each([
         { id: path === "pi" ? "qi" : "pii" },
       )
     ).data;
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
     await screen.getByRole("spinbutton").nth(2).fill("200");
     await screen.getByText("⋯", { exact: true }).click();
     await screen.getByRole("button", { name: "更多详情", exact: true }).click();
@@ -167,19 +169,17 @@ it.each([
       .getByLabelText("规格", { exact: true })
       .fill("Own specification");
     await screen.getByRole("button", { name: "保存详情", exact: true }).click();
+    await screen.getByRole("tab", { name: "采购方与详情" }).click();
+    await screen
+      .getByLabelText("采购方名称", { exact: true })
+      .fill("Changed buyer");
+    await screen.getByRole("button", { name: "保存", exact: true }).click();
     await expect
       .poll(
         async () =>
           (await provider.getOne(resource, { id: itemId })).data.quantity,
       )
       .toBe(200);
-    await screen.getByRole("tab", { name: "采购方与详情" }).click();
-    await screen
-      .getByLabelText("采购方名称", { exact: true })
-      .fill("Changed buyer");
-    await screen
-      .getByRole("button", { name: `保存${label}`, exact: true })
-      .click();
     await expect
       .element(screen.getByRole("status"))
       .toHaveTextContent(`${label}已保存。`);

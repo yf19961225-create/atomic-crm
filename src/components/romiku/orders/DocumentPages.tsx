@@ -11,7 +11,14 @@ import {
 } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
-import { readCommercialItems } from "../commercial/commercialLineItems";
+import {
+  commitCommercialItems,
+  readCommercialItems,
+} from "../commercial/commercialLineItems";
+import {
+  useDocumentEditSession,
+  useUnsavedDocumentGuard,
+} from "../commercial/useDocumentEditSession";
 import { quoteTotals } from "../quotes/quoteWorkflow";
 import { OrderPayments } from "../payments/OrderPayments";
 import { DocumentConversion } from "./DocumentConversion";
@@ -341,27 +348,35 @@ function DocumentEditor({
 }) {
   const config = documentConfig[kind],
     provider = useDataProvider();
-  const [values, setValues] = useState<Values>(record),
-    [busy, setBusy] = useState(false),
+  const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [failed, setFailed] = useState(false);
   const items = useQuery({
     queryKey: [`${kind}-items`, record.id],
     queryFn: () => readCommercialItems(provider, kind, String(record.id)),
   });
-  const totals = quoteTotals(items.data || [], record);
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
+  const session = useDocumentEditSession(record, items.data);
+  const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
+  const totals = quoteTotals(session.items, session.values);
+  async function save() {
     setBusy(true);
     setMessage("");
     setFailed(false);
     try {
       const result = await provider.update(config.resource, {
         id: record.id,
-        data: documentHeaderWrite(kind, values),
+        data: documentHeaderWrite(kind, session.values),
         previousData: record,
       });
-      setValues(result.data);
+      await commitCommercialItems(
+        provider,
+        kind,
+        String(record.id),
+        session.savedItems,
+        session.items,
+      );
+      await items.refetch();
+      session.commit(result.data, session.items);
       await onSaved();
       setMessage(`${config.label}已保存。`);
     } catch (cause) {
@@ -425,12 +440,40 @@ function DocumentEditor({
   ];
   return (
     <section className="max-w-6xl space-y-4">
-      <Link className="underline" to={config.path}>
+      <Link
+        className="underline"
+        to={config.path}
+        onClick={(event) => {
+          if (confirmDiscard()) return;
+          event.preventDefault();
+        }}
+      >
         返回{config.plural}
       </Link>
-      <h1 className="text-3xl font-semibold">
-        {record.document_number || `草稿${config.label}`}
-      </h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold">
+          {record.document_number || `草稿${config.label}`}
+        </h1>
+        {session.editing ? (
+          <div className="flex gap-2">
+            <Button type="button" disabled={busy} onClick={() => void save()}>
+              保存
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={session.cancel}
+            >
+              取消
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" onClick={session.start}>
+            编辑
+          </Button>
+        )}
+      </div>
       <DocumentSources record={record} />
       {kind === "order" && (
         <div className="flex gap-4">
@@ -461,10 +504,12 @@ function DocumentEditor({
       ) : (
         <div className="bg-muted flex gap-6 rounded p-4">
           <span>
-            小计：{record.currency} {totals.subtotal.toFixed(2)}
+            小计：{String(session.values.currency || "")}{" "}
+            {totals.subtotal.toFixed(2)}
           </span>
           <strong>
-            合计：{record.currency} {totals.total.toFixed(2)}
+            合计：{String(session.values.currency || "")}{" "}
+            {totals.total.toFixed(2)}
           </strong>
           <span className="text-muted-foreground text-sm">已保存的值</span>
         </div>
@@ -483,22 +528,32 @@ function DocumentEditor({
             <CommercialLineItemsTable
               kind={kind}
               documentId={String(record.id)}
-              items={items.data}
-              currency={String(record.currency)}
+              items={session.items}
+              currency={String(session.values.currency)}
               onChanged={items.refetch}
+              editable={session.editing}
+              onItemsChange={session.setItems}
             />
           )}
         </TabsContent>
         {tabs.map((tab) => (
           <TabsContent key={tab.name} value={tab.name}>
-            <form className="space-y-4" onSubmit={save}>
-              <fieldset disabled={busy} className="space-y-4">
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void save();
+              }}
+            >
+              <fieldset
+                disabled={busy || !session.editing}
+                className="space-y-4"
+              >
                 <WorkflowFields
                   fields={tab.fields}
-                  values={values}
-                  onChange={setValues}
+                  values={session.values}
+                  onChange={session.setValues}
                 />
-                <Button type="submit">保存{config.label}</Button>
               </fieldset>
             </form>
           </TabsContent>

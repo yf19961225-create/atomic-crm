@@ -3,6 +3,7 @@ import {
   applyManualQuantity,
   changedPositions,
   clearProductIdentityForManualSku,
+  commitCommercialItems,
   lineAmount,
   nextPositions,
   quantityFromPacking,
@@ -50,5 +51,75 @@ describe("commercial line item model", () => {
       sku: "MANUAL",
       product_snapshot: {},
     });
+  });
+
+  it("commits staged rows once, retaining existing snapshots and deleting only removed rows", async () => {
+    const calls: string[] = [];
+    const provider = {
+      create: async (
+        resource: string,
+        params: { data: Record<string, unknown> },
+      ) => {
+        calls.push(`create:${resource}:${params.data.sku}`);
+        return { data: { id: "created", ...params.data } };
+      },
+      update: async (resource: string, params: { id: string }) => {
+        calls.push(`update:${resource}:${params.id}`);
+        return { data: {} };
+      },
+      delete: async (resource: string, params: { id: string }) => {
+        calls.push(`delete:${resource}:${params.id}`);
+        return { data: {} };
+      },
+    } as never;
+    await commitCommercialItems(
+      provider,
+      "quote",
+      "q",
+      [
+        {
+          id: "kept",
+          quote_id: "q",
+          sku: "A",
+          quantity: 1,
+          unit_price: 1,
+          position: 1,
+          product_snapshot: { name: "saved" },
+        },
+        {
+          id: "removed",
+          quote_id: "q",
+          sku: "B",
+          quantity: 1,
+          unit_price: 1,
+          position: 2,
+        },
+      ],
+      [
+        {
+          id: "kept",
+          quote_id: "q",
+          sku: "A",
+          quantity: 2,
+          unit_price: 1,
+          position: 1,
+          product_snapshot: { name: "edited" },
+        },
+        {
+          id: "draft-commercial-new",
+          sku: "C",
+          quantity: 1,
+          unit_price: 0,
+          position: 2,
+          product_snapshot: { name: "new" },
+          packing_snapshot: {},
+        },
+      ],
+    );
+    expect(calls).toEqual([
+      "delete:romiku_quote_items:removed",
+      "update:romiku_quote_items:kept",
+      "create:romiku_quote_items:C",
+    ]);
   });
 });

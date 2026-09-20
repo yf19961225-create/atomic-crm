@@ -4,15 +4,18 @@ import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  WorkflowFields,
-  type Field,
-  type Values,
-} from "../outbound/WorkflowFields";
+import { WorkflowFields, type Field } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { quoteHeaderWrite, quoteStatuses, quoteTotals } from "./quoteWorkflow";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
-import { readCommercialItems } from "../commercial/commercialLineItems";
+import {
+  commitCommercialItems,
+  readCommercialItems,
+} from "../commercial/commercialLineItems";
+import {
+  useDocumentEditSession,
+  useUnsavedDocumentGuard,
+} from "../commercial/useDocumentEditSession";
 import { DocumentConversion } from "../orders/DocumentConversion";
 import { quoteStatusChoices, quoteStatusLabel } from "../commercialLabels";
 
@@ -250,7 +253,6 @@ function QuoteEditor({
   onSaved: () => Promise<unknown>;
 }) {
   const provider = useDataProvider();
-  const [values, setValues] = useState<Values>(record);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -258,19 +260,28 @@ function QuoteEditor({
     queryKey: ["quote-items", record.id],
     queryFn: () => readCommercialItems(provider, "quote", String(record.id)),
   });
-  const totals = quoteTotals(items.data || [], record);
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const session = useDocumentEditSession(record, items.data);
+  const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
+  const totals = quoteTotals(session.items, session.values);
+  const save = async () => {
     setBusy(true);
     setMessage("");
     setFailed(false);
     try {
       const result = await provider.update("romiku_quotes", {
         id: record.id,
-        data: quoteHeaderWrite(values),
+        data: quoteHeaderWrite(session.values),
         previousData: record,
       });
-      setValues(result.data);
+      await commitCommercialItems(
+        provider,
+        "quote",
+        String(record.id),
+        session.savedItems,
+        session.items,
+      );
+      await items.refetch();
+      session.commit(result.data, session.items);
       await onSaved();
       setMessage("报价单已保存。");
     } catch (cause) {
@@ -282,12 +293,40 @@ function QuoteEditor({
   };
   return (
     <section className="max-w-6xl space-y-4">
-      <Link to="/quotes" className="underline">
+      <Link
+        to="/quotes"
+        className="underline"
+        onClick={(event) => {
+          if (confirmDiscard()) return;
+          event.preventDefault();
+        }}
+      >
         返回报价单
       </Link>
-      <h1 className="text-3xl font-semibold">
-        {record.document_number || "草稿报价单"}
-      </h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold">
+          {record.document_number || "草稿报价单"}
+        </h1>
+        {session.editing ? (
+          <div className="flex gap-2">
+            <Button type="button" disabled={busy} onClick={() => void save()}>
+              保存
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={session.cancel}
+            >
+              取消
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" onClick={session.start}>
+            编辑
+          </Button>
+        )}
+      </div>
       <SourceLinks record={record} />
       <DocumentConversion source="quote" sourceId={String(record.id)} />
       <p className="text-muted-foreground text-sm">
@@ -305,13 +344,17 @@ function QuoteEditor({
       ) : (
         <div className="bg-muted flex flex-wrap gap-6 rounded p-4">
           <span>
-            小计：{record.currency} {totals.subtotal.toFixed(2)}
+            小计：{String(session.values.currency || "")}{" "}
+            {totals.subtotal.toFixed(2)}
           </span>
-          <span>运费：{Number(record.freight || 0).toFixed(2)}</span>
-          <span>其他费用：{Number(record.other_expenses || 0).toFixed(2)}</span>
-          <span>折扣：{Number(record.discount || 0).toFixed(2)}</span>
+          <span>运费：{Number(session.values.freight || 0).toFixed(2)}</span>
+          <span>
+            其他费用：{Number(session.values.other_expenses || 0).toFixed(2)}
+          </span>
+          <span>折扣：{Number(session.values.discount || 0).toFixed(2)}</span>
           <strong>
-            合计：{record.currency} {totals.total.toFixed(2)}
+            合计：{String(session.values.currency || "")}{" "}
+            {totals.total.toFixed(2)}
           </strong>
           <span className="text-muted-foreground text-xs">已保存的值</span>
         </div>
@@ -327,35 +370,37 @@ function QuoteEditor({
             <CommercialLineItemsTable
               kind="quote"
               documentId={String(record.id)}
-              items={items.data}
-              currency={String(record.currency)}
+              items={session.items}
+              currency={String(session.values.currency)}
               onChanged={items.refetch}
+              editable={session.editing}
+              onItemsChange={session.setItems}
             />
           )}
         </TabsContent>
-        <form onSubmit={save} className="space-y-4">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save();
+          }}
+          className="space-y-4"
+        >
           <TabsContent value="buyer">
-            <fieldset disabled={busy} className="space-y-4">
+            <fieldset disabled={busy || !session.editing} className="space-y-4">
               <WorkflowFields
                 fields={buyerFields}
-                values={values}
-                onChange={setValues}
+                values={session.values}
+                onChange={session.setValues}
               />
-              <Button type="submit" disabled={busy}>
-                保存报价单
-              </Button>
             </fieldset>
           </TabsContent>
           <TabsContent value="terms">
-            <fieldset disabled={busy} className="space-y-4">
+            <fieldset disabled={busy || !session.editing} className="space-y-4">
               <WorkflowFields
                 fields={termsFields}
-                values={values}
-                onChange={setValues}
+                values={session.values}
+                onChange={session.setValues}
               />
-              <Button type="submit" disabled={busy}>
-                保存报价单
-              </Button>
             </fieldset>
           </TabsContent>
           {message && <p role={failed ? "alert" : "status"}>{message}</p>}
