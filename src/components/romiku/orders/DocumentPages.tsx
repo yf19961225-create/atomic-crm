@@ -11,6 +11,7 @@ import {
 } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
+import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
 import {
   commitCommercialItems,
   readCommercialItems,
@@ -494,6 +495,12 @@ function DocumentEditor({
       <p className="text-muted-foreground text-sm">
         修改仅应用于此{config.label}的快照；来源单据保留原始值。
       </p>
+      <DocumentHeaderSummary
+        kind={kind}
+        editable={session.editing}
+        values={session.values}
+        onChange={session.setValues}
+      />
       {items.error ? (
         <p role="alert">
           无法加载产品项或合计。{" "}

@@ -8,6 +8,7 @@ import { WorkflowFields, type Field } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { quoteHeaderWrite, quoteStatuses, quoteTotals } from "./quoteWorkflow";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
+import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
 import {
   commitCommercialItems,
   readCommercialItems,
@@ -332,6 +333,12 @@ function QuoteEditor({
       <p className="text-muted-foreground text-sm">
         保留来源链接；报价单修改仅应用于此单据。
       </p>
+      <DocumentHeaderSummary
+        kind="quote"
+        editable={session.editing}
+        values={session.values}
+        onChange={session.setValues}
+      />
       {items.error ? (
         <p role="alert">
           无法加载报价单产品项或合计。{" "}
