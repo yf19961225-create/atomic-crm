@@ -81,6 +81,7 @@ export function ProductLibraryLookup({
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [images, setImages] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   useEffect(() => {
     let cancelled = false;
     if (!query.trim()) {
@@ -97,6 +98,7 @@ export function ProductLibraryLookup({
         if (!cancelled) {
           setProducts(page.products);
           setImages(urls);
+          setActiveIndex(page.products.length ? 0 : -1);
         }
       })
       .catch(() => {
@@ -109,6 +111,20 @@ export function ProductLibraryLookup({
       cancelled = true;
     };
   }, [query]);
+  const select = (product: SanityCatalogProduct) => {
+    onSelected(
+      createItemSnapshot(product, images.get(product.id), {
+        includeSpecification:
+          specificationMode === "all" ||
+          (specificationMode === "machines-only" &&
+            shouldImportProductSpecifications("quote", product)),
+      }),
+    );
+    setSearch(product.sku ?? "");
+    setQuery("");
+    setProducts([]);
+    setActiveIndex(-1);
+  };
   return (
     <div className="relative min-w-48">
       <input
@@ -120,6 +136,24 @@ export function ProductLibraryLookup({
         onChange={(event) => {
           setSearch(event.target.value);
           setQuery(event.target.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" && products.length) {
+            event.preventDefault();
+            setActiveIndex((index) => (index + 1) % products.length);
+          } else if (event.key === "ArrowUp" && products.length) {
+            event.preventDefault();
+            setActiveIndex(
+              (index) => (index - 1 + products.length) % products.length,
+            );
+          } else if (event.key === "Enter" && activeIndex >= 0) {
+            event.preventDefault();
+            select(products[activeIndex]);
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            setProducts([]);
+            setActiveIndex(-1);
+          }
         }}
         onBlur={() => {
           const next = search.trim();
@@ -134,20 +168,10 @@ export function ProductLibraryLookup({
             <li key={product.id}>
               <button
                 type="button"
-                className="flex w-full items-center gap-2 p-2 text-left hover:bg-muted"
-                onClick={() => {
-                  onSelected(
-                    createItemSnapshot(product, images.get(product.id), {
-                      includeSpecification:
-                        specificationMode === "all" ||
-                        (specificationMode === "machines-only" &&
-                          shouldImportProductSpecifications("quote", product)),
-                    }),
-                  );
-                  setSearch(product.sku ?? "");
-                  setQuery("");
-                  setProducts([]);
-                }}
+                aria-selected={activeIndex === products.indexOf(product)}
+                className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === products.indexOf(product) ? "bg-muted" : ""}`}
+                onMouseEnter={() => setActiveIndex(products.indexOf(product))}
+                onClick={() => select(product)}
               >
                 {images.get(product.id) ? (
                   <img

@@ -353,6 +353,11 @@ function DocumentEditor({
     queryKey: [`${kind}-items`, record.id],
     queryFn: () => readCommercialItems(provider, kind, String(record.id)),
   });
+  const customers = useGetList("romiku_formal_customers", {
+    pagination: { page: 1, perPage: 100 },
+    sort: { field: "name", order: "ASC" },
+    filter: {},
+  });
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const totals = quoteTotals(session.items, session.values);
@@ -497,6 +502,7 @@ function DocumentEditor({
         editable={session.editing}
         values={session.values}
         onChange={session.setValues}
+        customers={customers.data}
       />
       {items.error ? (
         <p role="alert">

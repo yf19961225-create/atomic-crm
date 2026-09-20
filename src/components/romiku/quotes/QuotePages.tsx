@@ -258,6 +258,11 @@ function QuoteEditor({
     queryKey: ["quote-items", record.id],
     queryFn: () => readCommercialItems(provider, "quote", String(record.id)),
   });
+  const customers = useGetList("romiku_formal_customers", {
+    pagination: { page: 1, perPage: 100 },
+    sort: { field: "name", order: "ASC" },
+    filter: {},
+  });
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const save = async () => {
@@ -334,6 +339,7 @@ function QuoteEditor({
         editable={session.editing}
         values={session.values}
         onChange={session.setValues}
+        customers={customers.data}
       />
       {items.error ? (
         <p role="alert">

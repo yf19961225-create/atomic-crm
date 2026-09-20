@@ -44,3 +44,33 @@ it("shows the saved customer snapshot and edits only the document values", async
     counterparty_snapshot: { name: "Document-only name" },
   });
 });
+
+it("copies an existing Formal Customer into only the current document snapshot", async () => {
+  const onChange = vi.fn();
+  const screen = await render(
+    <DocumentHeaderSummary
+      kind="quote"
+      editable
+      values={{ counterparty_snapshot: { name: "Manual buyer" } }}
+      customers={[
+        {
+          id: "customer-1",
+          name: "Formal customer",
+          country: "Spain",
+          email: "formal@example.test",
+        },
+      ]}
+      onChange={onChange}
+    />,
+  );
+  await screen
+    .getByLabelText("选择正式客户", { exact: true })
+    .selectOptions("customer-1");
+  expect(onChange).toHaveBeenLastCalledWith({
+    counterparty_snapshot: {
+      name: "Formal customer",
+      country: "Spain",
+      email: "formal@example.test",
+    },
+  });
+});

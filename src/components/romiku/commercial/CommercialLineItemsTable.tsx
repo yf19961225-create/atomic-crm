@@ -54,6 +54,8 @@ export function CommercialLineItemsTable({
     Array.from({ length: 5 }, (_, id) => id),
   );
   const draftSkuRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const rowSkuRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const rowNameRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const adapter = commercialItemAdapter(kind);
   const totals = useMemo(
     () =>
@@ -162,6 +164,11 @@ export function CommercialLineItemsTable({
     else setDraftRows((current) => [...current, Math.max(-1, ...current) + 1]);
     if (draftIndex + 1 >= draftRows.length)
       setTimeout(() => draftSkuRefs.current[draftIndex + 1]?.focus(), 0);
+  };
+  const advanceRow = (index: number) => {
+    const next = items[index + 1];
+    if (next) rowSkuRefs.current[String(next.id)]?.focus();
+    else draftSkuRefs.current[0]?.focus();
   };
   const copy = async (item: CommercialItem) => {
     const { id: _id, ...copyItem } = item;
@@ -303,12 +310,22 @@ export function CommercialLineItemsTable({
                             {editable ? (
                               <ProductLibraryLookup
                                 sku={item.sku}
+                                inputRef={(element) => {
+                                  rowSkuRefs.current[String(item.id)] = element;
+                                }}
                                 specificationMode={
                                   kind === "quote" ? "machines-only" : "none"
                                 }
-                                onSelected={(snapshot) =>
-                                  void save(item, { ...snapshot })
-                                }
+                                onSelected={(snapshot) => {
+                                  void save(item, { ...snapshot });
+                                  setTimeout(
+                                    () =>
+                                      rowNameRefs.current[
+                                        String(item.id)
+                                      ]?.focus(),
+                                    0,
+                                  );
+                                }}
                                 onManualSku={(sku) =>
                                   void save(
                                     item,
@@ -322,6 +339,9 @@ export function CommercialLineItemsTable({
                           </td>
                           <td>
                             <input
+                              ref={(element) => {
+                                rowNameRefs.current[String(item.id)] = element;
+                              }}
                               className="w-28 rounded border p-1"
                               value={String(product.name ?? "")}
                               disabled={!editable}
@@ -342,6 +362,10 @@ export function CommercialLineItemsTable({
                                     name: event.target.value,
                                   },
                                 });
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter")
+                                  event.preventDefault();
                               }}
                             />
                           </td>
@@ -401,6 +425,10 @@ export function CommercialLineItemsTable({
                                     },
                                   });
                               }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter")
+                                  event.preventDefault();
+                              }}
                             />
                           </td>
                           <td>
@@ -423,6 +451,10 @@ export function CommercialLineItemsTable({
                                     event.target.value,
                                   );
                               }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter")
+                                  event.preventDefault();
+                              }}
                             />
                           </td>
                           <td>
@@ -444,6 +476,10 @@ export function CommercialLineItemsTable({
                                     "cartons",
                                     event.target.value,
                                   );
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter")
+                                  event.preventDefault();
                               }}
                             />
                           </td>
@@ -473,6 +509,10 @@ export function CommercialLineItemsTable({
                                     },
                                   });
                               }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter")
+                                  event.preventDefault();
+                              }}
                             />
                           </td>
                           <td>
@@ -493,6 +533,18 @@ export function CommercialLineItemsTable({
                                   void save(item, {
                                     unit_price: Number(event.target.value),
                                   });
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  advanceRow(index);
+                                } else if (
+                                  event.key === "Tab" &&
+                                  !event.shiftKey
+                                ) {
+                                  event.preventDefault();
+                                  advanceRow(index);
+                                }
                               }}
                             />
                           </td>

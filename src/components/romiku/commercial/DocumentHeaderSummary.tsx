@@ -1,5 +1,6 @@
 import type { Values } from "../outbound/WorkflowFields";
 import { setValue, valueAt } from "../outbound/WorkflowFields";
+import type { RaRecord } from "ra-core";
 import type { CommercialDocumentKind } from "./commercialLineItems";
 
 type HeaderField = { key: string; label: string; orderOnly?: boolean };
@@ -36,11 +37,13 @@ export function DocumentHeaderSummary({
   values,
   editable,
   onChange,
+  customers = [],
 }: {
   kind: CommercialDocumentKind;
   values: Values;
   editable: boolean;
   onChange: (values: Values) => void;
+  customers?: RaRecord[];
 }) {
   const fields = [
     ...customerFields,
@@ -48,6 +51,52 @@ export function DocumentHeaderSummary({
   ];
   return (
     <section className="rounded border bg-muted/30 p-4" aria-label="单据摘要">
+      {editable && (
+        <label className="mb-3 flex max-w-sm flex-col gap-1 text-sm">
+          选择正式客户
+          <select
+            aria-label="选择正式客户"
+            className="h-8 rounded border bg-background px-2"
+            value=""
+            onChange={(event) => {
+              const customer = customers.find(
+                (candidate) => String(candidate.id) === event.target.value,
+              );
+              if (!customer) return;
+              const keys = [
+                "name",
+                "brand",
+                "country",
+                "contact",
+                "whatsapp",
+                "email",
+                "phone",
+                "address",
+                "shipping_address",
+                "billing_address",
+                "consignee",
+                "consignee_contact",
+              ];
+              const snapshot = Object.fromEntries(
+                keys
+                  .filter((key) => customer[key] != null)
+                  .map((key) => [key, customer[key]]),
+              );
+              onChange({
+                ...values,
+                counterparty_snapshot: snapshot,
+              });
+            }}
+          >
+            <option value="">不关联正式客户（仅当前单据）</option>
+            {customers.map((customer) => (
+              <option value={String(customer.id)} key={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <dl className="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
         {fields.map((field) => {
           const value = valueAt(values, field.key);
