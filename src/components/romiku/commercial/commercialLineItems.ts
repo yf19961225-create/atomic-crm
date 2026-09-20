@@ -1,4 +1,4 @@
-import type { DataProvider, RaRecord } from "ra-core";
+import type { DataProvider, Identifier, RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { quoteItemWrite, quoteTotals } from "../quotes/quoteWorkflow";
 
@@ -48,16 +48,19 @@ export async function readCommercialItems(
 }
 
 export function nextPositions<
-  T extends { id: string; position?: number | null },
+  T extends { id: Identifier; position?: number | null },
 >(items: T[], sourceIndex: number, destinationIndex: number) {
   const next = [...items];
   const [moved] = next.splice(sourceIndex, 1);
   next.splice(destinationIndex, 0, moved);
-  return next.map((item, index) => ({ id: item.id, position: index + 1 }));
+  return next.map((item, index) => ({
+    id: String(item.id),
+    position: index + 1,
+  }));
 }
 
 export function changedPositions(
-  previous: Array<{ id: string; position?: number | null }>,
+  previous: Array<{ id: Identifier; position?: number | null }>,
   next: Array<{ id: string; position: number }>,
 ) {
   const prior = new Map(
