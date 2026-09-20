@@ -548,6 +548,12 @@ function DocumentEditor({
               onItemsChange={session.setItems}
             />
           )}
+          {kind === "order" && items.data && (
+            <section className="space-y-3 pt-4">
+              <h2 className="text-xl font-semibold">订单收款</h2>
+              <OrderPayments order={record} total={totals.total} />
+            </section>
+          )}
         </TabsContent>
         {tabs.map((tab) => (
           <TabsContent key={tab.name} value={tab.name}>
@@ -571,12 +577,6 @@ function DocumentEditor({
             </form>
           </TabsContent>
         ))}
-        {kind === "order" && items.data && (
-          <section className="space-y-3 pt-4">
-            <h2 className="text-xl font-semibold">订单收款</h2>
-            <OrderPayments order={record} total={totals.total} />
-          </section>
-        )}
       </Tabs>
       {message && <p role={failed ? "alert" : "status"}>{message}</p>}
     </section>
