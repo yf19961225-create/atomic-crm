@@ -11,9 +11,11 @@ import { paymentKindChoices, paymentKindLabel } from "../commercialLabels";
 export function OrderPayments({
   order,
   total,
+  editable = true,
 }: {
   order: RaRecord;
   total: number;
+  editable?: boolean;
 }) {
   const provider = useDataProvider();
   const payments = useQuery({
@@ -107,9 +109,14 @@ export function OrderPayments({
                 <td className="p-2">{payment.payment_reference || "—"}</td>
                 <td className="p-2">{payment.notes}</td>
                 <td className="p-2">
-                  <Button variant="outline" onClick={() => setEditing(payment)}>
-                    编辑收款
-                  </Button>
+                  {editable && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditing(payment)}
+                    >
+                      编辑收款
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -117,20 +124,21 @@ export function OrderPayments({
         </table>
       </div>
       {!payments.data.length && <p>暂无收款记录。</p>}
-      {editing === undefined ? (
-        <Button onClick={() => setEditing(null)}>添加收款</Button>
-      ) : (
-        <PaymentForm
-          key={editing?.id || "new"}
-          order={order}
-          payment={editing}
-          onCancel={() => setEditing(undefined)}
-          onSaved={async () => {
-            await payments.refetch();
-            setEditing(undefined);
-          }}
-        />
-      )}
+      {editable &&
+        (editing === undefined ? (
+          <Button onClick={() => setEditing(null)}>添加收款</Button>
+        ) : (
+          <PaymentForm
+            key={editing?.id || "new"}
+            order={order}
+            payment={editing}
+            onCancel={() => setEditing(undefined)}
+            onSaved={async () => {
+              await payments.refetch();
+              setEditing(undefined);
+            }}
+          />
+        ))}
     </div>
   );
 }

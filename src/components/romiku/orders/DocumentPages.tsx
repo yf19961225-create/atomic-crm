@@ -546,7 +546,13 @@ function DocumentEditor({
           {kind === "order" && items.data && (
             <section className="space-y-3 pt-4">
               <h2 className="text-xl font-semibold">订单收款</h2>
-              <OrderPayments order={record} total={totals.total} />
+              <OrderPayments
+                order={record}
+                total={
+                  session.editing ? Number(record.total || 0) : totals.total
+                }
+                editable={!session.editing}
+              />
             </section>
           )}
         </TabsContent>

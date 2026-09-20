@@ -77,18 +77,19 @@ export function ProductLibraryLookup({
   specificationMode?: ProductSpecificationMode;
 }) {
   const [search, setSearch] = useState(sku);
+  const [query, setQuery] = useState("");
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [images, setImages] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    if (!search.trim()) {
+    if (!query.trim()) {
       setProducts([]);
       return;
     }
     setLoading(true);
     createSanityCatalogSource()
-      .getPage({ search, includeUnpublished: false })
+      .getPage({ search: query, includeUnpublished: false })
       .then(async (page) => {
         const urls = await loadWebsiteProductImages(page.products).catch(
           () => new Map<string, string>(),
@@ -107,7 +108,7 @@ export function ProductLibraryLookup({
     return () => {
       cancelled = true;
     };
-  }, [search]);
+  }, [query]);
   return (
     <div className="relative min-w-48">
       <input
@@ -115,7 +116,11 @@ export function ProductLibraryLookup({
         ref={inputRef}
         className="w-full rounded border p-1"
         value={search}
-        onChange={(event) => setSearch(event.target.value)}
+        onFocus={() => setQuery(search)}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setQuery(event.target.value);
+        }}
         onBlur={() => {
           const next = search.trim();
           if (next && next !== sku) onManualSku(next);
@@ -140,6 +145,7 @@ export function ProductLibraryLookup({
                     }),
                   );
                   setSearch(product.sku ?? "");
+                  setQuery("");
                   setProducts([]);
                 }}
               >

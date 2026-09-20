@@ -234,3 +234,11 @@ it("records and corrects deposit/balance receipts without changing source docume
     (await provider.getList("romiku_formal_customers", list)).data,
   ).toEqual([]);
 });
+
+it("does not allow receipts against an unsaved Order edit session", async () => {
+  const { screen } = await setup("/orders/o");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect
+    .element(screen.getByRole("button", { name: "添加收款" }))
+    .not.toBeInTheDocument();
+});

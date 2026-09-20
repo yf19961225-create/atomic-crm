@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { render } from "vitest-browser-react";
 import {
   createItemSnapshot,
+  ProductLibraryLookup,
   shouldImportProductSpecifications,
 } from "./ProductLibraryLookup";
 
@@ -54,5 +56,19 @@ describe("Product Library item snapshots", () => {
       createItemSnapshot(accessory, undefined, { includeSpecification: false })
         .product_snapshot,
     ).not.toHaveProperty("specification");
+  });
+
+  it("does not query the catalog merely to display an existing SKU", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await render(
+      <ProductLibraryLookup
+        sku="005"
+        onSelected={vi.fn()}
+        onManualSku={vi.fn()}
+      />,
+    );
+    expect(fetch).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
