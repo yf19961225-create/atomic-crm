@@ -1,4 +1,4 @@
-import { useEffect, useState, type Ref } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
 import { loadWebsiteProductImages } from "../products/websiteProductImages";
@@ -82,6 +82,7 @@ export function ProductLibraryLookup({
   const [images, setImages] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   useEffect(() => {
     let cancelled = false;
     if (!query.trim()) {
@@ -111,6 +112,10 @@ export function ProductLibraryLookup({
       cancelled = true;
     };
   }, [query]);
+  useEffect(() => {
+    if (activeIndex >= 0)
+      optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
   const select = (product: SanityCatalogProduct) => {
     onSelected(
       createItemSnapshot(product, images.get(product.id), {
@@ -132,7 +137,6 @@ export function ProductLibraryLookup({
         ref={inputRef}
         className="w-full rounded border p-1"
         value={search}
-        onFocus={() => setQuery(search)}
         onChange={(event) => {
           setSearch(event.target.value);
           setQuery(event.target.value);
@@ -164,13 +168,16 @@ export function ProductLibraryLookup({
       {(loading || products.length > 0) && (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded border bg-background shadow">
           {loading && <li className="p-2">正在搜索产品…</li>}
-          {products.map((product) => (
+          {products.map((product, index) => (
             <li key={product.id}>
               <button
                 type="button"
-                aria-selected={activeIndex === products.indexOf(product)}
-                className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === products.indexOf(product) ? "bg-muted" : ""}`}
-                onMouseEnter={() => setActiveIndex(products.indexOf(product))}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                aria-selected={activeIndex === index}
+                className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
+                onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => select(product)}
               >
                 {images.get(product.id) ? (

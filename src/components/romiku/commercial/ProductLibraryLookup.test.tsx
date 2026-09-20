@@ -61,13 +61,14 @@ describe("Product Library item snapshots", () => {
   it("does not query the catalog merely to display an existing SKU", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
-    await render(
+    const screen = await render(
       <ProductLibraryLookup
         sku="005"
         onSelected={vi.fn()}
         onManualSku={vi.fn()}
       />,
     );
+    await screen.getByLabelText("搜索 SKU 或产品", { exact: true }).click();
     expect(fetch).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });

@@ -105,14 +105,32 @@ export function DocumentHeaderSummary({
               <dt className="text-muted-foreground text-xs">{field.label}</dt>
               <dd className="mt-1">
                 {editable ? (
-                  <input
-                    aria-label={field.label}
-                    className="h-8 w-full rounded border bg-background px-2 text-sm"
-                    value={String(value ?? "")}
-                    onChange={(event) =>
-                      onChange(setValue(values, field.key, event.target.value))
-                    }
-                  />
+                  field.key === "currency" ? (
+                    <select
+                      aria-label={field.label}
+                      className="h-8 w-full rounded border bg-background px-2 text-sm"
+                      value={String(value || "USD")}
+                      onChange={(event) =>
+                        onChange(
+                          setValue(values, field.key, event.target.value),
+                        )
+                      }
+                    >
+                      <option value="USD">USD</option>
+                      <option value="CNY">RMB / CNY</option>
+                    </select>
+                  ) : (
+                    <input
+                      aria-label={field.label}
+                      className="h-8 w-full rounded border bg-background px-2 text-sm"
+                      value={String(value ?? "")}
+                      onChange={(event) =>
+                        onChange(
+                          setValue(values, field.key, event.target.value),
+                        )
+                      }
+                    />
+                  )
                 ) : (
                   <span className="break-words text-sm">{display(value)}</span>
                 )}
