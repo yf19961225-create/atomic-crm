@@ -9,10 +9,10 @@ import {
   type Field,
   type Values,
 } from "../outbound/WorkflowFields";
-import { readRelated } from "../outbound/workflow";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { quoteHeaderWrite, quoteStatuses, quoteTotals } from "./quoteWorkflow";
-import { QuoteItems } from "./QuoteItems";
+import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
+import { readCommercialItems } from "../commercial/commercialLineItems";
 import { DocumentConversion } from "../orders/DocumentConversion";
 import { quoteStatusChoices, quoteStatusLabel } from "../commercialLabels";
 
@@ -256,8 +256,7 @@ function QuoteEditor({
   const [failed, setFailed] = useState(false);
   const items = useQuery({
     queryKey: ["quote-items", record.id],
-    queryFn: () =>
-      readRelated(provider, "romiku_quote_items", { quote_id: record.id }),
+    queryFn: () => readCommercialItems(provider, "quote", String(record.id)),
   });
   const totals = quoteTotals(items.data || [], record);
   const save = async (event: React.FormEvent) => {
@@ -325,9 +324,11 @@ function QuoteEditor({
         </TabsList>
         <TabsContent value="items">
           {items.data && (
-            <QuoteItems
-              quoteId={String(record.id)}
+            <CommercialLineItemsTable
+              kind="quote"
+              documentId={String(record.id)}
               items={items.data}
+              currency={String(record.currency)}
               onChanged={items.refetch}
             />
           )}
