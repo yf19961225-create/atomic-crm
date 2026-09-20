@@ -108,7 +108,7 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   const numbers = screen.getByRole("spinbutton");
-  await numbers.nth(2).fill("240");
+  await numbers.nth(4).fill("240");
   expect(
     (await provider.getOne("romiku_quote_items", { id: "qi" })).data.quantity,
   ).toBe(100);
@@ -119,7 +119,9 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   await screen.getByLabelText("包装", { exact: true }).fill("Carton");
   await screen.getByRole("button", { name: "保存详情", exact: true }).click();
   await screen.getByRole("tab", { name: "条款与费用" }).click();
-  await screen.getByLabelText("其他费用", { exact: true }).fill("25");
+  await screen
+    .getByRole("spinbutton", { name: "其他费用", exact: true })
+    .fill("25");
   await screen.getByLabelText("付款条款", { exact: true }).fill("50% deposit");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
@@ -172,8 +174,8 @@ it("creates a direct Quote and supports adding its own items", async () => {
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   await screen.getByRole("button", { name: "新增产品行" }).click();
   const numbers = screen.getByRole("spinbutton");
-  await numbers.nth(2).fill("10");
-  await numbers.nth(3).fill("3.5");
+  await numbers.nth(4).fill("10");
+  await numbers.nth(5).fill("3.5");
   await screen.getByText("汇总", { exact: true }).click();
   await expect
     .element(screen.getByText("合计：USD 35.00", { exact: true }))

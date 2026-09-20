@@ -11,6 +11,7 @@ import {
 } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
+import { DocumentFinancialSummary } from "../commercial/DocumentFinancialSummary";
 import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
 import {
   commitCommercialItems,
@@ -509,17 +510,12 @@ function DocumentEditor({
       ) : items.isPending ? (
         <p>正在加载合计…</p>
       ) : (
-        <div className="bg-muted flex gap-6 rounded p-4">
-          <span>
-            小计：{String(session.values.currency || "")}{" "}
-            {totals.subtotal.toFixed(2)}
-          </span>
-          <strong>
-            合计：{String(session.values.currency || "")}{" "}
-            {totals.total.toFixed(2)}
-          </strong>
-          <span className="text-muted-foreground text-sm">已保存的值</span>
-        </div>
+        <DocumentFinancialSummary
+          editable={session.editing}
+          items={session.items}
+          values={session.values}
+          onChange={session.setValues}
+        />
       )}
       <Tabs defaultValue="items" className="space-y-4">
         <TabsList className="flex h-auto flex-wrap">

@@ -133,8 +133,8 @@ it.each([
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("button", { name: "新增产品行" }).click();
   const numbers = screen.getByRole("spinbutton");
-  await numbers.nth(2).fill("10");
-  await numbers.nth(3).fill("3.50");
+  await numbers.nth(4).fill("10");
+  await numbers.nth(5).fill("3.50");
   await screen.getByText("汇总", { exact: true }).click();
   await expect
     .element(screen.getByText("合计：USD 35.00", { exact: true }))
@@ -162,7 +162,7 @@ it.each([
       )
     ).data;
     await screen.getByRole("button", { name: "编辑", exact: true }).click();
-    await screen.getByRole("spinbutton").nth(2).fill("200");
+    await screen.getByRole("spinbutton").nth(4).fill("200");
     await screen.getByText("⋯", { exact: true }).click();
     await screen.getByRole("button", { name: "更多详情", exact: true }).click();
     await screen
