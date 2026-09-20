@@ -4,7 +4,7 @@
 // but keeps its own mutations because it honours --dry-run.
 
 import { rmSync } from "node:fs";
-import { getWorktreeEntries, git } from "./git.mjs";
+import { getWorktreeEntries, git, pathIsWithin } from "./git.mjs";
 
 // Remove one worktree: `git worktree remove --force`, falling back to a plain
 // recursive rm when git refuses (e.g. the admin entry is already gone). Callers
@@ -19,9 +19,7 @@ export function removeWorktree(path) {
 // refs. Returns the count removed. The main repo worktree is never under a
 // session base, so it is excluded naturally.
 export function removeWorktreesUnder(base) {
-  const under = getWorktreeEntries().filter(
-    (e) => e.path === base || e.path.startsWith(base + "/"),
-  );
+  const under = getWorktreeEntries().filter((e) => pathIsWithin(e.path, base));
   under.forEach((e) => removeWorktree(e.path));
   git(["worktree", "prune"]);
   return under.length;

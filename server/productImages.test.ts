@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import endpoint from "../api/product-images";
+
+type ProductImageEndpoint = {
+  fetch(request: Request): Promise<Response>;
+};
 
 const request = (path = "") =>
   new Request(`https://crm.example.test/api/product-images${path}`);
@@ -10,13 +13,20 @@ const accessoriesSource =
   'window.ROMIKU_PRODUCTS = Object.assign(window.ROMIKU_PRODUCTS || {}, {"005":{"sku":"005","image":"./images/products-local/005_main1.jpg","images":["./images/products-local/005_main2.jpg"]},"006":{"sku":"006","images":["./images/products-local/006_main1.jpg"]},"009":{"sku":"009","images":[]},"010":{"sku":"010","image":""}});';
 const toolsSource =
   'window.ROMIKU_PRODUCTS = Object.assign(window.ROMIKU_PRODUCTS || {}, {"T1":{"sku":"T1","image":"./images/products-local/T1_main.jpg"}});';
+const caseInsensitiveIndexSource =
+  'window.ROMIKU_PRODUCT_INDEX = {"chunks":{"tools":"products-tools.js"},"productChunks":{"rk1":"tools"}};';
+const caseInsensitiveToolsSource =
+  'window.ROMIKU_PRODUCTS = Object.assign(window.ROMIKU_PRODUCTS || {}, {"rk1":{"sku":"RK1","image":"./images/products-local/RK1_main.jpg"}});';
 
 describe("product image API", () => {
   const fetchMock = vi.fn();
+  let endpoint: ProductImageEndpoint;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
+    endpoint = (await import("../api/product-images")).default;
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -51,5 +61,22 @@ describe("product image API", () => {
     ).toBe(405);
     expect((await endpoint.fetch(request("?skus=005,,006"))).status).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("matches website image keys without changing the requested SKU casing", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("products-index.js"))
+        return new Response(caseInsensitiveIndexSource);
+      if (url.includes("products-tools.js"))
+        return new Response(caseInsensitiveToolsSource);
+      throw new Error(`unexpected URL ${url}`);
+    });
+
+    const response = await endpoint.fetch(request("?skus=RK1"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      images: { RK1: "https://romiku.com/images/products-local/RK1_main.jpg" },
+    });
   });
 });

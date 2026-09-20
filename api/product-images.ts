@@ -1,8 +1,15 @@
 const websiteOrigin = "https://romiku.com/";
 const indexUrl = `${websiteOrigin}data/products-index.js`;
 const maxSkus = 50;
+const websiteTimeoutMs = 8_000;
+const cacheTtlMs = 5 * 60_000;
+const staleCacheTtlMs = 60 * 60_000;
 const productIndexPrefix = "window.ROMIKU_PRODUCT_INDEX =";
 const productChunkPrefix = "window.ROMIKU_PRODUCTS || {},";
+const textCache = new Map<
+  string,
+  { text: string; freshUntil: number; staleUntil: number }
+>();
 
 type WebsiteProduct = {
   sku?: string;
@@ -38,9 +45,30 @@ const jsonObjectAfter = (source: string, marker: string): unknown => {
 };
 
 const readText = async (url: string) => {
-  const response = await fetch(url, { method: "GET" });
-  if (!response.ok) throw new Error("website_unavailable");
-  return response.text();
+  const cached = textCache.get(url);
+  const now = Date.now();
+  if (cached && cached.freshUntil > now) return cached.text;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), websiteTimeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error("website_unavailable");
+    const text = await response.text();
+    textCache.set(url, {
+      text,
+      freshUntil: now + cacheTtlMs,
+      staleUntil: now + staleCacheTtlMs,
+    });
+    return text;
+  } catch (error) {
+    if (cached && cached.staleUntil > now) return cached.text;
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 };
 
 const imageUrl = (product: WebsiteProduct) => {
@@ -89,7 +117,9 @@ export default {
       ) as WebsiteIndex;
       const chunks = new Map<string, string[]>();
       for (const sku of skus) {
-        const category = index.productChunks?.[sku];
+        const category =
+          index.productChunks?.[sku] ??
+          index.productChunks?.[sku.toLowerCase()];
         const chunk = category ? index.chunks?.[category] : undefined;
         if (!chunk || !/^products-[a-z-]+\.js$/.test(chunk)) continue;
         chunks.set(chunk, [...(chunks.get(chunk) ?? []), sku]);
@@ -102,7 +132,12 @@ export default {
             productChunkPrefix,
           ) as Record<string, WebsiteProduct>;
           for (const sku of chunkSkus) {
-            const url = imageUrl(products[sku] ?? {});
+            const product =
+              products[sku.toLowerCase()] ??
+              Object.values(products).find(
+                (value) => value.sku?.toLowerCase() === sku.toLowerCase(),
+              );
+            const url = imageUrl(product ?? {});
             if (url) images[sku] = url;
           }
         }),

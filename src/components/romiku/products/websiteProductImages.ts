@@ -3,9 +3,11 @@ import type { SanityCatalogProduct } from "./sanityCatalogSource";
 export const loadWebsiteProductImages = async (
   products: SanityCatalogProduct[],
 ) => {
-  const skus = products.flatMap((product) =>
-    product.sku ? [product.sku] : [],
-  );
+  const skus = [
+    ...new Set(
+      products.flatMap((product) => (product.sku ? [product.sku] : [])),
+    ),
+  ];
   if (!skus.length) return new Map<string, string>();
   const response = await fetch(
     `/api/product-images?${new URLSearchParams({ skus: skus.join(",") })}`,

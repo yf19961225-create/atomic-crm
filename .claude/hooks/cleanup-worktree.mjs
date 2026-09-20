@@ -19,6 +19,8 @@ import {
   getWorktreeEntries,
   getWorktreePaths,
   git,
+  pathIsWithin,
+  samePath,
 } from "./lib/git.mjs";
 import { exec } from "./lib/process.mjs";
 import {
@@ -62,8 +64,7 @@ ctx.log(
   `START session=${ctx.sessionShort} base=${ctx.worktreeBase} branch=${base}`,
 );
 
-const isUnderBase = (p) =>
-  p === ctx.worktreeBase || p.startsWith(ctx.worktreeBase + "/");
+const isUnderBase = (p) => pathIsWithin(p, ctx.worktreeBase);
 
 const hasLocalBranch = (ref) =>
   git(["show-ref", "--verify", "--quiet", `refs/heads/${ref}`]).status === 0;
@@ -154,7 +155,7 @@ const sweepLeftover = (entry) => {
     ctx.log(`SKIP-NON-WORKTREE ${dir}`);
     return;
   }
-  if (registered.includes(dir)) return;
+  if (registered.some((path) => samePath(path, dir))) return;
   rmSync(dir, { recursive: true, force: true });
   ctx.log(`LEFTOVER RM ${dir}`);
 };

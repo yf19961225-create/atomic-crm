@@ -2,6 +2,8 @@
 
 import { REPO } from "./paths.mjs";
 import { exec } from "./process.mjs";
+import { realpathSync } from "node:fs";
+import { relative } from "node:path";
 
 export function git(args = [], opts = {}) {
   return exec("git", ["-C", REPO, ...args], opts);
@@ -36,6 +38,24 @@ export function getWorktreeEntries() {
 }
 
 export const getWorktreePaths = () => getWorktreeEntries().map((e) => e.path);
+
+const canonicalPath = (path) => {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    return path;
+  }
+};
+
+export const samePath = (left, right) =>
+  canonicalPath(left) === canonicalPath(right);
+
+export const pathIsWithin = (path, base) => {
+  const candidate = canonicalPath(path);
+  const root = canonicalPath(base);
+  const remainder = relative(root, candidate);
+  return remainder === "" || (!remainder.startsWith("..") && !remainder.includes("../"));
+};
 
 // Combined per-worktree change summary in a single `git status --porcelain`
 // (working tree) + one `git log` (commits ahead of base) + one `git diff

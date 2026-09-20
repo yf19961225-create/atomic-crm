@@ -29,7 +29,7 @@ import {
 import { dirname, join } from "node:path";
 import { createHookContext } from "./lib/context.mjs";
 import { parseDispatch } from "./lib/dispatch-parse.mjs";
-import { getBaseBranch, getWorktreePaths, git } from "./lib/git.mjs";
+import { getBaseBranch, getWorktreePaths, git, samePath } from "./lib/git.mjs";
 import { REVIEW_ROLES, reviewFlag } from "./lib/reviews.mjs";
 import { getFirstTaskId } from "./lib/teams.mjs";
 import { addWorktreeFolder } from "./lib/workspace-folders.mjs";
@@ -207,7 +207,7 @@ ctx.log(
   `START agent=${d.subagentType}${d.mode ? ` mode=${d.mode}` : ""} path=${worktreePath} branch=${branchName}`,
 );
 
-if (getWorktreePaths().includes(worktreePath)) {
+if (getWorktreePaths().some((path) => samePath(path, worktreePath))) {
   ctx.accept(`already registered (${worktreePath})`);
 }
 
