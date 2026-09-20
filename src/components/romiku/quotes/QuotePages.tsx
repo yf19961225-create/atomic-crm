@@ -223,8 +223,6 @@ const buyerFields: Field[] = [
     required: true,
     choices: quoteStatusChoices,
   },
-  { key: "currency", label: "币种", required: true },
-  { key: "document_date", label: "单据日期（YYYY-MM-DD）" },
   { key: "valid_until", label: "有效期至（YYYY-MM-DD）" },
 ];
 const termsFields: Field[] = [
@@ -242,8 +240,6 @@ const termsFields: Field[] = [
   },
   { key: "terms_snapshot.lead_time", label: "交期" },
   { key: "bank_snapshot.details", label: "银行信息", type: "textarea" },
-  { key: "freight", label: "运费" },
-  { key: "other_expenses", label: "其他费用" },
   { key: "discount", label: "折扣" },
   { key: "notes", label: "报价单备注", type: "textarea" },
 ];

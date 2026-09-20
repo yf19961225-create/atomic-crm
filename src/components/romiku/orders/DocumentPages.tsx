@@ -310,8 +310,6 @@ const buyerFields: Field[] = [
     label: "账单地址",
     type: "textarea",
   },
-  { key: "currency", label: "币种", required: true },
-  { key: "document_date", label: "单据日期（YYYY-MM-DD）" },
 ];
 const termsFields: Field[] = [
   { key: "price_term", label: "价格条款" },
@@ -333,10 +331,7 @@ const termsFields: Field[] = [
     type: "textarea",
   },
   { key: "bank_snapshot.details", label: "银行信息", type: "textarea" },
-  { key: "freight", label: "运费" },
-  { key: "other_expenses", label: "其他费用" },
   { key: "discount", label: "折扣" },
-  { key: "deposit_percent", label: "定金比例", required: true },
   { key: "deposit_due_at", label: "定金到期日（ISO / 时区）" },
   { key: "balance_due_at", label: "尾款到期日（ISO / 时区）" },
 ];
