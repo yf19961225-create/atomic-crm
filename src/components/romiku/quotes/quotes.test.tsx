@@ -112,7 +112,7 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   await screen.getByLabelText("产品名称", { exact: true }).fill("Quoted name");
   await screen.getByLabelText("规格", { exact: true }).fill("Blue finish");
   await screen.getByLabelText("包装", { exact: true }).fill("Carton");
-  await screen.getByRole("button", { name: "关闭", exact: true }).click();
+  await screen.getByRole("button", { name: "保存详情", exact: true }).click();
   await expect
     .poll(
       async () =>

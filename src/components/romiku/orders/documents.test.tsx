@@ -165,7 +165,7 @@ it.each([
     await screen
       .getByLabelText("规格", { exact: true })
       .fill("Own specification");
-    await screen.getByRole("button", { name: "关闭", exact: true }).click();
+    await screen.getByRole("button", { name: "保存详情", exact: true }).click();
     await expect
       .poll(
         async () =>

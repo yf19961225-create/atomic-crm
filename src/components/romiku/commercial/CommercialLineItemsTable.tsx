@@ -16,6 +16,7 @@ import { ProductLibraryLookup } from "./ProductLibraryLookup";
 import { CommercialItemDrawer } from "./CommercialItemDrawer";
 import {
   commercialItemAdapter,
+  clearProductIdentityForManualSku,
   lineAmount,
   nextPositions,
   quantityFromPacking,
@@ -165,7 +166,8 @@ export function CommercialLineItemsTable({
                   const updatePacking = async (key: string, value: unknown) => {
                     const nextPacking = { ...packing, [key]: value };
                     const quantity =
-                      key === "cartons" || key === "qty_per_carton"
+                      (key === "cartons" || key === "qty_per_carton") &&
+                      !packing.quantity_manual
                         ? quantityFromPacking(nextPacking)
                         : item.quantity;
                     await save(item, {
@@ -209,12 +211,24 @@ export function CommercialLineItemsTable({
                                 void save(item, { ...snapshot })
                               }
                             />
-                            <span>{item.sku}</span>
+                            <input
+                              aria-label="SKU"
+                              className="w-full rounded border p-1"
+                              defaultValue={item.sku}
+                              onBlur={(event) => {
+                                const sku = event.target.value.trim();
+                                if (sku && sku !== item.sku)
+                                  void save(
+                                    item,
+                                    clearProductIdentityForManualSku(item, sku),
+                                  );
+                              }}
+                            />
                           </td>
                           <td>
                             <input
                               className="w-28 rounded border p-1"
-                              value={String(product.name ?? "")}
+                              defaultValue={String(product.name ?? "")}
                               onBlur={(event) =>
                                 void save(item, {
                                   product_snapshot: {
@@ -223,7 +237,6 @@ export function CommercialLineItemsTable({
                                   },
                                 })
                               }
-                              onChange={() => {}}
                             />
                           </td>
                           {showCustomerCode && (
@@ -277,6 +290,10 @@ export function CommercialLineItemsTable({
                               onBlur={(event) =>
                                 void save(item, {
                                   quantity: Number(event.target.value),
+                                  packing_snapshot: {
+                                    ...packing,
+                                    quantity_manual: true,
+                                  },
                                 })
                               }
                             />
@@ -364,6 +381,7 @@ export function CommercialLineItemsTable({
           void save(next, {
             product_snapshot: next.product_snapshot,
             packing_snapshot: next.packing_snapshot,
+            requirement: next.requirement,
             notes: next.notes,
           });
         }}
