@@ -58,6 +58,61 @@ describe("SanityProductDrawer", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("uses the resolved website image and ignores a Sanity image URL", async () => {
+    const screen = await render(
+      <SanityProductDrawer
+        product={product}
+        resolvedImageUrl="https://romiku.com/images/products-local/rmk-100.jpg"
+        open
+        onOpenChange={vi.fn()}
+        refreshOverlay={vi.fn()}
+        client={createClient()}
+      />,
+    );
+
+    await expect
+      .element(screen.getByRole("img", { name: "RMK-100 产品图片" }))
+      .toHaveAttribute(
+        "src",
+        "https://romiku.com/images/products-local/rmk-100.jpg",
+      );
+    expect(screen.getByText("暂无产品图片")).not.toBeInTheDocument();
+  });
+
+  it("shows the image fallback when the website resolver has no image", async () => {
+    const screen = await render(
+      <SanityProductDrawer
+        product={product}
+        resolvedImageUrl={undefined}
+        open
+        onOpenChange={vi.fn()}
+        refreshOverlay={vi.fn()}
+        client={createClient()}
+      />,
+    );
+
+    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+  });
+
+  it("replaces a failed website image with the same fallback", async () => {
+    const screen = await render(
+      <SanityProductDrawer
+        product={product}
+        resolvedImageUrl="https://romiku.com/images/products-local/missing.jpg"
+        open
+        onOpenChange={vi.fn()}
+        refreshOverlay={vi.fn()}
+        client={createClient()}
+      />,
+    );
+
+    screen
+      .getByRole("img", { name: "RMK-100 产品图片" })
+      .element()
+      .dispatchEvent(new Event("error"));
+    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+  });
+
   it("creates the minimum Extension then refreshes only the current product overlay", async () => {
     const client = createClient();
     const refreshOverlay = vi.fn().mockResolvedValue(undefined);

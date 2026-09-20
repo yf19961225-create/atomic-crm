@@ -255,6 +255,11 @@ export const SanityCatalogList = () => {
       )}
       <SanityProductDrawer
         product={selectedProduct}
+        resolvedImageUrl={
+          selectedProduct && !failedImageIds.has(selectedProduct.id)
+            ? websiteImageUrls.get(selectedProduct.id)
+            : undefined
+        }
         open={selectedProduct !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedProduct(null);

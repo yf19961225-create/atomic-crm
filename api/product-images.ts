@@ -84,6 +84,8 @@ const imageUrl = (product: WebsiteProduct) => {
   return relativeImage ? new URL(relativeImage, websiteOrigin).href : "";
 };
 
+const websiteLookupKey = (sku: string) => sku.toLowerCase().replace(/#$/, "");
+
 const parseSkus = (url: URL) => {
   const values = url.searchParams.getAll("skus");
   if (values.length !== 1) return null;
@@ -117,9 +119,9 @@ export default {
       ) as WebsiteIndex;
       const chunks = new Map<string, string[]>();
       for (const sku of skus) {
+        const lookupKey = websiteLookupKey(sku);
         const category =
-          index.productChunks?.[sku] ??
-          index.productChunks?.[sku.toLowerCase()];
+          index.productChunks?.[sku] ?? index.productChunks?.[lookupKey];
         const chunk = category ? index.chunks?.[category] : undefined;
         if (!chunk || !/^products-[a-z-]+\.js$/.test(chunk)) continue;
         chunks.set(chunk, [...(chunks.get(chunk) ?? []), sku]);
@@ -132,10 +134,13 @@ export default {
             productChunkPrefix,
           ) as Record<string, WebsiteProduct>;
           for (const sku of chunkSkus) {
+            const lookupKey = websiteLookupKey(sku);
             const product =
-              products[sku.toLowerCase()] ??
+              products[lookupKey] ??
               Object.values(products).find(
-                (value) => value.sku?.toLowerCase() === sku.toLowerCase(),
+                (value) =>
+                  value.sku != null &&
+                  websiteLookupKey(value.sku) === lookupKey,
               );
             const url = imageUrl(product ?? {});
             if (url) images[sku] = url;

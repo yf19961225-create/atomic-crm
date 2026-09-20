@@ -17,6 +17,10 @@ const caseInsensitiveIndexSource =
   'window.ROMIKU_PRODUCT_INDEX = {"chunks":{"tools":"products-tools.js"},"productChunks":{"rk1":"tools"}};';
 const caseInsensitiveToolsSource =
   'window.ROMIKU_PRODUCTS = Object.assign(window.ROMIKU_PRODUCTS || {}, {"rk1":{"sku":"RK1","image":"./images/products-local/RK1_main.jpg"}});';
+const hashSkuIndexSource =
+  'window.ROMIKU_PRODUCT_INDEX = {"chunks":{"brushes":"products-brushes.js"},"productChunks":{"ab144-10":"brushes","ab144-12":"brushes","ab144-2":"brushes","ab145-10":"brushes"}};';
+const hashSkuBrushesSource =
+  'window.ROMIKU_PRODUCTS = Object.assign(window.ROMIKU_PRODUCTS || {}, {"ab144-10":{"sku":"AB144-10#","image":"./images/products-local/ab144-10-hash.jpg"},"ab144-12":{"sku":"AB144-12#","images":["./images/products-local/ab144-12-hash.jpg"]},"ab144-2":{"sku":"AB144-2#","image":"./images/products-local/ab144-2-hash.jpg"},"ab145-10":{"sku":"AB145-10#","image":"./images/products-local/ab145-10-hash.jpg"}});';
 
 describe("product image API", () => {
   const fetchMock = vi.fn();
@@ -77,6 +81,33 @@ describe("product image API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       images: { RK1: "https://romiku.com/images/products-local/RK1_main.jpg" },
+    });
+  });
+
+  it("uses a trailing-hash-normalized lookup key while retaining original SKU response keys", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("products-index.js"))
+        return new Response(hashSkuIndexSource);
+      if (url.includes("products-brushes.js"))
+        return new Response(hashSkuBrushesSource);
+      throw new Error(`unexpected URL ${url}`);
+    });
+
+    const response = await endpoint.fetch(
+      request("?skus=AB144-10%23,AB144-12%23,AB144-2%23,AB145-10%23"),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      images: {
+        "AB144-10#":
+          "https://romiku.com/images/products-local/ab144-10-hash.jpg",
+        "AB144-12#":
+          "https://romiku.com/images/products-local/ab144-12-hash.jpg",
+        "AB144-2#": "https://romiku.com/images/products-local/ab144-2-hash.jpg",
+        "AB145-10#":
+          "https://romiku.com/images/products-local/ab145-10-hash.jpg",
+      },
     });
   });
 });

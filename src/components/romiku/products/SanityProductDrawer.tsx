@@ -26,6 +26,7 @@ import { createSupabaseProductDrawerClient } from "./supabaseProductDrawerClient
 type DrawerClient = ProductDrawerClient & ProductDrawerReadClient;
 type Props = {
   product: SanityCatalogProduct | null;
+  resolvedImageUrl?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   refreshOverlay: (product: SanityCatalogProduct) => Promise<void>;
@@ -45,6 +46,7 @@ const fieldValue = (value: unknown) =>
 
 export const SanityProductDrawer = ({
   product,
+  resolvedImageUrl,
   open,
   onOpenChange,
   refreshOverlay,
@@ -58,6 +60,9 @@ export const SanityProductDrawer = ({
   const [selectedSupplier, setSelectedSupplier] =
     useState<DrawerSupplier | null>(null);
   const [message, setMessage] = useState("");
+  const [failedImageKey, setFailedImageKey] = useState<string>();
+  const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
+  const imageFailed = failedImageKey === imageKey;
 
   const loadInternal = useCallback(async () => {
     if (!product) return;
@@ -160,12 +165,15 @@ export const SanityProductDrawer = ({
           </SheetDescription>
         </SheetHeader>
         <section className="space-y-3 px-4" aria-label="Sanity 产品资料">
-          {product.images?.[0]?.url && (
+          {resolvedImageUrl && !imageFailed ? (
             <img
-              src={product.images[0].url}
-              alt={productText(product.name)}
+              src={resolvedImageUrl}
+              alt={`${product.sku ?? "未命名"} 产品图片`}
               className="h-32 w-32 object-cover"
+              onError={() => setFailedImageKey(imageKey)}
             />
+          ) : (
+            <p>暂无产品图片</p>
           )}
           <dl className="grid grid-cols-2 gap-2 text-sm">
             <dt>SKU</dt>

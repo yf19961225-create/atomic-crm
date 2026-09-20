@@ -8,8 +8,23 @@ const loadOverlay = vi.hoisted(() => vi.fn());
 const loadWebsiteImages = vi.hoisted(() => vi.fn());
 
 vi.mock("./SanityProductDrawer", () => ({
-  SanityProductDrawer: ({ open }: { open: boolean }) =>
-    open ? <p>产品 Drawer 已打开</p> : null,
+  SanityProductDrawer: ({
+    open,
+    resolvedImageUrl,
+  }: {
+    open: boolean;
+    resolvedImageUrl?: string;
+  }) =>
+    open ? (
+      <>
+        <p>产品 Drawer 已打开</p>
+        {resolvedImageUrl ? (
+          <img alt="Drawer 产品图片" src={resolvedImageUrl} />
+        ) : (
+          <p>Drawer 暂无产品图片</p>
+        )}
+      </>
+    ) : null,
 }));
 
 vi.mock("./sanityCatalogSource", () => ({
@@ -194,6 +209,30 @@ describe("SanityCatalogList", () => {
 
     await screen.getByRole("cell", { name: "RMK-100" }).click();
     await expect.element(screen.getByText("产品 Drawer 已打开")).toBeVisible();
+  });
+
+  it("passes the catalog-resolved image URL to the drawer without another image request", async () => {
+    const resolvedImageUrl =
+      "https://romiku.com/images/products-local/005_main1.jpg";
+    loadWebsiteImages.mockResolvedValue(
+      new Map([["sanity-1", resolvedImageUrl]]),
+    );
+    getPage.mockResolvedValue({
+      products: [
+        product({
+          sku: "005",
+          images: [{ url: "https://sanity.example.test/005.jpg" }],
+        }),
+      ],
+    });
+
+    const screen = await render(<SanityCatalogList />);
+
+    await screen.getByRole("cell", { name: "005", exact: true }).click();
+    await expect
+      .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
+      .toHaveAttribute("src", resolvedImageUrl);
+    expect(loadWebsiteImages).toHaveBeenCalledTimes(1);
   });
 
   it("uses the catalog image URL and replaces a failed image with a Chinese placeholder", async () => {
