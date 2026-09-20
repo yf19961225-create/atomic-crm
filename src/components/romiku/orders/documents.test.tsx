@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -15,6 +15,7 @@ const list = {
   sort: { field: "id", order: "ASC" as const },
   filter: {},
 };
+afterEach(() => vi.unstubAllGlobals());
 async function setup(path: string) {
   await page.viewport(1440, 1200);
   const header = {
@@ -88,6 +89,64 @@ it("shows the database receivable in the Orders list and opens its detail", asyn
   await expect
     .element(screen.getByRole("heading", { name: "SO-001" }))
     .toBeVisible();
+});
+it("writes the selected SUN5 Quote machine specification into the item snapshot textarea", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: string) => {
+      if (input.startsWith("/api/product-catalog"))
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              result: [
+                {
+                  _id: "product-sun5",
+                  sku: "SUN5",
+                  isPublished: true,
+                  name: { en: "Nail Lamp" },
+                  category: {
+                    slug: { current: "nail-lamps-plug-in" },
+                    parent: {
+                      slug: { current: "nail-lamps" },
+                      parent: { slug: { current: "nail-machines" } },
+                    },
+                  },
+                  parameters: [
+                    {
+                      label: { en: "Specifications" },
+                      value: { en: "48W 24LEDS" },
+                    },
+                  ],
+                  powerSupply: null,
+                },
+              ],
+            }),
+          ),
+        );
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            images: {},
+            powerSupplies: { SUN5: { en: "Plug-in" } },
+          }),
+        ),
+      );
+    }),
+  );
+  const { screen } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen
+    .getByLabelText("表格类型 / 单据语言", { exact: true })
+    .selectOptions("en");
+  const sku = screen
+    .getByLabelText("搜索 SKU 或产品", { exact: true })
+    .all()[0];
+  await sku.fill("SUN");
+  await expect.element(screen.getByText("SUN5", { exact: true })).toBeVisible();
+  await screen.getByText("SUN5", { exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("描述与规格", { exact: true }))
+    .toHaveValue("Specifications: 48W 24LEDS\nPower Supply: Plug-in");
 });
 it.each([
   ["/quotes/q", "PI", "PI-001"],

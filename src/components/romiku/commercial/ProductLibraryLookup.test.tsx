@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import {
@@ -8,6 +9,10 @@ import {
 } from "./ProductLibraryLookup";
 
 describe("Product Library item snapshots", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
   it("captures the selected catalog product and website image without master linkage writes", () => {
     const snapshot = createItemSnapshot(
       {
@@ -184,6 +189,190 @@ describe("Product Library item snapshots", () => {
     );
   });
 
+  it("recognizes SUN5 as a machine through its Sanity category hierarchy", () => {
+    expect(
+      shouldImportProductSpecifications("quote", {
+        id: "product-sun5",
+        sku: "SUN5",
+        skuSort: "SUN5",
+        isPublished: true,
+        category: {
+          slug: { current: "nail-lamps-plug-in" },
+          parent: {
+            slug: { current: "nail-lamps" },
+            parent: {
+              slug: { current: "nail-machines" },
+              title: { en: "Nail Machines", zh: "美甲机器" },
+            },
+          },
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("passes SUN5's final machine specification snapshot through the Quote selector", async () => {
+    const onSelected = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) => {
+        if (input.startsWith("/api/product-catalog"))
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                result: [
+                  {
+                    _id: "product-sun5",
+                    sku: "SUN5",
+                    isPublished: true,
+                    name: { en: "Nail Lamp" },
+                    category: {
+                      slug: { current: "nail-lamps-plug-in" },
+                      parent: {
+                        slug: { current: "nail-lamps" },
+                        parent: { slug: { current: "nail-machines" } },
+                      },
+                    },
+                    parameters: [
+                      {
+                        label: { en: "Specifications" },
+                        value: { en: "48W 24LEDS" },
+                      },
+                    ],
+                    powerSupply: null,
+                  },
+                ],
+              }),
+            ),
+          );
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              images: {},
+              powerSupplies: { SUN5: { en: "Plug-in" } },
+            }),
+          ),
+        );
+      }),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        specificationMode="machines-only"
+        documentLanguage="en"
+        onSelected={onSelected}
+        onManualSku={vi.fn()}
+      />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品", { exact: true }).fill("SUN");
+    await expect
+      .element(screen.getByText("SUN5", { exact: true }))
+      .toBeVisible();
+    await screen.getByText("SUN5", { exact: true }).click();
+    expect(onSelected.mock.calls[0]?.[0]?.product_snapshot?.specification).toBe(
+      "Specifications: 48W 24LEDS\nPower Supply: Plug-in",
+    );
+  });
+
+  it.each([
+    [
+      "101",
+      "35000RPM",
+      { zh: "蓄电", en: "Rechargeable", es: "Recargable" },
+      "参数：35000RPM\n供电方式：蓄电",
+      "Specifications: 35000RPM\nPower Supply: Rechargeable",
+      "Especificaciones: 35000RPM\nFuente de alimentación: Recargable",
+    ],
+    [
+      "2000PLUS",
+      "45000RPM",
+      { zh: "插电", en: "Plug-in", es: "Con cable" },
+      "参数：45000RPM\n供电方式：插电",
+      "Specifications: 45000RPM\nPower Supply: Plug-in",
+      "Especificaciones: 45000RPM\nFuente de alimentación: Con cable",
+    ],
+  ])(
+    "formats real machine SKU %s in zh, en and es from its CMS snapshot",
+    (sku, value, powerSupply, zh, en, es) => {
+      const product: SanityCatalogProduct = {
+        id: `product-${sku}`,
+        sku,
+        skuSort: sku,
+        isPublished: true,
+        category: { parent: { title: { en: "Nail Machines" } } },
+        parameters: [
+          {
+            label: {
+              zh: "参数",
+              en: "Specifications",
+              es: "Especificaciones",
+            },
+            value: { zh: value, en: value, es: value },
+          },
+        ],
+        powerSupply,
+      };
+      expect(
+        createItemSnapshot(product, undefined, {
+          includeSpecification: true,
+          documentLanguage: "zh",
+        }).product_snapshot.specification,
+      ).toBe(zh);
+      expect(
+        createItemSnapshot(product, undefined, {
+          includeSpecification: true,
+          documentLanguage: "en",
+        }).product_snapshot.specification,
+      ).toBe(en);
+      expect(
+        createItemSnapshot(product, undefined, {
+          includeSpecification: true,
+          documentLanguage: "es",
+        }).product_snapshot.specification,
+      ).toBe(es);
+    },
+  );
+
+  it("keeps keyboard navigation at the ends of the full result set", async () => {
+    const onSelected = vi.fn();
+    const scrollIntoView = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(() => undefined);
+    const results = Array.from({ length: 12 }, (_, index) => ({
+      _id: `sun-${index + 1}`,
+      sku: `SUN-${index + 1}`,
+      isPublished: true,
+      name: { en: `Sun ${index + 1}` },
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? { result: results }
+                : { images: {}, powerSupplies: {} },
+            ),
+          ),
+        ),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup onSelected={onSelected} onManualSku={vi.fn()} />,
+    );
+    const input = screen.getByLabelText("搜索 SKU 或产品", { exact: true });
+    await input.fill("SUN");
+    await expect
+      .element(screen.getByText("SUN-12", { exact: true }))
+      .toBeVisible();
+    await input.click();
+    await userEvent.keyboard("{ArrowUp}");
+    for (let index = 0; index < 20; index += 1)
+      await userEvent.keyboard("{ArrowDown}");
+    expect(scrollIntoView).toHaveBeenCalled();
+    await userEvent.keyboard("{Enter}");
+    expect(onSelected.mock.calls[0]?.[0]?.sku).toBe("SUN-12");
+  });
+
   it("does not query the catalog merely to display an existing SKU", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
@@ -196,6 +385,5 @@ describe("Product Library item snapshots", () => {
     );
     await screen.getByLabelText("搜索 SKU 或产品", { exact: true }).click();
     expect(fetch).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
   });
 });

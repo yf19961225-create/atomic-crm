@@ -44,17 +44,20 @@ export function shouldImportProductSpecifications(
   product: SanityCatalogProduct,
 ) {
   if (kind !== "quote") return false;
-  const category = [
-    product.category?._id,
-    product.category?.slug?.current,
-    product.category?.title?.zh,
-    product.category?.title?.en,
-    product.category?.title?.es,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return /machine|设备|机器/.test(category);
+  const categoryParts: string[] = [];
+  let category = product.category;
+  while (category) {
+    categoryParts.push(
+      category._id ?? "",
+      category.slug?.current ?? "",
+      category.title?.zh ?? "",
+      category.title?.en ?? "",
+      category.title?.es ?? "",
+    );
+    category = category.parent;
+  }
+  const categoryText = categoryParts.join(" ").toLowerCase();
+  return /machine|设备|机器/.test(categoryText);
 }
 
 export function createItemSnapshot(
@@ -204,12 +207,10 @@ export function ProductLibraryLookup({
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" && products.length) {
             event.preventDefault();
-            setActiveIndex((index) => (index + 1) % products.length);
+            setActiveIndex((index) => Math.min(index + 1, products.length - 1));
           } else if (event.key === "ArrowUp" && products.length) {
             event.preventDefault();
-            setActiveIndex(
-              (index) => (index - 1 + products.length) % products.length,
-            );
+            setActiveIndex((index) => Math.max(index - 1, 0));
           } else if (event.key === "Enter" && activeIndex >= 0) {
             event.preventDefault();
             select(products[activeIndex]);
