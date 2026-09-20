@@ -11,12 +11,6 @@ const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
   en: ["en", "zh"],
   es: ["es", "en", "zh"],
 };
-const powerSupplyLabels: Record<DocumentLanguage, string> = {
-  zh: "供电方式",
-  en: "Power Supply",
-  es: "Fuente de alimentación",
-};
-
 function localizedText(value: unknown, language: DocumentLanguage) {
   if (typeof value === "string" || typeof value === "number")
     return String(value);
@@ -70,27 +64,16 @@ export function createItemSnapshot(
   } = {},
 ) {
   const language = options.documentLanguage ?? "zh";
-  const separator = language === "zh" ? "：" : ": ";
   const specifications = (product.parameters ?? []).find(
     isSpecificationsParameter,
   );
   const specification = [
-    specifications &&
-    localizedText(specifications.label, language) &&
-    localizedText(specifications.value, language)
-      ? `${localizedText(specifications.label, language)}${separator}${localizedText(specifications.value, language)}`
-      : "",
-    (() => {
-      const powerSupply =
-        localizedText(product.powerSupply, language) ||
-        localizedText(options.localizedPowerSupply, language);
-      return powerSupply
-        ? `${powerSupplyLabels[language]}${separator}${powerSupply}`
-        : "";
-    })(),
+    specifications ? localizedText(specifications.value, language) : "",
+    localizedText(product.powerSupply, language) ||
+      localizedText(options.localizedPowerSupply, language),
   ]
     .filter(Boolean)
-    .join("\n");
+    .join(" ");
   return {
     sanity_product_id: product.id,
     sku: product.sku ?? "",

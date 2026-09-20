@@ -146,7 +146,7 @@ it("writes the selected SUN5 Quote machine specification into the item snapshot 
   await screen.getByText("SUN5", { exact: true }).click();
   await expect
     .element(screen.getByLabelText("描述与规格", { exact: true }))
-    .toHaveValue("Specifications: 48W 24LEDS\nPower Supply: Plug-in");
+    .toHaveValue("48W 24LEDS Plug-in");
 });
 it.each([
   ["/quotes/q", "PI", "PI-001"],

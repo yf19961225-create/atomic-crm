@@ -35,7 +35,7 @@ describe("Product Library item snapshots", () => {
         name: "中文名",
         image_url: "https://romiku.com/images/products-local/005_main1.jpg",
         moq: 120,
-        specification: "参数：10cm",
+        specification: "10cm",
       },
       packing_snapshot: { description: "12/ctn", qty_per_carton: 24 },
     });
@@ -87,7 +87,7 @@ describe("Product Library item snapshots", () => {
       }).product_snapshot,
     ).toMatchObject({
       name: "Nail Lamp",
-      specification: "Specifications: 30000 RPM\nPower Supply: Rechargeable",
+      specification: "30000 RPM Rechargeable",
     });
     expect(
       createItemSnapshot(machine, undefined, {
@@ -95,8 +95,7 @@ describe("Product Library item snapshots", () => {
       }).product_snapshot,
     ).toMatchObject({
       name: "Lámpara de uñas",
-      specification:
-        "Especificaciones: 30000 RPM\nFuente de alimentación: Recargable",
+      specification: "30000 RPM Recargable",
     });
   });
 
@@ -118,7 +117,7 @@ describe("Product Library item snapshots", () => {
     );
     expect(snapshot.product_snapshot).toMatchObject({
       name: "Drill",
-      specification: "Specifications: 30000 RPM",
+      specification: "30000 RPM",
     });
     expect(snapshot.product_snapshot.specification).not.toContain(
       "[object Object]",
@@ -149,21 +148,21 @@ describe("Product Library item snapshots", () => {
         documentLanguage: "zh",
         localizedPowerSupply,
       }).product_snapshot.specification,
-    ).toBe("参数：48W 24LEDS\n供电方式：插电");
+    ).toBe("48W 24LEDS 插电");
     expect(
       createItemSnapshot(sun5, undefined, {
         includeSpecification: true,
         documentLanguage: "en",
         localizedPowerSupply,
       }).product_snapshot.specification,
-    ).toBe("Specifications: 48W 24LEDS\nPower Supply: Plug-in");
+    ).toBe("48W 24LEDS Plug-in");
     expect(
       createItemSnapshot(sun5, undefined, {
         includeSpecification: true,
         documentLanguage: "es",
         localizedPowerSupply,
       }).product_snapshot.specification,
-    ).toBe("Especificaciones: 48W 24LEDS\nFuente de alimentación: Con cable");
+    ).toBe("48W 24LEDS Con cable");
   });
 
   it("prefers Sanity powerSupply over the website fallback", () => {
@@ -184,9 +183,23 @@ describe("Product Library item snapshots", () => {
         localizedPowerSupply: { en: "Plug-in" },
       },
     );
-    expect(snapshot.product_snapshot.specification).toBe(
-      "Specifications: 48W\nPower Supply: Battery",
+    expect(snapshot.product_snapshot.specification).toBe("48W Battery");
+  });
+
+  it("keeps the sole available machine value without a label or separator", () => {
+    const snapshot = createItemSnapshot(
+      {
+        id: "machine-power-only",
+        sku: "M-POWER",
+        skuSort: "M-POWER",
+        isPublished: true,
+        category: { title: { en: "Nail Machines" } },
+        powerSupply: { en: "Plug-in" },
+      },
+      undefined,
+      { includeSpecification: true, documentLanguage: "en" },
     );
+    expect(snapshot.product_snapshot.specification).toBe("Plug-in");
   });
 
   it("recognizes SUN5 as a machine through its Sanity category hierarchy", () => {
@@ -268,7 +281,7 @@ describe("Product Library item snapshots", () => {
       .toBeVisible();
     await screen.getByText("SUN5", { exact: true }).click();
     expect(onSelected.mock.calls[0]?.[0]?.product_snapshot?.specification).toBe(
-      "Specifications: 48W 24LEDS\nPower Supply: Plug-in",
+      "48W 24LEDS Plug-in",
     );
   });
 
@@ -277,17 +290,17 @@ describe("Product Library item snapshots", () => {
       "101",
       "35000RPM",
       { zh: "蓄电", en: "Rechargeable", es: "Recargable" },
-      "参数：35000RPM\n供电方式：蓄电",
-      "Specifications: 35000RPM\nPower Supply: Rechargeable",
-      "Especificaciones: 35000RPM\nFuente de alimentación: Recargable",
+      "35000RPM 蓄电",
+      "35000RPM Rechargeable",
+      "35000RPM Recargable",
     ],
     [
       "2000PLUS",
       "45000RPM",
       { zh: "插电", en: "Plug-in", es: "Con cable" },
-      "参数：45000RPM\n供电方式：插电",
-      "Specifications: 45000RPM\nPower Supply: Plug-in",
-      "Especificaciones: 45000RPM\nFuente de alimentación: Con cable",
+      "45000RPM 插电",
+      "45000RPM Plug-in",
+      "45000RPM Con cable",
     ],
   ])(
     "formats real machine SKU %s in zh, en and es from its CMS snapshot",
