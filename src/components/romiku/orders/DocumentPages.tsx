@@ -11,6 +11,7 @@ import {
 } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
+import { DepositBalanceSummary } from "../commercial/DepositBalanceSummary";
 import { DocumentFinancialSummary } from "../commercial/DocumentFinancialSummary";
 import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
 import {
@@ -513,6 +514,15 @@ function DocumentEditor({
         <DocumentFinancialSummary
           editable={session.editing}
           items={session.items}
+          values={session.values}
+          onChange={session.setValues}
+        />
+      )}
+      {!items.error && !items.isPending && (
+        <DepositBalanceSummary
+          editable={session.editing}
+          total={totals.total}
+          currency={String(session.values.currency || "USD")}
           values={session.values}
           onChange={session.setValues}
         />
