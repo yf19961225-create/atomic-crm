@@ -83,7 +83,12 @@ describe("Quote snapshot boundaries", () => {
         document_number: "FORGED",
         total: 12,
       }),
-    ).toEqual({ status: "draft", currency: "USD", other_expenses: 15 });
+    ).toEqual({
+      status: "draft",
+      currency: "USD",
+      other_expenses: 15,
+      formal_customer_id: "created",
+    });
     expect(
       quoteItemWrite({
         sku: "A",

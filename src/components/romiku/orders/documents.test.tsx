@@ -63,6 +63,7 @@ async function setup(path: string) {
     ],
     romiku_payments: [],
     romiku_formal_customers: [],
+    romiku_formal_customer_directory: [],
     sales: [],
   });
   rpc.mockReset().mockImplementation((_name, args) =>

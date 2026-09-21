@@ -88,6 +88,7 @@ it("permits independent commercial and delivery snapshots while stripping lineag
     currency: "EUR",
     deposit_percent: 40,
     expected_delivery_at: null,
+    formal_customer_id: "new",
     counterparty_snapshot: { name: "Independent" },
   });
   expect(

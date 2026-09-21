@@ -136,3 +136,39 @@ test("parallel Quote creation assigns unique Shanghai daily numbers", async () =
     );
   }
 });
+
+test("parallel Production Orders derive unique per-Order P01/P02/P03 numbers", async () => {
+  const order = randomUUID();
+  const supplier = randomUUID();
+  const productionIds = Array.from({ length: 3 }, () => randomUUID());
+  try {
+    const orderNumber = await succeeds(
+      `insert into public.romiku_orders(id) values ('${order}') returning document_number;`,
+    );
+    await succeeds(
+      `insert into public.romiku_suppliers(id,name) values ('${supplier}','Concurrent factory');`,
+    );
+    const numbers = await Promise.all(
+      productionIds.map((id) =>
+        succeeds(
+          `insert into public.romiku_production_orders(id,order_id,supplier_id) values ('${id}','${order}','${supplier}') returning document_number;`,
+        ),
+      ),
+    );
+    assert.deepEqual(
+      new Set(numbers),
+      new Set([
+        `${orderNumber}-P01`,
+        `${orderNumber}-P02`,
+        `${orderNumber}-P03`,
+      ]),
+    );
+  } finally {
+    await succeeds(
+      `delete from public.romiku_production_orders where id in (${productionIds.map((id) => "'" + id + "'").join(",")});
+       delete from public.romiku_production_order_counters where order_id='${order}';
+       delete from public.romiku_suppliers where id='${supplier}';
+       delete from public.romiku_orders where id='${order}';`,
+    );
+  }
+});

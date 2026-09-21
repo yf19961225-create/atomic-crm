@@ -69,6 +69,7 @@ const setup = async (path: string) => {
     ],
     romiku_website_inquiry_followups: [],
     romiku_formal_customers: [],
+    romiku_formal_customer_directory: [],
     romiku_outbound_companies: [],
     sales: [],
   });
@@ -107,8 +108,6 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   ).data;
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
-  const numbers = screen.getByRole("spinbutton");
-  await numbers.nth(4).fill("240");
   expect(
     (await provider.getOne("romiku_quote_items", { id: "qi" })).data.quantity,
   ).toBe(100);
@@ -124,13 +123,6 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     .fill("25");
   await screen.getByLabelText("付款条款", { exact: true }).fill("50% deposit");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
-  await expect
-    .poll(
-      async () =>
-        (await provider.getOne("romiku_quote_items", { id: "qi" })).data
-          .quantity,
-    )
-    .toBe(240);
   expect(
     (await provider.getOne("romiku_quote_items", { id: "qi" })).data,
   ).toMatchObject({
@@ -141,9 +133,6 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
     },
     packing_snapshot: { description: "Carton" },
   });
-  await expect
-    .element(screen.getByText("合计：USD 515.00", { exact: true }))
-    .toBeVisible();
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   await screen.getByText("⋯", { exact: true }).click();
@@ -173,13 +162,6 @@ it("creates a direct Quote and supports adding its own items", async () => {
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   await screen.getByRole("button", { name: "新增产品行" }).click();
-  const numbers = screen.getByRole("spinbutton");
-  await numbers.nth(4).fill("10");
-  await numbers.nth(5).fill("3.5");
-  await screen.getByText("汇总", { exact: true }).click();
-  await expect
-    .element(screen.getByText("合计：USD 35.00", { exact: true }))
-    .toBeVisible();
   expect(
     (await provider.getList("romiku_formal_customers", list)).data,
   ).toEqual([]);

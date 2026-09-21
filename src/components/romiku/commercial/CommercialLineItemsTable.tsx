@@ -50,6 +50,7 @@ export function CommercialLineItemsTable({
   /** When supplied, edits stay in the document session until its Save. */
   onItemsChange?: (items: CommercialItem[]) => void;
 }) {
+  const compactQuote = kind === "quote";
   const provider = useDataProvider();
   const [showCustomerCode, setShowCustomerCode] = useState(
     items.some((item) => Boolean(item.customer_code)),
@@ -257,10 +258,9 @@ export function CommercialLineItemsTable({
                     ...(showCustomerCode ? ["客户货号"] : []),
                     "描述与规格",
                     "Qty/Ctn",
-                    "箱数",
-                    "总数量",
+                    ...(!compactQuote ? ["箱数", "总数量"] : []),
                     "单价",
-                    "金额",
+                    ...(!compactQuote ? ["金额"] : []),
                     "操作",
                   ].map((header) => (
                     <th className="p-2 text-left" key={header}>
@@ -463,64 +463,68 @@ export function CommercialLineItemsTable({
                               }}
                             />
                           </td>
-                          <td>
-                            <input
-                              className="w-16 rounded border p-1"
-                              type="number"
-                              value={String(packing.cartons ?? "")}
-                              disabled={!editable}
-                              onChange={(event) => {
-                                if (onItemsChange)
-                                  void updatePacking(
-                                    "cartons",
-                                    event.target.value,
-                                  );
-                              }}
-                              onBlur={(event) => {
-                                if (!onItemsChange)
-                                  void updatePacking(
-                                    "cartons",
-                                    event.target.value,
-                                  );
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter")
-                                  event.preventDefault();
-                              }}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="w-20 rounded border p-1"
-                              type="number"
-                              value={String(item.quantity)}
-                              disabled={!editable}
-                              onChange={(event) => {
-                                if (onItemsChange)
-                                  void save(item, {
-                                    quantity: Number(event.target.value),
-                                    packing_snapshot: {
-                                      ...packing,
-                                      quantity_manual: true,
-                                    },
-                                  });
-                              }}
-                              onBlur={(event) => {
-                                if (!onItemsChange)
-                                  void save(item, {
-                                    quantity: Number(event.target.value),
-                                    packing_snapshot: {
-                                      ...packing,
-                                      quantity_manual: true,
-                                    },
-                                  });
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter")
-                                  event.preventDefault();
-                              }}
-                            />
-                          </td>
+                          {!compactQuote && (
+                            <td>
+                              <input
+                                className="w-16 rounded border p-1"
+                                type="number"
+                                value={String(packing.cartons ?? "")}
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (onItemsChange)
+                                    void updatePacking(
+                                      "cartons",
+                                      event.target.value,
+                                    );
+                                }}
+                                onBlur={(event) => {
+                                  if (!onItemsChange)
+                                    void updatePacking(
+                                      "cartons",
+                                      event.target.value,
+                                    );
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter")
+                                    event.preventDefault();
+                                }}
+                              />
+                            </td>
+                          )}
+                          {!compactQuote && (
+                            <td>
+                              <input
+                                className="w-20 rounded border p-1"
+                                type="number"
+                                value={String(item.quantity)}
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (onItemsChange)
+                                    void save(item, {
+                                      quantity: Number(event.target.value),
+                                      packing_snapshot: {
+                                        ...packing,
+                                        quantity_manual: true,
+                                      },
+                                    });
+                                }}
+                                onBlur={(event) => {
+                                  if (!onItemsChange)
+                                    void save(item, {
+                                      quantity: Number(event.target.value),
+                                      packing_snapshot: {
+                                        ...packing,
+                                        quantity_manual: true,
+                                      },
+                                    });
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter")
+                                    event.preventDefault();
+                                }}
+                              />
+                            </td>
+                          )}
                           <td>
                             <input
                               className="w-20 rounded border p-1"
@@ -554,12 +558,15 @@ export function CommercialLineItemsTable({
                               }}
                             />
                           </td>
-                          <td>
-                            {currency}{" "}
-                            {lineAmount(item.quantity, item.unit_price).toFixed(
-                              2,
-                            )}
-                          </td>
+                          {!compactQuote && (
+                            <td>
+                              {currency}{" "}
+                              {lineAmount(
+                                item.quantity,
+                                item.unit_price,
+                              ).toFixed(2)}
+                            </td>
+                          )}
                           <td>
                             {editable && (
                               <details>
@@ -636,7 +643,17 @@ export function CommercialLineItemsTable({
                           }
                         />
                       </td>
-                      <td colSpan={showCustomerCode ? 10 : 9}>
+                      <td
+                        colSpan={
+                          compactQuote
+                            ? showCustomerCode
+                              ? 7
+                              : 6
+                            : showCustomerCode
+                              ? 10
+                              : 9
+                        }
+                      >
                         <input
                           aria-label={`草稿 SKU ${draftIndex + 1}`}
                           className="w-full bg-transparent p-1 text-muted-foreground"
@@ -654,18 +671,20 @@ export function CommercialLineItemsTable({
                   ))}
                 {provided.placeholder}
               </tbody>
-              <tfoot>
-                <tr className="border-t font-semibold">
-                  <td colSpan={showCustomerCode ? 8 : 7}>汇总</td>
-                  <td>{totals.cartons}</td>
-                  <td></td>
-                  <td>{totals.quantity}</td>
-                  <td></td>
-                  <td>
-                    {currency} {totals.subtotal.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
+              {!compactQuote && (
+                <tfoot>
+                  <tr className="border-t font-semibold">
+                    <td colSpan={showCustomerCode ? 8 : 7}>汇总</td>
+                    <td>{totals.cartons}</td>
+                    <td></td>
+                    <td>{totals.quantity}</td>
+                    <td></td>
+                    <td>
+                      {currency} {totals.subtotal.toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           )}
         </Droppable>
