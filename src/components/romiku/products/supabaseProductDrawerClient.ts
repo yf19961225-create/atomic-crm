@@ -75,10 +75,18 @@ export const createSupabaseProductDrawerClient = (): ProductDrawerClient &
         )
         .or(productFilter(product)),
     ).then((rows) =>
-      (rows ?? []).map((row) => ({
-        ...row,
-        supplier_name: row.romiku_suppliers?.[0]?.name ?? null,
-      })),
+      (rows ?? []).map((row) => {
+        const relation = row.romiku_suppliers as
+          | { name?: string | null }
+          | Array<{ name?: string | null }>
+          | null;
+        return {
+          ...row,
+          supplier_name: Array.isArray(relation)
+            ? (relation[0]?.name ?? null)
+            : (relation?.name ?? null),
+        };
+      }),
     ),
   getCosts: async (productSupplierIds) => {
     if (!productSupplierIds.length) return [];
