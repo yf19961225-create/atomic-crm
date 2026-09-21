@@ -16,6 +16,7 @@ const customerFields: HeaderField[] = [
   { key: "counterparty_snapshot.email", label: "Email" },
 ];
 const documentFields: HeaderField[] = [
+  { key: "document_number", label: "单据编号" },
   { key: "document_date", label: "单据日期" },
   { key: "due_at", label: "计划收款日期" },
   { key: "document_language", label: "表格类型 / 单据语言" },

@@ -140,6 +140,8 @@ alter table public.romiku_orders enable row level security;
 create policy romiku_read on public.romiku_orders for select to authenticated using (true);
 create policy romiku_insert on public.romiku_orders for insert to authenticated with check (true);
 create policy romiku_update on public.romiku_orders for update to authenticated using (true) with check (true);
+alter table public.romiku_document_daily_counters enable row level security;
+alter table public.romiku_production_order_counters enable row level security;
 alter table public.romiku_order_items enable row level security;
 create policy romiku_read on public.romiku_order_items for select to authenticated using (true);
 create policy romiku_insert on public.romiku_order_items for insert to authenticated with check (true);

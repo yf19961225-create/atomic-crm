@@ -52,6 +52,7 @@ describe("product image API", () => {
         "006": "https://romiku.com/images/products-local/006_main1.jpg",
         T1: "https://romiku.com/images/products-local/T1_main.jpg",
       },
+      powerSupplies: {},
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock.mock.calls[1][0]).toContain("products-accessories.js");
@@ -81,6 +82,7 @@ describe("product image API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       images: { RK1: "https://romiku.com/images/products-local/RK1_main.jpg" },
+      powerSupplies: {},
     });
   });
 
@@ -108,6 +110,7 @@ describe("product image API", () => {
         "AB145-10#":
           "https://romiku.com/images/products-local/ab145-10-hash.jpg",
       },
+      powerSupplies: {},
     });
   });
 });

@@ -535,6 +535,18 @@ create table public.romiku_orders (
     updated_by uuid default auth.uid() references auth.users(id)
 );
 
+create table public.romiku_document_daily_counters (
+    document_kind text not null check (document_kind in ('quote', 'pi', 'order')),
+    business_date date not null,
+    last_value integer not null check (last_value > 0),
+    primary key (document_kind, business_date)
+);
+
+create table public.romiku_production_order_counters (
+    order_id uuid primary key references public.romiku_orders(id),
+    last_value integer not null check (last_value > 0)
+);
+
 create table public.romiku_order_items (
     id uuid primary key default gen_random_uuid(),
     order_id uuid not null references public.romiku_orders(id),

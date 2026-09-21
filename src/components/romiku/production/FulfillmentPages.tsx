@@ -153,6 +153,7 @@ export function FulfillmentDetail({ kind }: { kind: FulfillmentKind }) {
   );
 }
 const productionFields: Field[] = [
+  { key: "document_number", label: "单据编号", required: true },
   { key: "name", label: "生产名称" },
   {
     key: "status",

@@ -109,6 +109,7 @@ export function quoteHeaderWrite(values: Values) {
     "bank_snapshot",
     "terms_snapshot",
     "currency",
+    "document_number",
     "document_language",
     "document_date",
     "valid_until",
@@ -129,6 +130,10 @@ export function quoteHeaderWrite(values: Values) {
     write.currency = String(write.currency).trim().toUpperCase();
     if (!/^[A-Z]{3}$/.test(String(write.currency)))
       throw new Error("请使用三位货币代码。");
+  }
+  if (write.document_number !== undefined) {
+    write.document_number = String(write.document_number).trim();
+    if (!write.document_number) throw new Error("单据编号不能为空。");
   }
   if (write.document_language !== undefined) {
     write.document_language = String(write.document_language).trim();

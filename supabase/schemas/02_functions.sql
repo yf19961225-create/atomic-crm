@@ -465,8 +465,25 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION "public"."romiku_next_daily_document_number"("kind" "text", "prefix" "text") RETURNS "text"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  local_date date := (now() at time zone 'Asia/Shanghai')::date;
+  next_value integer;
+BEGIN
+  INSERT INTO public.romiku_document_daily_counters(document_kind,business_date,last_value)
+  VALUES (kind,local_date,1)
+  ON CONFLICT (document_kind,business_date)
+  DO UPDATE SET last_value=public.romiku_document_daily_counters.last_value+1
+  RETURNING last_value INTO next_value;
+  RETURN prefix || to_char(local_date,'YYMMDD') || lpad(next_value::text,3,'0');
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION "public"."romiku_assign_number"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+    LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 DECLARE
@@ -475,20 +492,56 @@ DECLARE
   sequence_value text;
 BEGIN
   IF TG_OP = 'UPDATE' THEN
-    IF NEW.document_number IS DISTINCT FROM OLD.document_number THEN
-      RAISE EXCEPTION 'Document number is immutable' USING ERRCODE = '23514';
+    NEW.document_number := btrim(coalesce(NEW.document_number,''));
+    IF NEW.document_number = '' THEN
+      RAISE EXCEPTION 'Document number is required' USING ERRCODE = '23514';
     END IF;
     RETURN NEW;
   END IF;
   IF NEW.document_number IS NOT NULL THEN
     RAISE EXCEPTION 'Document number is server generated' USING ERRCODE = '23514';
   END IF;
-  SELECT r.prefix, r.min_digits INTO prefix_value, digits
-    FROM public.romiku_numbering_rules r WHERE r.document_kind = TG_ARGV[0];
-  prefix_value := coalesce(prefix_value, TG_ARGV[1]);
-  digits := coalesce(digits, 6);
-  sequence_value := nextval('public.romiku_document_number_seq')::text;
-  NEW.document_number := prefix_value || '-' || lpad(sequence_value, greatest(digits, length(sequence_value)), '0');
+  IF TG_ARGV[0] = 'quote' THEN
+    NEW.document_number := public.romiku_next_daily_document_number('quote','RFQ');
+  ELSIF TG_ARGV[0] = 'pi' THEN
+    NEW.document_number := public.romiku_next_daily_document_number('pi','RPI');
+  ELSIF TG_ARGV[0] = 'order' THEN
+    NEW.document_number := public.romiku_next_daily_document_number('order','RCI');
+  ELSE
+    SELECT r.prefix, r.min_digits INTO prefix_value, digits
+      FROM public.romiku_numbering_rules r WHERE r.document_kind = TG_ARGV[0];
+    prefix_value := coalesce(prefix_value, TG_ARGV[1]);
+    digits := coalesce(digits, 6);
+    sequence_value := nextval('public.romiku_document_number_seq')::text;
+    NEW.document_number := prefix_value || '-' || lpad(sequence_value, greatest(digits, length(sequence_value)), '0');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."romiku_assign_production_number"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  order_number text;
+  next_value integer;
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    NEW.document_number := btrim(coalesce(NEW.document_number,''));
+    IF NEW.document_number = '' THEN
+      RAISE EXCEPTION 'Document number is required' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF NEW.document_number IS NOT NULL THEN
+    RAISE EXCEPTION 'Document number is server generated' USING ERRCODE = '23514';
+  END IF;
+  SELECT document_number INTO STRICT order_number FROM public.romiku_orders WHERE id=NEW.order_id FOR KEY SHARE;
+  INSERT INTO public.romiku_production_order_counters(order_id,last_value) VALUES (NEW.order_id,1)
+  ON CONFLICT (order_id) DO UPDATE SET last_value=public.romiku_production_order_counters.last_value+1
+  RETURNING last_value INTO next_value;
+  NEW.document_number := order_number || '-P' || lpad(next_value::text,2,'0');
   RETURN NEW;
 END;
 $$;

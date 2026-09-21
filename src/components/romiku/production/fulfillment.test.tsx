@@ -182,3 +182,26 @@ it("edits a Production Order copy while retaining its single supplier and Order 
       .supplier_id,
   ).toBe("s1");
 });
+
+it("saves a manual Production Order number without changing its source Order", async () => {
+  const { screen, provider } = await setup("/production/new?order=o");
+  await screen.getByLabelText("选择 A", { exact: true }).click();
+  await screen.getByLabelText("供应商 A", { exact: true }).selectOptions("s1");
+  await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
+  await screen.getByRole("link", { name: "Factory One", exact: true }).click();
+  await screen.getByText("生产单详情", { exact: true }).click();
+  await screen
+    .getByLabelText("单据编号", { exact: true })
+    .fill("RCI260920001-P01");
+  await screen.getByRole("button", { name: "保存生产单", exact: true }).click();
+  await expect
+    .poll(
+      async () =>
+        (await readRelated(provider, "romiku_production_orders", {}))[0]
+          .document_number,
+    )
+    .toBe("RCI260920001-P01");
+  expect(
+    (await provider.getOne("romiku_orders", { id: "o" })).data.document_number,
+  ).toBe("SO-001");
+});

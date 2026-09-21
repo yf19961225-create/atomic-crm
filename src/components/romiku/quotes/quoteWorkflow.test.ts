@@ -72,7 +72,7 @@ describe("Quote snapshot boundaries", () => {
       "来源",
     );
   });
-  it("allows commercial edits while stripping source, identity, audit and calculated fields", () => {
+  it("allows manual document-number edits while stripping source, audit and calculated fields", () => {
     expect(
       quoteHeaderWrite({
         status: "draft",
@@ -80,7 +80,7 @@ describe("Quote snapshot boundaries", () => {
         other_expenses: "15",
         source_website_inquiry_id: "replacement",
         formal_customer_id: "created",
-        document_number: "FORGED",
+        document_number: " RFQ260920001 ",
         total: 12,
       }),
     ).toEqual({
@@ -88,6 +88,7 @@ describe("Quote snapshot boundaries", () => {
       currency: "USD",
       other_expenses: 15,
       formal_customer_id: "created",
+      document_number: "RFQ260920001",
     });
     expect(
       quoteItemWrite({
@@ -115,6 +116,7 @@ describe("Quote snapshot boundaries", () => {
       quoteItemWrite({ sku: "A", quantity: 0, unit_price: 2 }),
     ).toThrow("数量");
     expect(() => quoteHeaderWrite({ other_expenses: -1 })).toThrow("非负数");
+    expect(() => quoteHeaderWrite({ document_number: "   " })).toThrow("编号");
     expect(() =>
       quoteItemWrite({ sku: "A", quantity: 1, unit_price: Infinity }),
     ).toThrow();

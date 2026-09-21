@@ -137,6 +137,31 @@ test("parallel Quote creation assigns unique Shanghai daily numbers", async () =
   }
 });
 
+for (const [table, prefix] of [
+  ["romiku_pis", "RPI"],
+  ["romiku_orders", "RCI"],
+]) {
+  test(`parallel ${table} creation assigns unique Shanghai daily numbers`, async () => {
+    const ids = Array.from({ length: 12 }, () => randomUUID());
+    try {
+      const numbers = await Promise.all(
+        ids.map((id) =>
+          succeeds(
+            `insert into public.${table}(id) values ('${id}') returning document_number;`,
+          ),
+        ),
+      );
+      assert.equal(new Set(numbers).size, 12);
+      for (const number of numbers)
+        assert.match(number, new RegExp(`^${prefix}\\d{6}\\d{3,}$`));
+    } finally {
+      await succeeds(
+        `delete from public.${table} where id in (${ids.map((id) => "'" + id + "'").join(",")});`,
+      );
+    }
+  });
+}
+
 test("parallel Production Orders derive unique per-Order P01/P02/P03 numbers", async () => {
   const order = randomUUID();
   const supplier = randomUUID();

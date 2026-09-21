@@ -3,6 +3,10 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
+-- The allocator is persistent by design; isolate today's expected sequence in
+-- this rollback-only test transaction without changing the local database.
+delete from romiku_document_daily_counters
+where business_date = (now() at time zone 'Asia/Shanghai')::date;
 select no_plan();
 select has_table('public', 'romiku_website_inquiries', 'ROMIKU inbound is independent');
 select has_table('public', 'romiku_outbound_companies', 'ROMIKU outbound is independent');
@@ -182,6 +186,25 @@ insert into romiku_quotes(notes) values ('numbering configuration test');
 select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','manual Quote number does not advance the automatic counter');
 update romiku_quotes set document_date='2000-01-01' where notes='numbering configuration test';
 select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','changing document date does not regenerate the number');
+insert into romiku_formal_customers(id,name,country,logistics) values
+('70000000-0000-0000-0000-000000000001','Formal buyer','Spain','{"delivery_address":"Madrid"}');
+insert into romiku_customer_contacts(formal_customer_id,name,email,is_primary) values
+('70000000-0000-0000-0000-000000000001','Ana Buyer','ana@example.test',true);
+select is((select name || ':' || country || ':' || contact || ':' || email from romiku_formal_customer_directory where search_text ilike '%ana buyer%'),'Formal buyer:Spain:Ana Buyer:ana@example.test','authenticated directory exposes company, country and primary contact');
+insert into romiku_quotes(id,formal_customer_id,counterparty_snapshot,document_language) values
+('71000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','{"name":"Formal buyer","country":"Spain","contact":"Ana Buyer"}','en');
+insert into romiku_pis(id,formal_customer_id,counterparty_snapshot,document_language) values
+('72000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','{"name":"Formal buyer","country":"Spain","contact":"Ana Buyer"}','es');
+insert into romiku_orders(id,formal_customer_id,counterparty_snapshot,document_language) values
+('73000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','{"name":"Formal buyer","country":"Spain","contact":"Ana Buyer"}','zh');
+update romiku_formal_customers set name='Changed later' where id='70000000-0000-0000-0000-000000000001';
+select is((select counterparty_snapshot->>'name' from romiku_quotes where id='71000000-0000-0000-0000-000000000001'),'Formal buyer','Formal Customer edits never rewrite Quote snapshot');
+select is((select formal_customer_id from romiku_orders where id='73000000-0000-0000-0000-000000000001'),'70000000-0000-0000-0000-000000000001'::uuid,'direct Order persists Formal Customer identity');
+select is((select document_language from romiku_pis where id='72000000-0000-0000-0000-000000000001'),'es','direct PI persists document language');
+select lives_ok($$update romiku_pis set document_number='RPI-MANUAL' where id='72000000-0000-0000-0000-000000000001'$$,'manual PI number edits are allowed');
+select lives_ok($$update romiku_orders set document_number='RCI-MANUAL' where id='73000000-0000-0000-0000-000000000001'$$,'manual Order number edits are allowed');
+select lives_ok($$update romiku_production_orders set document_number='RCI-MANUAL-P01' where id='41000000-0000-0000-0000-000000000001'$$,'manual Production number edits are allowed');
+select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id=(select id from test_ids where kind='order')$$,'23505',null,'manual numbers remain unique within the document type');
 reset role;
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='r' and not c.relrowsecurity),'RLS enabled on every ROMIKU table');
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='v' and not coalesce(c.reloptions @> array['security_invoker=true'],false)),'all ROMIKU derived views use security invoker');
