@@ -399,4 +399,53 @@ describe("Product Library item snapshots", () => {
     await screen.getByLabelText("搜索 SKU 或产品", { exact: true }).click();
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("does not clear the product snapshot as a manual SKU when selecting a result", async () => {
+    const onSelected = vi.fn();
+    const onManualSku = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: [
+                      {
+                        _id: "machine-2000plus",
+                        sku: "2000PLUS",
+                        isPublished: true,
+                        name: { zh: "美甲打磨机" },
+                      },
+                    ],
+                  }
+                : { images: {}, powerSupplies: {} },
+            ),
+          ),
+        ),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        onSelected={onSelected}
+        onManualSku={onManualSku}
+      />,
+    );
+    await screen
+      .getByLabelText("搜索 SKU 或产品", { exact: true })
+      .fill("2000");
+    await expect
+      .element(screen.getByText("2000PLUS", { exact: true }))
+      .toBeVisible();
+    await screen.getByText("2000PLUS", { exact: true }).click();
+
+    expect(onSelected).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sku: "2000PLUS",
+        product_snapshot: expect.objectContaining({ name: "美甲打磨机" }),
+      }),
+    );
+    expect(onManualSku).not.toHaveBeenCalled();
+  });
 });

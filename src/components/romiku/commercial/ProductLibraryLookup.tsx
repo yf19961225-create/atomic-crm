@@ -222,6 +222,12 @@ export function ProductLibraryLookup({
                 aria-selected={activeIndex === index}
                 className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
                 onMouseEnter={() => setActiveIndex(index)}
+                onMouseDown={(event) => {
+                  // Keep focus in the lookup until click selects the catalog
+                  // product. Otherwise the input blur treats the selected SKU
+                  // as a manual override and clears the fresh snapshot.
+                  event.preventDefault();
+                }}
                 onClick={() => select(product)}
               >
                 {images.get(product.id) ? (
