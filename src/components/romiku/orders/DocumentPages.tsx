@@ -14,6 +14,7 @@ import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable
 import { DepositBalanceSummary } from "../commercial/DepositBalanceSummary";
 import { DocumentFinancialSummary } from "../commercial/DocumentFinancialSummary";
 import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
+import { FormalCustomerSelector } from "../commercial/FormalCustomerSelector";
 import {
   commitCommercialItems,
   readCommercialItems,
@@ -216,6 +217,10 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
   const [values, setValues] = useState<Values>({ name: "" }),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
+  const [customer, setCustomer] = useState<{
+    formalCustomerId: string;
+    snapshot: Record<string, unknown>;
+  } | null>(null);
   async function create(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -225,6 +230,7 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
         provider,
         kind,
         String(values.name || ""),
+        customer || undefined,
       );
       navigate(`${config.path}/${data.id}`);
     } catch (cause) {
@@ -250,6 +256,17 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
             values={values}
             onChange={setValues}
           />
+          <label className="flex max-w-sm flex-col gap-1">
+            正式客户（可选）
+            <FormalCustomerSelector
+              value={customer?.formalCustomerId}
+              onSelect={({ formalCustomerId, snapshot }) => {
+                if (!formalCustomerId || !snapshot) return setCustomer(null);
+                setCustomer({ formalCustomerId, snapshot });
+                setValues({ ...values, name: snapshot.name });
+              }}
+            />
+          </label>
           <Button type="submit">创建{config.label}</Button>
         </fieldset>
         {failure && <p role="alert">{failure}</p>}
@@ -352,11 +369,6 @@ function DocumentEditor({
   const items = useQuery({
     queryKey: [`${kind}-items`, record.id],
     queryFn: () => readCommercialItems(provider, kind, String(record.id)),
-  });
-  const customers = useGetList("romiku_formal_customers", {
-    pagination: { page: 1, perPage: 100 },
-    sort: { field: "name", order: "ASC" },
-    filter: {},
   });
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
@@ -502,7 +514,6 @@ function DocumentEditor({
         editable={session.editing}
         values={session.values}
         onChange={session.setValues}
-        customers={customers.data}
       />
       {items.error ? (
         <p role="alert">

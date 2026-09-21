@@ -35,6 +35,7 @@ it("shows the saved customer snapshot and edits only the document values", async
       editable
       values={{ counterparty_snapshot: { name: "Ana" } }}
       onChange={onChange}
+      customers={[]}
     />,
   );
   await screen
@@ -72,6 +73,7 @@ it("copies an existing Formal Customer into only the current document snapshot",
       country: "Spain",
       email: "formal@example.test",
     },
+    formal_customer_id: "customer-1",
   });
 });
 
@@ -83,6 +85,7 @@ it("stores the document language as a stable locale value independent of currenc
       editable
       values={{ document_language: "zh", currency: "USD" }}
       onChange={onChange}
+      customers={[]}
     />,
   );
   await screen

@@ -46,12 +46,15 @@ export async function createQuote(
   source: Exclude<QuoteSource, "inquiry">,
   sourceId: string,
   buyerName: string,
+  directCustomer?: { formalCustomerId: string; snapshot: Values },
 ) {
   let snapshot: Values;
   const links: Values = {};
   if (source === "direct") {
     if (!buyerName.trim()) throw new Error("采购方名称为必填项。");
-    snapshot = { name: buyerName.trim() };
+    snapshot = directCustomer?.snapshot || { name: buyerName.trim() };
+    if (directCustomer)
+      links.formal_customer_id = directCustomer.formalCustomerId;
   } else {
     if (!sourceId) throw new Error("请选择来源记录。");
     const { data } = await provider.getOne(quoteSourceResources[source], {
@@ -102,6 +105,7 @@ export function quoteHeaderWrite(values: Values) {
   const write = pick(values, [
     "status",
     "counterparty_snapshot",
+    "formal_customer_id",
     "bank_snapshot",
     "terms_snapshot",
     "currency",

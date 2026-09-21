@@ -66,6 +66,7 @@ export async function createDocument(
   provider: DataProvider,
   kind: DocumentKind,
   buyerName: string,
+  customer?: { formalCustomerId: string; snapshot: Values },
 ) {
   if (!buyerName.trim()) throw new Error("采购方名称为必填项。");
   return provider.create(documentConfig[kind].resource, {
@@ -74,7 +75,8 @@ export async function createDocument(
       currency: "USD",
       document_language: "zh",
       deposit_percent: 30,
-      counterparty_snapshot: { name: buyerName.trim() },
+      counterparty_snapshot: customer?.snapshot || { name: buyerName.trim() },
+      ...(customer ? { formal_customer_id: customer.formalCustomerId } : {}),
     },
   });
 }

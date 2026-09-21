@@ -12,6 +12,7 @@ import {
   quoteSourceResources,
   type QuoteSource,
 } from "./quoteWorkflow";
+import { FormalCustomerSelector } from "../commercial/FormalCustomerSelector";
 
 export function QuoteCreate() {
   const [params] = useSearchParams();
@@ -25,6 +26,10 @@ export function QuoteCreate() {
   );
   const [sourceId, setSourceId] = useState(params.get("sourceId") || "");
   const [buyer, setBuyer] = useState("");
+  const [customer, setCustomer] = useState<{
+    formalCustomerId: string;
+    snapshot: Record<string, unknown>;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const provider = useDataProvider();
@@ -45,7 +50,13 @@ export function QuoteCreate() {
     setBusy(true);
     setFailure("");
     try {
-      const result = await createQuote(provider, source, sourceId, buyer);
+      const result = await createQuote(
+        provider,
+        source,
+        sourceId,
+        buyer,
+        source === "direct" ? customer || undefined : undefined,
+      );
       navigate(`/quotes/${result.data.id}`);
     } catch (cause) {
       setFailure(errorMessage(cause));
@@ -82,15 +93,29 @@ export function QuoteCreate() {
             </select>
           </label>
           {source === "direct" ? (
-            <label className="flex flex-col gap-1">
-              采购方名称
-              <input
-                className="rounded border p-2"
-                required
-                value={buyer}
-                onChange={(event) => setBuyer(event.target.value)}
-              />
-            </label>
+            <>
+              <label className="flex flex-col gap-1">
+                采购方名称
+                <input
+                  className="rounded border p-2"
+                  required
+                  value={buyer}
+                  onChange={(event) => setBuyer(event.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                正式客户（可选）
+                <FormalCustomerSelector
+                  value={customer?.formalCustomerId}
+                  onSelect={({ formalCustomerId, snapshot }) => {
+                    if (!formalCustomerId || !snapshot)
+                      return setCustomer(null);
+                    setCustomer({ formalCustomerId, snapshot });
+                    setBuyer(String(snapshot.name || ""));
+                  }}
+                />
+              </label>
+            </>
           ) : (
             <label className="flex flex-col gap-1">
               来源记录
