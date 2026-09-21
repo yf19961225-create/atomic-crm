@@ -2,7 +2,11 @@ import { Route } from "react-router";
 import { RomikuCalendar } from "../calendar/RomikuCalendar";
 import { ManualTaskList, ManualTaskPage } from "../calendar/ManualTasks";
 import { ProductLibrary } from "../products";
-import { SupplierContactList, SupplierList } from "../suppliers";
+import {
+  SupplierContactList,
+  SupplierCreate,
+  SupplierList,
+} from "../suppliers";
 import { romikuNavigation } from "./navigation";
 import { InquiryPage } from "../inquiries/InquiryPage";
 import { OutboundPage } from "../outbound/OutboundPage";
@@ -143,6 +147,11 @@ export const romikuRoutes = [
     element={<CustomerPage />}
   />,
   <Route key="/suppliers" path="/suppliers" element={<SupplierList />} />,
+  <Route
+    key="/romiku_suppliers/create"
+    path="/romiku_suppliers/create"
+    element={<SupplierCreate />}
+  />,
   <Route
     key="/supplier-contacts"
     path="/supplier-contacts"
