@@ -571,9 +571,7 @@ function DocumentEditor({
               <h2 className="text-xl font-semibold">订单收款</h2>
               <OrderPayments
                 order={record}
-                total={
-                  session.editing ? Number(record.total || 0) : totals.total
-                }
+                total={totals.total}
                 editable={!session.editing}
               />
             </section>

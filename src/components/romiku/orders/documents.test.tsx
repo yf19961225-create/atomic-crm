@@ -299,6 +299,12 @@ it("does not allow receipts against an unsaved Order edit session", async () => 
   const { screen } = await setup("/orders/o");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await expect
+    .element(screen.getByText("应收定金: USD 300.00", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("待收款: USD 1000.00", { exact: true }))
+    .toBeVisible();
+  await expect
     .element(screen.getByRole("button", { name: "添加收款" }))
     .not.toBeInTheDocument();
 });
