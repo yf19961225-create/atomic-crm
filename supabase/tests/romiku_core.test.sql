@@ -42,8 +42,13 @@ update romiku_quotes set freight=20,discount=10,other_expenses=15,counterparty_s
 select is((select total from romiku_quote_totals),505.00::numeric,'total = 480 + 20 + 15 - 10');
 select is((select quantity from romiku_website_inquiry_items where sku='SUNS15'),100::numeric,'quote changes never rewrite inquiry');
 select is((select status from romiku_website_inquiries limit 1),'new','conversion does not advance inquiry status');
-select matches((select document_number from romiku_quotes limit 1),'^Q-[0-9]+$','server generates readable quote number');
-select throws_ok($$update romiku_quotes set document_number='Q-FORGED'$$,'23514',null,'document numbers cannot change');
+select is(
+  (select document_number from romiku_quotes limit 1),
+  'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001',
+  'Quote number uses the Shanghai business date and its own daily counter'
+);
+select lives_ok($$update romiku_quotes set document_number='RFQ-MANUAL'$$,'manual Quote number edits are allowed');
+select is((select document_number from romiku_quotes limit 1),'RFQ-MANUAL','manual Quote number persists');
 select throws_ok($$insert into romiku_quotes(document_number) values ('FORGED')$$,'23514',null,'clients cannot choose document numbers');
 select throws_ok($$select romiku_quote_from_inquiry('30000000-0000-0000-0000-000000000001',array['ffffffff-ffff-ffff-ffff-ffffffffffff']::uuid[])$$,'23514',null,'invalid selection fails atomically');
 select is((select count(*) from romiku_quotes),1::bigint,'failed conversion leaves no partial document');
@@ -54,6 +59,9 @@ select throws_ok($$update romiku_quotes set document_language='de'$$,'23514',nul
 insert into test_ids select 'pi',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'pi');
 insert into test_ids select 'order',romiku_convert_document('pi',(select id from test_ids where kind='pi'),'order');
 insert into test_ids select 'direct_order',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'order');
+select is((select document_number from romiku_pis where id=(select id from test_ids where kind='pi')),'RPI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','PI uses an independent Shanghai daily counter');
+select is((select document_number from romiku_orders where id=(select id from test_ids where kind='order')),'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','Order uses an independent Shanghai daily counter');
+select is((select document_number from romiku_orders where id=(select id from test_ids where kind='direct_order')),'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','Order daily sequence increments independently');
 select is((select total from romiku_pi_totals),505.00::numeric,'PI financial inputs copied');
 select is((select total from romiku_order_totals where id=(select id from test_ids where kind='order')),505.00::numeric,'order financial inputs copied');
 select is((select document_language from romiku_pis where id=(select id from test_ids where kind='pi')),'es','Quote language is copied to PI');
@@ -71,6 +79,11 @@ select is((select status from romiku_quotes limit 1),'draft','source quote statu
 insert into romiku_suppliers(id,name) values ('40000000-0000-0000-0000-000000000001','Factory A'),('40000000-0000-0000-0000-000000000002','Factory B');
 select throws_ok($$insert into romiku_production_orders(order_id) select id from test_ids where kind='order'$$,'23502',null,'production must have exactly one supplier');
 insert into romiku_production_orders(id,order_id,supplier_id,supplier_snapshot) select '41000000-0000-0000-0000-000000000001',id,'40000000-0000-0000-0000-000000000001','{"name":"Factory A"}' from test_ids where kind='order';
+select is(
+  (select p.document_number from romiku_production_orders p where p.id='41000000-0000-0000-0000-000000000001'),
+  (select o.document_number || '-P01' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
+  'first Production Order derives P01 from its Order number'
+);
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity,product_snapshot)
 select '41000000-0000-0000-0000-000000000001',order_id,id,sku,100,product_snapshot from romiku_order_items where order_id=(select id from test_ids where kind='order');
 select throws_ok($$insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select '41000000-0000-0000-0000-000000000001',order_id,id,sku,10 from romiku_order_items where order_id=(select id from test_ids where kind='direct_order')$$,'23503',null,'production cannot attach another order item');
@@ -91,6 +104,11 @@ select is((select production_quantity from romiku_order_item_remaining where ord
 select is((select unallocated_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),240::numeric,'cancellation restores the full quantity for reallocation');
 insert into romiku_production_orders(id,order_id,supplier_id)
 select '41000000-0000-0000-0000-000000000002',id,'40000000-0000-0000-0000-000000000002' from test_ids where kind='order';
+select is(
+  (select p.document_number from romiku_production_orders p where p.id='41000000-0000-0000-0000-000000000002'),
+  (select o.document_number || '-P02' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
+  'second Production Order derives P02 from the same Order'
+);
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity)
 select '41000000-0000-0000-0000-000000000002',order_id,id,sku,240 from romiku_order_items where order_id=(select id from test_ids where kind='order');
 select is((select unallocated_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),0::numeric,'replacement production uses the released allocation once');
@@ -160,18 +178,10 @@ select is((select count(*) from romiku_manual_tasks),0::bigint,'shared CRUD dele
 select throws_ok($$insert into romiku_manual_tasks(title,outbound_company_id,quote_id) select 'ambiguous','20000000-0000-0000-0000-000000000001',id from test_ids where kind='quote'$$,'23514',null,'manual task has at most one real relation');
 select throws_ok($$update romiku_quotes set other_expenses=-1$$,'23514',null,'negative expenses rejected');
 select throws_ok($$select romiku_convert_document('order',(select id from test_ids where kind='order'),'quote')$$,'23514',null,'reverse mutation is not a conversion');
-insert into romiku_numbering_rules(document_kind,prefix,min_digits) values ('quote','CUSTOM',4);
 insert into romiku_quotes(notes) values ('numbering configuration test');
-select matches((select document_number from romiku_quotes where notes='numbering configuration test'),'^CUSTOM-[0-9]+$','first user numbering configuration applied server side');
-select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
-select lives_ok($$insert into romiku_numbering_rules(document_kind,prefix) values ('pi','TEAM')$$,'second authenticated user can create numbering settings');
-update romiku_numbering_rules set prefix='SHARED' where document_kind='quote';
-select is((select prefix from romiku_numbering_rules where document_kind='quote'),'SHARED','second authenticated user can update shared numbering settings');
-delete from romiku_numbering_rules where document_kind='quote';
-select is((select count(*) from romiku_numbering_rules where document_kind='quote'),0::bigint,'second authenticated user can delete shared numbering settings');
-
-
-
+select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','manual Quote number does not advance the automatic counter');
+update romiku_quotes set document_date='2000-01-01' where notes='numbering configuration test';
+select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','changing document date does not regenerate the number');
 reset role;
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='r' and not c.relrowsecurity),'RLS enabled on every ROMIKU table');
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='v' and not coalesce(c.reloptions @> array['security_invoker=true'],false)),'all ROMIKU derived views use security invoker');

@@ -118,7 +118,7 @@ for (const isolation of ["read committed", "repeatable read"]) {
   });
 }
 
-test("parallel document creation assigns unique server numbers", async () => {
+test("parallel Quote creation assigns unique Shanghai daily numbers", async () => {
   const ids = Array.from({ length: 12 }, () => randomUUID());
   try {
     const numbers = await Promise.all(
@@ -129,7 +129,7 @@ test("parallel document creation assigns unique server numbers", async () => {
       ),
     );
     assert.equal(new Set(numbers).size, 12);
-    for (const number of numbers) assert.match(number, /^Q-[0-9]+$/);
+    for (const number of numbers) assert.match(number, /^RFQ\d{6}\d{3,}$/);
   } finally {
     await succeeds(
       `delete from public.romiku_quotes where id in (${ids.map((id) => "'" + id + "'").join(",")});`,
