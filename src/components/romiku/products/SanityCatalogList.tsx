@@ -75,6 +75,7 @@ export const SanityCatalogList = () => {
         />
       </label>
       <table className="w-full text-sm">
+        <caption className="sr-only">产品目录中的产品</caption>
         <thead>
           <tr>
             {[
