@@ -55,6 +55,9 @@ describe("SanityProductDrawer", () => {
     await expect.element(screen.getByText("Caja")).toBeVisible();
     await expect.element(screen.getByText("材质：PP")).toBeVisible();
     await expect.element(screen.getByText("已发布")).toBeVisible();
+    await expect.element(screen.getByPlaceholder("Qty/Ctn")).toBeVisible();
+    await expect.element(screen.getByPlaceholder("长 cm")).toBeVisible();
+    await expect.element(screen.getByPlaceholder("单箱重量 kg")).toBeVisible();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

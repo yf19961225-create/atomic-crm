@@ -18,7 +18,7 @@ async function setup(path: string) {
         sku: "A",
         quantity: 100,
         product_snapshot: { name: "Lamp" },
-        packing_snapshot: {},
+        packing_snapshot: { cartons: 4 },
       },
       {
         id: "j",
@@ -74,6 +74,8 @@ it("creates selected production items in one supplier-free Production through th
   await expect
     .element(screen.getByText("订单数量", { exact: true }))
     .toBeVisible();
+  await expect.element(screen.getByText("箱数", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("4", { exact: true })).toBeVisible();
   await expect
     .element(screen.getByText("生产数量", { exact: true }))
     .toBeVisible();

@@ -224,7 +224,21 @@ export function PackingItemsGrid({
         <table className="w-full text-sm">
           <colgroup>
             {packingColumnKeys.map((key) => (
-              <col key={key} className={key === "name" ? "min-w-40" : "w-28"} />
+              <col
+                key={key}
+                className={
+                  key === "name"
+                    ? "min-w-40"
+                    : [
+                          "per_cbm",
+                          "total_cbm",
+                          "carton_weight_kg",
+                          "total_weight",
+                        ].includes(key)
+                      ? "min-w-32"
+                      : "w-28"
+                }
+              />
             ))}
           </colgroup>
           <thead>
@@ -245,7 +259,7 @@ export function PackingItemsGrid({
                 "单箱重量",
                 "总重量",
               ].map((label) => (
-                <th className="p-2 text-left" key={label}>
+                <th className="whitespace-nowrap p-2 text-left" key={label}>
                   {label}
                 </th>
               ))}
@@ -295,8 +309,12 @@ export function PackingItemsGrid({
                       </td>
                     ),
                   )}
-                  <td className="p-2 text-right">{computed.perCbm}</td>
-                  <td className="p-2 text-right">{computed.totalCbm}</td>
+                  <td className="whitespace-nowrap p-2 text-right">
+                    {computed.perCbm}
+                  </td>
+                  <td className="whitespace-nowrap p-2 text-right">
+                    {computed.totalCbm}
+                  </td>
                   <td className="p-1 text-right">
                     <input
                       aria-label={`carton_weight_kg ${item.sku}`}
@@ -309,7 +327,9 @@ export function PackingItemsGrid({
                       }
                     />
                   </td>
-                  <td className="p-2 text-right">{computed.totalWeight}</td>
+                  <td className="whitespace-nowrap p-2 text-right">
+                    {computed.totalWeight}
+                  </td>
                 </tr>
               );
             })}

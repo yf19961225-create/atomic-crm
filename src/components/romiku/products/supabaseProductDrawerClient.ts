@@ -71,7 +71,7 @@ export const createSupabaseProductDrawerClient = (): ProductDrawerClient &
       getSupabaseClient()
         .from("romiku_product_suppliers")
         .select(
-          "id,supplier_id,supplier_item_number,moq,lead_days,preferred,romiku_suppliers(name)",
+          "id,supplier_id,supplier_item_number,moq,lead_days,preferred,qty_per_carton,length_cm,width_cm,height_cm,carton_weight_kg,romiku_suppliers(name)",
         )
         .or(productFilter(product)),
     ).then((rows) =>

@@ -6,6 +6,11 @@ export type SupplierValues = {
   supplier_item_number?: string;
   moq?: number | null;
   lead_days?: number | null;
+  qty_per_carton?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  carton_weight_kg?: number | null;
 };
 export type CostValues = {
   cost: number;
@@ -22,6 +27,11 @@ export type DrawerSupplier = {
   supplier_item_number?: string | null;
   moq?: number | null;
   lead_days?: number | null;
+  qty_per_carton?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  carton_weight_kg?: number | null;
 };
 export type DrawerCost = {
   id: string;

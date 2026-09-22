@@ -82,11 +82,13 @@ export function ProductionCreate() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
-                  {["选择", "SKU / 产品", "订单数量", "生产数量"].map((s) => (
-                    <th key={s} className="p-3">
-                      {s}
-                    </th>
-                  ))}
+                  {["选择", "SKU / 产品", "箱数", "订单数量", "生产数量"].map(
+                    (s) => (
+                      <th key={s} className="p-3">
+                        {s}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -126,6 +128,18 @@ export function ProductionCreate() {
                       </td>
                       <td className="p-3">
                         {item.sku} · {item.product_snapshot?.name}
+                      </td>
+                      <td className="p-3">
+                        {(() => {
+                          const snapshot = item.packing_snapshot as
+                            | Record<string, unknown>
+                            | undefined;
+                          const cartons =
+                            snapshot?.cartons ?? snapshot?.carton_qty;
+                          return cartons == null || cartons === ""
+                            ? "—"
+                            : String(cartons);
+                        })()}
                       </td>
                       <td className="p-3">{item.quantity}</td>
                       <td className="p-3">

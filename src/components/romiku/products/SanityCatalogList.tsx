@@ -190,7 +190,19 @@ export const SanityCatalogList = () => {
                       : `${item.cartonWeightKg} kg`,
                   )}
                 </td>
-                <td className="p-2">{display(item, supplier)}</td>
+                <td className="p-2">
+                  <button
+                    type="button"
+                    className="text-left underline decoration-dotted underline-offset-2"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedProduct(product);
+                    }}
+                  >
+                    {display(item, supplier)} · 编辑采购信息
+                  </button>
+                  <span className="sr-only">编辑采购信息</span>
+                </td>
                 <td className="max-w-48 truncate p-2">
                   {display(item, item?.internalNotes || undefined)}
                 </td>

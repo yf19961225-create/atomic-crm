@@ -125,6 +125,11 @@ export const SanityProductDrawer = ({
             String(form.get("supplier_item_number") ?? "") || undefined,
           moq: Number(form.get("moq")) || null,
           lead_days: Number(form.get("lead_days")) || null,
+          qty_per_carton: Number(form.get("qty_per_carton")) || null,
+          length_cm: Number(form.get("length_cm")) || null,
+          width_cm: Number(form.get("width_cm")) || null,
+          height_cm: Number(form.get("height_cm")) || null,
+          carton_weight_kg: Number(form.get("carton_weight_kg")) || null,
         },
         refreshCurrent,
       );
@@ -226,7 +231,11 @@ export const SanityProductDrawer = ({
             </Button>
           </div>
           <div className="space-y-2">
-            <h3 className="font-medium">Supplier links</h3>
+            <h3 className="font-medium">供应商采购信息</h3>
+            <p className="text-sm text-muted-foreground">
+              每个供应商独立维护 Qty/Ctn、箱规和单箱重量；这些数据仅保存到采购
+              overlay。
+            </p>
             {suppliers.length ? (
               <ul>
                 {suppliers.map((supplier) => (
@@ -236,7 +245,14 @@ export const SanityProductDrawer = ({
                   >
                     <span>
                       {supplier.supplier_name ?? supplier.supplier_id}
-                      {supplier.preferred ? "（首选）" : ""} · SKU{" "}
+                      {supplier.preferred ? "（Preferred Supplier）" : ""} ·
+                      Qty/Ctn {supplier.qty_per_carton ?? "—"} · 箱规{" "}
+                      {supplier.length_cm != null &&
+                      supplier.width_cm != null &&
+                      supplier.height_cm != null
+                        ? `${supplier.length_cm} × ${supplier.width_cm} × ${supplier.height_cm} cm`
+                        : "—"}{" "}
+                      · 重量 {supplier.carton_weight_kg ?? "—"} kg · SKU{" "}
                       {supplier.supplier_item_number ?? "—"} · MOQ{" "}
                       {supplier.moq ?? "—"} · Lead Time{" "}
                       {supplier.lead_days ?? "—"} 天
@@ -288,6 +304,47 @@ export const SanityProductDrawer = ({
                 defaultValue={selectedSupplier?.lead_days ?? ""}
                 key={`lead-${selectedSupplier?.id ?? "new"}`}
               />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  name="qty_per_carton"
+                  type="number"
+                  placeholder="Qty/Ctn"
+                  defaultValue={selectedSupplier?.qty_per_carton ?? ""}
+                  key={`qty-${selectedSupplier?.id ?? "new"}`}
+                />
+                <Input
+                  name="carton_weight_kg"
+                  type="number"
+                  step="any"
+                  placeholder="单箱重量 kg"
+                  defaultValue={selectedSupplier?.carton_weight_kg ?? ""}
+                  key={`weight-${selectedSupplier?.id ?? "new"}`}
+                />
+                <Input
+                  name="length_cm"
+                  type="number"
+                  step="any"
+                  placeholder="长 cm"
+                  defaultValue={selectedSupplier?.length_cm ?? ""}
+                  key={`length-${selectedSupplier?.id ?? "new"}`}
+                />
+                <Input
+                  name="width_cm"
+                  type="number"
+                  step="any"
+                  placeholder="宽 cm"
+                  defaultValue={selectedSupplier?.width_cm ?? ""}
+                  key={`width-${selectedSupplier?.id ?? "new"}`}
+                />
+                <Input
+                  name="height_cm"
+                  type="number"
+                  step="any"
+                  placeholder="高 cm"
+                  defaultValue={selectedSupplier?.height_cm ?? ""}
+                  key={`height-${selectedSupplier?.id ?? "new"}`}
+                />
+              </div>
               <label>
                 <input
                   name="preferred"

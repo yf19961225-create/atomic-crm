@@ -9,6 +9,7 @@ import interactionPlugin, {
   type DateClickArg,
 } from "@fullcalendar/interaction";
 import type { CalendarOptions, EventInput } from "@fullcalendar/core";
+import zhCnLocale from "@fullcalendar/core/locales/zh-cn";
 import { Button } from "@/components/ui/button";
 import { readRelated } from "../outbound/workflow";
 import { OwnerFilter, useOwnerFilter } from "./OwnerFilter";
@@ -16,7 +17,13 @@ import { calendarEvents, sourceHref, type SourceEvent } from "./aggregation";
 
 export const calendarOptions: Pick<
   CalendarOptions,
-  "plugins" | "initialView" | "firstDay" | "headerToolbar" | "dayMaxEvents"
+  | "plugins"
+  | "initialView"
+  | "firstDay"
+  | "headerToolbar"
+  | "dayMaxEvents"
+  | "locale"
+  | "locales"
 > = {
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   initialView: "dayGridMonth",
@@ -27,6 +34,8 @@ export const calendarOptions: Pick<
     right: "dayGridMonth,timeGridWeek,timeGridDay",
   },
   dayMaxEvents: true,
+  locale: "zh-cn",
+  locales: [zhCnLocale],
 };
 
 export function calendarEventInput(event: SourceEvent): EventInput {

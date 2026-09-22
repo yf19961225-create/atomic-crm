@@ -10,6 +10,7 @@ describe("visual calendar configuration", () => {
       right: "dayGridMonth,timeGridWeek,timeGridDay",
     });
     expect(calendarOptions.dayMaxEvents).toBe(true);
+    expect(calendarOptions.locale).toBe("zh-cn");
   });
 
   it("maps all-day and timed source events without changing their source link", () => {
