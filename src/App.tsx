@@ -7,6 +7,8 @@ import { romikuBrand } from "@/components/romiku/branding/brand";
 import { romikuI18nProvider } from "@/components/romiku/branding/i18nProvider";
 import { applyRomikuBrand } from "@/components/romiku/branding/configuration";
 import { localStorageStore, type Store } from "ra-core";
+import { useEffect } from "react";
+import { installNumericInputWheelGuard } from "./components/romiku/shared/numericInputGuard";
 
 const baseStore = localStorageStore(undefined, "CRM");
 const romikuStore: Store = {
@@ -61,18 +63,21 @@ const romikuStore: Store = {
  *    />
  * );
  */
-const App = () => (
-  <CRM
-    additionalRoutes={romikuRoutes}
-    additionalResources={romikuResources}
-    dashboard={RomikuWorkbench}
-    darkModeLogo={romikuBrand.darkModeLogo}
-    i18nProvider={romikuI18nProvider}
-    layout={RomikuLayout}
-    lightModeLogo={romikuBrand.lightModeLogo}
-    store={romikuStore}
-    title={romikuBrand.title}
-  />
-);
+const App = () => {
+  useEffect(() => installNumericInputWheelGuard(document), []);
+  return (
+    <CRM
+      additionalRoutes={romikuRoutes}
+      additionalResources={romikuResources}
+      dashboard={RomikuWorkbench}
+      darkModeLogo={romikuBrand.darkModeLogo}
+      i18nProvider={romikuI18nProvider}
+      layout={RomikuLayout}
+      lightModeLogo={romikuBrand.lightModeLogo}
+      store={romikuStore}
+      title={romikuBrand.title}
+    />
+  );
+};
 
 export default App;

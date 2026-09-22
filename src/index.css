@@ -141,6 +141,17 @@ input {
   cursor: text;
 }
 
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 /* Prevent mobile zoom on input focus by ensuring 16px minimum font size */
 @media screen and (max-width: 768px) {
   html {
