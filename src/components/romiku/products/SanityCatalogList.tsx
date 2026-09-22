@@ -23,7 +23,8 @@ export const SanityCatalogList = () => {
   const [selectedProduct, setSelectedProduct] =
     useState<SanityCatalogProduct | null>(null);
   const [images, setImages] = useState<Map<string, string>>(new Map()),
-    [imagePreview, setImagePreview] = useState<string | null>(null);
+    [imagePreview, setImagePreview] = useState<string | null>(null),
+    [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -44,6 +45,7 @@ export const SanityCatalogList = () => {
         ]);
         if (!cancelled) {
           setImages(nextImages);
+          setFailedImages(new Set());
           setOverlay(nextOverlay);
           setLoading(false);
         }
@@ -138,7 +140,7 @@ export const SanityCatalogList = () => {
                 onClick={() => setSelectedProduct(product)}
               >
                 <td className="p-2">
-                  {image ? (
+                  {image && !failedImages.has(product.id) ? (
                     <button
                       type="button"
                       aria-label={`预览 ${product.sku || "产品"} 图片`}
@@ -151,6 +153,13 @@ export const SanityCatalogList = () => {
                         className="h-10 w-10 object-cover"
                         src={image}
                         alt={`${product.sku || "产品"} 图片`}
+                        onError={() =>
+                          setFailedImages((current) => {
+                            const next = new Set(current);
+                            next.add(product.id);
+                            return next;
+                          })
+                        }
                       />
                     </button>
                   ) : (

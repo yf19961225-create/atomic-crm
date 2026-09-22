@@ -69,7 +69,7 @@ describe("SanityCatalogList", () => {
     loadWebsiteImages.mockReset().mockResolvedValue(new Map());
   });
 
-  it("renders the published Sanity product fields returned for the catalog page", async () => {
+  it("renders the compact procurement columns returned for the catalog page", async () => {
     getPage.mockResolvedValue({ products: [product()] });
 
     const screen = await render(<SanityCatalogList />);
@@ -78,20 +78,22 @@ describe("SanityCatalogList", () => {
       .element(screen.getByRole("cell", { name: "RMK-100" }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "收纳盒" }))
-      .toBeVisible();
-    await expect
-      .element(screen.getByRole("cell", { name: "Storage box" }))
-      .toBeVisible();
-    await expect
-      .element(screen.getByRole("cell", { name: "120 个" }))
-      .toBeVisible();
-    await expect
-      .element(screen.getByRole("cell", { name: "彩盒" }))
-      .toBeVisible();
-    await expect
       .element(screen.getByRole("cell", { name: "24" }))
       .toBeVisible();
+    for (const label of [
+      "图片",
+      "货号",
+      "装箱数",
+      "箱规",
+      "体积",
+      "重量",
+      "供应商",
+      "产品备注",
+    ]) {
+      await expect
+        .element(screen.getByText(label, { exact: true }))
+        .toBeVisible();
+    }
   });
 
   it("keeps the catalog readable when optional Sanity fields are missing", async () => {
@@ -117,7 +119,7 @@ describe("SanityCatalogList", () => {
     const screen = await render(<SanityCatalogList />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "English name" }).first())
+      .element(screen.getByRole("cell", { name: "—" }).first())
       .toBeVisible();
     await expect
       .element(screen.getByRole("cell", { name: "—" }).first())
@@ -134,7 +136,7 @@ describe("SanityCatalogList", () => {
       .toBeVisible();
   });
 
-  it("renders batched procurement data alongside the Sanity catalog product", async () => {
+  it("uses the preferred supplier's procurement data in the compact columns", async () => {
     getPage.mockResolvedValue({ products: [product()] });
     loadOverlay.mockResolvedValue(
       new Map([
@@ -143,9 +145,11 @@ describe("SanityCatalogList", () => {
           {
             supplierCount: 2,
             preferredSupplier: "华东供应商",
-            supplierMoq: 80,
-            leadDays: 12,
-            referenceCost: { cost: 3.5, currency: "USD" },
+            qtyPerCarton: 30,
+            lengthCm: 50,
+            widthCm: 40,
+            heightCm: 30,
+            cartonWeightKg: 12.5,
             internalNotes: "确认包装颜色",
           },
         ],
@@ -154,21 +158,23 @@ describe("SanityCatalogList", () => {
 
     const screen = await render(<SanityCatalogList />);
 
-    await expect.element(screen.getByText("供应商数")).toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "华东供应商" }))
+      .element(screen.getByRole("cell", { name: "华东供应商 +1" }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "80" }))
+      .element(screen.getByRole("cell", { name: "30", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "12 天" }))
+      .element(screen.getByRole("cell", { name: "50 × 40 × 30 cm" }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "USD 3.50" }))
+      .element(screen.getByRole("cell", { name: "0.060 m³" }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "有备注" }))
+      .element(screen.getByRole("cell", { name: "12.5 kg" }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByRole("cell", { name: "确认包装颜色" }))
       .toBeVisible();
   });
 
@@ -181,7 +187,7 @@ describe("SanityCatalogList", () => {
     const screen = await render(<SanityCatalogList />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "收纳盒" }))
+      .element(screen.getByRole("cell", { name: "RMK-100" }))
       .toBeVisible();
     await expect
       .element(screen.getByRole("cell", { name: "—" }).last())
@@ -195,7 +201,7 @@ describe("SanityCatalogList", () => {
     const screen = await render(<SanityCatalogList />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "收纳盒" }))
+      .element(screen.getByRole("cell", { name: "RMK-100" }))
       .toBeVisible();
     await expect
       .element(screen.getByText("暂时无法加载").first())
@@ -254,7 +260,7 @@ describe("SanityCatalogList", () => {
 
     const screen = await render(<SanityCatalogList />);
 
-    const image = screen.getByRole("img", { name: "005 产品图片" });
+    const image = screen.getByRole("img", { name: "005 图片" });
     await expect
       .element(image)
       .toHaveAttribute(
@@ -262,7 +268,9 @@ describe("SanityCatalogList", () => {
         "https://romiku.com/images/products-local/005_main1.jpg",
       );
     image.element().dispatchEvent(new Event("error"));
-    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+    await expect
+      .element(screen.getByRole("cell", { name: "—" }).first())
+      .toBeVisible();
   });
 
   it("uses the same Chinese placeholder when a product has no image URL", async () => {
@@ -270,45 +278,30 @@ describe("SanityCatalogList", () => {
 
     const screen = await render(<SanityCatalogList />);
 
-    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+    await expect
+      .element(screen.getByRole("cell", { name: "—" }).first())
+      .toBeVisible();
   });
 
-  it("loads 50-product cursor pages forward and backward without changing the cursor chain", async () => {
+  it("passes a server-side search query through to the catalog source", async () => {
     const first = product({ id: "first", sku: "001", skuSort: "001" });
-    const second = product({ id: "second", sku: "051", skuSort: "051" });
-    getPage.mockImplementation(({ after }) =>
-      Promise.resolve(
-        after
-          ? { products: [second], nextCursor: undefined }
-          : {
-              products: [first],
-              nextCursor: { skuSort: "001", id: "first" },
-            },
-      ),
-    );
+    getPage.mockResolvedValue({ products: [first] });
 
     const screen = await render(<SanityCatalogList />);
 
-    await expect.element(screen.getByText("第 1 页 · 本页 1 条")).toBeVisible();
-    await screen.getByRole("button", { name: "下一页" }).click();
-    await expect.element(screen.getByText("第 2 页 · 本页 1 条")).toBeVisible();
+    await screen.getByRole("textbox", { name: "搜索产品" }).fill("001");
     await expect
-      .element(screen.getByRole("cell", { name: "051" }))
-      .toBeVisible();
-    await expect
-      .element(screen.getByRole("button", { name: "下一页" }))
-      .toBeDisabled();
-    await screen.getByRole("button", { name: "上一页" }).click();
+      .poll(() => getPage.mock.calls.at(-1)?.[0])
+      .toEqual({
+        search: "001",
+        includeUnpublished: false,
+      });
     await expect
       .element(screen.getByRole("cell", { name: "001" }))
       .toBeVisible();
-    expect(getPage).toHaveBeenLastCalledWith({
-      search: "",
-      includeUnpublished: false,
-    });
   });
 
-  it("resets to the first cursor page when the catalog search changes", async () => {
+  it("replaces the catalog result when the server-side search changes", async () => {
     getPage.mockResolvedValue({
       products: [product({ sku: "005", skuSort: "005" })],
     });
@@ -322,52 +315,22 @@ describe("SanityCatalogList", () => {
     await expect
       .element(screen.getByRole("cell", { name: "005" }))
       .toBeVisible();
-    await expect.element(screen.getByText("第 1 页 · 本页 1 条")).toBeVisible();
   });
 
-  it("keeps the 1,801-product cursor chain reachable across all 37 UI pages", async () => {
-    const allProducts = Array.from({ length: 1801 }, (_, index) =>
+  it("does not impose a client-side product limit on a server result", async () => {
+    const products = Array.from({ length: 51 }, (_, index) =>
       product({
         id: `sanity-${index}`,
         sku: `SKU-${String(index).padStart(4, "0")}`,
         skuSort: `SKU-${String(index).padStart(4, "0")}`,
       }),
     );
-    getPage.mockImplementation(({ after }) => {
-      const start = after ? Number(after.id.replace("sanity-", "")) + 1 : 0;
-      const products = allProducts.slice(start, start + 50);
-      const last = products.at(-1);
-      return Promise.resolve({
-        products,
-        nextCursor:
-          start + 50 < allProducts.length && last
-            ? { skuSort: last.skuSort, id: last.id }
-            : undefined,
-      });
-    });
+    getPage.mockResolvedValue({ products });
 
     const screen = await render(<SanityCatalogList />);
 
-    for (let page = 1; page < 37; page += 1) {
-      await expect
-        .element(screen.getByText(`第 ${page} 页 · 本页 50 条`))
-        .toBeVisible();
-      await screen.getByRole("button", { name: "下一页" }).click();
-    }
     await expect
-      .element(screen.getByText("第 37 页 · 本页 1 条"))
+      .element(screen.getByRole("cell", { name: "SKU-0050" }))
       .toBeVisible();
-    await expect
-      .element(screen.getByRole("cell", { name: "SKU-1800" }))
-      .toBeVisible();
-    await expect
-      .element(screen.getByRole("button", { name: "下一页" }))
-      .toBeDisabled();
-    expect(getPage).toHaveBeenCalledTimes(37);
-    expect(
-      new Set(
-        getPage.mock.calls.map(([filter]) => filter.after?.id).filter(Boolean),
-      ).size,
-    ).toBe(36);
   });
 });
