@@ -81,18 +81,24 @@ select is((select count(*) from romiku_formal_customers),0::bigint,'all conversi
 select is((select status from romiku_quotes limit 1),'draft','source quote status remains manual');
 
 insert into romiku_suppliers(id,name) values ('40000000-0000-0000-0000-000000000001','Factory A'),('40000000-0000-0000-0000-000000000002','Factory B');
-select throws_ok($$insert into romiku_production_orders(order_id) select id from test_ids where kind='order'$$,'23502',null,'production must have exactly one supplier');
+select lives_ok($$insert into romiku_production_orders(order_id) select id from test_ids where kind='order'$$,'production allows an unspecified supplier');
+select is((select supplier_id from romiku_production_orders where supplier_id is null limit 1),null::uuid,'unspecified Production supplier remains null');
+select is(
+  (select p.document_number from romiku_production_orders p where p.supplier_id is null limit 1),
+  (select o.document_number || '-P01' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
+  'unspecified supplier Production still derives P01 from its Order number'
+);
 insert into romiku_production_orders(id,order_id,supplier_id,supplier_snapshot) select '41000000-0000-0000-0000-000000000001',id,'40000000-0000-0000-0000-000000000001','{"name":"Factory A"}' from test_ids where kind='order';
 select is(
   (select p.document_number from romiku_production_orders p where p.id='41000000-0000-0000-0000-000000000001'),
-  (select o.document_number || '-P01' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
-  'first Production Order derives P01 from its Order number'
+  (select o.document_number || '-P02' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
+  'supplier Production derives P02 after an unspecified supplier Production'
 );
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity,product_snapshot)
 select '41000000-0000-0000-0000-000000000001',order_id,id,sku,100,product_snapshot from romiku_order_items where order_id=(select id from test_ids where kind='order');
 select throws_ok($$insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select '41000000-0000-0000-0000-000000000001',order_id,id,sku,10 from romiku_order_items where order_id=(select id from test_ids where kind='direct_order')$$,'23503',null,'production cannot attach another order item');
 update romiku_suppliers set name='Changed factory';
-select is((select supplier_snapshot->>'name' from romiku_production_orders limit 1),'Factory A','supplier edits never rewrite production snapshot');
+select is((select supplier_snapshot->>'name' from romiku_production_orders where id='41000000-0000-0000-0000-000000000001'),'Factory A','supplier edits never rewrite production snapshot');
 insert into romiku_product_suppliers(id,sku,sanity_product_id,supplier_id)
 values ('42000000-0000-0000-0000-000000000001','SUNS15','sanity-original','40000000-0000-0000-0000-000000000001');
 insert into romiku_procurement_cost_history(product_supplier_id,cost,currency,effective_date,source_type)
@@ -110,8 +116,8 @@ insert into romiku_production_orders(id,order_id,supplier_id)
 select '41000000-0000-0000-0000-000000000002',id,'40000000-0000-0000-0000-000000000002' from test_ids where kind='order';
 select is(
   (select p.document_number from romiku_production_orders p where p.id='41000000-0000-0000-0000-000000000002'),
-  (select o.document_number || '-P02' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
-  'second Production Order derives P02 from the same Order'
+  (select o.document_number || '-P03' from romiku_orders o where o.id=(select id from test_ids where kind='order')),
+  'next Production derives P03 after the existing P01 and P02 from the same Order'
 );
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity)
 select '41000000-0000-0000-0000-000000000002',order_id,id,sku,240 from romiku_order_items where order_id=(select id from test_ids where kind='order');

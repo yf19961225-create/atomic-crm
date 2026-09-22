@@ -58,6 +58,26 @@ export const SanityCatalogList = () => {
       cancelled = true;
     };
   }, [search]);
+  useEffect(() => {
+    if (!imagePreview) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setImagePreview(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [imagePreview]);
+  const refreshOverlay = async (product: SanityCatalogProduct) => {
+    const next = await loadProductProcurementOverlay(
+      [product],
+      createSupabaseProcurementOverlayClient(),
+    );
+    setOverlay((current) => {
+      const updated = new Map(current);
+      const value = next.get(product.id);
+      if (value) updated.set(product.id, value);
+      return updated;
+    });
+  };
   if (error) return <p role="alert">产品目录暂时无法加载。</p>;
   if (loading) return <p>正在加载产品目录…</p>;
   const display = (
@@ -168,7 +188,7 @@ export const SanityCatalogList = () => {
         }
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}
-        refreshOverlay={async () => {}}
+        refreshOverlay={refreshOverlay}
       />
       {imagePreview && (
         <div
@@ -176,8 +196,6 @@ export const SanityCatalogList = () => {
           aria-label="产品图片预览"
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6"
           onClick={() => setImagePreview(null)}
-          onKeyDown={(event) => event.key === "Escape" && setImagePreview(null)}
-          tabIndex={-1}
         >
           <img
             className="max-h-full max-w-full"

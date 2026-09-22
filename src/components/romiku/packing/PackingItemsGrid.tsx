@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
+import { readRelated } from "../outbound/workflow";
+import { savePackingItem } from "./packingWorkflow";
 
 type Row = RaRecord & { [key: string]: unknown };
 const editable = [
@@ -15,15 +17,32 @@ const editable = [
 const number = (value: unknown) => Number(value || 0);
 
 export function PackingItemsGrid({
+  parent,
   items,
   onSaved,
 }: {
+  parent: RaRecord;
   items: Row[];
   onSaved: () => Promise<unknown>;
 }) {
   const provider = useDataProvider();
   const [draft, setDraft] = useState<Row[]>(items.map((item) => ({ ...item })));
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false),
+    [sources, setSources] = useState<Row[]>([]),
+    [sourceId, setSourceId] = useState(""),
+    [failure, setFailure] = useState("");
+  useEffect(() => {
+    setDraft(items.map((item) => ({ ...item })));
+  }, [items]);
+  useEffect(() => {
+    let cancelled = false;
+    readRelated(provider, "romiku_order_items", { order_id: parent.order_id })
+      .then((data) => !cancelled && setSources(data))
+      .catch(() => !cancelled && setFailure("无法加载订单产品项。"));
+    return () => {
+      cancelled = true;
+    };
+  }, [parent.order_id, provider]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(items);
   const change = (row: number, key: string, value: string) =>
     setDraft((current) =>
@@ -48,6 +67,49 @@ export function PackingItemsGrid({
     }),
     { quantity: 0, cartons: 0, cbm: 0, weight: 0 },
   );
+  const addSource = async () => {
+    const source = sources.find((item) => String(item.id) === sourceId);
+    if (
+      !source ||
+      draft.some((item) => item.source_order_item_id === source.id)
+    )
+      return;
+    setFailure("");
+    try {
+      const suppliers = await readRelated(
+        provider,
+        "romiku_product_suppliers",
+        {},
+      );
+      const matches = suppliers.filter(
+        (supplier) =>
+          supplier.sanity_product_id === source.sanity_product_id ||
+          (!supplier.sanity_product_id && supplier.sku === source.sku),
+      );
+      const procurement =
+        matches.find((supplier) => supplier.preferred) ??
+        (matches.length === 1 ? matches[0] : undefined);
+      setDraft((current) => [
+        ...current,
+        {
+          id: `draft-${source.id}`,
+          source_order_item_id: source.id,
+          sku: source.sku,
+          product_snapshot: structuredClone(source.product_snapshot || {}),
+          quantity: source.quantity,
+          cartons: 0,
+          qty_per_carton: procurement?.qty_per_carton ?? null,
+          length_cm: procurement?.length_cm ?? 0,
+          width_cm: procurement?.width_cm ?? 0,
+          height_cm: procurement?.height_cm ?? 0,
+          carton_weight_kg: procurement?.carton_weight_kg ?? 0,
+        },
+      ]);
+      setSourceId("");
+    } catch {
+      setFailure("无法加载供应商装箱默认值。请稍后重试。");
+    }
+  };
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
@@ -66,19 +128,30 @@ export function PackingItemsGrid({
             disabled={!dirty || saving}
             onClick={async () => {
               setSaving(true);
+              setFailure("");
               try {
                 for (let i = 0; i < draft.length; i++)
-                  await provider.update("romiku_packing_items", {
-                    id: draft[i].id,
-                    data: Object.fromEntries(
+                  await savePackingItem(
+                    provider,
+                    parent,
+                    String(draft[i].source_order_item_id),
+                    Object.fromEntries(
                       editable.map((key) => [
                         key,
                         draft[i][key] === "" ? 0 : draft[i][key],
                       ]),
                     ),
-                    previousData: items[i],
-                  });
+                    String(draft[i].id).startsWith("draft-")
+                      ? undefined
+                      : items.find((item) => item.id === draft[i].id),
+                  );
                 await onSaved();
+              } catch (cause) {
+                setFailure(
+                  cause instanceof Error
+                    ? cause.message
+                    : "保存装箱产品项失败。",
+                );
               } finally {
                 setSaving(false);
               }
@@ -87,6 +160,38 @@ export function PackingItemsGrid({
             保存
           </Button>
         </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="text-sm" htmlFor="packing-order-item">
+          从订单加入产品
+        </label>
+        <select
+          id="packing-order-item"
+          className="rounded border p-1"
+          value={sourceId}
+          onChange={(event) => setSourceId(event.target.value)}
+        >
+          <option value="">选择订单产品项</option>
+          {sources
+            .filter(
+              (source) =>
+                !draft.some((item) => item.source_order_item_id === source.id),
+            )
+            .map((source) => (
+              <option value={String(source.id)} key={source.id}>
+                {String(source.sku || "—")} ·{" "}
+                {String((source.product_snapshot as Row)?.name || "产品")}
+              </option>
+            ))}
+        </select>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!sourceId || saving}
+          onClick={addSource}
+        >
+          加入
+        </Button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -187,6 +292,7 @@ export function PackingItemsGrid({
           </tfoot>
         </table>
       </div>
+      {failure && <p role="alert">{failure}</p>}
     </section>
   );
 }

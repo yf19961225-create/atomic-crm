@@ -310,7 +310,11 @@ function FulfillmentEditor({
       ) : items.isPending ? (
         <p>正在加载产品项…</p>
       ) : kind === "packing" ? (
-        <PackingItemsGrid items={items.data} onSaved={items.refetch} />
+        <PackingItemsGrid
+          parent={record}
+          items={items.data}
+          onSaved={items.refetch}
+        />
       ) : (
         <FulfillmentItems
           kind={kind}
