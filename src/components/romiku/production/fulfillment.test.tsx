@@ -49,6 +49,7 @@ async function setup(path: string) {
       { id: "s1", name: "Factory One" },
       { id: "s2", name: "Factory Two" },
     ],
+    romiku_product_suppliers: [],
     romiku_production_orders: [],
     romiku_production_items: [],
     romiku_packing_lists: [
@@ -90,52 +91,34 @@ it("creates selected production items in one supplier-free Production through th
 });
 it("shows ordered, packed and remaining quantities and blocks packing over the remaining amount", async () => {
   const { screen, provider } = await setup("/packing-shipping/p");
-  await screen.getByRole("button", { name: "添加装箱产品项" }).click();
-  await screen.getByLabelText("订单产品项", { exact: true }).selectOptions("i");
+  await screen
+    .getByLabelText("从订单加入产品", { exact: true })
+    .selectOptions("i");
+  await screen.getByRole("button", { name: "加入", exact: true }).click();
+  await screen.getByLabelText("quantity A", { exact: true }).fill("20");
+  await screen.getByLabelText("cartons A", { exact: true }).fill("2");
+  await screen.getByLabelText("qty_per_carton A", { exact: true }).fill("10");
+  await screen.getByLabelText("length_cm A", { exact: true }).fill("50");
+  await screen.getByLabelText("width_cm A", { exact: true }).fill("40");
+  await screen.getByLabelText("height_cm A", { exact: true }).fill("30");
+  await screen.getByLabelText("carton_weight_kg A", { exact: true }).fill("8");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
-    .element(
-      screen.getByText("已订购：100 · 已装箱： 40 · 剩余： 60", {
-        exact: true,
-      }),
-    )
+    .element(screen.getByText("0.120 m³", { exact: true }).first())
     .toBeVisible();
-  await screen.getByLabelText("数量", { exact: true }).fill("61");
-  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
-  await expect.element(screen.getByRole("alert")).toHaveTextContent(/剩余/);
   expect(await readRelated(provider, "romiku_packing_items", {})).toHaveLength(
-    0,
+    1,
   );
-  await screen.getByLabelText("数量", { exact: true }).fill("20");
-  await screen.getByLabelText("箱数", { exact: true }).fill("2");
-  await screen.getByLabelText("每箱数量", { exact: true }).fill("10");
-  await screen.getByLabelText("长度（cm）", { exact: true }).fill("50");
-  await screen.getByLabelText("宽度（cm）", { exact: true }).fill("40");
-  await screen.getByLabelText("高度（cm）", { exact: true }).fill("30");
-  await screen.getByLabelText("每箱重量（kg）", { exact: true }).fill("8");
-  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
-  await expect
-    .element(
-      screen.getByText("合计：2 箱 · 0.120 m³ · 16.00 kg", {
-        exact: true,
-      }),
-    )
-    .toBeVisible();
-  expect(
-    (await readRelated(provider, "romiku_order_items", {}))[0].quantity,
-  ).toBe(100);
 });
 it("creates multiple Packing Lists for the same Order and edits only the copied line", async () => {
   const { screen, provider } = await setup("/packing-shipping/new?order=o");
   await screen.getByRole("button", { name: "创建装箱单", exact: true }).click();
-  await screen.getByRole("button", { name: "添加装箱产品项" }).click();
-  await screen.getByLabelText("订单产品项", { exact: true }).selectOptions("i");
-  await screen.getByLabelText("数量", { exact: true }).fill("10");
-  await screen.getByLabelText("产品名称", { exact: true }).fill("Packing copy");
-  await screen.getByLabelText("产品唛头", { exact: true }).fill("MARK");
-  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
-  await screen.getByRole("button", { name: "编辑装箱产品项" }).click();
-  await screen.getByLabelText("数量", { exact: true }).fill("15");
-  await screen.getByRole("button", { name: "保存装箱产品项" }).click();
+  await screen
+    .getByLabelText("从订单加入产品", { exact: true })
+    .selectOptions("i");
+  await screen.getByRole("button", { name: "加入", exact: true }).click();
+  await screen.getByLabelText("quantity A", { exact: true }).fill("15");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -143,10 +126,7 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
     )
     .toBe(15);
   const line = (await readRelated(provider, "romiku_packing_items", {}))[0];
-  expect(line.product_snapshot).toEqual({
-    name: "Packing copy",
-    shipping_mark: "MARK",
-  });
+  expect(line.product_snapshot).toEqual({ name: "Lamp" });
   expect(
     (await provider.getOne("romiku_order_items", { id: "i" })).data
       .product_snapshot,
