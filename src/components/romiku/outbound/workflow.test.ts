@@ -125,6 +125,20 @@ describe("workflow write boundaries and calculated state", () => {
       }),
     ).toEqual({ name: "A", status: "replied" });
   });
+  it.each([
+    ["romiku.com", "https://romiku.com"],
+    ["www.romiku.com", "https://www.romiku.com"],
+    ["https://romiku.com", "https://romiku.com"],
+    ["", null],
+  ])("normalizes outbound website %s before persistence", (input, expected) => {
+    expect(
+      toWorkflowWrite("outbound", {
+        name: "A",
+        status: "to_develop",
+        website: input,
+      }).website,
+    ).toBe(expected);
+  });
   it("updates only the requested record and synchronizes schedule without status or customer mutations", async () => {
     const provider = fakeRestDataProvider({
       romiku_outbound_companies: [{ id: "o", name: "A", status: "to_develop" }],

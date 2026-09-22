@@ -23,6 +23,7 @@ import {
   followupMethodLabel,
   relationshipStatusLabel,
 } from "../relationshipLabels";
+import { normalizeUrl } from "../shared/urlNormalization";
 
 export function useRelated(resource: string, key: string, id: Identifier) {
   const provider = useDataProvider();
@@ -100,7 +101,14 @@ export function RelatedRecords({
       // Write only editable fields, never the parent identity from form data.
       const keys = [...new Set(fields.map((field) => field.key.split(".")[0]))];
       const write = Object.fromEntries(
-        keys.map((key) => [key, values[key] === "" ? null : values[key]]),
+        keys.map((key) => [
+          key,
+          fields.some((field) => field.key === key && field.type === "url")
+            ? normalizeUrl(values[key])
+            : values[key] === ""
+              ? null
+              : values[key],
+        ]),
       );
       if (followupKind) {
         write.contacted_at = new Date(

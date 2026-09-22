@@ -1,4 +1,5 @@
 import type { DataProvider, Identifier, RaRecord } from "ra-core";
+import { normalizeUrl, normalizeUrlMap } from "../shared/urlNormalization";
 
 export const outboundStatuses = [
   "to_develop",
@@ -145,11 +146,26 @@ export function toWorkflowWrite(
         : undefined;
   if (allowed && !allowed.includes(String(values.status)))
     throw new Error("请选择允许的状态。");
-  return Object.fromEntries(
+  const write = Object.fromEntries(
     writableFields[kind]
       .filter((key) => key in values)
       .map((key) => [key, values[key] === "" ? null : values[key]]),
   );
+  if (kind === "outbound") {
+    if ("website" in write) write.website = normalizeUrl(write.website);
+    if ("social_urls" in write)
+      write.social_urls = normalizeUrlMap(write.social_urls);
+  }
+  if (kind === "customer" && write.requirements) {
+    const requirements = { ...(write.requirements as Record<string, unknown>) };
+    if ("shipping_mark_image_url" in requirements) {
+      requirements.shipping_mark_image_url = normalizeUrl(
+        requirements.shipping_mark_image_url,
+      );
+    }
+    write.requirements = requirements;
+  }
+  return write;
 }
 
 export async function saveWorkflowRecord(

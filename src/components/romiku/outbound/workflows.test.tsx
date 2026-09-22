@@ -328,4 +328,16 @@ describe("independent ROMIKU workflows", () => {
         .name,
     ).toBe("Original company");
   });
+
+  it("accepts a bare outbound website and stores a clickable normalized URL", async () => {
+    const { screen, provider } = await setup("/outbound-development");
+    await screen.getByRole("button", { name: "新建外贸开发公司" }).click();
+    await screen.getByLabelText("公司名称", { exact: true }).fill("Bare URL");
+    await screen.getByLabelText("网站", { exact: true }).fill("romiku.com");
+    await screen.getByRole("button", { name: "保存记录" }).click();
+    const records = (await provider.getList("romiku_outbound_companies", list))
+      .data;
+    const record = records.find((row) => row.name === "Bare URL");
+    expect(record?.website).toBe("https://romiku.com");
+  });
 });

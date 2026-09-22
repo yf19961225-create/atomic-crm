@@ -163,7 +163,10 @@ export function WorkflowFields({
               />
             ) : (
               <Input
-                type={field.type || "text"}
+                // URL fields intentionally use text validation: users may enter
+                // a bare domain and the shared write helper adds https://.
+                type={field.type === "url" ? "text" : field.type || "text"}
+                inputMode={field.type === "url" ? "url" : undefined}
                 required={field.required}
                 value={String(value ?? "")}
                 onChange={(event) => change(event.target.value)}

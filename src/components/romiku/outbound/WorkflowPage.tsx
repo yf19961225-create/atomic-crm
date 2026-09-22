@@ -39,6 +39,7 @@ import {
   type WorkflowKind,
 } from "./workflow";
 import { relationshipStatusLabel } from "../relationshipLabels";
+import { normalizeUrl } from "../shared/urlNormalization";
 
 export type WorkflowConfig = {
   kind: WorkflowKind;
@@ -245,14 +246,26 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
             {data.map((record) => (
               <tr key={record.id} className="hover:bg-muted/50 border-t">
                 <td className="p-3">
-                  <button
-                    className="text-primary text-left font-medium underline underline-offset-4"
-                    onClick={() => open(String(record.id))}
-                  >
-                    {config.kind === "inquiry"
-                      ? `${record.document_number} · ${record.customer_name}`
-                      : record.name}
-                  </button>
+                  <div className="flex flex-col items-start gap-1">
+                    <button
+                      className="text-primary text-left font-medium underline underline-offset-4"
+                      onClick={() => open(String(record.id))}
+                    >
+                      {config.kind === "inquiry"
+                        ? `${record.document_number} · ${record.customer_name}`
+                        : record.name}
+                    </button>
+                    {config.kind === "outbound" && record.website && (
+                      <a
+                        href={normalizeUrl(record.website) ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-muted-foreground max-w-64 truncate text-xs underline"
+                      >
+                        {record.website}
+                      </a>
+                    )}
+                  </div>
                 </td>
                 <td className="p-3">{record.country || "—"}</td>
                 {config.kind === "inquiry" ? (
