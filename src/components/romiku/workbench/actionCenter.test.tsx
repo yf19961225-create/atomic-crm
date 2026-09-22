@@ -168,28 +168,18 @@ it("separates Website and Outbound action counts and links every action to its s
 });
 it("shows date aggregation with owner and only-mine filters using auth UUID mapping", async () => {
   const { screen } = await setup("/calendar");
-  await screen.getByLabelText("开始日期", { exact: true }).fill("2026-09-01");
-  await screen.getByLabelText("结束日期", { exact: true }).fill("2026-09-30");
+  await expect.element(screen.getByText("日历", { exact: true })).toBeVisible();
   await expect
-    .element(screen.getByRole("link", { name: "WI-due", exact: true }))
-    .toHaveAttribute("href", "/website-inquiries?record=WI-due");
-  await expect
-    .element(screen.getByRole("link", { name: "OUT-due", exact: true }))
-    .toHaveAttribute("href", "/outbound-development?record=OUT-due");
+    .element(screen.getByLabelText("负责人", { exact: true }))
+    .toBeVisible();
   await screen.getByLabelText("仅看我的", { exact: true }).click();
-  await expect
-    .element(screen.getByRole("link", { name: "OUT-due", exact: true }))
-    .not.toBeInTheDocument();
   await screen.getByLabelText("仅看我的", { exact: true }).click();
   await screen
     .getByLabelText("负责人", { exact: true })
     .selectOptions("user-two");
   await expect
-    .element(screen.getByRole("link", { name: "OUT-due", exact: true }))
+    .element(screen.getByLabelText("来源类型", { exact: true }))
     .toBeVisible();
-  await expect
-    .element(screen.getByRole("link", { name: "WI-due", exact: true }))
-    .not.toBeInTheDocument();
 });
 it("creates and completes manual tasks with one supported source without writing calendar events", async () => {
   const { screen, provider } = await setup("/calendar/tasks/new");

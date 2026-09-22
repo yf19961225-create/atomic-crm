@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useDataProvider, useGetOne, type RaRecord } from "ra-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,7 @@ export function ManualTaskList() {
 }
 export function ManualTaskPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const owners = useOwners();
   const query = useGetOne(
     "romiku_manual_tasks",
@@ -110,6 +111,9 @@ export function ManualTaskPage() {
       record={id === "new" ? undefined : query.data}
       defaultOwner={owners.mine}
       owners={owners.owners}
+      defaultDue={
+        id === "new" ? searchParams.get("due") || undefined : undefined
+      }
     />
   );
 }
@@ -124,10 +128,12 @@ function TaskEditor({
   record,
   defaultOwner,
   owners,
+  defaultDue,
 }: {
   record?: RaRecord;
   defaultOwner?: string;
   owners: RaRecord[];
+  defaultDue?: string;
 }) {
   const provider = useDataProvider();
   const cache = useQueryClient();
@@ -135,7 +141,12 @@ function TaskEditor({
   const [values, setValues] = useState<Record<string, unknown>>(
     record
       ? { ...record, due_at: localInput(record.due_at) }
-      : { title: "", priority: "normal", owner_id: defaultOwner || "" },
+      : {
+          title: "",
+          priority: "normal",
+          owner_id: defaultOwner || "",
+          due_at: defaultDue || "",
+        },
   );
   const [relation, setRelation] = useState(
     Object.keys(taskSources).find((key) => record?.[key]) || "",
