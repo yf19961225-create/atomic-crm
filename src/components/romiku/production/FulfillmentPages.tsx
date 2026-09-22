@@ -13,10 +13,24 @@ import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { FulfillmentItems } from "./FulfillmentItems";
 import { PackingItemsGrid } from "../packing/PackingItemsGrid";
-import {
-  productionStatusChoices,
-  productionStatusLabel,
-} from "../commercialLabels";
+import { productionStatusChoices } from "../commercialLabels";
+import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+
+const localDateTimeLabel = (value: unknown) => {
+  if (!value) return "—";
+  const date = new Date(String(value));
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replaceAll("/", "-");
+};
 
 export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const config = fulfillmentConfig[kind],
@@ -66,7 +80,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                 "单据",
                 "订单",
                 ...(kind === "production"
-                  ? ["状态", "工厂交期"]
+                  ? ["状态", "工厂交期", "生成时间"]
                   : ["批次", "装箱日期", "唛头"]),
               ].map((title) => (
                 <th className="p-3" key={title}>
@@ -93,8 +107,20 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                 </td>
                 {(kind === "production"
                   ? [
-                      productionStatusLabel(record.status),
+                      <InlineStatusSelect
+                        resource={config.resource}
+                        recordId={String(record.id)}
+                        status={String(record.status || "pending")}
+                        choices={productionStatusChoices.map(
+                          ({ id, label }) => ({
+                            value: id,
+                            label,
+                          }),
+                        )}
+                        label="生产状态"
+                      />,
                       record.factory_due_at,
+                      localDateTimeLabel(record.created_at),
                     ]
                   : [
                       record.batch_label,
@@ -237,6 +263,9 @@ function FulfillmentEditor({
           {record.order_id}
         </Link>
       </p>
+      {kind === "production" && (
+        <p>生成时间：{localDateTimeLabel(record.created_at)}</p>
+      )}
       <details>
         <summary className="cursor-pointer">{config.label}详情</summary>
         <form className="space-y-4 py-4" onSubmit={save}>

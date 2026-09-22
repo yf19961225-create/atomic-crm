@@ -36,6 +36,7 @@ import {
   documentStatusChoices,
   documentStatusLabel,
 } from "../commercialLabels";
+import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 
 function DocumentSources({ record }: { record: RaRecord }) {
   const links = [
@@ -169,7 +170,18 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                 <td className="p-3">
                   <DocumentSources record={record} />
                 </td>
-                <td className="p-3">{documentStatusLabel(record.status)}</td>
+                <td className="p-3">
+                  <InlineStatusSelect
+                    resource={config.resource}
+                    recordId={String(record.id)}
+                    status={String(record.status || config.statuses[0] || "")}
+                    choices={config.statuses.map((value) => ({
+                      value,
+                      label: documentStatusLabel(value),
+                    }))}
+                    label={`${config.label}状态`}
+                  />
+                </td>
                 <td className="p-3">{record.document_date}</td>
                 <td className="p-3">
                   {record.currency} {Number(record.total).toFixed(2)}

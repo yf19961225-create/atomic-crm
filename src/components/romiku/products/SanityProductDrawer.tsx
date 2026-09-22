@@ -59,6 +59,7 @@ export const SanityProductDrawer = ({
   const [notes, setNotes] = useState("");
   const [selectedSupplier, setSelectedSupplier] =
     useState<DrawerSupplier | null>(null);
+  const [supplierDirty, setSupplierDirty] = useState(false);
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
   const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
@@ -134,6 +135,7 @@ export const SanityProductDrawer = ({
         refreshCurrent,
       );
       setSelectedSupplier(null);
+      setSupplierDirty(false);
       event.currentTarget.reset();
       setMessage("供应商关联已保存。");
     } catch {
@@ -161,7 +163,19 @@ export const SanityProductDrawer = ({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (
+          !nextOpen &&
+          supplierDirty &&
+          !window.confirm("有未保存的采购信息，是否放弃？")
+        )
+          return;
+        if (!nextOpen) setSupplierDirty(false);
+        onOpenChange(nextOpen);
+      }}
+    >
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>{productText(product.name)}</SheetTitle>
@@ -271,91 +285,84 @@ export const SanityProductDrawer = ({
               <p>—</p>
             )}
             <form onSubmit={submitSupplier} className="space-y-2">
-              <select
-                aria-label="供应商"
-                name="supplier_id"
-                defaultValue={selectedSupplier?.supplier_id ?? ""}
-                key={selectedSupplier?.id ?? "new"}
-              >
-                <option value="">选择供应商</option>
-                {supplierOptions.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
-              <Input
-                name="supplier_item_number"
-                placeholder="Supplier SKU"
-                defaultValue={selectedSupplier?.supplier_item_number ?? ""}
-                key={`sku-${selectedSupplier?.id ?? "new"}`}
-              />
-              <Input
-                name="moq"
-                type="number"
-                placeholder="Supplier MOQ"
-                defaultValue={selectedSupplier?.moq ?? ""}
-                key={`moq-${selectedSupplier?.id ?? "new"}`}
-              />
-              <Input
-                name="lead_days"
-                type="number"
-                placeholder="Lead Time"
-                defaultValue={selectedSupplier?.lead_days ?? ""}
-                key={`lead-${selectedSupplier?.id ?? "new"}`}
-              />
+              <label className="block space-y-1">
+                <span>Supplier</span>
+                <select
+                  aria-label="Supplier"
+                  name="supplier_id"
+                  defaultValue={selectedSupplier?.supplier_id ?? ""}
+                  key={selectedSupplier?.id ?? "new"}
+                  onChange={() => setSupplierDirty(true)}
+                >
+                  <option value="">选择供应商</option>
+                  {supplierOptions.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {[
+                [
+                  "supplier_item_number",
+                  "Supplier SKU",
+                  selectedSupplier?.supplier_item_number ?? "",
+                ],
+                ["moq", "Supplier MOQ", selectedSupplier?.moq ?? ""],
+                ["lead_days", "Lead Time", selectedSupplier?.lead_days ?? ""],
+              ].map(([name, label, value]) => (
+                <label className="block space-y-1" key={name}>
+                  <span>{label}</span>
+                  <Input
+                    name={String(name)}
+                    type={name === "supplier_item_number" ? "text" : "number"}
+                    defaultValue={String(value)}
+                    key={`${String(name)}-${selectedSupplier?.id ?? "new"}`}
+                    onChange={() => setSupplierDirty(true)}
+                  />
+                </label>
+              ))}
               <div className="grid grid-cols-2 gap-2">
-                <Input
-                  name="qty_per_carton"
-                  type="number"
-                  placeholder="Qty/Ctn"
-                  defaultValue={selectedSupplier?.qty_per_carton ?? ""}
-                  key={`qty-${selectedSupplier?.id ?? "new"}`}
-                />
-                <Input
-                  name="carton_weight_kg"
-                  type="number"
-                  step="any"
-                  placeholder="单箱重量 kg"
-                  defaultValue={selectedSupplier?.carton_weight_kg ?? ""}
-                  key={`weight-${selectedSupplier?.id ?? "new"}`}
-                />
-                <Input
-                  name="length_cm"
-                  type="number"
-                  step="any"
-                  placeholder="长 cm"
-                  defaultValue={selectedSupplier?.length_cm ?? ""}
-                  key={`length-${selectedSupplier?.id ?? "new"}`}
-                />
-                <Input
-                  name="width_cm"
-                  type="number"
-                  step="any"
-                  placeholder="宽 cm"
-                  defaultValue={selectedSupplier?.width_cm ?? ""}
-                  key={`width-${selectedSupplier?.id ?? "new"}`}
-                />
-                <Input
-                  name="height_cm"
-                  type="number"
-                  step="any"
-                  placeholder="高 cm"
-                  defaultValue={selectedSupplier?.height_cm ?? ""}
-                  key={`height-${selectedSupplier?.id ?? "new"}`}
-                />
+                {[
+                  [
+                    "qty_per_carton",
+                    "Qty/Ctn",
+                    selectedSupplier?.qty_per_carton ?? "",
+                  ],
+                  ["length_cm", "长(cm)", selectedSupplier?.length_cm ?? ""],
+                  ["width_cm", "宽(cm)", selectedSupplier?.width_cm ?? ""],
+                  ["height_cm", "高(cm)", selectedSupplier?.height_cm ?? ""],
+                  [
+                    "carton_weight_kg",
+                    "单箱重量(kg)",
+                    selectedSupplier?.carton_weight_kg ?? "",
+                  ],
+                ].map(([name, label, value]) => (
+                  <label className="block space-y-1" key={name}>
+                    <span>{label}</span>
+                    <Input
+                      name={String(name)}
+                      type="number"
+                      step="any"
+                      defaultValue={String(value)}
+                      key={`${String(name)}-${selectedSupplier?.id ?? "new"}`}
+                      onChange={() => setSupplierDirty(true)}
+                    />
+                  </label>
+                ))}
               </div>
-              <label>
+              <label className="flex items-center gap-2">
                 <input
                   name="preferred"
                   type="checkbox"
                   defaultChecked={selectedSupplier?.preferred ?? false}
                   key={`preferred-${selectedSupplier?.id ?? "new"}`}
+                  onChange={() => setSupplierDirty(true)}
                 />{" "}
                 Preferred Supplier
               </label>
               <Button type="submit">
-                {selectedSupplier ? "保存供应商关联" : "新增供应商关联"}
+                {selectedSupplier ? "保存采购信息" : "新增并保存供应商关联"}
               </Button>
             </form>
           </div>

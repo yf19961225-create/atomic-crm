@@ -66,6 +66,7 @@ export function FulfillmentItems({
               {[
                 "SKU / 图片",
                 "产品",
+                ...(kind === "production" ? ["箱数"] : []),
                 "数量",
                 ...(kind === "packing"
                   ? ["箱数", "CBM", "重量", "唛头 / 备注"]
@@ -96,6 +97,13 @@ export function FulfillmentItems({
                     )}
                   </td>
                   <td className="p-3">{item.product_snapshot?.name}</td>
+                  {kind === "production" && (
+                    <td className="p-3">
+                      {item.packaging_snapshot?.cartons ??
+                        item.packaging_snapshot?.carton_qty ??
+                        "—"}
+                    </td>
+                  )}
                   <td className="p-3">{item.quantity}</td>
                   {kind === "packing" ? (
                     <>

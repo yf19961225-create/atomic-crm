@@ -31,6 +31,22 @@ export const packingColumnKeys = [
   "carton_weight_kg",
   "total_weight",
 ] as const;
+export const packingColumnWidths = [
+  "3%",
+  "8%",
+  "15%",
+  "5%",
+  "7%",
+  "6%",
+  "7%",
+  "6%",
+  "6%",
+  "6%",
+  "8%",
+  "8%",
+  "8%",
+  "8%",
+] as const;
 
 export function packingComputedValues(item: Row) {
   const perCbm =
@@ -221,24 +237,10 @@ export function PackingItemsGrid({
         </Button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <colgroup>
-            {packingColumnKeys.map((key) => (
-              <col
-                key={key}
-                className={
-                  key === "name"
-                    ? "min-w-40"
-                    : [
-                          "per_cbm",
-                          "total_cbm",
-                          "carton_weight_kg",
-                          "total_weight",
-                        ].includes(key)
-                      ? "min-w-32"
-                      : "w-28"
-                }
-              />
+            {packingColumnKeys.map((key, index) => (
+              <col key={key} style={{ width: packingColumnWidths[index] }} />
             ))}
           </colgroup>
           <thead>
@@ -251,9 +253,9 @@ export function PackingItemsGrid({
                 "总数量",
                 "箱数",
                 "Qty/Ctn",
-                "长 cm",
-                "宽 cm",
-                "高 cm",
+                "长(cm)",
+                "宽(cm)",
+                "高(cm)",
                 "单箱体积",
                 "总体积",
                 "单箱重量",
@@ -339,10 +341,18 @@ export function PackingItemsGrid({
               <td colSpan={4}>合计</td>
               <td className="text-right">{total.quantity}</td>
               <td className="text-right">{total.cartons}</td>
-              <td colSpan={5} />
-              <td className="text-right">{total.cbm.toFixed(3)} m³</td>
-              <td colSpan={1} />
-              <td className="text-right">{total.weight.toFixed(2)} kg</td>
+              <td />
+              <td />
+              <td />
+              <td />
+              <td />
+              <td className="whitespace-nowrap text-right">
+                {total.cbm.toFixed(3)} m³
+              </td>
+              <td />
+              <td className="whitespace-nowrap text-right">
+                {total.weight.toFixed(2)} kg
+              </td>
             </tr>
           </tfoot>
         </table>

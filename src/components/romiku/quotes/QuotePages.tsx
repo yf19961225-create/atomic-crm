@@ -20,6 +20,7 @@ import {
 } from "../commercial/useDocumentEditSession";
 import { DocumentConversion } from "../orders/DocumentConversion";
 import { quoteStatusChoices, quoteStatusLabel } from "../commercialLabels";
+import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 
 function SourceLinks({ record }: { record: RaRecord }) {
   return (
@@ -157,7 +158,17 @@ export function QuoteList() {
                 <td className="p-3">
                   <SourceLinks record={record} />
                 </td>
-                <td className="p-3">{quoteStatusLabel(record.status)}</td>
+                <td className="p-3">
+                  <InlineStatusSelect
+                    resource="romiku_quotes"
+                    recordId={String(record.id)}
+                    status={String(record.status || quoteStatuses[0])}
+                    choices={quoteStatuses.map((value) => ({
+                      value,
+                      label: quoteStatusLabel(value),
+                    }))}
+                  />
+                </td>
                 <td className="p-3">{record.document_date}</td>
                 <td className="p-3">{record.valid_until || "—"}</td>
                 <td className="p-3">
