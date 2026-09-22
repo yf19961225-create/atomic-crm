@@ -34,7 +34,7 @@ export const packingColumnKeys = [
 export const packingColumnWidths = [
   "3%",
   "8%",
-  "15%",
+  "14%",
   "5%",
   "7%",
   "6%",
@@ -236,8 +236,8 @@ export function PackingItemsGrid({
           加入
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full table-fixed text-sm">
+      <div className="w-full min-w-0 overflow-x-auto">
+        <table className="w-full min-w-0 table-fixed text-sm">
           <colgroup>
             {packingColumnKeys.map((key, index) => (
               <col key={key} style={{ width: packingColumnWidths[index] }} />
@@ -292,10 +292,10 @@ export function PackingItemsGrid({
                   </td>
                   {editable.map((key) =>
                     key === "carton_weight_kg" ? null : (
-                      <td className="p-1 text-right" key={key}>
+                      <td className="min-w-0 p-1 text-right" key={key}>
                         <input
                           aria-label={`${key} ${item.sku}`}
-                          className="w-20 rounded border p-1 text-right"
+                          className="block w-full min-w-0 rounded border p-1 text-right"
                           type="number"
                           step="any"
                           value={String(item[key] ?? "")}
@@ -317,10 +317,10 @@ export function PackingItemsGrid({
                   <td className="whitespace-nowrap p-2 text-right">
                     {computed.totalCbm}
                   </td>
-                  <td className="p-1 text-right">
+                  <td className="min-w-0 p-1 text-right">
                     <input
                       aria-label={`carton_weight_kg ${item.sku}`}
-                      className="w-20 rounded border p-1 text-right"
+                      className="block w-full min-w-0 rounded border p-1 text-right"
                       type="number"
                       step="any"
                       value={String(item.carton_weight_kg ?? "")}

@@ -140,4 +140,47 @@ describe("SanityProductDrawer", () => {
     });
     expect(refreshOverlay).toHaveBeenCalledWith(product);
   });
+
+  it("updates an existing ProductSupplier procurement overlay", async () => {
+    const client = createClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([
+      {
+        id: "product-supplier-1",
+        supplier_id: "supplier-a",
+        supplier_name: "华东供应商",
+        qty_per_carton: 24,
+        preferred: true,
+      },
+    ]);
+    const refreshOverlay = vi.fn().mockResolvedValue(undefined);
+    const screen = await render(
+      <SanityProductDrawer
+        product={product}
+        open
+        onOpenChange={vi.fn()}
+        refreshOverlay={refreshOverlay}
+        client={client}
+      />,
+    );
+
+    await screen.getByRole("button", { name: "编辑" }).click();
+    await screen.getByLabelText("长(cm)").fill("50");
+    await screen.getByLabelText("宽(cm)").fill("50");
+    await screen.getByLabelText("高(cm)").fill("50");
+    await screen.getByLabelText("单箱重量(kg)").fill("50");
+    await screen.getByRole("button", { name: "保存采购信息" }).click();
+
+    expect(client.updateSupplier).toHaveBeenCalledWith(
+      "product-supplier-1",
+      expect.objectContaining({
+        supplier_id: "supplier-a",
+        length_cm: 50,
+        width_cm: 50,
+        height_cm: 50,
+        carton_weight_kg: 50,
+      }),
+    );
+    expect(client.createSupplier).not.toHaveBeenCalled();
+    await expect.element(screen.getByText("供应商关联已保存。")).toBeVisible();
+  });
 });

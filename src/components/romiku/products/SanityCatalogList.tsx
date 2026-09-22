@@ -13,14 +13,14 @@ import { SanityProductDrawer } from "./SanityProductDrawer";
 import { loadWebsiteProductImages } from "./websiteProductImages";
 
 export const catalogColumns = [
-  { key: "image", label: "图片", className: "w-20" },
-  { key: "sku", label: "货号", className: "w-32" },
-  { key: "qty", label: "装箱数", className: "w-24" },
-  { key: "dimensions", label: "箱规", className: "w-40" },
-  { key: "cbm", label: "体积", className: "w-28" },
-  { key: "weight", label: "重量", className: "w-28" },
-  { key: "supplier", label: "供应商", className: "w-44" },
-  { key: "note", label: "产品备注", className: "w-auto" },
+  { key: "image", label: "图片", width: "6%" },
+  { key: "sku", label: "货号", width: "10%" },
+  { key: "qty", label: "装箱数", width: "10%" },
+  { key: "dimensions", label: "箱规", width: "15%" },
+  { key: "cbm", label: "体积", width: "10%" },
+  { key: "weight", label: "重量", width: "10%" },
+  { key: "supplier", label: "供应商", width: "17%" },
+  { key: "note", label: "产品备注", width: "22%" },
 ] as const;
 
 export const SanityCatalogList = () => {
@@ -98,7 +98,7 @@ export const SanityCatalogList = () => {
     value: string | number | undefined,
   ) => (item?.unavailable ? "暂时无法加载" : (value ?? "—"));
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full min-w-0 overflow-x-auto">
       <label className="mb-3 block">
         搜索产品{" "}
         <input
@@ -107,11 +107,11 @@ export const SanityCatalogList = () => {
           onChange={(event) => setSearch(event.target.value)}
         />
       </label>
-      <table className="w-full text-sm">
+      <table className="w-full min-w-0 table-fixed text-sm">
         <caption className="sr-only">产品目录中的产品</caption>
         <colgroup>
           {catalogColumns.map((column) => (
-            <col key={column.key} className={column.className} />
+            <col key={column.key} style={{ width: column.width }} />
           ))}
         </colgroup>
         <thead>
@@ -203,7 +203,7 @@ export const SanityCatalogList = () => {
                   </button>
                   <span className="sr-only">编辑采购信息</span>
                 </td>
-                <td className="max-w-48 truncate p-2">
+                <td className="truncate p-2">
                   {display(item, item?.internalNotes || undefined)}
                 </td>
               </tr>

@@ -250,7 +250,7 @@ function FulfillmentEditor({
     }
   }
   return (
-    <section className="max-w-6xl space-y-5">
+    <section className="w-full min-w-0 space-y-5">
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>

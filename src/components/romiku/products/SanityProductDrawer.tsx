@@ -59,6 +59,18 @@ export const SanityProductDrawer = ({
   const [notes, setNotes] = useState("");
   const [selectedSupplier, setSelectedSupplier] =
     useState<DrawerSupplier | null>(null);
+  const [supplierForm, setSupplierForm] = useState({
+    supplier_id: "",
+    supplier_item_number: "",
+    moq: "",
+    lead_days: "",
+    qty_per_carton: "",
+    length_cm: "",
+    width_cm: "",
+    height_cm: "",
+    carton_weight_kg: "",
+    preferred: false,
+  });
   const [supplierDirty, setSupplierDirty] = useState(false);
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
@@ -83,6 +95,20 @@ export const SanityProductDrawer = ({
 
   useEffect(() => {
     if (!open || !product) return;
+    setSelectedSupplier(null);
+    setSupplierForm({
+      supplier_id: "",
+      supplier_item_number: "",
+      moq: "",
+      lead_days: "",
+      qty_per_carton: "",
+      length_cm: "",
+      width_cm: "",
+      height_cm: "",
+      carton_weight_kg: "",
+      preferred: false,
+    });
+    setSupplierDirty(false);
     setMessage("");
     void loadInternal().catch(() => setMessage("内部采购资料暂时无法加载。"));
   }, [open, product, loadInternal]);
@@ -110,8 +136,7 @@ export const SanityProductDrawer = ({
   };
   const submitSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const supplierId = String(form.get("supplier_id") ?? "");
+    const supplierId = supplierForm.supplier_id;
     if (!supplierId) return setMessage("请选择供应商。");
     setMessage("");
     try {
@@ -121,22 +146,32 @@ export const SanityProductDrawer = ({
         {
           id: selectedSupplier?.id,
           supplier_id: supplierId,
-          preferred: form.get("preferred") === "on",
-          supplier_item_number:
-            String(form.get("supplier_item_number") ?? "") || undefined,
-          moq: Number(form.get("moq")) || null,
-          lead_days: Number(form.get("lead_days")) || null,
-          qty_per_carton: Number(form.get("qty_per_carton")) || null,
-          length_cm: Number(form.get("length_cm")) || null,
-          width_cm: Number(form.get("width_cm")) || null,
-          height_cm: Number(form.get("height_cm")) || null,
-          carton_weight_kg: Number(form.get("carton_weight_kg")) || null,
+          preferred: supplierForm.preferred,
+          supplier_item_number: supplierForm.supplier_item_number || undefined,
+          moq: Number(supplierForm.moq) || null,
+          lead_days: Number(supplierForm.lead_days) || null,
+          qty_per_carton: Number(supplierForm.qty_per_carton) || null,
+          length_cm: Number(supplierForm.length_cm) || null,
+          width_cm: Number(supplierForm.width_cm) || null,
+          height_cm: Number(supplierForm.height_cm) || null,
+          carton_weight_kg: Number(supplierForm.carton_weight_kg) || null,
         },
         refreshCurrent,
       );
       setSelectedSupplier(null);
+      setSupplierForm({
+        supplier_id: "",
+        supplier_item_number: "",
+        moq: "",
+        lead_days: "",
+        qty_per_carton: "",
+        length_cm: "",
+        width_cm: "",
+        height_cm: "",
+        carton_weight_kg: "",
+        preferred: false,
+      });
       setSupplierDirty(false);
-      event.currentTarget.reset();
       setMessage("供应商关联已保存。");
     } catch {
       setMessage("供应商关联保存失败。");
@@ -274,7 +309,41 @@ export const SanityProductDrawer = ({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setSelectedSupplier(supplier)}
+                      onClick={() => {
+                        setSelectedSupplier(supplier);
+                        setSupplierForm({
+                          supplier_id: supplier.supplier_id,
+                          supplier_item_number:
+                            supplier.supplier_item_number ?? "",
+                          moq: supplier.moq == null ? "" : String(supplier.moq),
+                          lead_days:
+                            supplier.lead_days == null
+                              ? ""
+                              : String(supplier.lead_days),
+                          qty_per_carton:
+                            supplier.qty_per_carton == null
+                              ? ""
+                              : String(supplier.qty_per_carton),
+                          length_cm:
+                            supplier.length_cm == null
+                              ? ""
+                              : String(supplier.length_cm),
+                          width_cm:
+                            supplier.width_cm == null
+                              ? ""
+                              : String(supplier.width_cm),
+                          height_cm:
+                            supplier.height_cm == null
+                              ? ""
+                              : String(supplier.height_cm),
+                          carton_weight_kg:
+                            supplier.carton_weight_kg == null
+                              ? ""
+                              : String(supplier.carton_weight_kg),
+                          preferred: Boolean(supplier.preferred),
+                        });
+                        setSupplierDirty(false);
+                      }}
                     >
                       编辑
                     </Button>
@@ -290,9 +359,14 @@ export const SanityProductDrawer = ({
                 <select
                   aria-label="Supplier"
                   name="supplier_id"
-                  defaultValue={selectedSupplier?.supplier_id ?? ""}
-                  key={selectedSupplier?.id ?? "new"}
-                  onChange={() => setSupplierDirty(true)}
+                  value={supplierForm.supplier_id}
+                  onChange={(event) => {
+                    setSupplierForm((current) => ({
+                      ...current,
+                      supplier_id: event.target.value,
+                    }));
+                    setSupplierDirty(true);
+                  }}
                 >
                   <option value="">选择供应商</option>
                   {supplierOptions.map((supplier) => (
@@ -310,15 +384,22 @@ export const SanityProductDrawer = ({
                 ],
                 ["moq", "Supplier MOQ", selectedSupplier?.moq ?? ""],
                 ["lead_days", "Lead Time", selectedSupplier?.lead_days ?? ""],
-              ].map(([name, label, value]) => (
+              ].map(([name, label]) => (
                 <label className="block space-y-1" key={name}>
                   <span>{label}</span>
                   <Input
                     name={String(name)}
                     type={name === "supplier_item_number" ? "text" : "number"}
-                    defaultValue={String(value)}
-                    key={`${String(name)}-${selectedSupplier?.id ?? "new"}`}
-                    onChange={() => setSupplierDirty(true)}
+                    value={
+                      supplierForm[name as keyof typeof supplierForm] as string
+                    }
+                    onChange={(event) => {
+                      setSupplierForm((current) => ({
+                        ...current,
+                        [name]: event.target.value,
+                      }));
+                      setSupplierDirty(true);
+                    }}
                   />
                 </label>
               ))}
@@ -337,16 +418,25 @@ export const SanityProductDrawer = ({
                     "单箱重量(kg)",
                     selectedSupplier?.carton_weight_kg ?? "",
                   ],
-                ].map(([name, label, value]) => (
+                ].map(([name, label]) => (
                   <label className="block space-y-1" key={name}>
                     <span>{label}</span>
                     <Input
                       name={String(name)}
                       type="number"
                       step="any"
-                      defaultValue={String(value)}
-                      key={`${String(name)}-${selectedSupplier?.id ?? "new"}`}
-                      onChange={() => setSupplierDirty(true)}
+                      value={
+                        supplierForm[
+                          name as keyof typeof supplierForm
+                        ] as string
+                      }
+                      onChange={(event) => {
+                        setSupplierForm((current) => ({
+                          ...current,
+                          [name]: event.target.value,
+                        }));
+                        setSupplierDirty(true);
+                      }}
                     />
                   </label>
                 ))}
@@ -355,9 +445,14 @@ export const SanityProductDrawer = ({
                 <input
                   name="preferred"
                   type="checkbox"
-                  defaultChecked={selectedSupplier?.preferred ?? false}
-                  key={`preferred-${selectedSupplier?.id ?? "new"}`}
-                  onChange={() => setSupplierDirty(true)}
+                  checked={supplierForm.preferred}
+                  onChange={(event) => {
+                    setSupplierForm((current) => ({
+                      ...current,
+                      preferred: event.target.checked,
+                    }));
+                    setSupplierDirty(true);
+                  }}
                 />{" "}
                 Preferred Supplier
               </label>

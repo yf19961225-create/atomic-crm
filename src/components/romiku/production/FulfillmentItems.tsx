@@ -64,8 +64,9 @@ export function FulfillmentItems({
           <thead>
             <tr>
               {[
-                "SKU / 图片",
+                "货号",
                 "产品",
+                "图片",
                 ...(kind === "production" ? ["箱数"] : []),
                 "数量",
                 ...(kind === "packing"
@@ -84,8 +85,9 @@ export function FulfillmentItems({
               const total = packingTotals([item]);
               return (
                 <tr key={item.id} className="border-t">
+                  <td className="p-3">{item.sku}</td>
+                  <td className="p-3">{item.product_snapshot?.name}</td>
                   <td className="p-3">
-                    {item.sku}
                     {/^https?:\/\//i.test(
                       item.product_snapshot?.image_url || "",
                     ) && (
@@ -96,7 +98,6 @@ export function FulfillmentItems({
                       />
                     )}
                   </td>
-                  <td className="p-3">{item.product_snapshot?.name}</td>
                   {kind === "production" && (
                     <td className="p-3">
                       {item.packaging_snapshot?.cartons ??
