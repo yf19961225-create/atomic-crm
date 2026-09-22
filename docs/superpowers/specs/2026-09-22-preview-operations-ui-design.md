@@ -36,13 +36,13 @@ The Production detail and list no longer expose supplier controls or values. His
 
 ## Numeric-input safety
 
-A small app-level numeric-input guard handles every native `input[type=number]`, including existing commercial, fulfillment, payment, packing, and procurement fields. Shared base CSS hides browser spin controls. A capture-phase wheel handler prevents only the number input's native increment/decrement default when that input is focused; it does not prevent the wheel event from scrolling the page. Existing numeric types, decimal `step`, validation, keyboard Tab, and Enter behavior stay unchanged.
+A small app-level numeric-input guard handles every native `input[type=number]`, including existing commercial, fulfillment, payment, packing, and procurement fields. Shared base CSS hides browser spin controls. When a focused number input receives a wheel event, the guard blurs that input without calling `preventDefault()`: this prevents the browser's native increment/decrement behavior while preserving normal page scrolling. Existing numeric types, decimal `step`, validation, keyboard Tab, and Enter behavior stay unchanged.
 
 ## Calendar
 
 Use FullCalendar React, with the current `romiku_calendar` view as the event source. The calendar grid is the page body and defaults to a Monday-first month view. Its toolbar supports previous period, next period, Today, and month/week/day views. FullCalendar's overflow handling displays `+N more` and opens its event list for busy days.
 
-Events preserve their source title, source type, owner, status, and `due_at`. All-day events are represented without a time; timed events retain their local time. Owner and source-type filters remain compact controls above the grid. Clicking a task opens its source or task detail using the existing source routing. Clicking an empty date opens a new manual-task route with that date prefilled.
+Events preserve their source title, source type, owner, status, and `due_at`. All-day events are represented without a time; timed events retain their local time. Owner and source-type filters remain compact controls above the grid. Clicking a task opens its source or task detail using the existing source routing. Clicking an empty date in month view opens a new manual-task route with the date prefilled; clicking a time slot in week or day view prefills both local date and time.
 
 ## Product Library alignment
 
@@ -50,13 +50,23 @@ The compact Product Library stays at exactly eight columns:
 
 `Image | SKU | Qty/Ctn | Carton dimensions | CBM | Weight | Supplier | Internal note`
 
-The same `<colgroup>` dimensions apply to both `<thead>` and `<tbody>`. Image, SKU, and numeric columns have fixed desktop widths; Supplier has a wider fixed width; Internal note consumes remaining space. Numeric headers and cells share right alignment. Product image preview, procurement precedence, Sanity `cartonQty` fallback, and drawer editing remain intact.
+The same `<colgroup>` dimensions apply to both `<thead>` and `<tbody>`. Image, SKU, and numeric columns have fixed desktop widths; Supplier has a wider fixed width; Internal note consumes remaining space. Numeric headers and cells share right alignment.
+
+Procurement display precedence is explicit:
+
+- Qty/Ctn: Preferred Supplier, then the only Supplier where exactly one exists, then Sanity `cartonQty`, then `—`.
+- Carton dimensions: Preferred Supplier, then the only Supplier where exactly one exists, then `—`.
+- Carton weight: Preferred Supplier, then the only Supplier where exactly one exists, then `—`.
+- CBM is calculated from the displayed dimensions only and is never stored as a redundant database field.
+- Supplier display is Preferred Supplier plus `+N` for additional suppliers.
+
+Product image preview and drawer editing remain intact.
 
 ## Testing and acceptance
 
 - Packing regression coverage proves the 50 × 40 × 30 cm, 2-carton, 12.5 kg/carton example renders `0.060 m³`, `0.120 m³`, `12.5 kg`, and `25.00 kg` in the respective columns.
 - Production workflow coverage proves multiple selected items yield one nullable-supplier Production and historical supplier fields are not part of update writes.
-- Numeric guard coverage proves wheel input is blocked while scroll is not prevented.
+- Numeric guard coverage proves wheel leaves the value unchanged while the page scroll event remains unblocked, and preserves Tab, Enter, decimal input, and validation behavior.
 - Calendar coverage proves default month/Monday settings, toolbar view changes, overflow behavior, filtering, detail navigation, and prefilled manual-task date behavior.
 - Product Library coverage proves the column definition supplies aligned header/body columns.
 - Run the full frontend suite, pgTAP/schema suite, typecheck, lint, build, then deploy and manually verify only Preview.
