@@ -15,6 +15,33 @@ const editable = [
   "carton_weight_kg",
 ];
 const number = (value: unknown) => Number(value || 0);
+export const packingColumnKeys = [
+  "no",
+  "sku",
+  "name",
+  "image",
+  "quantity",
+  "cartons",
+  "qty_per_carton",
+  "length_cm",
+  "width_cm",
+  "height_cm",
+  "per_cbm",
+  "total_cbm",
+  "carton_weight_kg",
+  "total_weight",
+] as const;
+
+export function packingComputedValues(item: Row) {
+  const perCbm =
+    (number(item.length_cm) * number(item.width_cm) * number(item.height_cm)) /
+    1_000_000;
+  return {
+    perCbm: `${perCbm.toFixed(3)} m³`,
+    totalCbm: `${(perCbm * number(item.cartons)).toFixed(3)} m³`,
+    totalWeight: `${(number(item.carton_weight_kg) * number(item.cartons)).toFixed(2)} kg`,
+  };
+}
 
 export function PackingItemsGrid({
   parent,
@@ -195,6 +222,11 @@ export function PackingItemsGrid({
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
+          <colgroup>
+            {packingColumnKeys.map((key) => (
+              <col key={key} className={key === "name" ? "min-w-40" : "w-28"} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               {[
@@ -221,11 +253,7 @@ export function PackingItemsGrid({
           </thead>
           <tbody>
             {draft.map((item, index) => {
-              const perCbm =
-                  (number(item.length_cm) *
-                    number(item.width_cm) *
-                    number(item.height_cm)) /
-                  1_000_000,
+              const computed = packingComputedValues(item),
                 warning =
                   item.qty_per_carton &&
                   number(item.quantity) !==
@@ -246,35 +274,42 @@ export function PackingItemsGrid({
                       />
                     )}
                   </td>
-                  {editable.map((key) => (
-                    <td className="p-1 text-right" key={key}>
-                      <input
-                        aria-label={`${key} ${item.sku}`}
-                        className="w-20 rounded border p-1 text-right"
-                        type="number"
-                        step="any"
-                        value={String(item[key] ?? "")}
-                        onChange={(event) =>
-                          change(index, key, event.target.value)
-                        }
-                      />
-                      {key === "qty_per_carton" && warning && (
-                        <span title="数量与箱数×Qty/Ctn 不一致；允许尾箱">
-                          ⚠
-                        </span>
-                      )}
-                    </td>
-                  ))}
-                  <td className="p-2 text-right">{perCbm.toFixed(3)} m³</td>
-                  <td className="p-2 text-right">
-                    {(perCbm * number(item.cartons)).toFixed(3)} m³
+                  {editable.map((key) =>
+                    key === "carton_weight_kg" ? null : (
+                      <td className="p-1 text-right" key={key}>
+                        <input
+                          aria-label={`${key} ${item.sku}`}
+                          className="w-20 rounded border p-1 text-right"
+                          type="number"
+                          step="any"
+                          value={String(item[key] ?? "")}
+                          onChange={(event) =>
+                            change(index, key, event.target.value)
+                          }
+                        />
+                        {key === "qty_per_carton" && warning && (
+                          <span title="数量与箱数×Qty/Ctn 不一致；允许尾箱">
+                            ⚠
+                          </span>
+                        )}
+                      </td>
+                    ),
+                  )}
+                  <td className="p-2 text-right">{computed.perCbm}</td>
+                  <td className="p-2 text-right">{computed.totalCbm}</td>
+                  <td className="p-1 text-right">
+                    <input
+                      aria-label={`carton_weight_kg ${item.sku}`}
+                      className="w-20 rounded border p-1 text-right"
+                      type="number"
+                      step="any"
+                      value={String(item.carton_weight_kg ?? "")}
+                      onChange={(event) =>
+                        change(index, "carton_weight_kg", event.target.value)
+                      }
+                    />
                   </td>
-                  <td className="p-2 text-right">
-                    {(
-                      number(item.carton_weight_kg) * number(item.cartons)
-                    ).toFixed(2)}{" "}
-                    kg
-                  </td>
+                  <td className="p-2 text-right">{computed.totalWeight}</td>
                 </tr>
               );
             })}
