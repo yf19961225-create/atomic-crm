@@ -20,6 +20,7 @@ export function FormalCustomerSelector({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [customers, setCustomers] = useState<RaRecord[]>([]);
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedQuery(query.trim());
@@ -35,7 +36,20 @@ export function FormalCustomerSelector({
       ? { "search_text@ilike": `%${debouncedQuery}%` }
       : {},
   });
-  const customers = directory.data || [];
+  useEffect(() => {
+    setCustomers([]);
+  }, [debouncedQuery]);
+  useEffect(() => {
+    if (!directory.data) return;
+    setCustomers((current) => {
+      const next = page === 1 ? [] : current;
+      const known = new Set(next.map((customer) => String(customer.id)));
+      return [
+        ...next,
+        ...directory.data.filter((customer) => !known.has(String(customer.id))),
+      ];
+    });
+  }, [directory.data, page]);
   const options = [null, ...customers] as Array<RaRecord | null>;
   const select = (customer?: RaRecord | null) => {
     setOpen(false);
