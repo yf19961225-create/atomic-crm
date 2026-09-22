@@ -21,6 +21,7 @@ describe("packing grid columns", () => {
     ]);
     expect(
       packingComputedValues({
+        id: "draft",
         length_cm: 50,
         width_cm: 40,
         height_cm: 30,
