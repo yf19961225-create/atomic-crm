@@ -43,8 +43,17 @@ export function FulfillmentItems({
   items: RaRecord[];
   onChanged: () => Promise<unknown>;
 }) {
+  const provider = useDataProvider();
   const [editing, setEditing] = useState<RaRecord | "new" | null>(null);
   const totals = packingTotals(items);
+  const sourceItems = useQuery({
+    queryKey: ["fulfillment-source-order-items", parent.order_id],
+    queryFn: () =>
+      readRelated(provider, "romiku_order_items", {
+        order_id: parent.order_id,
+      }),
+    enabled: kind === "production",
+  });
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
@@ -65,13 +74,14 @@ export function FulfillmentItems({
             <tr>
               {[
                 "货号",
-                "产品",
+                kind === "production" ? "产品名称" : "产品",
                 "图片",
-                ...(kind === "production" ? ["箱数"] : []),
-                "数量",
+                ...(kind === "production"
+                  ? ["箱数", "生产数量", "总数量"]
+                  : ["数量"]),
                 ...(kind === "packing"
                   ? ["箱数", "CBM", "重量", "唛头 / 备注"]
-                  : ["生产备注"]),
+                  : []),
                 "操作",
               ].map((label) => (
                 <th className="p-3" key={label}>
@@ -83,6 +93,10 @@ export function FulfillmentItems({
           <tbody>
             {items.map((item) => {
               const total = packingTotals([item]);
+              const source = sourceItems.data?.find(
+                (candidate) =>
+                  String(candidate.id) === String(item.source_order_item_id),
+              );
               return (
                 <tr key={item.id} className="border-t">
                   <td className="p-3">{item.sku}</td>
@@ -106,6 +120,13 @@ export function FulfillmentItems({
                     </td>
                   )}
                   <td className="p-3">{item.quantity}</td>
+                  {kind === "production" && (
+                    <td className="p-3">
+                      {source?.quantity ??
+                        item.packaging_snapshot?.order_quantity ??
+                        "—"}
+                    </td>
+                  )}
                   {kind === "packing" ? (
                     <>
                       <td className="p-3">{item.cartons}</td>
@@ -115,9 +136,7 @@ export function FulfillmentItems({
                         {item.product_snapshot?.shipping_mark} {item.remark}
                       </td>
                     </>
-                  ) : (
-                    <td className="p-3">{item.production_note_zh}</td>
-                  )}
+                  ) : null}
                   <td className="p-3">
                     <Button
                       variant="outline"

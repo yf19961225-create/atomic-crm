@@ -181,6 +181,6 @@ describe("SanityProductDrawer", () => {
       }),
     );
     expect(client.createSupplier).not.toHaveBeenCalled();
-    await expect.element(screen.getByText("供应商关联已保存。")).toBeVisible();
+    await expect.element(screen.getByText("采购信息已保存。")).toBeVisible();
   });
 });

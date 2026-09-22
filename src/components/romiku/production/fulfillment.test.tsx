@@ -142,6 +142,17 @@ it("edits a Production Order copy while retaining its Order source", async () =>
   await screen.getByLabelText("选择 A", { exact: true }).click();
   await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
   await screen.getByRole("link").nth(1).click();
+  await expect.element(screen.getByText("货号", { exact: true })).toBeVisible();
+  await expect
+    .element(screen.getByText("产品名称", { exact: true }))
+    .toBeVisible();
+  await expect.element(screen.getByText("图片", { exact: true })).toBeVisible();
+  await expect
+    .element(screen.getByText("生产数量", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("总数量", { exact: true }))
+    .toBeVisible();
   await screen.getByRole("button", { name: "编辑生产产品项" }).click();
   await expect
     .element(screen.getByLabelText("订单产品项", { exact: true }))
