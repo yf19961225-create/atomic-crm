@@ -4,7 +4,6 @@ import { readRelated } from "../outbound/workflow";
 
 export type ProductionSelection = {
   itemId: string;
-  supplierId?: string | null;
   quantity: number;
 };
 export class ProductionCreationError extends Error {
@@ -33,29 +32,14 @@ export async function createProductionOrders(
   const sourceItems = await readRelated(provider, "romiku_order_items", {
     order_id: orderId,
   });
-  const groups = new Map<
-    string,
-    { supplier: RaRecord | null; items: Values[] }
-  >();
-  // Validate and copy every group before creating the first document.
+  const items: Values[] = [];
   for (const selection of selections) {
     const source = sourceItems.find(
       (item) => String(item.id) === selection.itemId,
     );
     if (!source) throw new Error("所选产品项必须属于该订单。");
     const quantity = positiveQuantity(selection.quantity);
-    const groupKey = selection.supplierId || "__unspecified__";
-    if (!groups.has(groupKey)) {
-      const supplier = selection.supplierId
-        ? (
-            await provider.getOne("romiku_suppliers", {
-              id: selection.supplierId,
-            })
-          ).data
-        : null;
-      groups.set(groupKey, { supplier, items: [] });
-    }
-    groups.get(groupKey)!.items.push({
+    items.push({
       order_id: orderId,
       source_order_item_id: source.id,
       sanity_product_id: source.sanity_product_id || null,
@@ -67,23 +51,19 @@ export async function createProductionOrders(
   }
   const documents: RaRecord[] = [];
   try {
-    for (const [, group] of groups) {
-      const { data } = await provider.create("romiku_production_orders", {
-        data: {
-          order_id: orderId,
-          supplier_id: group.supplier?.id || null,
-          supplier_snapshot: group.supplier
-            ? structuredClone(group.supplier)
-            : null,
-          status: "pending",
-        },
+    const { data } = await provider.create("romiku_production_orders", {
+      data: {
+        order_id: orderId,
+        supplier_id: null,
+        supplier_snapshot: null,
+        status: "pending",
+      },
+    });
+    documents.push(data);
+    for (const item of items)
+      await provider.create("romiku_production_items", {
+        data: { ...item, production_order_id: data.id },
       });
-      documents.push(data);
-      for (const item of group.items)
-        await provider.create("romiku_production_items", {
-          data: { ...item, production_order_id: data.id },
-        });
-    }
   } catch (cause) {
     throw new ProductionCreationError(
       `创建已停止。请在再次创建前检查已保存的单据；最后一张单据可能包含未完成的产品项。${cause instanceof Error ? cause.message : String(cause)}`,

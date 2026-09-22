@@ -65,21 +65,25 @@ async function setup(path: string) {
   );
   return { provider, screen };
 }
-it("creates selected production items under separate supplier snapshots through the ROMIKU route", async () => {
+it("creates selected production items in one supplier-free Production through the ROMIKU route", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
   await screen.getByLabelText("选择 A", { exact: true }).click();
-  await screen.getByLabelText("供应商 A", { exact: true }).selectOptions("s1");
   await screen.getByLabelText("选择 B", { exact: true }).click();
-  await screen.getByLabelText("供应商 B", { exact: true }).selectOptions("s2");
+  await expect.element(screen.getByText("选择", { exact: true })).toBeVisible();
+  await expect
+    .element(screen.getByText("订单数量", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("生产数量", { exact: true }))
+    .toBeVisible();
   await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
   await expect
     .element(screen.getByRole("status"))
-    .toHaveTextContent("已创建 2 张生产单");
+    .toHaveTextContent("已创建 1 张生产单");
   const rows = await readRelated(provider, "romiku_production_orders", {});
-  expect(rows.map((r) => r.supplier_snapshot.name)).toEqual([
-    "Factory One",
-    "Factory Two",
-  ]);
+  expect(rows).toHaveLength(1);
+  expect(rows[0].supplier_id).toBeNull();
+  expect(rows[0].supplier_snapshot).toBeNull();
   expect(
     (await readRelated(provider, "romiku_order_items", {}))[0].quantity,
   ).toBe(100);
@@ -151,12 +155,11 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
     await readRelated(provider, "romiku_packing_lists", { order_id: "o" }),
   ).toHaveLength(2);
 });
-it("edits a Production Order copy while retaining its single supplier and Order source", async () => {
+it("edits a Production Order copy while retaining its Order source", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
   await screen.getByLabelText("选择 A", { exact: true }).click();
-  await screen.getByLabelText("供应商 A", { exact: true }).selectOptions("s1");
   await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
-  await screen.getByRole("link", { name: "Factory One", exact: true }).click();
+  await screen.getByRole("link").nth(1).click();
   await screen.getByRole("button", { name: "编辑生产产品项" }).click();
   await expect
     .element(screen.getByLabelText("订单产品项", { exact: true }))
@@ -180,15 +183,14 @@ it("edits a Production Order copy while retaining its single supplier and Order 
   expect(
     (await readRelated(provider, "romiku_production_orders", {}))[0]
       .supplier_id,
-  ).toBe("s1");
+  ).toBeNull();
 });
 
 it("saves a manual Production Order number without changing its source Order", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
   await screen.getByLabelText("选择 A", { exact: true }).click();
-  await screen.getByLabelText("供应商 A", { exact: true }).selectOptions("s1");
   await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
-  await screen.getByRole("link", { name: "Factory One", exact: true }).click();
+  await screen.getByRole("link").nth(1).click();
   await screen.getByText("生产单详情", { exact: true }).click();
   await screen
     .getByLabelText("单据编号", { exact: true })
