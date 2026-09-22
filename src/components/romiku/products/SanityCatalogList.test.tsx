@@ -80,6 +80,9 @@ describe("SanityCatalogList", () => {
     await expect
       .element(screen.getByRole("cell", { name: "24" }))
       .toBeVisible();
+    expect(
+      screen.getByRole("table").element().querySelectorAll("col"),
+    ).toHaveLength(8);
     for (const label of [
       "图片",
       "货号",

@@ -12,6 +12,17 @@ import { createSupabaseProcurementOverlayClient } from "./supabaseProcurementOve
 import { SanityProductDrawer } from "./SanityProductDrawer";
 import { loadWebsiteProductImages } from "./websiteProductImages";
 
+export const catalogColumns = [
+  { key: "image", label: "图片", className: "w-20" },
+  { key: "sku", label: "货号", className: "w-32" },
+  { key: "qty", label: "装箱数", className: "w-24" },
+  { key: "dimensions", label: "箱规", className: "w-40" },
+  { key: "cbm", label: "体积", className: "w-28" },
+  { key: "weight", label: "重量", className: "w-28" },
+  { key: "supplier", label: "供应商", className: "w-44" },
+  { key: "note", label: "产品备注", className: "w-auto" },
+] as const;
+
 export const SanityCatalogList = () => {
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [overlay, setOverlay] = useState<Map<string, ProductOverlay>>(
@@ -98,20 +109,19 @@ export const SanityCatalogList = () => {
       </label>
       <table className="w-full text-sm">
         <caption className="sr-only">产品目录中的产品</caption>
+        <colgroup>
+          {catalogColumns.map((column) => (
+            <col key={column.key} className={column.className} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            {[
-              "图片",
-              "货号",
-              "装箱数",
-              "箱规",
-              "体积",
-              "重量",
-              "供应商",
-              "产品备注",
-            ].map((label) => (
-              <th className="p-2 text-left" key={label}>
-                {label}
+            {catalogColumns.map((column) => (
+              <th
+                className={`p-2 ${["qty", "dimensions", "cbm", "weight"].includes(column.key) ? "text-right" : "text-left"}`}
+                key={column.key}
+              >
+                {column.label}
               </th>
             ))}
           </tr>
