@@ -4,7 +4,7 @@ import { readRelated } from "../outbound/workflow";
 
 export type ProductionSelection = {
   itemId: string;
-  supplierId: string;
+  supplierId?: string | null;
   quantity: number;
 };
 export class ProductionCreationError extends Error {
@@ -28,14 +28,15 @@ export async function createProductionOrders(
 ) {
   if (!orderId || !selections.length)
     throw new Error("请选择订单和至少一个产品项。");
-  if (selections.some((s) => !s.supplierId))
-    throw new Error("请为每个已选产品项选择供应商。");
   if (new Set(selections.map((s) => s.itemId)).size !== selections.length)
     throw new Error("每个订单产品项只能选择一次。");
   const sourceItems = await readRelated(provider, "romiku_order_items", {
     order_id: orderId,
   });
-  const groups = new Map<string, { supplier: RaRecord; items: Values[] }>();
+  const groups = new Map<
+    string,
+    { supplier: RaRecord | null; items: Values[] }
+  >();
   // Validate and copy every group before creating the first document.
   for (const selection of selections) {
     const source = sourceItems.find(
@@ -43,13 +44,18 @@ export async function createProductionOrders(
     );
     if (!source) throw new Error("所选产品项必须属于该订单。");
     const quantity = positiveQuantity(selection.quantity);
-    if (!groups.has(selection.supplierId)) {
-      const { data } = await provider.getOne("romiku_suppliers", {
-        id: selection.supplierId,
-      });
-      groups.set(selection.supplierId, { supplier: data, items: [] });
+    const groupKey = selection.supplierId || "__unspecified__";
+    if (!groups.has(groupKey)) {
+      const supplier = selection.supplierId
+        ? (
+            await provider.getOne("romiku_suppliers", {
+              id: selection.supplierId,
+            })
+          ).data
+        : null;
+      groups.set(groupKey, { supplier, items: [] });
     }
-    groups.get(selection.supplierId)!.items.push({
+    groups.get(groupKey)!.items.push({
       order_id: orderId,
       source_order_item_id: source.id,
       sanity_product_id: source.sanity_product_id || null,
@@ -61,12 +67,14 @@ export async function createProductionOrders(
   }
   const documents: RaRecord[] = [];
   try {
-    for (const [supplierId, group] of groups) {
+    for (const [, group] of groups) {
       const { data } = await provider.create("romiku_production_orders", {
         data: {
           order_id: orderId,
-          supplier_id: supplierId,
-          supplier_snapshot: structuredClone(group.supplier),
+          supplier_id: group.supplier?.id || null,
+          supplier_snapshot: group.supplier
+            ? structuredClone(group.supplier)
+            : null,
           status: "pending",
         },
       });

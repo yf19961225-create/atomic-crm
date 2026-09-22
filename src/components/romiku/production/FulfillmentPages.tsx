@@ -12,6 +12,7 @@ import { errorMessage } from "../outbound/RelatedRecords";
 import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { FulfillmentItems } from "./FulfillmentItems";
+import { PackingItemsGrid } from "../packing/PackingItemsGrid";
 import {
   productionStatusChoices,
   productionStatusLabel,
@@ -192,6 +193,11 @@ function FulfillmentEditor({
     queryFn: () =>
       readRelated(provider, config.items, { [config.foreignKey]: record.id }),
   });
+  const suppliers = useQuery({
+    queryKey: ["production-suppliers"],
+    queryFn: () => readRelated(provider, "romiku_suppliers", {}),
+    enabled: kind === "production",
+  });
   const fields = kind === "production" ? productionFields : packingFields;
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -202,6 +208,10 @@ function FulfillmentEditor({
       const data = Object.fromEntries(
         fields.map(({ key }) => [key, values[key] || null]),
       );
+      if (kind === "production") {
+        data.supplier_id = values.supplier_id || null;
+        data.supplier_snapshot = values.supplier_snapshot || null;
+      }
       const dateKey = kind === "production" ? "factory_due_at" : "packing_at";
       if (data[dateKey]) {
         const date = new Date(String(data[dateKey]));
@@ -239,16 +249,40 @@ function FulfillmentEditor({
       </p>
       {kind === "production" && (
         <div className="rounded border p-4">
-          <p>
-            供应商：{" "}
-            <Link
-              className="underline"
-              to={`/romiku_suppliers/${record.supplier_id}`}
+          <label className="block text-sm">
+            供应商（可选）
+            <select
+              className="ml-2 rounded border p-1"
+              value={String(values.supplier_id || "")}
+              disabled={busy || suppliers.isPending}
+              onChange={(event) => {
+                const supplier = suppliers.data?.find(
+                  (candidate) => String(candidate.id) === event.target.value,
+                );
+                setValues((current) => ({
+                  ...current,
+                  supplier_id: supplier?.id || null,
+                  supplier_snapshot: supplier
+                    ? structuredClone(supplier)
+                    : null,
+                }));
+              }}
             >
-              {record.supplier_snapshot?.name || record.supplier_id}
-            </Link>
+              <option value="">未指定供应商</option>
+              {suppliers.data?.map((supplier) => (
+                <option value={String(supplier.id)} key={supplier.id}>
+                  {String((supplier as RaRecord).name || supplier.id)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            当前快照：
+            {String(
+              (values.supplier_snapshot as RaRecord | null)?.name ||
+                "未指定供应商",
+            )}
           </p>
-          <p>{record.supplier_snapshot?.address}</p>
           <p className="text-muted-foreground text-sm">
             此生产单只有一个供应商。其供应商和产品快照独立于订单。
           </p>
@@ -275,6 +309,8 @@ function FulfillmentEditor({
         </p>
       ) : items.isPending ? (
         <p>正在加载产品项…</p>
+      ) : kind === "packing" ? (
+        <PackingItemsGrid items={items.data} onSaved={items.refetch} />
       ) : (
         <FulfillmentItems
           kind={kind}

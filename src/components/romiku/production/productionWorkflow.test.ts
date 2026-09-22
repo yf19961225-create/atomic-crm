@@ -71,7 +71,7 @@ it("validates every supplier and source before creating any production document"
     createProductionOrders(provider, "o", [
       { itemId: "i", supplierId: "", quantity: 1 },
     ]),
-  ).rejects.toThrow(/供应商/);
+  ).rejects.toThrow(/所选产品项/);
   expect(await readRelated(provider, "romiku_production_orders", {})).toEqual(
     [],
   );

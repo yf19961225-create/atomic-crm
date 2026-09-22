@@ -59,8 +59,7 @@ export function ProductionCreate() {
       </Link>
       <h1 className="text-3xl font-semibold">新建生产单</h1>
       <p>
-        选择产品项并为每项指定一个供应商。每个供应商将创建一张生产单，并拥有独立
-        的订单产品项和供应商快照。
+        选择产品项和生产数量。供应商仅用于内部采购分组；留空的产品将归入“未指定供应商”。
       </p>
       <form className="space-y-4" onSubmit={create}>
         <fieldset disabled={busy || created !== null} className="space-y-4">
@@ -120,7 +119,7 @@ export function ProductionCreate() {
                                 ...selections,
                                 [item.id]: {
                                   itemId: String(item.id),
-                                  supplierId: "",
+                                  supplierId: null,
                                   quantity: Number(item.quantity),
                                 },
                               });
@@ -145,7 +144,6 @@ export function ProductionCreate() {
                           type="number"
                           step="any"
                           min="0.0001"
-                          required={!!selected}
                           disabled={!selected}
                           aria-label={`生产数量 ${item.sku}`}
                           value={selected?.quantity ?? ""}
@@ -169,7 +167,7 @@ export function ProductionCreate() {
                             change({ supplierId: e.target.value })
                           }
                         >
-                          <option value="">请选择供应商</option>
+                          <option value="">未指定供应商</option>
                           {suppliers.data?.map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name}
@@ -205,7 +203,9 @@ export function ProductionCreate() {
           {created.map((record) => (
             <p key={record.id}>
               <Link className="underline" to={`/production/${record.id}`}>
-                {record.document_number || record.supplier_snapshot.name}
+                {record.document_number ||
+                  record.supplier_snapshot?.name ||
+                  "未指定供应商"}
               </Link>
             </p>
           ))}
