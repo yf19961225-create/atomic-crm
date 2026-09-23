@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import templateUrl from "@/assets/order-templates/ROMIKU_订单_模板.xlsx?url";
 import { normalizeOrderExportModel } from "./orderExportModel";
 import { renderOrderXlsx } from "./orderXlsxRenderer";
@@ -62,12 +63,8 @@ it.each([1, 2, 8])(
         product_snapshot: {
           name: `Saved ${index + 1}`,
           specification: "Saved spec",
-          ...(index === 0
-            ? {
-                image_url:
-                  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLk+wAAAABJRU5ErkJggg==",
-              }
-            : {}),
+          image_url:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLk+wAAAABJRU5ErkJggg==",
         },
         packing_snapshot: { cartons: 1, qty_per_carton: 2 },
       })),
@@ -76,6 +73,19 @@ it.each([1, 2, 8])(
       response.arrayBuffer(),
     );
     const output = await renderOrderXlsx(model, template);
+    const [templateContents, packageContents] = await Promise.all([
+      JSZip.loadAsync(template),
+      JSZip.loadAsync(output),
+    ]);
+    const drawingXml = await packageContents
+      .file("xl/drawings/drawing1.xml")!
+      .async("string");
+    const sheetXml = await packageContents
+      .file("xl/worksheets/sheet1.xml")!
+      .async("string");
+    const templateSheetXml = await templateContents
+      .file("xl/worksheets/sheet1.xml")!
+      .async("string");
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(output);
     const sheet = workbook.getWorksheet("ORDER")!;
@@ -104,6 +114,28 @@ it.each([1, 2, 8])(
     expect(sheet.getCell(`A${summaryStart + 2}`).text).toContain("OTHER");
     expect(sheet.getCell("D9").value).toBeNull();
     expect(sheet.getCell("E9").value).toBe("Saved spec");
-    expect(workbook.model.media.length).toBeGreaterThan(1);
+    expect(
+      Object.keys(packageContents.files).filter(
+        (path) =>
+          path.startsWith("xl/media/") && !packageContents.files[path].dir,
+      ),
+    ).toHaveLength(count + 1);
+    expect(drawingXml).toContain('<a:srcRect t="32945" b="40175"/>');
+    expect(drawingXml).toContain('<a:ext cx="2562860" cy="694690"/>');
+    expect(drawingXml).toContain("Product image 1");
+    expect(drawingXml.match(/<xdr:from><xdr:col>3<\/xdr:col>/g)).toHaveLength(
+      count,
+    );
+    expect(drawingXml).toContain(`<xdr:row>${8 + count - 1}</xdr:row>`);
+    const columnWidths = (xml: string) =>
+      [...xml.matchAll(/<col\b[^>]*\bwidth="([^"]+)"/g)].map(
+        (match) => match[1],
+      );
+    expect(columnWidths(sheetXml)).toEqual(columnWidths(templateSheetXml));
+    expect(sheetXml).toContain(
+      '<pageSetup paperSize="9" orientation="portrait" horizontalDpi="300" verticalDpi="300"/>',
+    );
+    expect(sheetXml).not.toContain("fitToWidth");
+    expect(sheetXml).not.toContain("fitToHeight");
   },
 );

@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import type { OrderExportModel } from "./orderExportModel";
 
 const PRODUCT_START = 9,
@@ -108,9 +109,20 @@ async function insertImage(
 ) {
   if (!imageUrl) return;
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(
+      imageUrl.startsWith("data:")
+        ? imageUrl
+        : `/api/order-export-image?url=${encodeURIComponent(imageUrl)}`,
+    );
     if (!response.ok) return;
-    const blob = await response.blob();
+    let blob = await response.blob();
+    if (!/^image\/(png|jpe?g)$/i.test(blob.type)) {
+      const bitmap = await createImageBitmap(blob);
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      blob = await canvas.convertToBlob({ type: "image/png" });
+    }
     let width = 72,
       height = 72;
     try {
@@ -131,8 +143,97 @@ async function insertImage(
       ext: { width, height },
     } as unknown as ExcelJS.ImagePosition);
   } catch {
-    /* Expired snapshot image leaves the Photo cell empty. */
+    console.warn("[order-xlsx] product snapshot image unavailable", {
+      row,
+      imageUrl,
+    });
   }
+}
+
+const textPart = async (zip: JSZip, path: string) =>
+  (await zip.file(path)?.async("string")) || "";
+
+const imageRelationshipsAfterLogo = (relationships: string) =>
+  [...relationships.matchAll(/<Relationship\b[^>]*\bId="rId(\d+)"[^>]*\/>/g)]
+    .filter((match) => Number(match[1]) > 1 && /\/image"/.test(match[0]))
+    .map((match) => match[0]);
+
+/**
+ * ExcelJS cannot round-trip the template's cropped logo or its native print
+ * setup. Keep its generated dynamic cell region, then restore those untouched
+ * OOXML parts and append only the new product-image anchors/relationships.
+ */
+async function preserveTemplatePackage(
+  template: ArrayBuffer,
+  rendered: ArrayBuffer,
+): Promise<ArrayBuffer> {
+  const [source, output] = await Promise.all([
+    JSZip.loadAsync(template),
+    JSZip.loadAsync(rendered),
+  ]);
+  const drawingPath = "xl/drawings/drawing1.xml";
+  const relationshipPath = "xl/drawings/_rels/drawing1.xml.rels";
+  const worksheetPath = "xl/worksheets/sheet1.xml";
+  const [
+    sourceDrawing,
+    outputDrawing,
+    sourceRelationships,
+    outputRelationships,
+  ] = await Promise.all([
+    textPart(source, drawingPath),
+    textPart(output, drawingPath),
+    textPart(source, relationshipPath),
+    textPart(output, relationshipPath),
+  ]);
+  const maxTemplateShapeId = Math.max(
+    0,
+    ...[...sourceDrawing.matchAll(/<xdr:cNvPr\b[^>]*\bid="(\d+)"/g)].map(
+      (match) => Number(match[1]),
+    ),
+  );
+  const productAnchors = (
+    outputDrawing.match(/<xdr:oneCellAnchor\b[\s\S]*?<\/xdr:oneCellAnchor>/g) ||
+    []
+  ).map((anchor, index) =>
+    anchor
+      .replace(
+        /<xdr:cNvPr\b[^>]*\bid="\d+"/,
+        `<xdr:cNvPr id="${maxTemplateShapeId + index + 1}"`,
+      )
+      .replace(/\bname="Picture \d+"/, `name="Product image ${index + 1}"`),
+  );
+  if (sourceDrawing && productAnchors?.length)
+    output.file(
+      drawingPath,
+      sourceDrawing.replace(
+        "</xdr:wsDr>",
+        `${productAnchors.join("")}</xdr:wsDr>`,
+      ),
+    );
+  const productRelationships = imageRelationshipsAfterLogo(outputRelationships);
+  if (sourceRelationships && productRelationships.length)
+    output.file(
+      relationshipPath,
+      sourceRelationships.replace(
+        "</Relationships>",
+        `${productRelationships.join("")}</Relationships>`,
+      ),
+    );
+
+  const [sourceWorksheet, outputWorksheet] = await Promise.all([
+    textPart(source, worksheetPath),
+    textPart(output, worksheetPath),
+  ]);
+  const sourceMargins = sourceWorksheet.match(/<pageMargins\b[^>]*\/>/)?.[0];
+  const sourceSetup = sourceWorksheet.match(/<pageSetup\b[^>]*\/>/)?.[0];
+  if (outputWorksheet && sourceMargins && sourceSetup) {
+    const withoutExcelJsSetup = outputWorksheet
+      .replace(/<pageMargins\b[^>]*\/>/, sourceMargins)
+      .replace(/<pageSetup\b[^>]*\/>/, sourceSetup)
+      .replace(/<pageSetUpPr\b[^>]*\/>/g, "");
+    output.file(worksheetPath, withoutExcelJsSetup);
+  }
+  return output.generateAsync({ type: "arraybuffer", compression: "DEFLATE" });
 }
 
 /** Uses saved snapshot data only and reconstructs the template's dynamic merged region. */
@@ -319,5 +420,5 @@ export async function renderOrderXlsx(
     sheet.getCell(row, 4).value = term.text;
   });
   sheet.pageSetup.printArea = `A1:J${layout.termRows.at(-1)!}`;
-  return workbook.xlsx.writeBuffer();
+  return preserveTemplatePackage(template, await workbook.xlsx.writeBuffer());
 }
