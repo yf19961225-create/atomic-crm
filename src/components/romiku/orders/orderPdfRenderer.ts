@@ -1,4 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import notoSansScUrl from "@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-400-normal.woff?url";
 import type { OrderExportModel } from "./orderExportModel";
 
 /** Direct vector PDF renderer, intentionally not a browser screenshot. */
@@ -6,19 +8,25 @@ export async function renderOrderPdf(
   model: OrderExportModel,
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const cjk = await pdf.embedFont(
+    await fetch(notoSansScUrl).then((response) => response.arrayBuffer()),
+    { subset: true },
+  );
   let page = pdf.addPage([842, 595]);
   let y = 565;
-  // The fixed template's bilingual labels remain fully preserved in XLSX.
-  // PDF uses the embedded portable Latin font until the approved CJK font asset
-  // is supplied; stripping unsupported glyphs prevents a failed export.
   const text = (value: string, x: number, size = 8, useBold = false) =>
-    page.drawText(value.replace(/[^\x20-\x7E]/g, "").slice(0, 120), {
+    page.drawText(value.slice(0, 120), {
       x,
       y,
       size,
-      font: useBold ? bold : font,
+      font: [...value].some((character) => character.codePointAt(0)! > 127)
+        ? cjk
+        : useBold
+          ? bold
+          : font,
       color: rgb(0, 0, 0),
     });
   text("ORDER", 40, 18, true);
