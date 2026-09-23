@@ -44,3 +44,5 @@ drop trigger if exists romiku_order_export_snapshot_default on public.romiku_ord
 create trigger romiku_order_export_snapshot_default
 before insert on public.romiku_orders
 for each row execute function public.romiku_order_export_snapshot_default();
+
+revoke all on function public.romiku_order_export_snapshot_default() from public, anon, authenticated;
