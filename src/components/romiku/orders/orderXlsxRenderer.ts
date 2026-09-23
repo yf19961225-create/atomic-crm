@@ -1,42 +1,141 @@
 import ExcelJS from "exceljs";
 import type { OrderExportModel } from "./orderExportModel";
 
-const currencyFormat = (currency: "USD" | "CNY") =>
+const PRODUCT_START = 9,
+  TEMPLATE_DYNAMIC_ROWS = 18;
+const moneyFormat = (currency: "USD" | "CNY") =>
   currency === "CNY"
     ? "¥#,##0.00;[Red]-¥#,##0.00"
     : "$#,##0.00;[Red]-$#,##0.00";
-
-function copyRowStyle(
+type RowStyle = {
+  height?: number;
+  styles: Array<Partial<ExcelJS.Style> | undefined>;
+};
+const captureStyle = (sheet: ExcelJS.Worksheet, row: number): RowStyle => ({
+  height: sheet.getRow(row).height,
+  styles: Array.from({ length: 11 }, (_, column) =>
+    column ? { ...sheet.getRow(row).getCell(column).style } : undefined,
+  ),
+});
+const applyStyle = (
   sheet: ExcelJS.Worksheet,
-  source: number,
-  target: number,
-) {
-  const sourceRow = sheet.getRow(source);
-  const targetRow = sheet.getRow(target);
-  targetRow.height = sourceRow.height;
-  sourceRow.eachCell({ includeEmpty: true }, (cell, column) => {
-    const next = targetRow.getCell(column);
-    next.style = { ...cell.style };
-  });
-}
-
-const writeContact = (
-  sheet: ExcelJS.Worksheet,
-  firstRow: number,
-  values: Record<string, string>,
+  row: number,
+  source: RowStyle,
+  height: number,
 ) => {
+  const target = sheet.getRow(row);
+  target.height = height;
+  for (let column = 1; column <= 10; column++) {
+    const cell = target.getCell(column);
+    cell.value = null;
+    cell.style = { ...source.styles[column] };
+  }
+};
+const unmerge = (sheet: ExcelJS.Worksheet, range: string) => {
+  try {
+    sheet.unMergeCells(range);
+  } catch {
+    /* dynamic merge may be absent */
+  }
+};
+const clearTemplateDynamicMerges = (sheet: ExcelJS.Worksheet) =>
   [
-    values.company_name,
-    values.address,
-    values.tel_whatsapp,
-    values.website,
-    values.email,
-  ].forEach((value, index) => {
-    sheet.getCell(firstRow + index, firstRow === 3 ? 3 : 8).value = value;
-  });
+    "A13:E13",
+    "G13:I13",
+    "A14:I14",
+    "A15:I15",
+    "A16:I16",
+    "A17:I17",
+    "A18:J18",
+    "B27:J27",
+    ...Array.from({ length: 8 }, (_, i) => `B${19 + i}:C${19 + i}`),
+    ...Array.from({ length: 8 }, (_, i) => `D${19 + i}:J${19 + i}`),
+  ].forEach((range) => unmerge(sheet, range));
+const formatDate = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  return match ? `${match[1]}.${Number(match[2])}.${Number(match[3])}` : value;
 };
 
-/** Renders from an already-saved normalized model; it has no data-provider imports. */
+export type OrderTemplateLayout = {
+  productStart: number;
+  summaryStart: number;
+  freightRow: number;
+  optionalOtherExpensesRow?: number;
+  optionalDiscountRow?: number;
+  totalAmountRow: number;
+  depositRow: number;
+  balanceRow: number;
+  termsTitleRow: number;
+  termRows: number[];
+};
+/** The sole row-coordinate planner for the dynamic portion of the fixed template. */
+export function buildOrderTemplateLayout(
+  itemCount: number,
+  optional: { otherExpenses: boolean; discount: boolean },
+  paymentVisible: boolean,
+): OrderTemplateLayout {
+  const summaryStart = PRODUCT_START + Math.max(1, itemCount);
+  let next = summaryStart + 1;
+  const freightRow = next++,
+    optionalOtherExpensesRow = optional.otherExpenses ? next++ : undefined,
+    optionalDiscountRow = optional.discount ? next++ : undefined,
+    totalAmountRow = next++,
+    depositRow = next++,
+    balanceRow = next++,
+    termsTitleRow = next++;
+  return {
+    productStart: PRODUCT_START,
+    summaryStart,
+    freightRow,
+    optionalOtherExpensesRow,
+    optionalDiscountRow,
+    totalAmountRow,
+    depositRow,
+    balanceRow,
+    termsTitleRow,
+    termRows: Array.from(
+      { length: paymentVisible ? 8 : 7 },
+      (_, i) => termsTitleRow + 1 + i,
+    ),
+  };
+}
+
+async function insertImage(
+  workbook: ExcelJS.Workbook,
+  sheet: ExcelJS.Worksheet,
+  imageUrl: string,
+  row: number,
+) {
+  if (!imageUrl) return;
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) return;
+    const blob = await response.blob();
+    let width = 72,
+      height = 72;
+    try {
+      const bitmap = await createImageBitmap(blob),
+        scale = Math.min(72 / bitmap.width, 72 / bitmap.height, 1);
+      width = Math.max(1, Math.round(bitmap.width * scale));
+      height = Math.max(1, Math.round(bitmap.height * scale));
+      bitmap.close();
+    } catch {
+      /* Use a bounded square if the browser cannot inspect the bitmap. */
+    }
+    const imageId = workbook.addImage({
+      buffer: await blob.arrayBuffer(),
+      extension: blob.type.includes("png") ? "png" : "jpeg",
+    });
+    sheet.addImage(imageId, {
+      tl: { col: 3.3, row: row - 0.86 },
+      ext: { width, height },
+    } as unknown as ExcelJS.ImagePosition);
+  } catch {
+    /* Expired snapshot image leaves the Photo cell empty. */
+  }
+}
+
+/** Uses saved snapshot data only and reconstructs the template's dynamic merged region. */
 export async function renderOrderXlsx(
   model: OrderExportModel,
   template: ArrayBuffer,
@@ -44,100 +143,181 @@ export async function renderOrderXlsx(
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(template);
   const sheet = workbook.worksheets[0];
+  const titles = {
+    totalCtn: sheet.getCell("A13").text,
+    subtotal: sheet.getCell("G13").text,
+    freight: sheet.getCell("A14").text,
+    total: sheet.getCell("A15").text,
+    deposit: sheet.getCell("A16").text,
+    balance: sheet.getCell("A17").text,
+    terms: sheet.getCell("A18").text,
+    labels: Array.from({ length: 8 }, (_, i) => sheet.getCell(19 + i, 2).text),
+  };
+  const styles = {
+    product: captureStyle(sheet, 9),
+    summary: captureStyle(sheet, 13),
+    freight: captureStyle(sheet, 14),
+    total: captureStyle(sheet, 15),
+    deposit: captureStyle(sheet, 16),
+    balance: captureStyle(sheet, 17),
+    termsTitle: captureStyle(sheet, 18),
+    term: captureStyle(sheet, 19),
+  };
+  clearTemplateDynamicMerges(sheet);
+  const paymentVisible = model.terms.some((term) => term.key === "payment");
+  const layout = buildOrderTemplateLayout(
+    model.items.length,
+    {
+      otherExpenses: model.moneyRows.some(
+        (row) => row.key === "other_expenses",
+      ),
+      discount: model.moneyRows.some((row) => row.key === "discount"),
+    },
+    paymentVisible,
+  );
+  const dynamicRows = layout.termRows.at(-1)! - PRODUCT_START + 1;
+  sheet.spliceRows(
+    PRODUCT_START,
+    TEMPLATE_DYNAMIC_ROWS,
+    ...Array.from({ length: dynamicRows }, () => []),
+  );
+  // ExcelJS retains some shifted merge metadata through spliceRows. Clear any
+  // merge intersecting the rebuilt region before restoring the canonical ranges.
+  Object.values(sheet.model.merges)
+    .filter((range): range is string => typeof range === "string")
+    .filter((range) => {
+      const matches = range.match(/\d+/g)?.map(Number) || [];
+      return matches.some(
+        (row) => row >= PRODUCT_START && row <= layout.termRows.at(-1)!,
+      );
+    })
+    .forEach((range) => unmerge(sheet, range));
+  for (let row = PRODUCT_START; row <= layout.termRows.at(-1)!; row++)
+    unmerge(sheet, `A${row}:J${row}`);
   sheet.name = model.worksheetName;
-  sheet.getCell("J1").value = `${model.documentNumber}\n${model.documentDate}`;
-  writeContact(sheet, 3, model.seller);
+  sheet.getCell("J1").value =
+    `${model.documentNumber}\n${formatDate(model.documentDate)}`;
+  [
+    model.seller.company_name,
+    model.seller.address,
+    model.seller.tel_whatsapp,
+    model.seller.website,
+    model.seller.email,
+  ].forEach((value, i) => {
+    sheet.getCell(3 + i, 3).value = value;
+  });
   [
     model.buyer.company_name,
     model.buyer.address,
     model.buyer.tel_whatsapp,
     model.buyer.website,
     model.buyer.email,
-  ].forEach((value, index) => {
-    sheet.getCell(3 + index, 8).value = value;
+  ].forEach((value, i) => {
+    sheet.getCell(3 + i, 8).value = value;
   });
-
-  const baseItemRows = 4;
-  const neededRows = Math.max(1, model.items.length);
-  if (neededRows > baseItemRows) {
-    const count = neededRows - baseItemRows;
-    sheet.spliceRows(13, 0, ...Array.from({ length: count }, () => []));
-    for (let row = 13; row < 13 + count; row++) copyRowStyle(sheet, 12, row);
-  } else if (neededRows < baseItemRows) {
-    sheet.spliceRows(9 + neededRows, baseItemRows - neededRows);
-  }
-  const itemEnd = 8 + neededRows;
-  model.items.forEach((item, index) => {
-    const row = 9 + index;
-    copyRowStyle(sheet, 9, row);
-    const values = [
-      item.position,
-      item.sku,
-      item.name,
-      "",
-      item.specification,
-      item.cartons,
-      item.qtyPerCarton,
-      item.quantity,
-      item.unitPrice,
-      item.amount,
-    ];
-    values.forEach((value, column) => {
-      sheet.getCell(row, column + 1).value = value;
-    });
-    sheet.getCell(row, 9).numFmt = currencyFormat(model.currency);
-    sheet.getCell(row, 10).numFmt = currencyFormat(model.currency);
+  model.items.forEach((item, i) => {
+    const row = layout.productStart + i;
+    applyStyle(sheet, row, styles.product, 100);
+    sheet.getCell(row, 1).value = item.position;
+    sheet.getCell(row, 2).value = item.sku;
+    sheet.getCell(row, 3).value = item.name;
+    sheet.getCell(row, 5).value = item.specification;
+    sheet.getCell(row, 6).value = item.cartons;
+    sheet.getCell(row, 7).value = item.qtyPerCarton;
+    sheet.getCell(row, 8).value = item.quantity;
+    sheet.getCell(row, 9).value = item.unitPrice;
+    sheet.getCell(row, 10).value = item.amount;
+    sheet.getCell(row, 9).numFmt = moneyFormat(model.currency);
+    sheet.getCell(row, 10).numFmt = moneyFormat(model.currency);
   });
-  // Image URLs are already saved in the Order item snapshot. A failed remote
-  // image fetch is non-fatal: the template's photo cell stays empty rather
-  // than reading a current Product Master or blocking an export.
   await Promise.all(
-    model.items.map(async (item, index) => {
-      if (!item.imageUrl) return;
-      try {
-        const response = await fetch(item.imageUrl);
-        if (!response.ok) return;
-        const contentType = response.headers.get("content-type") || "";
-        const extension = contentType.includes("png") ? "png" : "jpeg";
-        const imageId = workbook.addImage({
-          buffer: await response.arrayBuffer(),
-          extension,
-        });
-        const row = 9 + index;
-        sheet.addImage(imageId, `D${row}:D${row}`);
-      } catch {
-        // Snapshot text is still exported even when a remote image is unavailable.
-      }
-    }),
+    model.items.map((item, i) =>
+      insertImage(workbook, sheet, item.imageUrl, layout.productStart + i),
+    ),
   );
-  const totalsStart = itemEnd + 1;
-  const baseTotalsRows = 5;
-  const extraMoneyRows = model.moneyRows.length - baseTotalsRows;
-  if (extraMoneyRows > 0)
-    sheet.spliceRows(
-      totalsStart + 2,
-      0,
-      ...Array.from({ length: extraMoneyRows }, () => []),
+  const amounts = new Map(model.moneyRows.map((row) => [row.key, row.amount]));
+  applyStyle(sheet, layout.summaryStart, styles.summary, 35);
+  sheet.mergeCells(`A${layout.summaryStart}:E${layout.summaryStart}`);
+  sheet.mergeCells(`G${layout.summaryStart}:I${layout.summaryStart}`);
+  sheet.getCell(layout.summaryStart, 1).value = titles.totalCtn;
+  sheet.getCell(layout.summaryStart, 6).value = model.items.reduce(
+    (sum, item) => sum + item.cartons,
+    0,
+  );
+  sheet.getCell(layout.summaryStart, 7).value = titles.subtotal;
+  sheet.getCell(layout.summaryStart, 10).value = amounts.get("subtotal") || 0;
+  sheet.getCell(layout.summaryStart, 10).numFmt = moneyFormat(model.currency);
+  const summary = (
+    row: number,
+    style: RowStyle,
+    title: string,
+    amount: number,
+  ) => {
+    applyStyle(sheet, row, style, 35);
+    sheet.mergeCells(`A${row}:I${row}`);
+    sheet.getCell(row, 1).value = title;
+    sheet.getCell(row, 10).value = amount;
+    sheet.getCell(row, 10).numFmt = moneyFormat(model.currency);
+  };
+  summary(
+    layout.freightRow,
+    styles.freight,
+    titles.freight,
+    amounts.get("freight") || 0,
+  );
+  if (layout.optionalOtherExpensesRow)
+    summary(
+      layout.optionalOtherExpensesRow,
+      styles.freight,
+      "OTHER EXPENSES / 其他费用",
+      amounts.get("other_expenses") || 0,
     );
-  const termsStart = totalsStart + model.moneyRows.length;
-  model.moneyRows.forEach((moneyRow, index) => {
-    const row = totalsStart + index;
-    copyRowStyle(sheet, 13, row);
-    sheet.getCell(row, 1).value =
-      moneyRow.key === "subtotal"
-        ? `TOTAL CTN / 总箱数: ${model.items.reduce((sum, item) => sum + item.cartons, 0)}     ${moneyRow.label}`
-        : moneyRow.label;
-    sheet.getCell(row, 10).value = moneyRow.amount;
-    sheet.getCell(row, 10).numFmt = currencyFormat(model.currency);
-  });
-  copyRowStyle(sheet, 18, termsStart);
-  sheet.getCell(termsStart, 1).value = "TERMS & CONDITIONS / 条款与条件";
-  model.terms.forEach((term, index) => {
-    const row = termsStart + 1 + index;
-    copyRowStyle(sheet, 19, row);
-    sheet.getCell(row, 2).value = term.label;
+  if (layout.optionalDiscountRow)
+    summary(
+      layout.optionalDiscountRow,
+      styles.freight,
+      "DISCOUNT / 折扣",
+      amounts.get("discount") || 0,
+    );
+  summary(
+    layout.totalAmountRow,
+    styles.total,
+    titles.total,
+    amounts.get("total") || 0,
+  );
+  summary(
+    layout.depositRow,
+    styles.deposit,
+    titles.deposit,
+    amounts.get("deposit") || 0,
+  );
+  summary(
+    layout.balanceRow,
+    styles.balance,
+    titles.balance,
+    amounts.get("balance") || 0,
+  );
+  applyStyle(sheet, layout.termsTitleRow, styles.termsTitle, 23.2);
+  sheet.mergeCells(`A${layout.termsTitleRow}:J${layout.termsTitleRow}`);
+  sheet.getCell(layout.termsTitleRow, 1).value = titles.terms;
+  const keys = [
+    "payment",
+    "bank_charges",
+    "cancellation_deposit",
+    "quality_claim",
+    "force_majeure",
+    "dispute_settlement",
+    "delivery_lead_time",
+    "packaging",
+  ];
+  model.terms.forEach((term, i) => {
+    const row = layout.termRows[i];
+    applyStyle(sheet, row, styles.term, 70);
+    sheet.mergeCells(`B${row}:C${row}`);
+    sheet.mergeCells(`D${row}:J${row}`);
+    sheet.getCell(row, 2).value = titles.labels[keys.indexOf(term.key)];
     sheet.getCell(row, 4).value = term.text;
   });
-  sheet.pageSetup.printArea = `A1:J${termsStart + model.terms.length}`;
-  return await workbook.xlsx.writeBuffer();
+  sheet.pageSetup.printArea = `A1:J${layout.termRows.at(-1)!}`;
+  return workbook.xlsx.writeBuffer();
 }

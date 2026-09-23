@@ -26,7 +26,8 @@ export const defaultOrderExportSnapshot = (): OrderExportSnapshot => ({
   template_key: "order",
   seller: {
     company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲",
-    address: "No. 1, Qingkou East Road, Yiwu, Zhejiang, China",
+    address:
+      "72790, 3rd Street, Unit 4, 2nd Floor, Gate 153, Global Digital Trade Center Yiwu, China",
     tel_whatsapp: "+86 190 2577 7589",
     website: "www.romiku.com",
     email: "info@romiku.com",
