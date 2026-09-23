@@ -51,6 +51,7 @@ export function CommercialLineItemsTable({
   onItemsChange?: (items: CommercialItem[]) => void;
 }) {
   const compactQuote = kind === "quote";
+  const orderTemplate = kind === "order";
   const provider = useDataProvider();
   const [showCustomerCode, setShowCustomerCode] = useState(
     items.some((item) => Boolean(item.customer_code)),
@@ -230,15 +231,17 @@ export function CommercialLineItemsTable({
   };
   return (
     <section className="space-y-3 overflow-x-auto">
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={showCustomerCode}
-          disabled={!editable}
-          onChange={(event) => setShowCustomerCode(event.target.checked)}
-        />
-        显示客户货号
-      </label>
+      {!orderTemplate && (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showCustomerCode}
+            disabled={!editable}
+            onChange={(event) => setShowCustomerCode(event.target.checked)}
+          />
+          显示客户货号
+        </label>
+      )}
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="commercial-lines">
           {(provided) => (
@@ -249,20 +252,36 @@ export function CommercialLineItemsTable({
             >
               <thead>
                 <tr>
-                  {[
-                    "",
-                    "序号",
-                    "货号/SKU",
-                    "产品名称",
-                    "图片",
-                    ...(showCustomerCode ? ["客户货号"] : []),
-                    "描述与规格",
-                    "Qty/Ctn",
-                    ...(!compactQuote ? ["箱数", "总数量"] : []),
-                    "单价",
-                    ...(!compactQuote ? ["金额"] : []),
-                    "操作",
-                  ].map((header) => (
+                  {(orderTemplate
+                    ? [
+                        "",
+                        "No.",
+                        "货号",
+                        "产品名称",
+                        "图片",
+                        "产品规格",
+                        "箱数",
+                        "装箱数",
+                        "总数量",
+                        "单价",
+                        "总金额",
+                        "⋯",
+                      ]
+                    : [
+                        "",
+                        "序号",
+                        "货号/SKU",
+                        "产品名称",
+                        "图片",
+                        ...(showCustomerCode ? ["客户货号"] : []),
+                        "描述与规格",
+                        "Qty/Ctn",
+                        ...(!compactQuote ? ["箱数", "总数量"] : []),
+                        "单价",
+                        ...(!compactQuote ? ["金额"] : []),
+                        "操作",
+                      ]
+                  ).map((header) => (
                     <th className="p-2 text-left" key={header}>
                       {header}
                     </th>
@@ -386,7 +405,35 @@ export function CommercialLineItemsTable({
                               "暂无图片"
                             )}
                           </td>
-                          {showCustomerCode && (
+                          {orderTemplate && (
+                            <td>
+                              <textarea
+                                aria-label="描述与规格"
+                                className="min-h-8 w-40 resize-y rounded border p-1"
+                                value={String(product.specification ?? "")}
+                                disabled={!editable}
+                                onChange={(event) =>
+                                  onItemsChange &&
+                                  void save(item, {
+                                    product_snapshot: {
+                                      ...product,
+                                      specification: event.target.value,
+                                    },
+                                  })
+                                }
+                                onBlur={(event) =>
+                                  !onItemsChange &&
+                                  void save(item, {
+                                    product_snapshot: {
+                                      ...product,
+                                      specification: event.target.value,
+                                    },
+                                  })
+                                }
+                              />
+                            </td>
+                          )}
+                          {showCustomerCode && !orderTemplate && (
                             <td>
                               <input
                                 className="w-24 rounded border p-1"
@@ -407,36 +454,62 @@ export function CommercialLineItemsTable({
                               />
                             </td>
                           )}
-                          <td>
-                            <textarea
-                              aria-label="描述与规格"
-                              className="min-h-8 w-40 resize-y rounded border p-1"
-                              value={String(product.specification ?? "")}
-                              disabled={!editable}
-                              onChange={(event) => {
-                                if (onItemsChange)
-                                  void save(item, {
-                                    product_snapshot: {
-                                      ...product,
-                                      specification: event.target.value,
-                                    },
-                                  });
-                              }}
-                              onBlur={(event) => {
-                                if (!onItemsChange)
-                                  void save(item, {
-                                    product_snapshot: {
-                                      ...product,
-                                      specification: event.target.value,
-                                    },
-                                  });
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter")
-                                  event.preventDefault();
-                              }}
-                            />
-                          </td>
+                          {!orderTemplate && (
+                            <td>
+                              <textarea
+                                aria-label="描述与规格"
+                                className="min-h-8 w-40 resize-y rounded border p-1"
+                                value={String(product.specification ?? "")}
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (onItemsChange)
+                                    void save(item, {
+                                      product_snapshot: {
+                                        ...product,
+                                        specification: event.target.value,
+                                      },
+                                    });
+                                }}
+                                onBlur={(event) => {
+                                  if (!onItemsChange)
+                                    void save(item, {
+                                      product_snapshot: {
+                                        ...product,
+                                        specification: event.target.value,
+                                      },
+                                    });
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter")
+                                    event.preventDefault();
+                                }}
+                              />
+                            </td>
+                          )}
+                          {orderTemplate && (
+                            <td>
+                              <input
+                                className="w-16 rounded border p-1"
+                                type="number"
+                                value={String(packing.cartons ?? "")}
+                                disabled={!editable}
+                                onChange={(event) =>
+                                  onItemsChange &&
+                                  void updatePacking(
+                                    "cartons",
+                                    event.target.value,
+                                  )
+                                }
+                                onBlur={(event) =>
+                                  !onItemsChange &&
+                                  void updatePacking(
+                                    "cartons",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </td>
+                          )}
                           <td>
                             <input
                               className="w-16 rounded border p-1"
@@ -463,7 +536,7 @@ export function CommercialLineItemsTable({
                               }}
                             />
                           </td>
-                          {!compactQuote && (
+                          {!compactQuote && !orderTemplate && (
                             <td>
                               <input
                                 className="w-16 rounded border p-1"
@@ -570,7 +643,12 @@ export function CommercialLineItemsTable({
                           <td>
                             {editable && (
                               <details>
-                                <summary className="cursor-pointer">⋯</summary>
+                                <summary
+                                  aria-label="行操作"
+                                  className="cursor-pointer"
+                                >
+                                  ⋯
+                                </summary>
                                 <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
                                   <Button
                                     type="button"

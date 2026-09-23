@@ -1,6 +1,10 @@
 import type { DataProvider } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { quoteHeaderWrite } from "../quotes/quoteWorkflow";
+import {
+  defaultOrderExportSnapshot,
+  withOrderExportSnapshot,
+} from "./orderExportSnapshot";
 
 export type DocumentKind = "pi" | "order";
 export const documentConfig = {
@@ -76,6 +80,14 @@ export async function createDocument(
       document_language: "zh",
       deposit_percent: 30,
       counterparty_snapshot: customer?.snapshot || { name: buyerName.trim() },
+      ...(kind === "order"
+        ? {
+            terms_snapshot: withOrderExportSnapshot(
+              {},
+              defaultOrderExportSnapshot(),
+            ),
+          }
+        : {}),
       ...(customer ? { formal_customer_id: customer.formalCustomerId } : {}),
     },
   });

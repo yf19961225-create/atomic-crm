@@ -223,7 +223,7 @@ it.each([
     ).data;
     await screen.getByRole("button", { name: "编辑", exact: true }).click();
     await screen.getByRole("spinbutton").nth(6).fill("200");
-    await screen.getByText("⋯", { exact: true }).click();
+    await screen.getByLabelText("行操作", { exact: true }).click();
     await screen.getByRole("button", { name: "更多详情", exact: true }).click();
     await screen
       .getByLabelText("规格", { exact: true })

@@ -37,6 +37,20 @@ import {
   documentStatusLabel,
 } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+import { OrderExportDetails } from "./OrderExportDetails";
+import { normalizeOrderExportModel } from "./orderExportModel";
+import { renderOrderXlsx } from "./orderXlsxRenderer";
+import { renderOrderPdf } from "./orderPdfRenderer";
+import orderTemplateUrl from "@/assets/order-templates/ROMIKU_订单_模板.xlsx?url";
+
+function download(data: BlobPart, type: string, name: string) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 
 function DocumentSources({ record }: { record: RaRecord }) {
   const links = [
@@ -385,6 +399,30 @@ function DocumentEditor({
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const totals = quoteTotals(session.items, session.values);
+  const exportOrder = async (format: "xlsx" | "pdf") => {
+    if (kind !== "order") return;
+    if (session.editing) {
+      setFailed(true);
+      setMessage("请先保存当前 Order，再导出已保存的快照。");
+      return;
+    }
+    const model = normalizeOrderExportModel(record, items.data || []);
+    if (format === "xlsx") {
+      const buffer = await fetch(orderTemplateUrl).then((response) =>
+        response.arrayBuffer(),
+      );
+      download(
+        await renderOrderXlsx(model, buffer),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `${model.documentNumber || "ORDER"}.xlsx`,
+      );
+    } else
+      download(
+        await renderOrderPdf(model),
+        "application/pdf",
+        `${model.documentNumber || "ORDER"}.pdf`,
+      );
+  };
   async function save() {
     setBusy(true);
     setMessage("");
@@ -513,6 +551,22 @@ function DocumentEditor({
           >
             装箱单
           </Link>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={session.editing}
+            onClick={() => void exportOrder("xlsx")}
+          >
+            导出 XLSX
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={session.editing}
+            onClick={() => void exportOrder("pdf")}
+          >
+            导出 PDF
+          </Button>
         </div>
       )}
       {kind === "pi" && (
@@ -527,6 +581,13 @@ function DocumentEditor({
         values={session.values}
         onChange={session.setValues}
       />
+      {kind === "order" && (
+        <OrderExportDetails
+          values={session.values}
+          editable={session.editing}
+          onChange={session.setValues}
+        />
+      )}
       {items.error ? (
         <p role="alert">
           无法加载产品项或合计。{" "}
