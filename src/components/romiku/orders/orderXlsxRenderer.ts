@@ -88,6 +88,28 @@ export async function renderOrderXlsx(
     sheet.getCell(row, 9).numFmt = currencyFormat(model.currency);
     sheet.getCell(row, 10).numFmt = currencyFormat(model.currency);
   });
+  // Image URLs are already saved in the Order item snapshot. A failed remote
+  // image fetch is non-fatal: the template's photo cell stays empty rather
+  // than reading a current Product Master or blocking an export.
+  await Promise.all(
+    model.items.map(async (item, index) => {
+      if (!item.imageUrl) return;
+      try {
+        const response = await fetch(item.imageUrl);
+        if (!response.ok) return;
+        const contentType = response.headers.get("content-type") || "";
+        const extension = contentType.includes("png") ? "png" : "jpeg";
+        const imageId = workbook.addImage({
+          buffer: await response.arrayBuffer(),
+          extension,
+        });
+        const row = 9 + index;
+        sheet.addImage(imageId, `D${row}:D${row}`);
+      } catch {
+        // Snapshot text is still exported even when a remote image is unavailable.
+      }
+    }),
+  );
   const totalsStart = itemEnd + 1;
   const baseTotalsRows = 5;
   const extraMoneyRows = model.moneyRows.length - baseTotalsRows;
