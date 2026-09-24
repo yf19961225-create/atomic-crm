@@ -55,6 +55,14 @@ it("creates distinct direct PI and Order without creating Formal Customers", asy
       deposit_percent: 30,
       counterparty_snapshot: { name: "Buyer" },
     });
+    if (kind === "order")
+      expect(
+        (
+          data.terms_snapshot as {
+            order_export: { terms: { payment: { text: string } } };
+          }
+        ).order_export.terms.payment.text,
+      ).toContain("30% deposit by T/T in advance");
     expect(data.source_quote_id).toBeUndefined();
     expect(data.formal_customer_id).toBeUndefined();
   }

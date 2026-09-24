@@ -226,12 +226,29 @@ async function preserveTemplatePackage(
   ]);
   const sourceMargins = sourceWorksheet.match(/<pageMargins\b[^>]*\/>/)?.[0];
   const sourceSetup = sourceWorksheet.match(/<pageSetup\b[^>]*\/>/)?.[0];
+  const sourceSheetPr = sourceWorksheet.match(
+    /<sheetPr\b[^>]*(?:\/>|>[\s\S]*?<\/sheetPr>)/,
+  )?.[0];
+  const sourceSheetViews = sourceWorksheet.match(
+    /<sheetViews\b[^>]*>[\s\S]*?<\/sheetViews>/,
+  )?.[0];
+  const sourcePrintOptions = sourceWorksheet.match(
+    /<printOptions\b[^>]*\/>/,
+  )?.[0];
   if (outputWorksheet && sourceMargins && sourceSetup) {
-    const withoutExcelJsSetup = outputWorksheet
+    const preservedWorksheet = outputWorksheet
       .replace(/<pageMargins\b[^>]*\/>/, sourceMargins)
       .replace(/<pageSetup\b[^>]*\/>/, sourceSetup)
-      .replace(/<pageSetUpPr\b[^>]*\/>/g, "");
-    output.file(worksheetPath, withoutExcelJsSetup);
+      .replace(
+        /<sheetPr\b[^>]*(?:\/>|>[\s\S]*?<\/sheetPr>)/,
+        sourceSheetPr || "",
+      )
+      .replace(
+        /<sheetViews\b[^>]*>[\s\S]*?<\/sheetViews>/,
+        sourceSheetViews || "",
+      )
+      .replace(/<printOptions\b[^>]*\/>/, sourcePrintOptions || "");
+    output.file(worksheetPath, preservedWorksheet);
   }
   return output.generateAsync({ type: "arraybuffer", compression: "DEFLATE" });
 }
@@ -416,6 +433,7 @@ export async function renderOrderXlsx(
     applyStyle(sheet, row, styles.term, 70);
     sheet.mergeCells(`B${row}:C${row}`);
     sheet.mergeCells(`D${row}:J${row}`);
+    sheet.getCell(row, 1).value = keys.indexOf(term.key) + 1;
     sheet.getCell(row, 2).value = titles.labels[keys.indexOf(term.key)];
     sheet.getCell(row, 4).value = term.text;
   });

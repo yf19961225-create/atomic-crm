@@ -37,7 +37,41 @@ it("removes the payment term row and closes the Terms gap when hidden", async ()
     `A${termsTitle}:J${termsTitle}`,
   );
   expect(sheet.getCell(`B${termsTitle + 1}`).text).toContain("BANK CHARGES");
+  expect(sheet.getCell(`A${termsTitle + 1}`).value).toBe(2);
   expect(sheet.getCell(`D${termsTitle + 1}`).text).not.toContain("Retained");
+});
+
+it("exports a saved Order-level Terms override without changing the defaults", async () => {
+  const model = normalizeOrderExportModel(
+    {
+      document_number: "RCI260923002",
+      terms_snapshot: {
+        order_export: {
+          terms: { payment: { text: "Saved Order payment terms" } },
+        },
+      },
+    },
+    [
+      {
+        id: "1",
+        sku: "A",
+        quantity: 1,
+        unit_price: 1,
+        product_snapshot: {},
+        packing_snapshot: {},
+      },
+    ],
+  );
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await renderOrderXlsx(model, template));
+  const sheet = workbook.getWorksheet("ORDER")!;
+  expect(sheet.getCell("D16").text).toBe("Saved Order payment terms");
+  expect(
+    model.terms.find((term) => term.key === "bank_charges")?.text,
+  ).toContain("outside China");
 });
 
 it.each([1, 2, 8])(
@@ -111,6 +145,8 @@ it.each([1, 2, 8])(
     expect(sheet.getRow(summaryStart).height).toBe(35);
     expect(sheet.getRow(termsTitle).height).toBeCloseTo(23.2);
     expect(sheet.getRow(termsTitle + 1).height).toBe(70);
+    expect(sheet.getCell(`A${termsTitle + 1}`).value).toBe(1);
+    expect(sheet.getCell(`A${termsTitle + 8}`).value).toBe(8);
     expect(sheet.getCell(`A${summaryStart + 2}`).text).toContain("OTHER");
     expect(sheet.getCell("D9").value).toBeNull();
     expect(sheet.getCell("E9").value).toBe("Saved spec");
@@ -134,6 +170,13 @@ it.each([1, 2, 8])(
     expect(columnWidths(sheetXml)).toEqual(columnWidths(templateSheetXml));
     expect(sheetXml).toContain(
       '<pageSetup paperSize="9" orientation="portrait" horizontalDpi="300" verticalDpi="300"/>',
+    );
+    expect(sheetXml).toContain(
+      '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>',
+    );
+    expect(sheetXml).toContain('zoomScale="85"');
+    expect(sheetXml).toContain(
+      '<printOptions horizontalCentered="1" verticalCentered="1"/>',
     );
     expect(sheetXml).not.toContain("fitToWidth");
     expect(sheetXml).not.toContain("fitToHeight");
