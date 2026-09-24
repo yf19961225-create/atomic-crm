@@ -4,6 +4,11 @@ import type { OrderExportModel } from "./orderExportModel";
 
 const PRODUCT_START = 9,
   TEMPLATE_DYNAMIC_ROWS = 18;
+const PRODUCT_ROW_HEIGHT = 65;
+const IMAGE_PADDING = 5;
+const EMUS_PER_PIXEL = 9_525;
+const columnWidthPixels = (width: number) =>
+  Math.floor(((256 * width + Math.floor(128 / 7)) / 256) * 7);
 const moneyFormat = (currency: "USD" | "CNY") =>
   currency === "CNY"
     ? "¥#,##0.00;[Red]-¥#,##0.00"
@@ -115,16 +120,16 @@ async function insertImage(
       bitmap.close();
       blob = await canvas.convertToBlob({ type: "image/png" });
     }
-    const columnWidth = sheet.getColumn(4).width || 8.43;
-    const cellWidth = columnWidth * 7 + 5;
-    const cellHeight = (sheet.getRow(row).height || 100) * (96 / 72);
-    let width = Math.max(1, cellWidth - 12),
-      height = Math.max(1, cellHeight - 12);
+    const cellWidth = columnWidthPixels(sheet.getColumn(4).width || 8.43);
+    const cellHeight =
+      (sheet.getRow(row).height || PRODUCT_ROW_HEIGHT) * (96 / 72);
+    let width = Math.max(1, cellWidth - IMAGE_PADDING * 2),
+      height = Math.max(1, Math.min(cellHeight - IMAGE_PADDING * 2, 50));
     try {
       const bitmap = await createImageBitmap(blob);
       const scale = Math.min(
-        (cellWidth - 12) / bitmap.width,
-        (cellHeight - 12) / bitmap.height,
+        (cellWidth - IMAGE_PADDING * 2) / bitmap.width,
+        Math.min(cellHeight - IMAGE_PADDING * 2, 50) / bitmap.height,
         1,
       );
       width = Math.max(1, Math.round(bitmap.width * scale));
@@ -138,10 +143,7 @@ async function insertImage(
       extension: blob.type.includes("png") ? "png" : "jpeg",
     });
     sheet.addImage(imageId, {
-      tl: {
-        col: 3 + (cellWidth - width) / (2 * cellWidth),
-        row: row - 1 + (cellHeight - height) / (2 * cellHeight),
-      },
+      tl: { col: 3, row: row - 1 },
       ext: { width, height },
     } as unknown as ExcelJS.ImagePosition);
   } catch {
@@ -160,6 +162,29 @@ const imageRelationshipsAfterLogo = (relationships: string) =>
     .filter((match) => Number(match[1]) > 1 && /\/image"/.test(match[0]))
     .map((match) => match[0]);
 
+const centerProductAnchor = (
+  anchor: string,
+  worksheetXml: string,
+  photoColumnWidth: number,
+) => {
+  const rowIndex = Number(anchor.match(/<xdr:row>(\d+)<\/xdr:row>/)?.[1]);
+  const width = Number(anchor.match(/<xdr:ext cx="(\d+)"/)?.[1]);
+  const height = Number(anchor.match(/<xdr:ext cx="\d+" cy="(\d+)"/)?.[1]);
+  const rowHeight = Number(
+    worksheetXml.match(
+      new RegExp(`<row\\b[^>]*\\br="${rowIndex + 1}"[^>]*\\bht="([^"]+)"`),
+    )?.[1] || PRODUCT_ROW_HEIGHT,
+  );
+  const cellWidth = photoColumnWidth * EMUS_PER_PIXEL;
+  const cellHeight = rowHeight * (96 / 72) * EMUS_PER_PIXEL;
+  const padding = IMAGE_PADDING * EMUS_PER_PIXEL;
+  const colOff = Math.round(Math.max(padding, (cellWidth - width) / 2));
+  const rowOff = Math.round(Math.max(padding, (cellHeight - height) / 2));
+  return anchor
+    .replace(/(<xdr:colOff>)\d+(<\/xdr:colOff>)/, `$1${colOff}$2`)
+    .replace(/(<xdr:rowOff>)\d+(<\/xdr:rowOff>)/, `$1${rowOff}$2`);
+};
+
 /**
  * ExcelJS cannot round-trip the template's cropped logo or its native print
  * setup. Keep its generated dynamic cell region, then restore those untouched
@@ -176,6 +201,10 @@ async function preserveTemplatePackage(
   const drawingPath = "xl/drawings/drawing1.xml";
   const relationshipPath = "xl/drawings/_rels/drawing1.xml.rels";
   const worksheetPath = "xl/worksheets/sheet1.xml";
+  const [sourceWorksheet, outputWorksheet] = await Promise.all([
+    textPart(source, worksheetPath),
+    textPart(output, worksheetPath),
+  ]);
   const [
     sourceDrawing,
     outputDrawing,
@@ -193,11 +222,18 @@ async function preserveTemplatePackage(
       (match) => Number(match[1]),
     ),
   );
+  const photoColumnWidth = columnWidthPixels(
+    Number(
+      sourceWorksheet.match(
+        /<col\b[^>]*\bmin="4"[^>]*\bwidth="([^"]+)"/,
+      )?.[1] || 8.43,
+    ),
+  );
   const productAnchors = (
     outputDrawing.match(/<xdr:oneCellAnchor\b[\s\S]*?<\/xdr:oneCellAnchor>/g) ||
     []
   ).map((anchor, index) =>
-    anchor
+    centerProductAnchor(anchor, outputWorksheet, photoColumnWidth)
       .replace(
         /<xdr:cNvPr\b[^>]*\bid="\d+"/,
         `<xdr:cNvPr id="${maxTemplateShapeId + index + 1}"`,
@@ -222,10 +258,6 @@ async function preserveTemplatePackage(
       ),
     );
 
-  const [sourceWorksheet, outputWorksheet] = await Promise.all([
-    textPart(source, worksheetPath),
-    textPart(output, worksheetPath),
-  ]);
   const sourceMargins = sourceWorksheet.match(/<pageMargins\b[^>]*\/>/)?.[0];
   const sourceSetup = sourceWorksheet.match(/<pageSetup\b[^>]*\/>/)?.[0];
   const sourceSheetPr = sourceWorksheet.match(
@@ -251,6 +283,19 @@ async function preserveTemplatePackage(
       )
       .replace(/<printOptions\b[^>]*\/>/, sourcePrintOptions || "");
     output.file(worksheetPath, preservedWorksheet);
+  }
+  const workbookPath = "xl/workbook.xml";
+  const workbookXml = await textPart(output, workbookPath);
+  const printTitles =
+    '<definedName name="_xlnm.Print_Titles" localSheetId="0">&apos;ORDER&apos;!$1:$8</definedName>';
+  if (workbookXml) {
+    const withPrintTitles = workbookXml.includes('name="_xlnm.Print_Titles"')
+      ? workbookXml.replace(
+          /<definedName name="_xlnm\.Print_Titles"[^>]*>[^<]*<\/definedName>/,
+          printTitles,
+        )
+      : workbookXml.replace("</definedNames>", `${printTitles}</definedNames>`);
+    output.file(workbookPath, withPrintTitles);
   }
   return output.generateAsync({ type: "arraybuffer", compression: "DEFLATE" });
 }
@@ -328,7 +373,7 @@ export async function renderOrderXlsx(
   });
   model.items.forEach((item, i) => {
     const row = layout.productStart + i;
-    applyStyle(sheet, row, styles.product, 100);
+    applyStyle(sheet, row, styles.product, PRODUCT_ROW_HEIGHT);
     sheet.getCell(row, 1).value = item.position;
     sheet.getCell(row, 2).value = item.sku;
     sheet.getCell(row, 3).value = item.name;

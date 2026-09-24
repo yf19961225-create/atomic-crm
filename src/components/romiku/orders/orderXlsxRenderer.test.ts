@@ -77,6 +77,11 @@ it("exports a saved Order-level Terms override without changing the defaults", a
 it.each([1, 2, 8])(
   "rebuilds template merges and semantic rows for %i product rows",
   async (count) => {
+    const imageCanvas = document.createElement("canvas");
+    imageCanvas.width = 100;
+    imageCanvas.height = 100;
+    imageCanvas.getContext("2d")!.fillRect(0, 0, 100, 100);
+    const testImage = imageCanvas.toDataURL("image/png");
     const model = normalizeOrderExportModel(
       {
         document_number: "RCI260923001",
@@ -97,8 +102,7 @@ it.each([1, 2, 8])(
         product_snapshot: {
           name: `Saved ${index + 1}`,
           specification: "Saved spec",
-          image_url:
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLk+wAAAABJRU5ErkJggg==",
+          image_url: testImage,
         },
         packing_snapshot: { cartons: 1, qty_per_carton: 2 },
       })),
@@ -139,7 +143,7 @@ it.each([1, 2, 8])(
     expect(merges).toContain(`A${termsTitle}:J${termsTitle}`);
     expect(merges).toContain(`B${termsTitle + 1}:C${termsTitle + 1}`);
     expect(merges).toContain(`D${termsTitle + 1}:J${termsTitle + 1}`);
-    expect(sheet.getRow(9).height).toBe(100);
+    expect(sheet.getRow(9).height).toBe(65);
     expect(sheet.getRow(summaryStart).height).toBe(35);
     expect(sheet.getRow(termsTitle).height).toBeCloseTo(23.2);
     expect(sheet.getRow(termsTitle + 1).height).toBe(70);
@@ -167,19 +171,23 @@ it.each([1, 2, 8])(
       count,
     );
     expect(drawingXml).toContain(`<xdr:row>${8 + count - 1}</xdr:row>`);
-    const productOffsets = [
+    const productAnchors = [
       ...drawingXml.matchAll(
-        /<xdr:oneCellAnchor\b[\s\S]*?<xdr:colOff>(\d+)<\/xdr:colOff>[\s\S]*?<xdr:rowOff>(\d+)<\/xdr:rowOff>/g,
+        /<xdr:oneCellAnchor\b[\s\S]*?<xdr:col>3<\/xdr:col><xdr:colOff>(\d+)<\/xdr:colOff>[\s\S]*?<xdr:rowOff>(\d+)<\/xdr:rowOff>[\s\S]*?<xdr:ext cx="(\d+)" cy="(\d+)"\/>/g,
       ),
     ];
-    expect(productOffsets).toHaveLength(count);
-    // ExcelJS serializes offsets in its native column/row units. A one-pixel
-    // image is centered only when both offsets are the midpoint fractions,
-    // rather than the former fixed 0.3 / 0.14 top-left placement.
-    expect(Number(productOffsets[0][1])).toBeGreaterThan(8_000);
-    expect(Number(productOffsets[0][1])).toBeLessThan(9_000);
-    expect(Number(productOffsets[0][2])).toBeGreaterThan(44_000);
-    expect(Number(productOffsets[0][2])).toBeLessThan(46_000);
+    expect(productAnchors).toHaveLength(count);
+    const photoCellWidth = 155 * 9_525;
+    const photoCellHeight = 65 * (96 / 72) * 9_525;
+    const padding = 5 * 9_525;
+    for (const anchor of productAnchors) {
+      const [, colOff, rowOff, width, height] = anchor.map(Number);
+      expect(colOff).toBeGreaterThanOrEqual(padding);
+      expect(rowOff).toBeGreaterThanOrEqual(padding);
+      expect(colOff + width).toBeLessThanOrEqual(photoCellWidth - padding);
+      expect(rowOff + height).toBeLessThanOrEqual(photoCellHeight - padding);
+      expect(height).toBeLessThanOrEqual(50 * 9_525);
+    }
     const columnWidths = (xml: string) =>
       [...xml.matchAll(/<col\b[^>]*\bwidth="([^"]+)"/g)].map(
         (match) => match[1],
@@ -197,5 +205,8 @@ it.each([1, 2, 8])(
     );
     expect(sheetXml).not.toContain("fitToWidth");
     expect(sheetXml).not.toContain("fitToHeight");
+    expect(
+      await packageContents.file("xl/workbook.xml")!.async("string"),
+    ).toContain("_xlnm.Print_Titles");
   },
 );
