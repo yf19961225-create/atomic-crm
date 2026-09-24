@@ -74,6 +74,52 @@ it("exports a saved Order-level Terms override without changing the defaults", a
   ).toContain("outside China");
 });
 
+it("preserves image aspect ratio when bitmap decoding is unavailable", async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 120;
+  canvas.height = 60;
+  canvas.getContext("2d")!.fillRect(0, 0, 120, 60);
+  const bitmapDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "createImageBitmap",
+  );
+  Object.defineProperty(globalThis, "createImageBitmap", {
+    configurable: true,
+    value: undefined,
+  });
+  try {
+    const model = normalizeOrderExportModel(
+      { document_number: "RCI260923003" },
+      [
+        {
+          id: "image-ratio",
+          sku: "IMAGE-RATIO",
+          quantity: 1,
+          unit_price: 1,
+          product_snapshot: { image_url: canvas.toDataURL("image/png") },
+          packing_snapshot: {},
+        },
+      ],
+    );
+    const template = await fetch(templateUrl).then((response) =>
+      response.arrayBuffer(),
+    );
+    const output = await renderOrderXlsx(model, template);
+    const drawingXml = await JSZip.loadAsync(output).then((zip) =>
+      zip.file("xl/drawings/drawing1.xml")!.async("string"),
+    );
+    const [, width, height] = drawingXml.match(
+      /<xdr:oneCellAnchor\b[\s\S]*?<xdr:ext cx="(\d+)" cy="(\d+)"\/>/,
+    )!;
+    expect(Number(width) / Number(height)).toBeCloseTo(2, 3);
+  } finally {
+    if (bitmapDescriptor)
+      Object.defineProperty(globalThis, "createImageBitmap", bitmapDescriptor);
+    else
+      delete (globalThis as { createImageBitmap?: unknown }).createImageBitmap;
+  }
+});
+
 it.each([1, 2, 8, 30])(
   "rebuilds template merges and semantic rows for %i product rows",
   async (count) => {
@@ -194,7 +240,7 @@ it.each([1, 2, 8, 30])(
       expect(rowOff).toBeGreaterThanOrEqual(padding);
       expect(colOff + width).toBeLessThanOrEqual(photoCellWidth - padding);
       expect(rowOff + height).toBeLessThanOrEqual(photoCellHeight - padding);
-      expect(height).toBeLessThanOrEqual(50 * 9_525);
+      expect(width / height).toBeCloseTo(1, 3);
     }
     const columnWidths = (xml: string) =>
       [...xml.matchAll(/<col\b[^>]*\bwidth="([^"]+)"/g)].map(

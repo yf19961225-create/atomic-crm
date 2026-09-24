@@ -98,6 +98,40 @@ export function buildOrderTemplateLayout(
   };
 }
 
+type ImageDimensions = { width: number; height: number };
+
+/** Reads source pixels from PNG/JPEG bytes without relying on browser decoders. */
+const naturalImageDimensions = (buffer: ArrayBuffer): ImageDimensions => {
+  const bytes = new Uint8Array(buffer);
+  if (
+    bytes.length >= 24 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    const view = new DataView(buffer);
+    return { width: view.getUint32(16), height: view.getUint32(20) };
+  }
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8)
+    throw new Error("Unsupported product image format");
+  for (let offset = 2; offset + 8 < bytes.length; ) {
+    while (bytes[offset] === 0xff) offset++;
+    const marker = bytes[offset++];
+    const length = (bytes[offset] << 8) | bytes[offset + 1];
+    const isStartOfFrame =
+      marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker);
+    if (isStartOfFrame)
+      return {
+        height: (bytes[offset + 3] << 8) | bytes[offset + 4],
+        width: (bytes[offset + 5] << 8) | bytes[offset + 6],
+      };
+    if (length < 2) break;
+    offset += length;
+  }
+  throw new Error("Unable to read product image dimensions");
+};
+
 async function insertImage(
   workbook: ExcelJS.Workbook,
   sheet: ExcelJS.Worksheet,
@@ -123,23 +157,18 @@ async function insertImage(
     const cellWidth = columnWidthPixels(sheet.getColumn(4).width || 8.43);
     const cellHeight =
       (sheet.getRow(row).height || PRODUCT_ROW_HEIGHT) * (96 / 72);
-    let width = Math.max(1, cellWidth - IMAGE_PADDING * 2),
-      height = Math.max(1, Math.min(cellHeight - IMAGE_PADDING * 2, 50));
-    try {
-      const bitmap = await createImageBitmap(blob);
-      const scale = Math.min(
-        (cellWidth - IMAGE_PADDING * 2) / bitmap.width,
-        Math.min(cellHeight - IMAGE_PADDING * 2, 50) / bitmap.height,
-        1,
-      );
-      width = Math.max(1, Math.round(bitmap.width * scale));
-      height = Math.max(1, Math.round(bitmap.height * scale));
-      bitmap.close();
-    } catch {
-      /* Use a bounded square if the browser cannot inspect the bitmap. */
-    }
+    const imageBuffer = await blob.arrayBuffer();
+    const natural = naturalImageDimensions(imageBuffer);
+    const availableWidth = Math.max(1, cellWidth - IMAGE_PADDING * 2);
+    const availableHeight = Math.max(1, cellHeight - IMAGE_PADDING * 2);
+    const scale = Math.min(
+      availableWidth / natural.width,
+      availableHeight / natural.height,
+    );
+    const width = natural.width * scale;
+    const height = natural.height * scale;
     const imageId = workbook.addImage({
-      buffer: await blob.arrayBuffer(),
+      buffer: imageBuffer,
       extension: blob.type.includes("png") ? "png" : "jpeg",
     });
     sheet.addImage(imageId, {
