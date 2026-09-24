@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { readServerImageDimensions } from "./order-export-image";
+import { readServerImageDimensions } from "../../api/order-export-image";
 
 it("reads JPEG natural pixels before returning an Order export image", () => {
   const bytes = new Uint8Array([
