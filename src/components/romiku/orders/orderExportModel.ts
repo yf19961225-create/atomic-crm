@@ -117,18 +117,6 @@ export function normalizeOrderExportModel(
     moneyRows: [
       { key: "subtotal", label: "SUBTOTAL / 小计", amount: subtotal },
       { key: "freight", label: "FREIGHT / 运费", amount: freight },
-      ...(otherExpenses > 0
-        ? [
-            {
-              key: "other_expenses",
-              label: "OTHER EXPENSES / 其他费用",
-              amount: otherExpenses,
-            },
-          ]
-        : []),
-      ...(discount > 0
-        ? [{ key: "discount", label: "DISCOUNT / 折扣", amount: -discount }]
-        : []),
       { key: "total", label: "TOTAL AMOUNT / 总金额", amount: total },
       {
         key: "deposit",

@@ -135,9 +135,7 @@ it.each([1, 2, 8])(
     expect(merges).toContain(`A${summaryStart + 2}:I${summaryStart + 2}`);
     expect(merges).toContain(`A${summaryStart + 3}:I${summaryStart + 3}`);
     expect(merges).toContain(`A${summaryStart + 4}:I${summaryStart + 4}`);
-    expect(merges).toContain(`A${summaryStart + 5}:I${summaryStart + 5}`);
-    expect(merges).toContain(`A${summaryStart + 6}:I${summaryStart + 6}`);
-    const termsTitle = summaryStart + 7;
+    const termsTitle = summaryStart + 5;
     expect(merges).toContain(`A${termsTitle}:J${termsTitle}`);
     expect(merges).toContain(`B${termsTitle + 1}:C${termsTitle + 1}`);
     expect(merges).toContain(`D${termsTitle + 1}:J${termsTitle + 1}`);
@@ -147,7 +145,13 @@ it.each([1, 2, 8])(
     expect(sheet.getRow(termsTitle + 1).height).toBe(70);
     expect(sheet.getCell(`A${termsTitle + 1}`).value).toBe(1);
     expect(sheet.getCell(`A${termsTitle + 8}`).value).toBe(8);
-    expect(sheet.getCell(`A${summaryStart + 2}`).text).toContain("OTHER");
+    expect(sheet.getCell(`A${summaryStart + 2}`).text).toContain(
+      "TOTAL AMOUNT",
+    );
+    expect(sheet.getCell(`A${summaryStart + 2}`).text).not.toContain("OTHER");
+    expect(sheet.getCell(`A${summaryStart + 2}`).text).not.toContain(
+      "DISCOUNT",
+    );
     expect(sheet.getCell("D9").value).toBeNull();
     expect(sheet.getCell("E9").value).toBe("Saved spec");
     expect(
@@ -163,6 +167,19 @@ it.each([1, 2, 8])(
       count,
     );
     expect(drawingXml).toContain(`<xdr:row>${8 + count - 1}</xdr:row>`);
+    const productOffsets = [
+      ...drawingXml.matchAll(
+        /<xdr:oneCellAnchor\b[\s\S]*?<xdr:colOff>(\d+)<\/xdr:colOff>[\s\S]*?<xdr:rowOff>(\d+)<\/xdr:rowOff>/g,
+      ),
+    ];
+    expect(productOffsets).toHaveLength(count);
+    // ExcelJS serializes offsets in its native column/row units. A one-pixel
+    // image is centered only when both offsets are the midpoint fractions,
+    // rather than the former fixed 0.3 / 0.14 top-left placement.
+    expect(Number(productOffsets[0][1])).toBeGreaterThan(8_000);
+    expect(Number(productOffsets[0][1])).toBeLessThan(9_000);
+    expect(Number(productOffsets[0][2])).toBeGreaterThan(44_000);
+    expect(Number(productOffsets[0][2])).toBeLessThan(46_000);
     const columnWidths = (xml: string) =>
       [...xml.matchAll(/<col\b[^>]*\bwidth="([^"]+)"/g)].map(
         (match) => match[1],

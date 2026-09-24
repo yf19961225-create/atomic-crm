@@ -44,15 +44,11 @@ it("normalizes only saved snapshots, sorts position/id and inserts money rows co
   expect(model.moneyRows.map((row) => row.key)).toEqual([
     "subtotal",
     "freight",
-    "other_expenses",
-    "discount",
     "total",
     "deposit",
     "balance",
   ]);
-  expect(model.moneyRows.find((row) => row.key === "discount")?.amount).toBe(
-    -3,
-  );
+  expect(model.moneyRows.find((row) => row.key === "total")?.amount).toBe(52);
   expect(model.terms.some((term) => term.key === "payment")).toBe(false);
   expect(model.seller.company_name).toBe("Saved Seller");
   expect(model.buyer.company_name).toBe("Saved Buyer");

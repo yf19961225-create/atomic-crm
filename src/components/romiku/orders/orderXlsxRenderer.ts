@@ -61,8 +61,6 @@ export type OrderTemplateLayout = {
   productStart: number;
   summaryStart: number;
   freightRow: number;
-  optionalOtherExpensesRow?: number;
-  optionalDiscountRow?: number;
   totalAmountRow: number;
   depositRow: number;
   balanceRow: number;
@@ -72,24 +70,18 @@ export type OrderTemplateLayout = {
 /** The sole row-coordinate planner for the dynamic portion of the fixed template. */
 export function buildOrderTemplateLayout(
   itemCount: number,
-  optional: { otherExpenses: boolean; discount: boolean },
   paymentVisible: boolean,
 ): OrderTemplateLayout {
   const summaryStart = PRODUCT_START + Math.max(1, itemCount);
-  let next = summaryStart + 1;
-  const freightRow = next++,
-    optionalOtherExpensesRow = optional.otherExpenses ? next++ : undefined,
-    optionalDiscountRow = optional.discount ? next++ : undefined,
-    totalAmountRow = next++,
-    depositRow = next++,
-    balanceRow = next++,
-    termsTitleRow = next++;
+  const freightRow = summaryStart + 1,
+    totalAmountRow = summaryStart + 2,
+    depositRow = summaryStart + 3,
+    balanceRow = summaryStart + 4,
+    termsTitleRow = summaryStart + 5;
   return {
     productStart: PRODUCT_START,
     summaryStart,
     freightRow,
-    optionalOtherExpensesRow,
-    optionalDiscountRow,
     totalAmountRow,
     depositRow,
     balanceRow,
@@ -123,11 +115,18 @@ async function insertImage(
       bitmap.close();
       blob = await canvas.convertToBlob({ type: "image/png" });
     }
-    let width = 72,
-      height = 72;
+    const columnWidth = sheet.getColumn(4).width || 8.43;
+    const cellWidth = columnWidth * 7 + 5;
+    const cellHeight = (sheet.getRow(row).height || 100) * (96 / 72);
+    let width = Math.max(1, cellWidth - 12),
+      height = Math.max(1, cellHeight - 12);
     try {
-      const bitmap = await createImageBitmap(blob),
-        scale = Math.min(72 / bitmap.width, 72 / bitmap.height, 1);
+      const bitmap = await createImageBitmap(blob);
+      const scale = Math.min(
+        (cellWidth - 12) / bitmap.width,
+        (cellHeight - 12) / bitmap.height,
+        1,
+      );
       width = Math.max(1, Math.round(bitmap.width * scale));
       height = Math.max(1, Math.round(bitmap.height * scale));
       bitmap.close();
@@ -139,7 +138,10 @@ async function insertImage(
       extension: blob.type.includes("png") ? "png" : "jpeg",
     });
     sheet.addImage(imageId, {
-      tl: { col: 3.3, row: row - 0.86 },
+      tl: {
+        col: 3 + (cellWidth - width) / (2 * cellWidth),
+        row: row - 1 + (cellHeight - height) / (2 * cellHeight),
+      },
       ext: { width, height },
     } as unknown as ExcelJS.ImagePosition);
   } catch {
@@ -283,16 +285,7 @@ export async function renderOrderXlsx(
   };
   clearTemplateDynamicMerges(sheet);
   const paymentVisible = model.terms.some((term) => term.key === "payment");
-  const layout = buildOrderTemplateLayout(
-    model.items.length,
-    {
-      otherExpenses: model.moneyRows.some(
-        (row) => row.key === "other_expenses",
-      ),
-      discount: model.moneyRows.some((row) => row.key === "discount"),
-    },
-    paymentVisible,
-  );
+  const layout = buildOrderTemplateLayout(model.items.length, paymentVisible);
   const dynamicRows = layout.termRows.at(-1)! - PRODUCT_START + 1;
   sheet.spliceRows(
     PRODUCT_START,
@@ -383,20 +376,6 @@ export async function renderOrderXlsx(
     titles.freight,
     amounts.get("freight") || 0,
   );
-  if (layout.optionalOtherExpensesRow)
-    summary(
-      layout.optionalOtherExpensesRow,
-      styles.freight,
-      "OTHER EXPENSES / 其他费用",
-      amounts.get("other_expenses") || 0,
-    );
-  if (layout.optionalDiscountRow)
-    summary(
-      layout.optionalDiscountRow,
-      styles.freight,
-      "DISCOUNT / 折扣",
-      amounts.get("discount") || 0,
-    );
   summary(
     layout.totalAmountRow,
     styles.total,
