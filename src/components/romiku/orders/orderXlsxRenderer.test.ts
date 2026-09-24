@@ -242,6 +242,18 @@ it.each([1, 2, 8, 30])(
       expect(rowOff + height).toBeLessThanOrEqual(photoCellHeight - padding);
       expect(width / height).toBeCloseTo(1, 3);
     }
+    const productTransforms = [
+      ...drawingXml.matchAll(
+        /<xdr:oneCellAnchor\b[\s\S]*?<xdr:ext cx="(\d+)" cy="(\d+)"\/>[\s\S]*?<a:xfrm><a:off[^>]*\/><a:ext cx="(\d+)" cy="(\d+)"\/>/g,
+      ),
+    ];
+    expect(productTransforms).toHaveLength(count);
+    for (const transform of productTransforms) {
+      const [, anchorWidth, anchorHeight, transformWidth, transformHeight] =
+        transform.map(Number);
+      expect(transformWidth).toBe(anchorWidth);
+      expect(transformHeight).toBe(anchorHeight);
+    }
     const columnWidths = (xml: string) =>
       [...xml.matchAll(/<col\b[^>]*\bwidth="([^"]+)"/g)].map(
         (match) => match[1],

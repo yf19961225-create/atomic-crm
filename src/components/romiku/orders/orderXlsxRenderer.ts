@@ -132,13 +132,17 @@ const naturalImageDimensions = (buffer: ArrayBuffer): ImageDimensions => {
   throw new Error("Unable to read product image dimensions");
 };
 
-async function insertImage(
-  workbook: ExcelJS.Workbook,
-  sheet: ExcelJS.Worksheet,
+type PreparedProductImage = ImageDimensions & {
+  row: number;
+  buffer: ArrayBuffer;
+  extension: "png" | "jpeg";
+};
+
+async function prepareProductImage(
   imageUrl: string,
   row: number,
-) {
-  if (!imageUrl) return;
+): Promise<PreparedProductImage | undefined> {
+  if (!imageUrl) return undefined;
   try {
     const response = await fetch(
       imageUrl.startsWith("data:")
@@ -154,64 +158,80 @@ async function insertImage(
       bitmap.close();
       blob = await canvas.convertToBlob({ type: "image/png" });
     }
-    const cellWidth = columnWidthPixels(sheet.getColumn(4).width || 8.43);
-    const cellHeight =
-      (sheet.getRow(row).height || PRODUCT_ROW_HEIGHT) * (96 / 72);
     const imageBuffer = await blob.arrayBuffer();
-    const natural = naturalImageDimensions(imageBuffer);
-    const availableWidth = Math.max(1, cellWidth - IMAGE_PADDING * 2);
-    const availableHeight = Math.max(1, cellHeight - IMAGE_PADDING * 2);
-    const scale = Math.min(
-      availableWidth / natural.width,
-      availableHeight / natural.height,
-    );
-    const width = natural.width * scale;
-    const height = natural.height * scale;
-    const imageId = workbook.addImage({
+    const serverWidth = Number(response.headers.get("X-Image-Width"));
+    const serverHeight = Number(response.headers.get("X-Image-Height"));
+    const natural =
+      serverWidth > 0 && serverHeight > 0
+        ? { width: serverWidth, height: serverHeight }
+        : naturalImageDimensions(imageBuffer);
+    return {
+      ...natural,
+      row,
       buffer: imageBuffer,
       extension: blob.type.includes("png") ? "png" : "jpeg",
-    });
-    sheet.addImage(imageId, {
-      tl: { col: 3, row: row - 1 },
-      ext: { width, height },
-    } as unknown as ExcelJS.ImagePosition);
+    };
   } catch {
     console.warn("[order-xlsx] product snapshot image unavailable", {
       row,
       imageUrl,
     });
+    return undefined;
   }
 }
 
 const textPart = async (zip: JSZip, path: string) =>
   (await zip.file(path)?.async("string")) || "";
 
-const imageRelationshipsAfterLogo = (relationships: string) =>
-  [...relationships.matchAll(/<Relationship\b[^>]*\bId="rId(\d+)"[^>]*\/>/g)]
-    .filter((match) => Number(match[1]) > 1 && /\/image"/.test(match[0]))
-    .map((match) => match[0]);
-
-const centerProductAnchor = (
-  anchor: string,
-  worksheetXml: string,
-  photoColumnWidth: number,
-) => {
-  const rowIndex = Number(anchor.match(/<xdr:row>(\d+)<\/xdr:row>/)?.[1]);
-  const width = Number(anchor.match(/<xdr:ext cx="(\d+)"/)?.[1]);
-  const height = Number(anchor.match(/<xdr:ext cx="\d+" cy="(\d+)"/)?.[1]);
-  const rowHeight = Number(
+const maxRelationshipId = (xml: string) =>
+  Math.max(
+    0,
+    ...[...xml.matchAll(/\bId="rId(\d+)"/g)].map((m) => Number(m[1])),
+  );
+const maxShapeId = (xml: string) =>
+  Math.max(
+    0,
+    ...[...xml.matchAll(/<xdr:cNvPr\b[^>]*\bid="(\d+)"/g)].map((m) =>
+      Number(m[1]),
+    ),
+  );
+const rowHeightPoints = (worksheetXml: string, row: number) =>
+  Number(
     worksheetXml.match(
-      new RegExp(`<row\\b[^>]*\\br="${rowIndex + 1}"[^>]*\\bht="([^"]+)"`),
+      new RegExp(`<row\\b[^>]*\\br="${row}"[^>]*\\bht="([^"]+)"`),
     )?.[1] || PRODUCT_ROW_HEIGHT,
   );
-  const cellWidth = photoColumnWidth * EMUS_PER_PIXEL;
-  const cellHeight = rowHeight * (96 / 72) * EMUS_PER_PIXEL;
-  const padding = IMAGE_PADDING * EMUS_PER_PIXEL;
-  const colOff = Math.round(Math.max(padding, (cellWidth - width) / 2));
-  const rowOff = Math.round(Math.max(padding, (cellHeight - height) / 2));
-  return anchor
-    .replace(/(<xdr:colOff>)\d+(<\/xdr:colOff>)/, `$1${colOff}$2`)
-    .replace(/(<xdr:rowOff>)\d+(<\/xdr:rowOff>)/, `$1${rowOff}$2`);
+const packageProductAnchor = (
+  image: PreparedProductImage,
+  photoColumnWidth: number,
+  relationshipId: number,
+  shapeId: number,
+  productIndex: number,
+  worksheetXml: string,
+) => {
+  const cellWidth = photoColumnWidth;
+  const cellHeight = rowHeightPoints(worksheetXml, image.row) * (96 / 72);
+  const availableWidth = Math.max(1, cellWidth - IMAGE_PADDING * 2);
+  const availableHeight = Math.max(1, cellHeight - IMAGE_PADDING * 2);
+  const scale = Math.min(
+    availableWidth / image.width,
+    availableHeight / image.height,
+  );
+  const width = image.width * scale;
+  const height = image.height * scale;
+  const widthEmu = Math.floor(width * EMUS_PER_PIXEL);
+  const heightEmu = Math.floor(height * EMUS_PER_PIXEL);
+  const cellWidthEmu = Math.floor(cellWidth * EMUS_PER_PIXEL);
+  const cellHeightEmu = Math.floor(cellHeight * EMUS_PER_PIXEL);
+  const colOffEmu = Math.max(
+    IMAGE_PADDING * EMUS_PER_PIXEL,
+    Math.floor((cellWidthEmu - widthEmu) / 2),
+  );
+  const rowOffEmu = Math.max(
+    IMAGE_PADDING * EMUS_PER_PIXEL,
+    Math.floor((cellHeightEmu - heightEmu) / 2),
+  );
+  return `<xdr:oneCellAnchor><xdr:from><xdr:col>3</xdr:col><xdr:colOff>${colOffEmu}</xdr:colOff><xdr:row>${image.row - 1}</xdr:row><xdr:rowOff>${rowOffEmu}</xdr:rowOff></xdr:from><xdr:ext cx="${widthEmu}" cy="${heightEmu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${shapeId}" name="Product image ${productIndex}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${relationshipId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
 };
 
 /**
@@ -222,6 +242,7 @@ const centerProductAnchor = (
 async function preserveTemplatePackage(
   template: ArrayBuffer,
   rendered: ArrayBuffer,
+  productImages: PreparedProductImage[],
 ): Promise<ArrayBuffer> {
   const [source, output] = await Promise.all([
     JSZip.loadAsync(template),
@@ -234,23 +255,10 @@ async function preserveTemplatePackage(
     textPart(source, worksheetPath),
     textPart(output, worksheetPath),
   ]);
-  const [
-    sourceDrawing,
-    outputDrawing,
-    sourceRelationships,
-    outputRelationships,
-  ] = await Promise.all([
+  const [sourceDrawing, sourceRelationships] = await Promise.all([
     textPart(source, drawingPath),
-    textPart(output, drawingPath),
     textPart(source, relationshipPath),
-    textPart(output, relationshipPath),
   ]);
-  const maxTemplateShapeId = Math.max(
-    0,
-    ...[...sourceDrawing.matchAll(/<xdr:cNvPr\b[^>]*\bid="(\d+)"/g)].map(
-      (match) => Number(match[1]),
-    ),
-  );
   const photoColumnWidth = columnWidthPixels(
     Number(
       sourceWorksheet.match(
@@ -258,16 +266,21 @@ async function preserveTemplatePackage(
       )?.[1] || 8.43,
     ),
   );
-  const productAnchors = (
-    outputDrawing.match(/<xdr:oneCellAnchor\b[\s\S]*?<\/xdr:oneCellAnchor>/g) ||
-    []
-  ).map((anchor, index) =>
-    centerProductAnchor(anchor, outputWorksheet, photoColumnWidth)
-      .replace(
-        /<xdr:cNvPr\b[^>]*\bid="\d+"/,
-        `<xdr:cNvPr id="${maxTemplateShapeId + index + 1}"`,
-      )
-      .replace(/\bname="Picture \d+"/, `name="Product image ${index + 1}"`),
+  const firstRelationshipId = maxRelationshipId(sourceRelationships) + 1;
+  const firstShapeId = maxShapeId(sourceDrawing) + 1;
+  const existingImageNumbers = Object.keys(source.files)
+    .map((path) => Number(/xl\/media\/image(\d+)\./.exec(path)?.[1]))
+    .filter(Number.isFinite);
+  const firstImageNumber = Math.max(0, ...existingImageNumbers) + 1;
+  const productAnchors = productImages.map((image, index) =>
+    packageProductAnchor(
+      image,
+      photoColumnWidth,
+      firstRelationshipId + index,
+      firstShapeId + index,
+      index + 1,
+      outputWorksheet,
+    ),
   );
   if (sourceDrawing && productAnchors?.length)
     output.file(
@@ -277,15 +290,37 @@ async function preserveTemplatePackage(
         `${productAnchors.join("")}</xdr:wsDr>`,
       ),
     );
-  const productRelationships = imageRelationshipsAfterLogo(outputRelationships);
-  if (sourceRelationships && productRelationships.length)
+  if (sourceRelationships && productImages.length)
     output.file(
       relationshipPath,
       sourceRelationships.replace(
         "</Relationships>",
-        `${productRelationships.join("")}</Relationships>`,
+        `${productImages
+          .map(
+            (image, index) =>
+              `<Relationship Id="rId${firstRelationshipId + index}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${firstImageNumber + index}.${image.extension}"/>`,
+          )
+          .join("")}</Relationships>`,
       ),
     );
+  productImages.forEach((image, index) =>
+    output.file(
+      `xl/media/image${firstImageNumber + index}.${image.extension}`,
+      image.buffer,
+    ),
+  );
+  const contentTypesPath = "[Content_Types].xml";
+  let contentTypes = await textPart(source, contentTypesPath);
+  for (const extension of new Set(
+    productImages.map((image) => image.extension),
+  )) {
+    if (!contentTypes.includes(`Extension="${extension}"`))
+      contentTypes = contentTypes.replace(
+        "</Types>",
+        `<Default Extension="${extension}" ContentType="image/${extension === "jpeg" ? "jpeg" : "png"}"/></Types>`,
+      );
+  }
+  if (contentTypes) output.file(contentTypesPath, contentTypes);
 
   const sourceMargins = sourceWorksheet.match(/<pageMargins\b[^>]*\/>/)?.[0];
   const sourceSetup = sourceWorksheet.match(/<pageSetup\b[^>]*\/>/)?.[0];
@@ -415,11 +450,13 @@ export async function renderOrderXlsx(
     sheet.getCell(row, 9).numFmt = moneyFormat(model.currency);
     sheet.getCell(row, 10).numFmt = moneyFormat(model.currency);
   });
-  await Promise.all(
-    model.items.map((item, i) =>
-      insertImage(workbook, sheet, item.imageUrl, layout.productStart + i),
-    ),
-  );
+  const productImages = (
+    await Promise.all(
+      model.items.map((item, i) =>
+        prepareProductImage(item.imageUrl, layout.productStart + i),
+      ),
+    )
+  ).filter((image): image is PreparedProductImage => Boolean(image));
   const amounts = new Map(model.moneyRows.map((row) => [row.key, row.amount]));
   applyStyle(sheet, layout.summaryStart, styles.summary, 35);
   sheet.mergeCells(`A${layout.summaryStart}:E${layout.summaryStart}`);
@@ -491,5 +528,9 @@ export async function renderOrderXlsx(
     sheet.getCell(row, 4).value = term.text;
   });
   sheet.pageSetup.printArea = `A1:J${layout.termRows.at(-1)!}`;
-  return preserveTemplatePackage(template, await workbook.xlsx.writeBuffer());
+  return preserveTemplatePackage(
+    template,
+    await workbook.xlsx.writeBuffer(),
+    productImages,
+  );
 }
