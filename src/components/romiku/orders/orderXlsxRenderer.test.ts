@@ -74,7 +74,7 @@ it("exports a saved Order-level Terms override without changing the defaults", a
   ).toContain("outside China");
 });
 
-it.each([1, 2, 8])(
+it.each([1, 2, 8, 30])(
   "rebuilds template merges and semantic rows for %i product rows",
   async (count) => {
     const imageCanvas = document.createElement("canvas");
@@ -116,6 +116,9 @@ it.each([1, 2, 8])(
       JSZip.loadAsync(output),
     ]);
     const drawingXml = await packageContents
+      .file("xl/drawings/drawing1.xml")!
+      .async("string");
+    const templateDrawingXml = await templateContents
       .file("xl/drawings/drawing1.xml")!
       .async("string");
     const sheetXml = await packageContents
@@ -166,6 +169,11 @@ it.each([1, 2, 8])(
     ).toHaveLength(count + 1);
     expect(drawingXml).toContain('<a:srcRect t="32945" b="40175"/>');
     expect(drawingXml).toContain('<a:ext cx="2562860" cy="694690"/>');
+    const sourceLogoAnchor = templateDrawingXml.match(
+      /<xdr:twoCellAnchor\b[\s\S]*?<\/xdr:twoCellAnchor>/,
+    )?.[0];
+    expect(sourceLogoAnchor).toBeDefined();
+    expect(drawingXml).toContain(sourceLogoAnchor!);
     expect(drawingXml).toContain("Product image 1");
     expect(drawingXml.match(/<xdr:from><xdr:col>3<\/xdr:col>/g)).toHaveLength(
       count,
