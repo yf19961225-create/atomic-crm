@@ -66,6 +66,45 @@ insert into test_ids select 'direct_order',romiku_convert_document('quote',(sele
 select is((select document_number from romiku_pis where id=(select id from test_ids where kind='pi')),'RPI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','PI uses an independent Shanghai daily counter');
 select is((select document_number from romiku_orders where id=(select id from test_ids where kind='order')),'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','Order uses an independent Shanghai daily counter');
 select is((select document_number from romiku_orders where id=(select id from test_ids where kind='direct_order')),'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','Order daily sequence increments independently');
+-- A stale counter must never regenerate an existing automatic number. This
+-- simulates Preview data where the order counter fell behind existing Orders.
+reset role;
+update romiku_document_daily_counters
+set last_value=1
+where document_kind='order'
+  and business_date=(now() at time zone 'Asia/Shanghai')::date;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+insert into romiku_orders(id,notes) values
+('74000000-0000-0000-0000-000000000001','stale order counter collision test');
+select is(
+  (select document_number from romiku_orders where id='74000000-0000-0000-0000-000000000001'),
+  'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '003',
+  'Order allocator skips an existing number when the counter is stale'
+);
+reset role;
+select is(
+  (select last_value from romiku_document_daily_counters
+   where document_kind='order' and business_date=(now() at time zone 'Asia/Shanghai')::date),
+  3,
+  'Order counter self-heals after a stale-counter collision'
+);
+update romiku_orders
+set document_number='RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '005'
+where id=(select id from test_ids where kind='direct_order');
+update romiku_document_daily_counters
+set last_value=1
+where document_kind='order'
+  and business_date=(now() at time zone 'Asia/Shanghai')::date;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+insert into romiku_orders(id,notes) values
+('74000000-0000-0000-0000-000000000002','stale order counter max-sync test');
+select is(
+  (select document_number from romiku_orders where id='74000000-0000-0000-0000-000000000002'),
+  'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '006',
+  'Order allocator advances beyond the highest existing automatic number'
+);
 select is((select total from romiku_pi_totals),505.00::numeric,'PI financial inputs copied');
 select is((select total from romiku_order_totals where id=(select id from test_ids where kind='order')),505.00::numeric,'order financial inputs copied');
 select is((select document_language from romiku_pis where id=(select id from test_ids where kind='pi')),'es','Quote language is copied to PI');

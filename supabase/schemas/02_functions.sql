@@ -471,14 +471,64 @@ CREATE OR REPLACE FUNCTION "public"."romiku_next_daily_document_number"("kind" "
     AS $$
 DECLARE
   local_date date := (now() at time zone 'Asia/Shanghai')::date;
+  date_key text := to_char((now() at time zone 'Asia/Shanghai')::date, 'YYMMDD');
+  existing_max integer := 0;
   next_value integer;
+  candidate text;
+  candidate_exists boolean;
 BEGIN
-  INSERT INTO public.romiku_document_daily_counters(document_kind,business_date,last_value)
-  VALUES (kind,local_date,1)
-  ON CONFLICT (document_kind,business_date)
-  DO UPDATE SET last_value=public.romiku_document_daily_counters.last_value+1
-  RETURNING last_value INTO next_value;
-  RETURN prefix || to_char(local_date,'YYMMDD') || lpad(next_value::text,3,'0');
+  IF (kind, prefix) NOT IN (('quote', 'RFQ'), ('pi', 'RPI'), ('order', 'RCI')) THEN
+    RAISE EXCEPTION 'Unsupported daily document number kind/prefix: %/%', kind, prefix
+      USING ERRCODE = '22023';
+  END IF;
+
+  -- Serialize allocations for one kind and Shanghai business day before reading
+  -- historical documents. This allows a stale counter to self-heal safely.
+  PERFORM pg_advisory_xact_lock(hashtextextended(format('romiku-daily-number:%s:%s', kind, local_date), 0));
+
+  CASE kind
+    WHEN 'quote' THEN
+      SELECT coalesce(max((substring(document_number, '^' || prefix || date_key || '([0-9]+)$'))::integer), 0)
+        INTO existing_max
+      FROM public.romiku_quotes
+      WHERE document_number ~ ('^' || prefix || date_key || '[0-9]+$');
+    WHEN 'pi' THEN
+      SELECT coalesce(max((substring(document_number, '^' || prefix || date_key || '([0-9]+)$'))::integer), 0)
+        INTO existing_max
+      FROM public.romiku_pis
+      WHERE document_number ~ ('^' || prefix || date_key || '[0-9]+$');
+    WHEN 'order' THEN
+      SELECT coalesce(max((substring(document_number, '^' || prefix || date_key || '([0-9]+)$'))::integer), 0)
+        INTO existing_max
+      FROM public.romiku_orders
+      WHERE document_number ~ ('^' || prefix || date_key || '[0-9]+$');
+  END CASE;
+
+  LOOP
+    INSERT INTO public.romiku_document_daily_counters(document_kind, business_date, last_value)
+    VALUES (kind, local_date, greatest(existing_max, 0) + 1)
+    ON CONFLICT (document_kind, business_date)
+    DO UPDATE SET last_value = greatest(
+      public.romiku_document_daily_counters.last_value,
+      existing_max
+    ) + 1
+    RETURNING last_value INTO next_value;
+
+    candidate := prefix || date_key || lpad(next_value::text, 3, '0');
+    CASE kind
+      WHEN 'quote' THEN SELECT EXISTS(SELECT 1 FROM public.romiku_quotes WHERE document_number = candidate) INTO candidate_exists;
+      WHEN 'pi' THEN SELECT EXISTS(SELECT 1 FROM public.romiku_pis WHERE document_number = candidate) INTO candidate_exists;
+      WHEN 'order' THEN SELECT EXISTS(SELECT 1 FROM public.romiku_orders WHERE document_number = candidate) INTO candidate_exists;
+    END CASE;
+
+    IF NOT candidate_exists THEN
+      RETURN candidate;
+    END IF;
+
+    -- Defensive retry for a legacy/historical number that appeared after the
+    -- high-watermark scan. The same transaction lock keeps allocators ordered.
+    existing_max := greatest(existing_max, next_value);
+  END LOOP;
 END;
 $$;
 
