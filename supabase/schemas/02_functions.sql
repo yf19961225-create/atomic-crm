@@ -477,7 +477,7 @@ DECLARE
   candidate text;
   candidate_exists boolean;
 BEGIN
-  IF (kind, prefix) NOT IN (('quote', 'RFQ'), ('pi', 'RPI'), ('order', 'RCI')) THEN
+  IF (kind, prefix) NOT IN (('quote', 'RFQ'), ('pi', 'RPI'), ('order', 'OD')) THEN
     RAISE EXCEPTION 'Unsupported daily document number kind/prefix: %/%', kind, prefix
       USING ERRCODE = '22023';
   END IF;
@@ -556,7 +556,7 @@ BEGIN
   ELSIF TG_ARGV[0] = 'pi' THEN
     NEW.document_number := public.romiku_next_daily_document_number('pi','RPI');
   ELSIF TG_ARGV[0] = 'order' THEN
-    NEW.document_number := public.romiku_next_daily_document_number('order','RCI');
+    NEW.document_number := public.romiku_next_daily_document_number('order','OD');
   ELSE
     SELECT r.prefix, r.min_digits INTO prefix_value, digits
       FROM public.romiku_numbering_rules r WHERE r.document_kind = TG_ARGV[0];

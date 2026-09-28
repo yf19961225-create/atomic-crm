@@ -139,7 +139,7 @@ test("parallel Quote creation assigns unique Shanghai daily numbers", async () =
 
 for (const [table, prefix] of [
   ["romiku_pis", "RPI"],
-  ["romiku_orders", "RCI"],
+  ["romiku_orders", "OD"],
 ]) {
   test(`parallel ${table} creation assigns unique Shanghai daily numbers`, async () => {
     const ids = Array.from({ length: 12 }, () => randomUUID());

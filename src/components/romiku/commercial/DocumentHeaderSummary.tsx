@@ -52,7 +52,11 @@ export function DocumentHeaderSummary({
 }) {
   const fields = [
     ...customerFields,
-    ...documentFields.filter((field) => kind === "order" || !field.orderOnly),
+    ...documentFields.filter(
+      (field) =>
+        (kind === "order" || !field.orderOnly) &&
+        !(kind === "order" && field.key === "document_language"),
+    ),
   ];
   return (
     <section className="rounded border bg-muted/30 p-4" aria-label="单据摘要">

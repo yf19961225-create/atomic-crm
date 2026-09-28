@@ -444,6 +444,9 @@ export async function renderOrderXlsx(
   sheet.name = model.worksheetName;
   sheet.getCell("J1").value =
     `${model.documentNumber}\n${formatDate(model.documentDate)}`;
+  // A8:B8 is the template-owned REQUIREMENTS title. Its merged C8:J8 region
+  // is the saved Order notes content and must not source any live data.
+  sheet.getCell("C8").value = model.requirements;
   [
     model.seller.company_name,
     model.seller.address,

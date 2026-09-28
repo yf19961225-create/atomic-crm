@@ -64,8 +64,8 @@ insert into test_ids select 'pi',romiku_convert_document('quote',(select id from
 insert into test_ids select 'order',romiku_convert_document('pi',(select id from test_ids where kind='pi'),'order');
 insert into test_ids select 'direct_order',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'order');
 select is((select document_number from romiku_pis where id=(select id from test_ids where kind='pi')),'RPI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','PI uses an independent Shanghai daily counter');
-select is((select document_number from romiku_orders where id=(select id from test_ids where kind='order')),'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','Order uses an independent Shanghai daily counter');
-select is((select document_number from romiku_orders where id=(select id from test_ids where kind='direct_order')),'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','Order daily sequence increments independently');
+select is((select document_number from romiku_orders where id=(select id from test_ids where kind='order')),'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','Order uses an independent Shanghai daily counter');
+select is((select document_number from romiku_orders where id=(select id from test_ids where kind='direct_order')),'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','Order daily sequence increments independently');
 -- A stale counter must never regenerate an existing automatic number. This
 -- simulates Preview data where the order counter fell behind existing Orders.
 reset role;
@@ -79,7 +79,7 @@ insert into romiku_orders(id,notes) values
 ('74000000-0000-0000-0000-000000000001','stale order counter collision test');
 select is(
   (select document_number from romiku_orders where id='74000000-0000-0000-0000-000000000001'),
-  'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '003',
+  'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '003',
   'Order allocator skips an existing number when the counter is stale'
 );
 reset role;
@@ -90,7 +90,7 @@ select is(
   'Order counter self-heals after a stale-counter collision'
 );
 update romiku_orders
-set document_number='RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '005'
+set document_number='OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '005'
 where id=(select id from test_ids where kind='direct_order');
 update romiku_document_daily_counters
 set last_value=1
@@ -102,7 +102,7 @@ insert into romiku_orders(id,notes) values
 ('74000000-0000-0000-0000-000000000002','stale order counter max-sync test');
 select is(
   (select document_number from romiku_orders where id='74000000-0000-0000-0000-000000000002'),
-  'RCI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '006',
+  'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '006',
   'Order allocator advances beyond the highest existing automatic number'
 );
 select is((select total from romiku_pi_totals),505.00::numeric,'PI financial inputs copied');

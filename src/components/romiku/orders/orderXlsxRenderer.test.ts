@@ -98,6 +98,24 @@ it("exports a saved Order-level Terms override without changing the defaults", a
   ).toContain("outside China");
 });
 
+it("writes saved Order notes into the fixed REQUIREMENTS content area", async () => {
+  const model = normalizeOrderExportModel(
+    {
+      document_number: "OD260928001",
+      notes: "Use customer logo packaging.",
+    },
+    [],
+  );
+  const workbook = new ExcelJS.Workbook();
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  await workbook.xlsx.load(await renderOrderXlsx(model, template));
+  expect(workbook.worksheets[0].getCell("C8").text).toBe(
+    "Use customer logo packaging.",
+  );
+});
+
 it("preserves image aspect ratio when bitmap decoding is unavailable", async () => {
   const canvas = document.createElement("canvas");
   canvas.width = 120;

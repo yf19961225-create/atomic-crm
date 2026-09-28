@@ -96,3 +96,18 @@ it("stores the document language as a stable locale value independent of currenc
     currency: "USD",
   });
 });
+
+it("keeps document language stored but hides its selector on Orders", async () => {
+  const screen = await render(
+    <DocumentHeaderSummary
+      kind="order"
+      editable
+      values={{ document_language: "es", currency: "USD" }}
+      onChange={vi.fn()}
+      customers={[]}
+    />,
+  );
+  expect(
+    screen.getByLabelText("表格类型 / 单据语言", { exact: true }).all(),
+  ).toHaveLength(0);
+});

@@ -11,6 +11,7 @@ export type OrderExportModel = {
   worksheetName: "ORDER";
   documentNumber: string;
   documentDate: string;
+  requirements: string;
   currency: "USD" | "CNY";
   seller: ContactSnapshot;
   buyer: ContactSnapshot;
@@ -83,6 +84,7 @@ export function normalizeOrderExportModel(
     worksheetName: "ORDER",
     documentNumber: text(order.document_number),
     documentDate: text(order.document_date),
+    requirements: text(order.notes),
     currency: order.currency === "CNY" ? "CNY" : "USD",
     seller: exportSnapshot.seller,
     buyer: buyerSnapshot(order.counterparty_snapshot),

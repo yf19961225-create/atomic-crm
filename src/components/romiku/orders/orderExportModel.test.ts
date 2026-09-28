@@ -11,6 +11,7 @@ it("normalizes only saved snapshots, sorts position/id and inserts money rows co
       other_expenses: 5,
       discount: 3,
       deposit_percent: 25,
+      notes: "Use customer logo packaging.",
       counterparty_snapshot: { name: "Saved Buyer" },
       terms_snapshot: {
         order_export: {
@@ -52,4 +53,5 @@ it("normalizes only saved snapshots, sorts position/id and inserts money rows co
   expect(model.terms.some((term) => term.key === "payment")).toBe(false);
   expect(model.seller.company_name).toBe("Saved Seller");
   expect(model.buyer.company_name).toBe("Saved Buyer");
+  expect(model.requirements).toBe("Use customer logo packaging.");
 });
