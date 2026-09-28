@@ -4,7 +4,7 @@ import type { OrderExportModel } from "./orderExportModel";
 
 const PRODUCT_START = 9,
   TEMPLATE_DYNAMIC_ROWS = 18;
-const PRODUCT_ROW_HEIGHT = 65;
+const FALLBACK_PRODUCT_ROW_HEIGHT = 65;
 const IMAGE_PADDING = 5;
 const EMUS_PER_PIXEL = 9_525;
 const columnWidthPixels = (width: number) =>
@@ -27,10 +27,9 @@ const applyStyle = (
   sheet: ExcelJS.Worksheet,
   row: number,
   source: RowStyle,
-  height: number,
 ) => {
   const target = sheet.getRow(row);
-  target.height = height;
+  target.height = source.height ?? FALLBACK_PRODUCT_ROW_HEIGHT;
   for (let column = 1; column <= 10; column++) {
     const cell = target.getCell(column);
     cell.value = null;
@@ -199,7 +198,7 @@ const rowHeightPoints = (worksheetXml: string, row: number) =>
   Number(
     worksheetXml.match(
       new RegExp(`<row\\b[^>]*\\br="${row}"[^>]*\\bht="([^"]+)"`),
-    )?.[1] || PRODUCT_ROW_HEIGHT,
+    )?.[1] || FALLBACK_PRODUCT_ROW_HEIGHT,
   );
 const packageProductAnchor = (
   image: PreparedProductImage,
@@ -437,7 +436,7 @@ export async function renderOrderXlsx(
   });
   model.items.forEach((item, i) => {
     const row = layout.productStart + i;
-    applyStyle(sheet, row, styles.product, PRODUCT_ROW_HEIGHT);
+    applyStyle(sheet, row, styles.product);
     sheet.getCell(row, 1).value = item.position;
     sheet.getCell(row, 2).value = item.sku;
     sheet.getCell(row, 3).value = item.name;
@@ -458,7 +457,7 @@ export async function renderOrderXlsx(
     )
   ).filter((image): image is PreparedProductImage => Boolean(image));
   const amounts = new Map(model.moneyRows.map((row) => [row.key, row.amount]));
-  applyStyle(sheet, layout.summaryStart, styles.summary, 35);
+  applyStyle(sheet, layout.summaryStart, styles.summary);
   sheet.mergeCells(`A${layout.summaryStart}:E${layout.summaryStart}`);
   sheet.mergeCells(`G${layout.summaryStart}:I${layout.summaryStart}`);
   sheet.getCell(layout.summaryStart, 1).value = titles.totalCtn;
@@ -475,7 +474,7 @@ export async function renderOrderXlsx(
     title: string,
     amount: number,
   ) => {
-    applyStyle(sheet, row, style, 35);
+    applyStyle(sheet, row, style);
     sheet.mergeCells(`A${row}:I${row}`);
     sheet.getCell(row, 1).value = title;
     sheet.getCell(row, 10).value = amount;
@@ -505,7 +504,7 @@ export async function renderOrderXlsx(
     titles.balance,
     amounts.get("balance") || 0,
   );
-  applyStyle(sheet, layout.termsTitleRow, styles.termsTitle, 23.2);
+  applyStyle(sheet, layout.termsTitleRow, styles.termsTitle);
   sheet.mergeCells(`A${layout.termsTitleRow}:J${layout.termsTitleRow}`);
   sheet.getCell(layout.termsTitleRow, 1).value = titles.terms;
   const keys = [
@@ -520,7 +519,7 @@ export async function renderOrderXlsx(
   ];
   model.terms.forEach((term, i) => {
     const row = layout.termRows[i];
-    applyStyle(sheet, row, styles.term, 70);
+    applyStyle(sheet, row, styles.term);
     sheet.mergeCells(`B${row}:C${row}`);
     sheet.mergeCells(`D${row}:J${row}`);
     sheet.getCell(row, 1).value = keys.indexOf(term.key) + 1;
