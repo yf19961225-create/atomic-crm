@@ -2,7 +2,8 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import type { OrderExportModel } from "./orderExportModel";
 
-const PRODUCT_START = 9,
+// The fixed template keeps the product header at row 9; item rows begin at 10.
+const PRODUCT_START = 10,
   TEMPLATE_DYNAMIC_ROWS = 18;
 const FALLBACK_PRODUCT_ROW_HEIGHT = 65;
 const IMAGE_PADDING = 5;
@@ -43,18 +44,36 @@ const unmerge = (sheet: ExcelJS.Worksheet, range: string) => {
     /* dynamic merge may be absent */
   }
 };
+const clearResidualDynamicMerges = (
+  sheet: ExcelJS.Worksheet,
+  firstRow: number,
+  lastRow: number,
+) => {
+  // ExcelJS spliceRows can leave merge-map entries whose shifted cells were
+  // already unmerged. Remove only those stale entries before rebuilding the
+  // dynamic template region.
+  const merges = (
+    sheet as unknown as {
+      _merges: Record<
+        string,
+        { top: number; bottom: number; left: number; right: number }
+      >;
+    }
+  )._merges;
+  for (const [master, merge] of Object.entries(merges))
+    if (merge.top <= lastRow && merge.bottom >= firstRow) delete merges[master];
+};
 const clearTemplateDynamicMerges = (sheet: ExcelJS.Worksheet) =>
   [
-    "A13:E13",
-    "G13:I13",
-    "A14:I14",
+    "A14:E14",
+    "G14:I14",
     "A15:I15",
     "A16:I16",
     "A17:I17",
-    "A18:J18",
-    "B27:J27",
-    ...Array.from({ length: 8 }, (_, i) => `B${19 + i}:C${19 + i}`),
-    ...Array.from({ length: 8 }, (_, i) => `D${19 + i}:J${19 + i}`),
+    "A18:I18",
+    "A19:J19",
+    ...Array.from({ length: 8 }, (_, i) => `B${20 + i}:C${20 + i}`),
+    ...Array.from({ length: 8 }, (_, i) => `D${20 + i}:J${20 + i}`),
   ].forEach((range) => unmerge(sheet, range));
 const formatDate = (value: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
@@ -372,24 +391,24 @@ export async function renderOrderXlsx(
   await workbook.xlsx.load(template);
   const sheet = workbook.worksheets[0];
   const titles = {
-    totalCtn: sheet.getCell("A13").text,
-    subtotal: sheet.getCell("G13").text,
-    freight: sheet.getCell("A14").text,
-    total: sheet.getCell("A15").text,
-    deposit: sheet.getCell("A16").text,
-    balance: sheet.getCell("A17").text,
-    terms: sheet.getCell("A18").text,
-    labels: Array.from({ length: 8 }, (_, i) => sheet.getCell(19 + i, 2).text),
+    totalCtn: sheet.getCell("A14").text,
+    subtotal: sheet.getCell("G14").text,
+    freight: sheet.getCell("A15").text,
+    total: sheet.getCell("A16").text,
+    deposit: sheet.getCell("A17").text,
+    balance: sheet.getCell("A18").text,
+    terms: sheet.getCell("A19").text,
+    labels: Array.from({ length: 8 }, (_, i) => sheet.getCell(20 + i, 2).text),
   };
   const styles = {
-    product: captureStyle(sheet, 9),
-    summary: captureStyle(sheet, 13),
-    freight: captureStyle(sheet, 14),
-    total: captureStyle(sheet, 15),
-    deposit: captureStyle(sheet, 16),
-    balance: captureStyle(sheet, 17),
-    termsTitle: captureStyle(sheet, 18),
-    term: captureStyle(sheet, 19),
+    product: captureStyle(sheet, 10),
+    summary: captureStyle(sheet, 14),
+    freight: captureStyle(sheet, 15),
+    total: captureStyle(sheet, 16),
+    deposit: captureStyle(sheet, 17),
+    balance: captureStyle(sheet, 18),
+    termsTitle: captureStyle(sheet, 19),
+    term: captureStyle(sheet, 20),
   };
   clearTemplateDynamicMerges(sheet);
   const paymentVisible = model.terms.some((term) => term.key === "payment");
@@ -412,7 +431,16 @@ export async function renderOrderXlsx(
     })
     .forEach((range) => unmerge(sheet, range));
   for (let row = PRODUCT_START; row <= layout.termRows.at(-1)!; row++)
-    unmerge(sheet, `A${row}:J${row}`);
+    [
+      `A${row}:E${row}`,
+      `G${row}:I${row}`,
+      `A${row}:I${row}`,
+      `A${row}:J${row}`,
+      `B${row}:C${row}`,
+      `D${row}:J${row}`,
+      `B${row}:J${row}`,
+    ].forEach((range) => unmerge(sheet, range));
+  clearResidualDynamicMerges(sheet, PRODUCT_START, layout.termRows.at(-1)!);
   sheet.name = model.worksheetName;
   sheet.getCell("J1").value =
     `${model.documentNumber}\n${formatDate(model.documentDate)}`;

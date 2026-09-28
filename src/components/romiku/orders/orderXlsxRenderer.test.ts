@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import templateUrl from "@/assets/order-templates/ROMIKU_订单_模板.xlsx?url";
 import { normalizeOrderExportModel } from "./orderExportModel";
-import { renderOrderXlsx } from "./orderXlsxRenderer";
+import { buildOrderTemplateLayout, renderOrderXlsx } from "./orderXlsxRenderer";
 
 it("copies the product row height from the fixed template", async () => {
   const model = normalizeOrderExportModel({ document_number: "RCI260928001" }, [
@@ -20,11 +20,11 @@ it("copies the product row height from the fixed template", async () => {
   await source.xlsx.load(
     await fetch(templateUrl).then((response) => response.arrayBuffer()),
   );
-  source.worksheets[0].getRow(9).height = 71;
+  source.worksheets[0].getRow(10).height = 71;
   const output = await renderOrderXlsx(model, await source.xlsx.writeBuffer());
   const rendered = new ExcelJS.Workbook();
   await rendered.xlsx.load(output);
-  expect(rendered.getWorksheet("ORDER")!.getRow(9).height).toBe(71);
+  expect(rendered.getWorksheet("ORDER")!.getRow(10).height).toBe(71);
 });
 
 it("removes the payment term row and closes the Terms gap when hidden", async () => {
@@ -54,7 +54,7 @@ it("removes the payment term row and closes the Terms gap when hidden", async ()
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await renderOrderXlsx(model, template));
   const sheet = workbook.getWorksheet("ORDER")!;
-  const termsTitle = 15;
+  const termsTitle = buildOrderTemplateLayout(1, false).termsTitleRow;
   expect(Object.values(sheet.model.merges)).toContain(
     `A${termsTitle}:J${termsTitle}`,
   );
@@ -90,7 +90,9 @@ it("exports a saved Order-level Terms override without changing the defaults", a
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await renderOrderXlsx(model, template));
   const sheet = workbook.getWorksheet("ORDER")!;
-  expect(sheet.getCell("D16").text).toBe("Saved Order payment terms");
+  expect(
+    sheet.getCell(`D${buildOrderTemplateLayout(1, true).termRows[0]}`).text,
+  ).toBe("Saved Order payment terms");
   expect(
     model.terms.find((term) => term.key === "bank_charges")?.text,
   ).toContain("outside China");
@@ -202,9 +204,9 @@ it.each([1, 2, 8, 30])(
     await workbook.xlsx.load(output);
     const sheet = workbook.getWorksheet("ORDER")!;
     expect(sheet.getCell("J1").text).toContain("RCI260923001");
-    const summaryStart = 9 + count;
+    const summaryStart = 10 + count;
     const merges = Object.values(sheet.model.merges);
-    expect(sheet.getCell(`B${8 + count}`).value).toBe(`SKU-${count}`);
+    expect(sheet.getCell(`B${9 + count}`).value).toBe(`SKU-${count}`);
     expect(sheet.getCell("J1").text).toContain("RCI260923001");
     expect(sheet.getCell("J1").text).toContain("2026.9.23");
     expect(merges).toContain(`A${summaryStart}:E${summaryStart}`);
@@ -217,13 +219,13 @@ it.each([1, 2, 8, 30])(
     expect(merges).toContain(`A${termsTitle}:J${termsTitle}`);
     expect(merges).toContain(`B${termsTitle + 1}:C${termsTitle + 1}`);
     expect(merges).toContain(`D${termsTitle + 1}:J${termsTitle + 1}`);
-    expect(sheet.getRow(9).height).toBe(sourceSheet.getRow(9).height);
+    expect(sheet.getRow(10).height).toBe(sourceSheet.getRow(10).height);
     expect(sheet.getRow(summaryStart).height).toBe(
-      sourceSheet.getRow(13).height,
+      sourceSheet.getRow(14).height,
     );
-    expect(sheet.getRow(termsTitle).height).toBe(sourceSheet.getRow(18).height);
+    expect(sheet.getRow(termsTitle).height).toBe(sourceSheet.getRow(19).height);
     expect(sheet.getRow(termsTitle + 1).height).toBe(
-      sourceSheet.getRow(19).height,
+      sourceSheet.getRow(20).height,
     );
     expect(sheet.getCell(`A${termsTitle + 1}`).value).toBe(1);
     expect(sheet.getCell(`A${termsTitle + 8}`).value).toBe(8);
@@ -234,8 +236,8 @@ it.each([1, 2, 8, 30])(
     expect(sheet.getCell(`A${summaryStart + 2}`).text).not.toContain(
       "DISCOUNT",
     );
-    expect(sheet.getCell("D9").value).toBeNull();
-    expect(sheet.getCell("E9").value).toBe("Saved spec");
+    expect(sheet.getCell("D10").value).toBeNull();
+    expect(sheet.getCell("E10").value).toBe("Saved spec");
     expect(
       Object.keys(packageContents.files).filter(
         (path) =>
@@ -252,7 +254,7 @@ it.each([1, 2, 8, 30])(
     expect(drawingXml.match(/<xdr:from><xdr:col>3<\/xdr:col>/g)).toHaveLength(
       count,
     );
-    expect(drawingXml).toContain(`<xdr:row>${8 + count - 1}</xdr:row>`);
+    expect(drawingXml).toContain(`<xdr:row>${8 + count}</xdr:row>`);
     const productAnchors = [
       ...drawingXml.matchAll(
         /<xdr:oneCellAnchor\b[\s\S]*?<xdr:col>3<\/xdr:col><xdr:colOff>(\d+)<\/xdr:colOff>[\s\S]*?<xdr:rowOff>(\d+)<\/xdr:rowOff>[\s\S]*?<xdr:ext cx="(\d+)" cy="(\d+)"\/>/g,
@@ -261,7 +263,7 @@ it.each([1, 2, 8, 30])(
     expect(productAnchors).toHaveLength(count);
     const photoCellWidth = Number(sourceSheet.getColumn(4).width) * 7 * 9_525;
     const photoCellHeight =
-      Number(sourceSheet.getRow(9).height) * (96 / 72) * 9_525;
+      Number(sourceSheet.getRow(10).height) * (96 / 72) * 9_525;
     const padding = 5 * 9_525;
     for (const anchor of productAnchors) {
       const [, colOff, rowOff, width, height] = anchor.map(Number);
