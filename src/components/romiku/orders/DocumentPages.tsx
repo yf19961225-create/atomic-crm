@@ -39,8 +39,8 @@ import {
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { OrderExportDetails } from "./OrderExportDetails";
 import { normalizeOrderExportModel } from "./orderExportModel";
+import { convertOrderXlsxToPdf } from "./orderPdfConversion";
 import { renderOrderXlsx } from "./orderXlsxRenderer";
-import { renderOrderPdf } from "./orderPdfRenderer";
 import orderTemplateUrl from "@/assets/order-templates/ROMIKU_订单_模板.xlsx?url";
 
 function download(data: BlobPart, type: string, name: string) {
@@ -407,21 +407,28 @@ function DocumentEditor({
       return;
     }
     const model = normalizeOrderExportModel(record, items.data || []);
-    if (format === "xlsx") {
-      const buffer = await fetch(orderTemplateUrl).then((response) =>
+    try {
+      const template = await fetch(orderTemplateUrl).then((response) =>
         response.arrayBuffer(),
       );
+      const xlsx = await renderOrderXlsx(model, template);
+      if (format === "xlsx") {
+        download(
+          xlsx,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          `${model.documentNumber || "ORDER"}.xlsx`,
+        );
+        return;
+      }
       download(
-        await renderOrderXlsx(model, buffer),
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        `${model.documentNumber || "ORDER"}.xlsx`,
-      );
-    } else
-      download(
-        await renderOrderPdf(model),
+        await convertOrderXlsxToPdf(xlsx),
         "application/pdf",
         `${model.documentNumber || "ORDER"}.pdf`,
       );
+    } catch (cause) {
+      setFailed(true);
+      setMessage(errorMessage(cause));
+    }
   };
   async function save() {
     setBusy(true);

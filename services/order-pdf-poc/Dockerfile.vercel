@@ -1,0 +1,13 @@
+FROM gotenberg/gotenberg:8
+
+# The compatibility map contains no local user font files. It maps the fixed
+# template's families to legal fonts present in the base image.
+COPY fontconfig/99-romiku-order-template.conf /etc/fonts/conf.d/99-romiku-order-template.conf
+RUN fc-cache -f
+
+# This service accepts only multipart XLSX bytes at its mounted Preview path.
+# It has no Order, Supabase, Sanity, or other business-data credentials.
+# Vercel provides PORT at runtime; this default also makes the isolated image
+# runnable for the local conversion smoke test.
+ENV PORT=3000
+CMD ["gotenberg", "--api-port-from-env=PORT", "--api-root-path=/api/order-pdf/", "--api-body-limit=20MB", "--api-timeout=120s", "--api-disable-download-from", "--webhook-disable", "--libreoffice-auto-start", "--libreoffice-deny-private-ips", "--libreoffice-deny-public-ips", "--log-level=warn"]
