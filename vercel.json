@@ -13,9 +13,7 @@
     "order-pdf": {
       "root": "services/order-pdf-poc",
       "entrypoint": "Dockerfile.vercel",
-      "runtime": "container",
-      "memory": 2048,
-      "maxDuration": 120
+      "runtime": "container"
     }
   },
   "rewrites": [
