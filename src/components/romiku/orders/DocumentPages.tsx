@@ -39,7 +39,6 @@ import {
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { OrderExportDetails } from "./OrderExportDetails";
 import { normalizeOrderExportModel } from "./orderExportModel";
-import { convertOrderXlsxToPdf } from "./orderPdfConversion";
 import { renderOrderXlsx } from "./orderXlsxRenderer";
 import orderTemplateUrl from "@/assets/order-templates/ROMIKU_订单_模板.xlsx?url";
 
@@ -399,7 +398,7 @@ function DocumentEditor({
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const totals = quoteTotals(session.items, session.values);
-  const exportOrder = async (format: "xlsx" | "pdf") => {
+  const exportOrder = async () => {
     if (kind !== "order") return;
     if (session.editing) {
       setFailed(true);
@@ -412,18 +411,10 @@ function DocumentEditor({
         response.arrayBuffer(),
       );
       const xlsx = await renderOrderXlsx(model, template);
-      if (format === "xlsx") {
-        download(
-          xlsx,
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          `${model.documentNumber || "ORDER"}.xlsx`,
-        );
-        return;
-      }
       download(
-        await convertOrderXlsxToPdf(xlsx),
-        "application/pdf",
-        `${model.documentNumber || "ORDER"}.pdf`,
+        xlsx,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `${model.documentNumber || "ORDER"}.xlsx`,
       );
     } catch (cause) {
       setFailed(true);
@@ -562,17 +553,12 @@ function DocumentEditor({
             type="button"
             variant="outline"
             disabled={session.editing}
-            onClick={() => void exportOrder("xlsx")}
+            onClick={() => void exportOrder()}
           >
             导出 XLSX
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={session.editing}
-            onClick={() => void exportOrder("pdf")}
-          >
-            导出 PDF
+          <Button type="button" variant="outline" disabled>
+            导出 PDF（暂停）
           </Button>
         </div>
       )}

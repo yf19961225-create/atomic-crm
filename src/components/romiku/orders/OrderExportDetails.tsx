@@ -88,6 +88,17 @@ export function OrderExportDetails({
       </div>
       <section>
         <h3 className="font-medium">Terms & Conditions</h3>
+        <label className="mb-2 block text-sm">
+          <input
+            type="checkbox"
+            checked={snapshot.terms_visible}
+            disabled={!editable}
+            onChange={(e) =>
+              update({ ...snapshot, terms_visible: e.target.checked })
+            }
+          />{" "}
+          显示条款与条件
+        </label>
         {Object.entries(snapshot.terms).map(([key, term]) => (
           <label className="block text-sm" key={key}>
             {key === "payment" && (

@@ -43,3 +43,11 @@ it("keeps a saved Order-level Term override without changing defaults", () => {
     "30 days",
   );
 });
+
+it("keeps Terms visible by default and preserves an Order-level visibility choice", () => {
+  expect(defaultOrderExportSnapshot().terms_visible).toBe(true);
+  expect(
+    orderExportSnapshot({ order_export: { terms_visible: false } })
+      .terms_visible,
+  ).toBe(false);
+});

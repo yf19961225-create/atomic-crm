@@ -55,3 +55,14 @@ it("normalizes only saved snapshots, sorts position/id and inserts money rows co
   expect(model.buyer.company_name).toBe("Saved Buyer");
   expect(model.requirements).toBe("Use customer logo packaging.");
 });
+
+it("omits the complete Terms block when the saved Order snapshot hides it", () => {
+  const model = normalizeOrderExportModel(
+    {
+      terms_snapshot: { order_export: { terms_visible: false } },
+    },
+    [],
+  );
+
+  expect(model.terms).toEqual([]);
+});

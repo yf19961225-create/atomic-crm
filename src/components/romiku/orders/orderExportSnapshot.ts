@@ -8,6 +8,8 @@ export type ContactSnapshot = {
 
 export type OrderExportSnapshot = {
   template_key: "order";
+  /** Hides the complete Terms block without deleting its saved text. */
+  terms_visible: boolean;
   seller: ContactSnapshot;
   terms: Record<
     | "payment"
@@ -24,6 +26,7 @@ export type OrderExportSnapshot = {
 
 export const defaultOrderExportSnapshot = (): OrderExportSnapshot => ({
   template_key: "order",
+  terms_visible: true,
   seller: {
     company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲",
     address:
@@ -68,6 +71,7 @@ export function orderExportSnapshot(value: unknown): OrderExportSnapshot {
   if (!exportSnapshot) return defaults;
   return {
     template_key: "order",
+    terms_visible: exportSnapshot.terms_visible !== false,
     seller: { ...defaults.seller, ...exportSnapshot.seller },
     terms: Object.fromEntries(
       Object.entries(defaults.terms).map(([key, term]) => [

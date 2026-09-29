@@ -63,6 +63,62 @@ it("removes the payment term row and closes the Terms gap when hidden", async ()
   expect(sheet.getCell(`D${termsTitle + 1}`).text).not.toContain("Retained");
 });
 
+it("omits the complete Terms region and preserves the template Logo when terms are hidden", async () => {
+  const model = normalizeOrderExportModel(
+    {
+      document_number: "OD260929009",
+      terms_snapshot: { order_export: { terms_visible: false } },
+    },
+    [
+      {
+        id: "no-image",
+        sku: "NO-IMAGE",
+        quantity: 1,
+        unit_price: 1,
+        product_snapshot: {},
+        packing_snapshot: {},
+      },
+    ],
+  );
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const output = await renderOrderXlsx(model, template);
+  const [source, rendered] = await Promise.all([
+    JSZip.loadAsync(template),
+    JSZip.loadAsync(output),
+  ]);
+  const sourceDrawing = await source
+    .file("xl/drawings/drawing1.xml")!
+    .async("string");
+  const drawing = await rendered
+    .file("xl/drawings/drawing1.xml")!
+    .async("string");
+  const workbookXml = await rendered.file("xl/workbook.xml")!.async("string");
+  const sheet = new ExcelJS.Workbook();
+  await sheet.xlsx.load(output);
+  const orderSheet = sheet.getWorksheet("ORDER")!;
+  const layout = buildOrderTemplateLayout(1, 0);
+
+  expect(model.terms).toEqual([]);
+  expect(layout.termRows).toEqual([]);
+  expect(orderSheet.getCell(`A${layout.balanceRow + 1}`).text).not.toContain(
+    "TERMS & CONDITIONS",
+  );
+  expect(workbookXml).toMatch(/_xlnm\.Print_Area[^>]*>[^<]*\$A1:\$J15/);
+  expect(drawing).toContain(
+    sourceDrawing.match(
+      /<xdr:twoCellAnchor\b[\s\S]*?<\/xdr:twoCellAnchor>/,
+    )![0],
+  );
+  expect(drawing).toContain('<a:srcRect t="32945" b="40175"/>');
+  expect(
+    Object.keys(rendered.files).filter(
+      (path) => path.startsWith("xl/media/") && !rendered.files[path].dir,
+    ),
+  ).toHaveLength(1);
+});
+
 it("exports a saved Order-level Terms override without changing the defaults", async () => {
   const model = normalizeOrderExportModel(
     {

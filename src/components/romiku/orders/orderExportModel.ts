@@ -131,11 +131,13 @@ export function normalizeOrderExportModel(
         amount: balance,
       },
     ],
-    terms: termLabels.flatMap(([key, label]) => {
-      const term = exportSnapshot.terms[key];
-      return key === "payment" && term.visible === false
-        ? []
-        : [{ key, label, text: term.text }];
-    }),
+    terms: exportSnapshot.terms_visible
+      ? termLabels.flatMap(([key, label]) => {
+          const term = exportSnapshot.terms[key];
+          return key === "payment" && term.visible === false
+            ? []
+            : [{ key, label, text: term.text }];
+        })
+      : [],
   };
 }

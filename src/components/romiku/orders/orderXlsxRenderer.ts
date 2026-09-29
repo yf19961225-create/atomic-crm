@@ -93,8 +93,10 @@ export type OrderTemplateLayout = {
 /** The sole row-coordinate planner for the dynamic portion of the fixed template. */
 export function buildOrderTemplateLayout(
   itemCount: number,
-  paymentVisible: boolean,
+  terms: number | boolean,
 ): OrderTemplateLayout {
+  const termCount =
+    typeof terms === "boolean" ? (terms ? 8 : 7) : Math.max(0, terms);
   const summaryStart = PRODUCT_START + Math.max(1, itemCount);
   const freightRow = summaryStart + 1,
     totalAmountRow = summaryStart + 2,
@@ -110,7 +112,7 @@ export function buildOrderTemplateLayout(
     balanceRow,
     termsTitleRow,
     termRows: Array.from(
-      { length: paymentVisible ? 8 : 7 },
+      { length: termCount },
       (_, i) => termsTitleRow + 1 + i,
     ),
   };
@@ -300,7 +302,7 @@ async function preserveTemplatePackage(
       outputWorksheet,
     ),
   );
-  if (sourceDrawing && productAnchors?.length)
+  if (sourceDrawing)
     output.file(
       drawingPath,
       sourceDrawing.replace(
@@ -308,7 +310,7 @@ async function preserveTemplatePackage(
         `${productAnchors.join("")}</xdr:wsDr>`,
       ),
     );
-  if (sourceRelationships && productImages.length)
+  if (sourceRelationships)
     output.file(
       relationshipPath,
       sourceRelationships.replace(
@@ -411,9 +413,12 @@ export async function renderOrderXlsx(
     term: captureStyle(sheet, 20),
   };
   clearTemplateDynamicMerges(sheet);
-  const paymentVisible = model.terms.some((term) => term.key === "payment");
-  const layout = buildOrderTemplateLayout(model.items.length, paymentVisible);
-  const dynamicRows = layout.termRows.at(-1)! - PRODUCT_START + 1;
+  const layout = buildOrderTemplateLayout(
+    model.items.length,
+    model.terms.length,
+  );
+  const lastDynamicRow = layout.termRows.at(-1) ?? layout.balanceRow;
+  const dynamicRows = lastDynamicRow - PRODUCT_START + 1;
   sheet.spliceRows(
     PRODUCT_START,
     TEMPLATE_DYNAMIC_ROWS,
@@ -426,11 +431,11 @@ export async function renderOrderXlsx(
     .filter((range) => {
       const matches = range.match(/\d+/g)?.map(Number) || [];
       return matches.some(
-        (row) => row >= PRODUCT_START && row <= layout.termRows.at(-1)!,
+        (row) => row >= PRODUCT_START && row <= lastDynamicRow,
       );
     })
     .forEach((range) => unmerge(sheet, range));
-  for (let row = PRODUCT_START; row <= layout.termRows.at(-1)!; row++)
+  for (let row = PRODUCT_START; row <= lastDynamicRow; row++)
     [
       `A${row}:E${row}`,
       `G${row}:I${row}`,
@@ -535,9 +540,11 @@ export async function renderOrderXlsx(
     titles.balance,
     amounts.get("balance") || 0,
   );
-  applyStyle(sheet, layout.termsTitleRow, styles.termsTitle);
-  sheet.mergeCells(`A${layout.termsTitleRow}:J${layout.termsTitleRow}`);
-  sheet.getCell(layout.termsTitleRow, 1).value = titles.terms;
+  if (model.terms.length) {
+    applyStyle(sheet, layout.termsTitleRow, styles.termsTitle);
+    sheet.mergeCells(`A${layout.termsTitleRow}:J${layout.termsTitleRow}`);
+    sheet.getCell(layout.termsTitleRow, 1).value = titles.terms;
+  }
   const keys = [
     "payment",
     "bank_charges",
@@ -557,7 +564,7 @@ export async function renderOrderXlsx(
     sheet.getCell(row, 2).value = titles.labels[keys.indexOf(term.key)];
     sheet.getCell(row, 4).value = term.text;
   });
-  sheet.pageSetup.printArea = `A1:J${layout.termRows.at(-1)!}`;
+  sheet.pageSetup.printArea = `A1:J${lastDynamicRow}`;
   return preserveTemplatePackage(
     template,
     await workbook.xlsx.writeBuffer(),
