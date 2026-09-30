@@ -152,6 +152,53 @@ it("edits and removes Quote snapshots while leaving inquiry and customer archive
   ).toEqual([]);
 });
 
+it("uses the fixed eight Quote columns and saves a manual CBM only on the Quote item", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  for (const header of [
+    "No.",
+    "货号",
+    "产品名称",
+    "图片",
+    "产品规格",
+    "装箱数",
+    "单价",
+    "CBM",
+  ])
+    await expect
+      .element(screen.getByText(header, { exact: true }))
+      .toBeVisible();
+  expect(screen.getByText("总数量", { exact: true }).all()).toHaveLength(0);
+  expect(screen.getByText("总金额", { exact: true }).all()).toHaveLength(0);
+  await screen.getByLabelText("CBM", { exact: true }).fill("0.072");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data
+      .packing_snapshot,
+  ).toMatchObject({ carton_cbm: 0.072 });
+});
+
+it("edits a Quote-only Seller snapshot and disables XLSX export while there are unsaved edits", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect
+    .element(screen.getByRole("button", { name: "导出 XLSX" }))
+    .toBeDisabled();
+  await screen
+    .getByRole("button", { name: "导出信息 / Document Details" })
+    .click();
+  await screen
+    .getByLabelText("Seller company_name", { exact: true })
+    .fill("Saved Quote Seller");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    (await provider.getOne("romiku_quotes", { id: "q" })).data.terms_snapshot,
+  ).toMatchObject({
+    quote_export: { seller: { company_name: "Saved Quote Seller" } },
+  });
+});
+
 it("creates a direct Quote and supports adding its own items", async () => {
   const { screen, provider } = await setup("/quotes");
   await screen.getByRole("link", { name: "新建报价单" }).click();

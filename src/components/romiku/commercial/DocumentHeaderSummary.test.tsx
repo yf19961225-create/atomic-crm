@@ -46,6 +46,21 @@ it("shows the saved customer snapshot and edits only the document values", async
   });
 });
 
+it("hides the legacy document language selector for Quote", async () => {
+  const screen = await render(
+    <DocumentHeaderSummary
+      kind="quote"
+      editable
+      values={{ document_language: "zh", currency: "USD" }}
+      onChange={vi.fn()}
+      customers={[]}
+    />,
+  );
+  expect(
+    screen.getByLabelText("表格类型 / 单据语言", { exact: true }).all(),
+  ).toHaveLength(0);
+});
+
 it("copies an existing Formal Customer into only the current document snapshot", async () => {
   const onChange = vi.fn();
   const screen = await render(
@@ -74,26 +89,6 @@ it("copies an existing Formal Customer into only the current document snapshot",
       email: "formal@example.test",
     },
     formal_customer_id: "customer-1",
-  });
-});
-
-it("stores the document language as a stable locale value independent of currency", async () => {
-  const onChange = vi.fn();
-  const screen = await render(
-    <DocumentHeaderSummary
-      kind="quote"
-      editable
-      values={{ document_language: "zh", currency: "USD" }}
-      onChange={onChange}
-      customers={[]}
-    />,
-  );
-  await screen
-    .getByLabelText("表格类型 / 单据语言", { exact: true })
-    .selectOptions("es");
-  expect(onChange).toHaveBeenLastCalledWith({
-    document_language: "es",
-    currency: "USD",
   });
 });
 

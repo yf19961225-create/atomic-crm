@@ -719,6 +719,29 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION "public"."romiku_quote_export_snapshot_default"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF NOT (coalesce(NEW.terms_snapshot, '{}'::jsonb) ? 'quote_export') THEN
+    NEW.terms_snapshot := coalesce(NEW.terms_snapshot, '{}'::jsonb) || jsonb_build_object(
+      'quote_export', jsonb_build_object(
+        'template_key', 'quote',
+        'seller', jsonb_build_object(
+          'company_name', 'YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲',
+          'address', E'72790, 3rd Street, Unit 4, 2nd Floor, Gate 153,Global Digital Trade Center Yiwu,China\\n义乌市国际商贸城六区152号门2楼4单元3街72790',
+          'tel_whatsapp', '+86 190 2577 7589',
+          'website', 'www.romiku.com',
+          'email', 'info@romiku.com'
+        )
+      )
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION "public"."romiku_convert_document"("source_kind" "text", "source_id" "uuid", "target_kind" "text") RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO ''

@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowFields, type Field } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { quoteHeaderWrite, quoteStatuses } from "./quoteWorkflow";
+import { QuoteExportDetails } from "./QuoteExportDetails";
+import { normalizeQuoteExportModel } from "./quoteExportModel";
+import { renderQuoteXlsx } from "./quoteXlsxRenderer";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
 import { DocumentFinancialSummary } from "../commercial/DocumentFinancialSummary";
 import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
@@ -21,6 +24,16 @@ import {
 import { DocumentConversion } from "../orders/DocumentConversion";
 import { quoteStatusChoices, quoteStatusLabel } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+import quoteTemplateUrl from "@/assets/quote-templates/ROMIKU_报价单_模板.xlsx?url";
+
+function download(data: BlobPart, type: string, name: string) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 
 function SourceLinks({ record }: { record: RaRecord }) {
   return (
@@ -299,6 +312,28 @@ function QuoteEditor({
       setBusy(false);
     }
   };
+  const exportQuote = async () => {
+    if (session.editing) {
+      setFailed(true);
+      setMessage("请先保存当前 Quote，再导出已保存的快照。");
+      return;
+    }
+    try {
+      const model = normalizeQuoteExportModel(record, items.data || []);
+      const template = await fetch(quoteTemplateUrl).then((response) =>
+        response.arrayBuffer(),
+      );
+      const xlsx = await renderQuoteXlsx(model, template);
+      download(
+        xlsx,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `${model.document.number || "QUOTE"}.xlsx`,
+      );
+    } catch (cause) {
+      setFailed(true);
+      setMessage(errorMessage(cause));
+    }
+  };
   return (
     <section className="max-w-6xl space-y-4">
       <Link
@@ -336,12 +371,27 @@ function QuoteEditor({
         )}
       </div>
       <SourceLinks record={record} />
-      <DocumentConversion source="quote" sourceId={String(record.id)} />
+      <div className="flex flex-wrap gap-3">
+        <DocumentConversion source="quote" sourceId={String(record.id)} />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={session.editing}
+          onClick={() => void exportQuote()}
+        >
+          导出 XLSX
+        </Button>
+      </div>
       <p className="text-muted-foreground text-sm">
         保留来源链接；报价单修改仅应用于此单据。
       </p>
       <DocumentHeaderSummary
         kind="quote"
+        editable={session.editing}
+        values={session.values}
+        onChange={session.setValues}
+      />
+      <QuoteExportDetails
         editable={session.editing}
         values={session.values}
         onChange={session.setValues}

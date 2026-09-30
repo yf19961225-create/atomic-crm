@@ -46,6 +46,12 @@ describe("Quote snapshot boundaries", () => {
     const customer = await createQuote(provider, "customer", "c", "");
     expect(direct.data).toMatchObject({
       counterparty_snapshot: { name: "Manual buyer" },
+      terms_snapshot: {
+        quote_export: {
+          template_key: "quote",
+          seller: { company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲" },
+        },
+      },
     });
     expect(outbound.data).toMatchObject({
       outbound_company_id: "o",

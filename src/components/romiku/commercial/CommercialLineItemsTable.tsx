@@ -21,6 +21,7 @@ import { CommercialItemDrawer } from "./CommercialItemDrawer";
 import {
   commercialItemAdapter,
   clearProductIdentityForManualSku,
+  cartonCbmFromPacking,
   newDraftCommercialItemId,
   lineAmount,
   nextPositions,
@@ -54,7 +55,7 @@ export function CommercialLineItemsTable({
   const orderTemplate = kind === "order";
   const provider = useDataProvider();
   const [showCustomerCode, setShowCustomerCode] = useState(
-    items.some((item) => Boolean(item.customer_code)),
+    kind !== "quote" && items.some((item) => Boolean(item.customer_code)),
   );
   const [drawer, setDrawer] = useState<CommercialItem | null>(null);
   const [draftRows, setDraftRows] = useState(() =>
@@ -231,7 +232,7 @@ export function CommercialLineItemsTable({
   };
   return (
     <section className="space-y-3 overflow-x-auto">
-      {!orderTemplate && (
+      {!orderTemplate && !compactQuote && (
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -267,20 +268,32 @@ export function CommercialLineItemsTable({
                         "总金额",
                         "⋯",
                       ]
-                    : [
-                        "",
-                        "序号",
-                        "货号/SKU",
-                        "产品名称",
-                        "图片",
-                        ...(showCustomerCode ? ["客户货号"] : []),
-                        "描述与规格",
-                        "Qty/Ctn",
-                        ...(!compactQuote ? ["箱数", "总数量"] : []),
-                        "单价",
-                        ...(!compactQuote ? ["金额"] : []),
-                        "操作",
-                      ]
+                    : compactQuote
+                      ? [
+                          "No.",
+                          "货号",
+                          "产品名称",
+                          "图片",
+                          "产品规格",
+                          "装箱数",
+                          "单价",
+                          "CBM",
+                        ]
+                      : [
+                          "",
+                          "序号",
+                          "货号/SKU",
+                          "产品名称",
+                          "图片",
+                          ...(showCustomerCode ? ["客户货号"] : []),
+                          "描述与规格",
+                          "Qty/Ctn",
+                          "箱数",
+                          "总数量",
+                          "单价",
+                          "金额",
+                          "操作",
+                        ]
                   ).map((header) => (
                     <th className="p-2 text-left" key={header}>
                       {header}
@@ -326,10 +339,15 @@ export function CommercialLineItemsTable({
                             style: drag.draggableProps.style as CSSProperties,
                           } as HTMLAttributes<HTMLTableRowElement>)}
                         >
-                          <td className="p-2" {...drag.dragHandleProps}>
-                            ⠿
+                          {!compactQuote && (
+                            <td className="p-2" {...drag.dragHandleProps}>
+                              ⠿
+                            </td>
+                          )}
+                          <td {...(compactQuote ? drag.dragHandleProps : {})}>
+                            {compactQuote && "⠿ "}
+                            {index + 1}
                           </td>
-                          <td>{index + 1}</td>
                           <td className="p-1">
                             {editable ? (
                               <ProductLibraryLookup
@@ -340,6 +358,7 @@ export function CommercialLineItemsTable({
                                 specificationMode={
                                   kind === "quote" ? "machines-only" : "none"
                                 }
+                                captureQuotePacking={kind === "quote"}
                                 documentLanguage={documentLanguage}
                                 onSelected={(snapshot) => {
                                   void save(item, { ...snapshot });
@@ -363,36 +382,86 @@ export function CommercialLineItemsTable({
                             )}
                           </td>
                           <td>
-                            <input
-                              ref={(element) => {
-                                rowNameRefs.current[String(item.id)] = element;
-                              }}
-                              className="w-28 rounded border p-1"
-                              value={String(product.name ?? "")}
-                              disabled={!editable}
-                              onChange={(event) => {
-                                if (!onItemsChange) return;
-                                void save(item, {
-                                  product_snapshot: {
-                                    ...product,
-                                    name: event.target.value,
-                                  },
-                                });
-                              }}
-                              onBlur={(event) => {
-                                if (onItemsChange) return;
-                                void save(item, {
-                                  product_snapshot: {
-                                    ...product,
-                                    name: event.target.value,
-                                  },
-                                });
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter")
-                                  event.preventDefault();
-                              }}
-                            />
+                            <div className="flex items-start gap-1">
+                              <input
+                                ref={(element) => {
+                                  rowNameRefs.current[String(item.id)] =
+                                    element;
+                                }}
+                                className="w-28 rounded border p-1"
+                                value={String(product.name ?? "")}
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (!onItemsChange) return;
+                                  void save(item, {
+                                    product_snapshot: {
+                                      ...product,
+                                      name: event.target.value,
+                                    },
+                                  });
+                                }}
+                                onBlur={(event) => {
+                                  if (onItemsChange) return;
+                                  void save(item, {
+                                    product_snapshot: {
+                                      ...product,
+                                      name: event.target.value,
+                                    },
+                                  });
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter")
+                                    event.preventDefault();
+                                }}
+                              />
+                              {compactQuote && editable && (
+                                <details>
+                                  <summary
+                                    aria-label="行操作"
+                                    className="cursor-pointer"
+                                  >
+                                    ⋯
+                                  </summary>
+                                  <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => void copy(item)}
+                                    >
+                                      复制行
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => setDrawer(item)}
+                                    >
+                                      更多详情
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() =>
+                                        onItemsChange
+                                          ? onItemsChange(
+                                              items.filter(
+                                                (candidate) =>
+                                                  candidate.id !== item.id,
+                                              ),
+                                            )
+                                          : void provider
+                                              .delete(adapter.resource, {
+                                                id: item.id,
+                                                previousData: item,
+                                              })
+                                              .then(onChanged)
+                                      }
+                                    >
+                                      删除行
+                                    </Button>
+                                  </div>
+                                </details>
+                              )}
+                            </div>
                           </td>
                           <td>
                             {product.image_url ? (
@@ -433,27 +502,29 @@ export function CommercialLineItemsTable({
                               />
                             </td>
                           )}
-                          {showCustomerCode && !orderTemplate && (
-                            <td>
-                              <input
-                                className="w-24 rounded border p-1"
-                                value={String(item.customer_code ?? "")}
-                                disabled={!editable}
-                                onChange={(event) => {
-                                  if (onItemsChange)
-                                    void save(item, {
-                                      customer_code: event.target.value,
-                                    });
-                                }}
-                                onBlur={(event) => {
-                                  if (!onItemsChange)
-                                    void save(item, {
-                                      customer_code: event.target.value,
-                                    });
-                                }}
-                              />
-                            </td>
-                          )}
+                          {showCustomerCode &&
+                            !orderTemplate &&
+                            !compactQuote && (
+                              <td>
+                                <input
+                                  className="w-24 rounded border p-1"
+                                  value={String(item.customer_code ?? "")}
+                                  disabled={!editable}
+                                  onChange={(event) => {
+                                    if (onItemsChange)
+                                      void save(item, {
+                                        customer_code: event.target.value,
+                                      });
+                                  }}
+                                  onBlur={(event) => {
+                                    if (!onItemsChange)
+                                      void save(item, {
+                                        customer_code: event.target.value,
+                                      });
+                                  }}
+                                />
+                              </td>
+                            )}
                           {!orderTemplate && (
                             <td>
                               <textarea
@@ -631,6 +702,39 @@ export function CommercialLineItemsTable({
                               }}
                             />
                           </td>
+                          {compactQuote && (
+                            <td>
+                              <input
+                                aria-label="CBM"
+                                className="w-20 rounded border p-1"
+                                type="number"
+                                min="0"
+                                step="0.001"
+                                value={String(
+                                  cartonCbmFromPacking(packing) ?? "",
+                                )}
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (!onItemsChange) return;
+                                  void updatePacking(
+                                    "carton_cbm",
+                                    event.target.value === ""
+                                      ? null
+                                      : Number(event.target.value),
+                                  );
+                                }}
+                                onBlur={(event) => {
+                                  if (onItemsChange) return;
+                                  void updatePacking(
+                                    "carton_cbm",
+                                    event.target.value === ""
+                                      ? null
+                                      : Number(event.target.value),
+                                  );
+                                }}
+                              />
+                            </td>
+                          )}
                           {!compactQuote && (
                             <td>
                               {currency}{" "}
@@ -640,55 +744,57 @@ export function CommercialLineItemsTable({
                               ).toFixed(2)}
                             </td>
                           )}
-                          <td>
-                            {editable && (
-                              <details>
-                                <summary
-                                  aria-label="行操作"
-                                  className="cursor-pointer"
-                                >
-                                  ⋯
-                                </summary>
-                                <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => void copy(item)}
+                          {!compactQuote && (
+                            <td>
+                              {editable && (
+                                <details>
+                                  <summary
+                                    aria-label="行操作"
+                                    className="cursor-pointer"
                                   >
-                                    复制行
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setDrawer(item)}
-                                  >
-                                    更多详情
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() =>
-                                      onItemsChange
-                                        ? onItemsChange(
-                                            items.filter(
-                                              (candidate) =>
-                                                candidate.id !== item.id,
-                                            ),
-                                          )
-                                        : void provider
-                                            .delete(adapter.resource, {
-                                              id: item.id,
-                                              previousData: item,
-                                            })
-                                            .then(onChanged)
-                                    }
-                                  >
-                                    删除行
-                                  </Button>
-                                </div>
-                              </details>
-                            )}
-                          </td>
+                                    ⋯
+                                  </summary>
+                                  <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => void copy(item)}
+                                    >
+                                      复制行
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => setDrawer(item)}
+                                    >
+                                      更多详情
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() =>
+                                        onItemsChange
+                                          ? onItemsChange(
+                                              items.filter(
+                                                (candidate) =>
+                                                  candidate.id !== item.id,
+                                              ),
+                                            )
+                                          : void provider
+                                              .delete(adapter.resource, {
+                                                id: item.id,
+                                                previousData: item,
+                                              })
+                                              .then(onChanged)
+                                      }
+                                    >
+                                      删除行
+                                    </Button>
+                                  </div>
+                                </details>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       )}
                     </Draggable>
@@ -700,7 +806,9 @@ export function CommercialLineItemsTable({
                       className="border-t bg-muted/20"
                       key={`draft-${draftId}`}
                     >
-                      <td className="p-2 text-muted-foreground">—</td>
+                      {!compactQuote && (
+                        <td className="p-2 text-muted-foreground">—</td>
+                      )}
                       <td className="text-muted-foreground">
                         {items.length + draftIndex + 1}
                       </td>
@@ -709,6 +817,7 @@ export function CommercialLineItemsTable({
                           specificationMode={
                             kind === "quote" ? "machines-only" : "none"
                           }
+                          captureQuotePacking={kind === "quote"}
                           documentLanguage={documentLanguage}
                           inputRef={(element) => {
                             draftSkuRefs.current[draftIndex] = element;
@@ -722,15 +831,7 @@ export function CommercialLineItemsTable({
                         />
                       </td>
                       <td
-                        colSpan={
-                          compactQuote
-                            ? showCustomerCode
-                              ? 7
-                              : 6
-                            : showCustomerCode
-                              ? 10
-                              : 9
-                        }
+                        colSpan={compactQuote ? 6 : showCustomerCode ? 10 : 9}
                       >
                         <input
                           aria-label={`草稿 SKU ${draftIndex + 1}`}

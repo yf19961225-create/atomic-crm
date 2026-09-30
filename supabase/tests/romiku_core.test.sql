@@ -41,6 +41,11 @@ create temporary table test_ids (kind text primary key,id uuid);
 insert into test_ids select 'quote', romiku_quote_from_inquiry('30000000-0000-0000-0000-000000000001',array['31000000-0000-0000-0000-000000000001']::uuid[]);
 select is((select count(*) from romiku_quote_items),1::bigint,'only confirmed inquiry items copied');
 select is((select requirement from romiku_quote_items limit 1),'White packaging','requirement copied');
+select is(
+  (select terms_snapshot#>>'{quote_export,seller,company_name}' from romiku_quotes limit 1),
+  'YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲',
+  'new Quote owns the fixed Seller snapshot'
+);
 update romiku_quote_items set quantity=240,unit_price=2,product_snapshot='{"name":"Quoted name"}';
 update romiku_quotes set freight=20,discount=10,other_expenses=15,counterparty_snapshot='{"name":"Buyer snapshot"}',bank_snapshot='{"bank":"Historical bank"}';
 select is((select total from romiku_quote_totals),505.00::numeric,'total = 480 + 20 + 15 - 10');

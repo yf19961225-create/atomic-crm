@@ -41,6 +41,38 @@ describe("Product Library item snapshots", () => {
     });
   });
 
+  it("uses preferred or sole supplier packing for a Quote snapshot, otherwise falls back only to Sanity Qty/Ctn", () => {
+    const product: SanityCatalogProduct = {
+      id: "packing-product",
+      sku: "PACK-1",
+      skuSort: "PACK-1",
+      isPublished: true,
+      cartonQty: 12,
+    };
+    expect(
+      createItemSnapshot(product, undefined, {
+        procurementPacking: {
+          supplierCount: 2,
+          qtyPerCarton: 24,
+          lengthCm: 50,
+          widthCm: 40,
+          heightCm: 30,
+        },
+      }).packing_snapshot,
+    ).toMatchObject({
+      qty_per_carton: 24,
+      length_cm: 50,
+      width_cm: 40,
+      height_cm: 30,
+      carton_cbm: 0.06,
+    });
+    expect(
+      createItemSnapshot(product, undefined, {
+        procurementPacking: { supplierCount: 2 },
+      }).packing_snapshot,
+    ).toMatchObject({ qty_per_carton: 12 });
+  });
+
   it("imports specifications only for machine categories when a Quote selects a product", () => {
     const machine: SanityCatalogProduct = {
       id: "machine",

@@ -93,6 +93,7 @@ create trigger romiku_audit before insert or update on public.romiku_website_inq
 create trigger romiku_audit before insert or update on public.romiku_website_inquiry_followups for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_quotes for each row execute function public.romiku_audit();
 create trigger romiku_number before insert or update on public.romiku_quotes for each row execute function public.romiku_assign_number('quote','RFQ');
+create trigger romiku_quote_export_snapshot_default before insert on public.romiku_quotes for each row execute function public.romiku_quote_export_snapshot_default();
 create trigger romiku_audit before insert or update on public.romiku_quote_items for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_quote_versions for each row execute function public.romiku_audit();
 create trigger romiku_history before update or delete on public.romiku_quote_versions for each row execute function public.romiku_preserve_history();

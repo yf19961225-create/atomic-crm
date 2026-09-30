@@ -307,6 +307,7 @@ revoke all on function public.romiku_check_order_quantity() from public, anon, a
 grant execute on function public.romiku_check_order_quantity() to authenticated, service_role;
 revoke all on function public.romiku_quote_from_inquiry(uuid, uuid[]) from public, anon, authenticated;
 grant execute on function public.romiku_quote_from_inquiry(uuid, uuid[]) to authenticated, service_role;
+revoke all on function public.romiku_quote_export_snapshot_default() from public, anon, authenticated;
 revoke all on function public.romiku_convert_document(text, uuid, text) from public, anon, authenticated;
 grant execute on function public.romiku_convert_document(text, uuid, text) to authenticated, service_role;
 revoke all on function public.romiku_publish_quote_version(uuid) from public, anon, authenticated;

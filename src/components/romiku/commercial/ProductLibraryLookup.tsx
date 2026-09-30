@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, type Ref } from "react";
+import { cartonCbmFromPacking } from "./commercialLineItems";
+import {
+  loadProductProcurementOverlay,
+  type ProductOverlay,
+} from "../products/productProcurementOverlay";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
+import { createSupabaseProcurementOverlayClient } from "../products/supabaseProcurementOverlayClient";
 import { loadWebsiteProductDetails } from "../products/websiteProductImages";
 
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
@@ -61,6 +67,10 @@ export function createItemSnapshot(
     includeSpecification?: boolean;
     documentLanguage?: DocumentLanguage;
     localizedPowerSupply?: Record<string, string>;
+    procurementPacking?: Pick<
+      ProductOverlay,
+      "supplierCount" | "qtyPerCarton" | "lengthCm" | "widthCm" | "heightCm"
+    >;
   } = {},
 ) {
   const language = options.documentLanguage ?? "zh";
@@ -74,6 +84,39 @@ export function createItemSnapshot(
   ]
     .filter(Boolean)
     .join(" ");
+  const overlay = options.procurementPacking;
+  // A packing overlay only carries dimensions when it identified a preferred
+  // supplier or the sole supplier. With multiple unpreferred suppliers, its
+  // values remain absent and we keep only the catalog Qty/Ctn fallback.
+  const hasSelectedSupplier = Boolean(
+    overlay &&
+      (overlay.supplierCount === 1 ||
+        overlay.qtyPerCarton != null ||
+        overlay.lengthCm != null ||
+        overlay.widthCm != null ||
+        overlay.heightCm != null),
+  );
+  const packing = {
+    description:
+      product.packaging?.zh ??
+      product.packaging?.en ??
+      product.packaging?.es ??
+      "",
+    qty_per_carton: hasSelectedSupplier
+      ? (overlay?.qtyPerCarton ??
+        (product.cartonQty == null ? null : Number(product.cartonQty)))
+      : product.cartonQty == null
+        ? null
+        : Number(product.cartonQty),
+    ...(hasSelectedSupplier
+      ? {
+          length_cm: overlay?.lengthCm ?? null,
+          width_cm: overlay?.widthCm ?? null,
+          height_cm: overlay?.heightCm ?? null,
+        }
+      : {}),
+  };
+  const cartonCbm = cartonCbmFromPacking(packing);
   return {
     sanity_product_id: product.id,
     sku: product.sku ?? "",
@@ -84,13 +127,8 @@ export function createItemSnapshot(
       ...(options.includeSpecification === false ? {} : { specification }),
     },
     packing_snapshot: {
-      description:
-        product.packaging?.zh ??
-        product.packaging?.en ??
-        product.packaging?.es ??
-        "",
-      qty_per_carton:
-        product.cartonQty == null ? null : Number(product.cartonQty),
+      ...packing,
+      ...(cartonCbm == null ? {} : { carton_cbm: cartonCbm }),
     },
   };
 }
@@ -102,6 +140,7 @@ export function ProductLibraryLookup({
   inputRef,
   specificationMode = "all",
   documentLanguage = "zh",
+  captureQuotePacking = false,
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
@@ -109,6 +148,8 @@ export function ProductLibraryLookup({
   inputRef?: Ref<HTMLInputElement>;
   specificationMode?: ProductSpecificationMode;
   documentLanguage?: DocumentLanguage;
+  /** Capture ProductSupplier packing only when selecting into a Quote. */
+  captureQuotePacking?: boolean;
 }) {
   const [search, setSearch] = useState(sku);
   const [query, setQuery] = useState("");
@@ -157,10 +198,18 @@ export function ProductLibraryLookup({
     if (activeIndex >= 0)
       optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
-  const select = (product: SanityCatalogProduct) => {
+  const select = async (product: SanityCatalogProduct) => {
     const importMachineSpecifications =
       specificationMode === "machines-only" &&
       shouldImportProductSpecifications("quote", product);
+    const procurementPacking = captureQuotePacking
+      ? await loadProductProcurementOverlay(
+          [product],
+          createSupabaseProcurementOverlayClient(),
+        )
+          .then((overlay) => overlay.get(product.id))
+          .catch(() => undefined)
+      : undefined;
     onSelected(
       createItemSnapshot(product, images.get(product.id), {
         documentLanguage,
@@ -169,6 +218,7 @@ export function ProductLibraryLookup({
           : undefined,
         includeSpecification:
           specificationMode === "all" || importMachineSpecifications,
+        procurementPacking,
       }),
     );
     setSearch(product.sku ?? "");
@@ -196,7 +246,7 @@ export function ProductLibraryLookup({
             setActiveIndex((index) => Math.max(index - 1, 0));
           } else if (event.key === "Enter" && activeIndex >= 0) {
             event.preventDefault();
-            select(products[activeIndex]);
+            void select(products[activeIndex]);
           } else if (event.key === "Escape") {
             event.preventDefault();
             setProducts([]);
@@ -228,7 +278,7 @@ export function ProductLibraryLookup({
                   // as a manual override and clears the fresh snapshot.
                   event.preventDefault();
                 }}
-                onClick={() => select(product)}
+                onClick={() => void select(product)}
               >
                 {images.get(product.id) ? (
                   <img

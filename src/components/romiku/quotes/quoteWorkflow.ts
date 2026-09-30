@@ -1,5 +1,9 @@
 import type { DataProvider } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
+import {
+  defaultQuoteExportSnapshot,
+  withQuoteExportSnapshot,
+} from "./quoteExportSnapshot";
 
 export type QuoteSource = "direct" | "inquiry" | "outbound" | "customer";
 export const quoteSourceResources = {
@@ -85,6 +89,7 @@ export async function createQuote(
       currency: "USD",
       document_language: "zh",
       counterparty_snapshot: snapshot,
+      terms_snapshot: withQuoteExportSnapshot({}, defaultQuoteExportSnapshot()),
       ...links,
     },
   });

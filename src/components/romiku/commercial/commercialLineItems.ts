@@ -100,6 +100,28 @@ export function quantityFromPacking(values: {
   return Number.isFinite(cartons * qty) ? cartons * qty : 0;
 }
 
+/**
+ * A Quote owns this packing value once a product is selected. Prefer an
+ * explicitly saved CBM (including a manually entered zero), otherwise derive
+ * it only from the saved three dimensions. This must never read Product
+ * Library data at export time.
+ */
+export function cartonCbmFromPacking(values: Record<string, unknown>) {
+  const explicit = values.carton_cbm;
+  if (explicit !== undefined && explicit !== null && explicit !== "") {
+    const parsed = Number(explicit);
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+  const dimensions = [values.length_cm, values.width_cm, values.height_cm].map(
+    Number,
+  );
+  return dimensions.every(
+    (dimension) => Number.isFinite(dimension) && dimension > 0,
+  )
+    ? (dimensions[0] * dimensions[1] * dimensions[2]) / 1_000_000
+    : null;
+}
+
 export function applyManualQuantity<T extends Record<string, unknown>>(
   packing: T,
   quantity: unknown,

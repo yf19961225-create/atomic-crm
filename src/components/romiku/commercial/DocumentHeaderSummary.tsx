@@ -55,7 +55,10 @@ export function DocumentHeaderSummary({
     ...documentFields.filter(
       (field) =>
         (kind === "order" || !field.orderOnly) &&
-        !(["pi", "order"].includes(kind) && field.key === "document_language"),
+        !(
+          ["quote", "pi", "order"].includes(kind) &&
+          field.key === "document_language"
+        ),
     ),
   ];
   return (
