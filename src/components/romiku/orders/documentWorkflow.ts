@@ -5,6 +5,11 @@ import {
   defaultOrderExportSnapshot,
   withOrderExportSnapshot,
 } from "./orderExportSnapshot";
+import {
+  defaultPiBankSnapshot,
+  defaultPiExportSnapshot,
+  withPiExportSnapshot,
+} from "./piExportSnapshot";
 
 export type DocumentKind = "pi" | "order";
 export const documentConfig = {
@@ -86,6 +91,12 @@ export async function createDocument(
               {},
               defaultOrderExportSnapshot(),
             ),
+          }
+        : {}),
+      ...(kind === "pi"
+        ? {
+            terms_snapshot: withPiExportSnapshot({}, defaultPiExportSnapshot()),
+            bank_snapshot: defaultPiBankSnapshot(),
           }
         : {}),
       ...(customer ? { formal_customer_id: customer.formalCustomerId } : {}),

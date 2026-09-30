@@ -7,6 +7,15 @@ import {
 } from "./documentWorkflow";
 import { paymentSummary, paymentWrite } from "../payments/paymentWorkflow";
 
+it("initializes direct PI export and banking snapshots", async () => {
+  const provider = fakeRestDataProvider({ romiku_pis: [] });
+  const { data } = await createDocument(provider, "pi", "Buyer");
+  expect(data.terms_snapshot).toMatchObject({
+    pi_export: { template_key: "pi", terms_visible: true },
+  });
+  expect(data.bank_snapshot).toMatchObject({ bank_information_visible: true });
+});
+
 it.each([
   ["quote", "pi"],
   ["quote", "order"],
