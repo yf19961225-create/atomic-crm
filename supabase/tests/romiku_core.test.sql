@@ -242,6 +242,19 @@ insert into romiku_quotes(notes) values ('numbering configuration test');
 select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','manual Quote number does not advance the automatic counter');
 update romiku_quotes set document_date='2000-01-01' where notes='numbering configuration test';
 select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','changing document date does not regenerate the number');
+insert into romiku_quotes(id,notes,fx_enabled,usd_cny_rate)
+values ('75000000-0000-0000-0000-000000000001','FX conversion final-price test',true,6.770000);
+insert into romiku_quote_items(id,quote_id,sku,quantity,source_cny_unit_price,unit_price)
+values ('75100000-0000-0000-0000-000000000001','75000000-0000-0000-0000-000000000001','FX-USD',1,5.0000,0.7386);
+insert into test_ids select 'fx_pi',romiku_convert_document('quote','75000000-0000-0000-0000-000000000001','pi');
+insert into test_ids select 'fx_order',romiku_convert_document('quote','75000000-0000-0000-0000-000000000001','order');
+select is((select unit_price from romiku_pi_items where pi_id=(select id from test_ids where kind='fx_pi')),0.7386::numeric,'Quote FX conversion copies final USD price to PI');
+select is((select unit_price from romiku_order_items where order_id=(select id from test_ids where kind='fx_order')),0.7386::numeric,'Quote FX conversion copies final USD price to Order');
+select ok(not (select to_jsonb(i) ? 'source_cny_unit_price' from romiku_pi_items i where pi_id=(select id from test_ids where kind='fx_pi')),'PI item does not retain Quote source CNY price');
+select ok(not (select to_jsonb(i) ? 'source_cny_unit_price' from romiku_order_items i where order_id=(select id from test_ids where kind='fx_order')),'Order item does not retain Quote source CNY price');
+update romiku_quote_items set source_cny_unit_price=18.0000,unit_price=2.6588 where id='75100000-0000-0000-0000-000000000001';
+select is((select unit_price from romiku_pi_items where pi_id=(select id from test_ids where kind='fx_pi')),0.7386::numeric,'later Quote FX edits do not reprice historical PI');
+select is((select unit_price from romiku_order_items where order_id=(select id from test_ids where kind='fx_order')),0.7386::numeric,'later Quote FX edits do not reprice historical Order');
 insert into romiku_formal_customers(id,name,country,logistics) values
 ('70000000-0000-0000-0000-000000000001','Formal buyer','Spain','{"delivery_address":"Madrid"}');
 insert into romiku_customer_contacts(formal_customer_id,name,email,is_primary) values

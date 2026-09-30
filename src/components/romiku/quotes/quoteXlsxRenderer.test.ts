@@ -131,3 +131,29 @@ it.each([0.08, 0.125])(
     expect(sheet.getCell("H8").numFmt).toBe("0.000");
   },
 );
+
+it("exports only the saved final USD unit price without an FX column", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const output = await renderQuoteXlsx(
+    normalizeQuoteExportModel(
+      { document_number: "RFQ260930004", currency: "USD" },
+      [
+        {
+          ...item(1),
+          unit_price: 0.7386,
+        },
+      ],
+    ),
+    template,
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(output);
+  const sheet = workbook.getWorksheet("QUOTE")!;
+
+  expect(sheet.columnCount).toBe(8);
+  expect(sheet.getCell("G8").value).toBe(0.7386);
+  expect(sheet.getCell("G8").numFmt).toBe("$#,##0.00;[Red]-$#,##0.00");
+  expect(sheet.getCell("I8").value).toBeNull();
+});
