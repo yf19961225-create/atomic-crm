@@ -4,7 +4,9 @@ import { parseQuoteUsdCnyRate } from "./quoteWorkflow";
 const formatRate = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "";
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed.toFixed(4) : "";
+  if (!Number.isFinite(parsed) || parsed <= 0) return "";
+  const [whole, fraction] = parsed.toFixed(6).split(".");
+  return `${whole}.${fraction.replace(/0+$/, "").padEnd(4, "0")}`;
 };
 
 export function QuoteFxPricing({
@@ -31,7 +33,7 @@ export function QuoteFxPricing({
   const commitRate = (value: string) => {
     try {
       const parsed = parseQuoteUsdCnyRate(value);
-      setDraft(parsed.toFixed(4));
+      setDraft(formatRate(parsed));
       onRateChange(parsed);
     } catch {
       setDraft(formatRate(rate));

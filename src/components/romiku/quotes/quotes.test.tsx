@@ -271,6 +271,16 @@ it("retains a Quote CNY source price entered before the FX rate", async () => {
     .toHaveValue("0.7386");
 });
 
+it("retains all six allowed FX rate decimals after blur", async () => {
+  const { screen } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  const rate = screen.getByLabelText("USD 汇率", { exact: true });
+  await rate.fill("7.024512");
+  await screen.getByText("1 USD = X CNY", { exact: true }).click();
+  await expect.element(rate).toHaveValue(7.024512);
+});
+
 it("persists Quote FX pricing and restores direct USD edits only after FX is disabled", async () => {
   const { screen, provider } = await setup("/quotes/q");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
