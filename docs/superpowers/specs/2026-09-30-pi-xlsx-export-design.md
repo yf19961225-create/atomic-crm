@@ -9,7 +9,7 @@ The export is generated exclusively from saved PI and PI item snapshots. It neve
 ## Fixed-template contract
 
 - One template only: `templateKey = "pi"`.
-- `document_language` remains a compatibility field and does not select a template.
+- `document_language` remains a compatibility field and does not select a template. The PI UI does not show a zh/en/es document-language selector.
 - The workbook worksheet remains `ROMIKU PI`.
 - The renderer preserves the template's existing drawing package, Logo crop/anchor, merged cells, styles, semantic row heights, A:J widths, page setup, margins, zoom, print options and fit-to-page setting.
 - The dynamic Print Area is `A1:J<last actual row>`.
@@ -57,7 +57,7 @@ type PiExportModel = {
 - `name`, `image_url`, `specification` from `product_snapshot`;
 - `cartons`, `qty_per_carton` from `packing_snapshot`.
 
-Items are ordered by `position ASC, id ASC`. Item amount is the existing snapshot quantity × unit-price business calculation. The normalized model receives the saved PI total rather than introducing a new total formula. Consequently, the total preserves existing CRM semantics even when legacy `other_expenses` or `discount` values exist; those values receive no visual template row.
+Items are ordered by `position ASC, id ASC`. `items[].amount` is always saved PI item `quantity × unit_price`; it does not depend on the template's residual formulas or any external lookup. The normalized model receives the saved PI total rather than introducing a new total formula. Consequently, the total preserves existing CRM semantics even when legacy `other_expenses` or `discount` values exist; those values receive no visual template row.
 
 ## Field-to-template mapping
 
@@ -65,8 +65,8 @@ Items are ordered by `position ASC, id ASC`. Item amount is the existing snapsho
 | --- | --- | --- |
 | `document_number` | `document.number` | `J1`, PI.NO line |
 | `document_date` | `document.date` | `J1`, DATE line as `YYYY.M.D` |
-| PI seller export snapshot | `seller` | `C3:C7` |
-| `counterparty_snapshot` | `buyer` | `H3:H7` |
+| PI seller export snapshot | `seller` | Seller-row merged ranges, currently top-left cells C3:C7 |
+| `counterparty_snapshot` | `buyer` | Buyer-row merged ranges, currently top-left cells H3:H7 |
 | item position | `items[].position` | A |
 | item SKU | `items[].sku` | B |
 | `product_snapshot.name` | `items[].name` | C |
@@ -146,7 +146,7 @@ The renderer rebuilds these template-defined merges after replacing sample dynam
 - Each Term: label `B:C`, text `D:J`, number only in A.
 - Each Banking field: label `A:B`, value `C:J`.
 
-The renderer writes only top-left cells of merged ranges. It clears template sample values and formulas in its dynamic region before writing saved data, while retaining styles and borders. Product rows use style roles captured from the PI template (first, middle, final), not Order constants or hard-coded PI typography.
+The renderer reads the template's actual merged ranges at render time and writes only each range's top-left cell. It never duplicates values across a merged region. It clears template sample values and formulas in its dynamic region before writing saved data, while retaining styles and borders. Product rows use style roles captured from the PI template (first, middle, final), not Order constants or hard-coded PI typography.
 
 ## Shared XLSX infrastructure
 
@@ -176,7 +176,7 @@ This requires one database migration plus matching declarative-schema updates. I
 
 ## CRM UI
 
-PI receives an `导出信息 / Document Details` panel, available while the document edit session is active. It contains Seller, Buyer, eight Terms, the Terms visibility control, six structured Banking fields, and the Banking visibility control. It stages changes in the existing edit session and saves them with the document. The main PI product table remains the high-frequency surface.
+PI receives an `导出信息 / Document Details` panel, available while the document edit session is active. It contains Seller, Buyer, eight Terms, the Terms visibility control, six structured Banking fields, and the Banking visibility control. Terms visibility and Banking visibility default to enabled. The PI document-language selector remains hidden. Every Seller, Buyer, Terms and Banking edit stages in the current PI snapshot and saves with the document; no master is updated. The main PI product table remains the high-frequency surface.
 
 The PI detail page receives `导出 XLSX`. It first requires saved state, then executes exactly:
 
