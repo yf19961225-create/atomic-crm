@@ -19,6 +19,11 @@ import {
 } from "./ProductLibraryLookup";
 import { CommercialItemDrawer } from "./CommercialItemDrawer";
 import {
+  calculateQuoteUsdUnitPrice,
+  parseQuoteSourceCnyUnitPrice,
+  parseQuoteUsdUnitPrice,
+} from "../quotes/quoteWorkflow";
+import {
   commercialItemAdapter,
   clearProductIdentityForManualSku,
   cartonCbmFromPacking,
@@ -40,6 +45,8 @@ export function CommercialLineItemsTable({
   onChanged,
   editable = true,
   onItemsChange,
+  quoteFxEnabled = false,
+  quoteFxRate,
 }: {
   kind: CommercialDocumentKind;
   documentId: string;
@@ -50,8 +57,11 @@ export function CommercialLineItemsTable({
   editable?: boolean;
   /** When supplied, edits stay in the document session until its Save. */
   onItemsChange?: (items: CommercialItem[]) => void;
+  quoteFxEnabled?: boolean;
+  quoteFxRate?: unknown;
 }) {
   const compactQuote = kind === "quote";
+  const quoteFxActive = compactQuote && quoteFxEnabled;
   const orderTemplate = kind === "order";
   const provider = useDataProvider();
   const [showCustomerCode, setShowCustomerCode] = useState(
@@ -62,6 +72,12 @@ export function CommercialLineItemsTable({
   // every keystroke turns the valid intermediate value "0." into "0" and
   // makes decimals such as 0.08 impossible to type reliably.
   const [quoteCbmDrafts, setQuoteCbmDrafts] = useState<Record<string, string>>(
+    {},
+  );
+  const [quoteCnyDrafts, setQuoteCnyDrafts] = useState<Record<string, string>>(
+    {},
+  );
+  const [quoteUsdDrafts, setQuoteUsdDrafts] = useState<Record<string, string>>(
     {},
   );
   const [draftRows, setDraftRows] = useState(() =>
@@ -81,6 +97,10 @@ export function CommercialLineItemsTable({
     if (!/^\d+(?:\.\d{1,3})?$/.test(raw)) return undefined;
     const parsed = Number(raw);
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+  };
+  const formatQuotePrice = (value: unknown) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed.toFixed(4) : "";
   };
   const totals = useMemo(
     () =>
@@ -293,7 +313,9 @@ export function CommercialLineItemsTable({
                           "图片",
                           "产品规格",
                           "装箱数",
-                          "单价",
+                          ...(quoteFxActive
+                            ? ["人民币单价", "单价(USD)"]
+                            : ["单价"]),
                           "CBM",
                         ]
                       : [
@@ -341,6 +363,8 @@ export function CommercialLineItemsTable({
                     });
                   };
                   const quoteCbmKey = String(item.id);
+                  const quoteCnyKey = String(item.id);
+                  const quoteUsdKey = String(item.id);
                   const commitQuoteCbm = async () => {
                     const current =
                       quoteCbmDrafts[quoteCbmKey] ?? formatQuoteCbm(packing);
@@ -358,6 +382,57 @@ export function CommercialLineItemsTable({
                       [quoteCbmKey]: formatted,
                     }));
                     await updatePacking("carton_cbm", parsed);
+                  };
+                  const updateQuoteCnyPrice = async (raw: string) => {
+                    const sourceCny = parseQuoteSourceCnyUnitPrice(raw);
+                    let unitPrice = item.unit_price;
+                    if (quoteFxActive)
+                      unitPrice = calculateQuoteUsdUnitPrice(raw, quoteFxRate);
+                    await save(item, {
+                      source_cny_unit_price: sourceCny,
+                      unit_price: unitPrice,
+                    });
+                  };
+                  const commitQuoteCnyPrice = async () => {
+                    const raw =
+                      quoteCnyDrafts[quoteCnyKey] ??
+                      formatQuotePrice(item.source_cny_unit_price);
+                    try {
+                      await updateQuoteCnyPrice(raw);
+                      setQuoteCnyDrafts((drafts) => ({
+                        ...drafts,
+                        [quoteCnyKey]: formatQuotePrice(raw),
+                      }));
+                    } catch {
+                      setQuoteCnyDrafts((drafts) => ({
+                        ...drafts,
+                        [quoteCnyKey]: formatQuotePrice(
+                          item.source_cny_unit_price,
+                        ),
+                      }));
+                    }
+                  };
+                  const updateQuoteUsdPrice = async (raw: string) => {
+                    await save(item, {
+                      unit_price: parseQuoteUsdUnitPrice(raw),
+                    });
+                  };
+                  const commitQuoteUsdPrice = async () => {
+                    const raw =
+                      quoteUsdDrafts[quoteUsdKey] ??
+                      formatQuotePrice(item.unit_price);
+                    try {
+                      await updateQuoteUsdPrice(raw);
+                      setQuoteUsdDrafts((drafts) => ({
+                        ...drafts,
+                        [quoteUsdKey]: formatQuotePrice(raw),
+                      }));
+                    } catch {
+                      setQuoteUsdDrafts((drafts) => ({
+                        ...drafts,
+                        [quoteUsdKey]: formatQuotePrice(item.unit_price),
+                      }));
+                    }
                   };
                   return (
                     <Draggable
@@ -708,39 +783,106 @@ export function CommercialLineItemsTable({
                               />
                             </td>
                           )}
-                          <td>
-                            <input
-                              className="w-20 rounded border p-1"
-                              type="number"
-                              step="0.01"
-                              value={String(item.unit_price)}
-                              disabled={!editable}
-                              onChange={(event) => {
-                                if (onItemsChange)
-                                  void save(item, {
-                                    unit_price: Number(event.target.value),
-                                  });
-                              }}
-                              onBlur={(event) => {
-                                if (!onItemsChange)
-                                  void save(item, {
-                                    unit_price: Number(event.target.value),
-                                  });
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter") {
-                                  event.preventDefault();
-                                  advanceRow(index);
-                                } else if (
-                                  event.key === "Tab" &&
-                                  !event.shiftKey
-                                ) {
-                                  event.preventDefault();
-                                  advanceRow(index);
+                          {quoteFxActive ? (
+                            <>
+                              <td>
+                                <input
+                                  aria-label="人民币单价"
+                                  className="w-24 rounded border p-1"
+                                  type="number"
+                                  min="0"
+                                  step="0.0001"
+                                  inputMode="decimal"
+                                  value={
+                                    quoteCnyDrafts[quoteCnyKey] ??
+                                    formatQuotePrice(item.source_cny_unit_price)
+                                  }
+                                  disabled={!editable}
+                                  onChange={(event) => {
+                                    const raw = event.target.value;
+                                    setQuoteCnyDrafts((drafts) => ({
+                                      ...drafts,
+                                      [quoteCnyKey]: raw,
+                                    }));
+                                    try {
+                                      parseQuoteSourceCnyUnitPrice(raw);
+                                      calculateQuoteUsdUnitPrice(
+                                        raw,
+                                        quoteFxRate,
+                                      );
+                                      void updateQuoteCnyPrice(raw);
+                                    } catch {
+                                      // Preserve a valid partial decimal draft.
+                                    }
+                                  }}
+                                  onBlur={() => void commitQuoteCnyPrice()}
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  aria-label="单价(USD)"
+                                  className="w-24 rounded border p-1"
+                                  readOnly
+                                  value={formatQuotePrice(item.unit_price)}
+                                />
+                              </td>
+                            </>
+                          ) : (
+                            <td>
+                              <input
+                                aria-label={compactQuote ? "单价" : undefined}
+                                className="w-20 rounded border p-1"
+                                type="number"
+                                min={compactQuote ? "0" : undefined}
+                                step={compactQuote ? "0.0001" : "0.01"}
+                                inputMode={compactQuote ? "decimal" : undefined}
+                                value={
+                                  compactQuote
+                                    ? (quoteUsdDrafts[quoteUsdKey] ??
+                                      formatQuotePrice(item.unit_price))
+                                    : String(item.unit_price)
                                 }
-                              }}
-                            />
-                          </td>
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (compactQuote) {
+                                    const raw = event.target.value;
+                                    setQuoteUsdDrafts((drafts) => ({
+                                      ...drafts,
+                                      [quoteUsdKey]: raw,
+                                    }));
+                                    try {
+                                      parseQuoteUsdUnitPrice(raw);
+                                      void updateQuoteUsdPrice(raw);
+                                    } catch {
+                                      // Preserve a valid partial decimal draft.
+                                    }
+                                  } else if (onItemsChange)
+                                    void save(item, {
+                                      unit_price: Number(event.target.value),
+                                    });
+                                }}
+                                onBlur={(event) => {
+                                  if (compactQuote) void commitQuoteUsdPrice();
+                                  else if (!onItemsChange)
+                                    void save(item, {
+                                      unit_price: Number(event.target.value),
+                                    });
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    advanceRow(index);
+                                  } else if (
+                                    event.key === "Tab" &&
+                                    !event.shiftKey
+                                  ) {
+                                    event.preventDefault();
+                                    advanceRow(index);
+                                  }
+                                }}
+                              />
+                            </td>
+                          )}
                           {compactQuote && (
                             <td>
                               <input

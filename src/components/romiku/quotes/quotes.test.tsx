@@ -16,7 +16,25 @@ const list = {
   sort: { field: "id", order: "ASC" as const },
   filter: {},
 };
-const setup = async (path: string) => {
+const defaultQuoteItems = [
+  {
+    id: "qi",
+    quote_id: "q",
+    source_website_inquiry_item_id: "i1",
+    sku: "A",
+    quantity: 100,
+    unit_price: 2,
+    product_snapshot: { name: "Original snapshot" },
+    packing_snapshot: { qty_per_carton: 12 },
+  },
+];
+const setup = async (
+  path: string,
+  options: {
+    quote?: Record<string, unknown>;
+    items?: Record<string, unknown>[];
+  } = {},
+) => {
   await page.viewport(1440, 1000);
   rpc.mockReset().mockResolvedValue({ data: "q", error: null });
   const provider = fakeRestDataProvider({
@@ -32,21 +50,11 @@ const setup = async (path: string) => {
         other_expenses: 15,
         discount: 10,
         terms_snapshot: {},
+        ...options.quote,
       },
     ],
     romiku_quote_totals: [],
-    romiku_quote_items: [
-      {
-        id: "qi",
-        quote_id: "q",
-        source_website_inquiry_item_id: "i1",
-        sku: "A",
-        quantity: 100,
-        unit_price: 2,
-        product_snapshot: { name: "Original snapshot" },
-        packing_snapshot: { qty_per_carton: 12 },
-      },
-    ],
+    romiku_quote_items: options.items ?? defaultQuoteItems,
     romiku_website_inquiries: [
       {
         id: "in",
@@ -215,6 +223,87 @@ it("retains decimal Quote CBM values after blur, save, and refresh", async () =>
     (await provider.getOne("romiku_quote_items", { id: "qi" })).data
       .packing_snapshot,
   ).toMatchObject({ carton_cbm: 0.125 });
+});
+
+it("recalculates every populated Quote CNY price when its USD rate changes", async () => {
+  const { screen } = await setup("/quotes/q", {
+    items: [
+      { ...defaultQuoteItems[0], source_cny_unit_price: 67.7 },
+      {
+        ...defaultQuoteItems[0],
+        id: "qj",
+        sku: "B",
+        source_cny_unit_price: 5,
+      },
+      {
+        ...defaultQuoteItems[0],
+        id: "qk",
+        sku: "C",
+        source_cny_unit_price: 18,
+      },
+    ],
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  const rate = screen.getByLabelText("USD 汇率", { exact: true });
+  await rate.click();
+  await userEvent.clear(rate);
+  await userEvent.type(rate, "6.7700");
+  const usdPrices = screen.getByLabelText("单价(USD)", { exact: true }).all();
+  await expect.element(usdPrices[0]).toHaveValue("10.0000");
+  await expect.element(usdPrices[1]).toHaveValue("0.7386");
+  await expect.element(usdPrices[2]).toHaveValue("2.6588");
+  await screen.getByLabelText("USD 汇率", { exact: true }).fill("6.80");
+  const repricedUsd = screen.getByLabelText("单价(USD)", { exact: true }).all();
+  await expect.element(repricedUsd[0]).toHaveValue("9.9559");
+  await expect.element(repricedUsd[1]).toHaveValue("0.7353");
+  await expect.element(repricedUsd[2]).toHaveValue("2.6471");
+});
+
+it("persists Quote FX pricing and restores direct USD edits only after FX is disabled", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  await screen.getByLabelText("USD 汇率", { exact: true }).fill("6.77");
+  await screen.getByLabelText("人民币单价", { exact: true }).fill("5.00");
+  await expect
+    .element(screen.getByLabelText("单价(USD)", { exact: true }))
+    .toHaveValue("0.7386");
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  const directUsdPrice = screen.getByLabelText("单价", { exact: true });
+  await expect.element(directUsdPrice).toHaveValue(0.7386);
+  await directUsdPrice.fill("0.8000");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    (await provider.getOne("romiku_quotes", { id: "q" })).data,
+  ).toMatchObject({
+    fx_enabled: false,
+    usd_cny_rate: 6.77,
+  });
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data,
+  ).toMatchObject({ source_cny_unit_price: 5, unit_price: 0.8 });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("单价", { exact: true }))
+    .toHaveValue(0.8);
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("单价(USD)", { exact: true }))
+    .toHaveValue("0.7386");
+});
+
+it("hides Quote FX controls when the Quote currency is CNY", async () => {
+  const { screen } = await setup("/quotes/q", {
+    quote: { currency: "CNY", fx_enabled: true, usd_cny_rate: 6.77 },
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  expect(
+    screen.getByLabelText("启用汇率换算", { exact: true }).all(),
+  ).toHaveLength(0);
+  await expect
+    .element(screen.getByLabelText("单价", { exact: true }))
+    .toBeVisible();
 });
 
 it("edits a Quote-only Seller snapshot and disables XLSX export while there are unsaved edits", async () => {

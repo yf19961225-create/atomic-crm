@@ -6,8 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowFields, type Field } from "../outbound/WorkflowFields";
 import { errorMessage } from "../outbound/RelatedRecords";
-import { quoteHeaderWrite, quoteStatuses } from "./quoteWorkflow";
+import {
+  calculateQuoteUsdUnitPrice,
+  quoteHeaderWrite,
+  quoteStatuses,
+} from "./quoteWorkflow";
 import { QuoteExportDetails } from "./QuoteExportDetails";
+import { QuoteFxPricing } from "./QuoteFxPricing";
 import { normalizeQuoteExportModel } from "./quoteExportModel";
 import { renderQuoteXlsx } from "./quoteXlsxRenderer";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
@@ -284,6 +289,32 @@ function QuoteEditor({
   });
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
+  const repriceQuoteItems = (rate: number) =>
+    session.items.map((item) => {
+      if (
+        item.source_cny_unit_price === null ||
+        item.source_cny_unit_price === undefined
+      )
+        return item;
+      return {
+        ...item,
+        unit_price: calculateQuoteUsdUnitPrice(
+          item.source_cny_unit_price,
+          rate,
+        ),
+      };
+    });
+  const applyFxRate = (rate: number) => {
+    session.setValues({ ...session.values, usd_cny_rate: rate });
+    if (session.values.currency === "USD" && session.values.fx_enabled === true)
+      session.setItems(repriceQuoteItems(rate));
+  };
+  const setFxEnabled = (enabled: boolean) => {
+    session.setValues({ ...session.values, fx_enabled: enabled });
+    const rate = Number(session.values.usd_cny_rate);
+    if (enabled && Number.isFinite(rate) && rate > 0)
+      session.setItems(repriceQuoteItems(rate));
+  };
   const save = async () => {
     setBusy(true);
     setMessage("");
@@ -391,6 +422,14 @@ function QuoteEditor({
         values={session.values}
         onChange={session.setValues}
       />
+      <QuoteFxPricing
+        currency={String(session.values.currency)}
+        enabled={session.values.fx_enabled === true}
+        rate={session.values.usd_cny_rate}
+        editable={session.editing}
+        onEnabledChange={setFxEnabled}
+        onRateChange={applyFxRate}
+      />
       <QuoteExportDetails
         editable={session.editing}
         values={session.values}
@@ -426,6 +465,11 @@ function QuoteEditor({
               documentId={String(record.id)}
               items={session.items}
               currency={String(session.values.currency)}
+              quoteFxEnabled={
+                session.values.currency === "USD" &&
+                session.values.fx_enabled === true
+              }
+              quoteFxRate={session.values.usd_cny_rate}
               documentLanguage={
                 session.values.document_language === "en" ||
                 session.values.document_language === "es"

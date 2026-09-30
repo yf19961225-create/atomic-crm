@@ -8,6 +8,7 @@ export type CommercialItem = RaRecord & {
   sku: string;
   quantity: number;
   unit_price: number;
+  source_cny_unit_price?: number | null;
 };
 export type CommercialItemWrite = ReturnType<typeof quoteItemWrite>;
 
