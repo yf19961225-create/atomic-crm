@@ -58,6 +58,12 @@ export function CommercialLineItemsTable({
     kind !== "quote" && items.some((item) => Boolean(item.customer_code)),
   );
   const [drawer, setDrawer] = useState<CommercialItem | null>(null);
+  // Keep a Quote CBM as the user's raw decimal text until blur. Converting on
+  // every keystroke turns the valid intermediate value "0." into "0" and
+  // makes decimals such as 0.08 impossible to type reliably.
+  const [quoteCbmDrafts, setQuoteCbmDrafts] = useState<Record<string, string>>(
+    {},
+  );
   const [draftRows, setDraftRows] = useState(() =>
     Array.from({ length: 5 }, (_, id) => id),
   );
@@ -65,6 +71,17 @@ export function CommercialLineItemsTable({
   const rowSkuRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const rowNameRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const adapter = commercialItemAdapter(kind);
+  const formatQuoteCbm = (packing: Record<string, unknown>) => {
+    const value = cartonCbmFromPacking(packing);
+    return value == null ? "" : value.toFixed(3);
+  };
+  const parseQuoteCbm = (value: string) => {
+    const raw = value.trim();
+    if (!raw) return null;
+    if (!/^\d+(?:\.\d{1,3})?$/.test(raw)) return undefined;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+  };
   const totals = useMemo(
     () =>
       items.reduce(
@@ -322,6 +339,25 @@ export function CommercialLineItemsTable({
                       packing_snapshot: nextPacking,
                       quantity,
                     });
+                  };
+                  const quoteCbmKey = String(item.id);
+                  const commitQuoteCbm = async () => {
+                    const current =
+                      quoteCbmDrafts[quoteCbmKey] ?? formatQuoteCbm(packing);
+                    const parsed = parseQuoteCbm(current);
+                    if (parsed === undefined) {
+                      setQuoteCbmDrafts((drafts) => ({
+                        ...drafts,
+                        [quoteCbmKey]: formatQuoteCbm(packing),
+                      }));
+                      return;
+                    }
+                    const formatted = parsed === null ? "" : parsed.toFixed(3);
+                    setQuoteCbmDrafts((drafts) => ({
+                      ...drafts,
+                      [quoteCbmKey]: formatted,
+                    }));
+                    await updatePacking("carton_cbm", parsed);
                   };
                   return (
                     <Draggable
@@ -583,8 +619,11 @@ export function CommercialLineItemsTable({
                           )}
                           <td>
                             <input
+                              aria-label={compactQuote ? "Qty/Ctn" : undefined}
                               className="w-16 rounded border p-1"
                               type="number"
+                              min={compactQuote ? "1" : undefined}
+                              step={compactQuote ? "1" : undefined}
                               value={String(packing.qty_per_carton ?? "")}
                               disabled={!editable}
                               onChange={(event) => {
@@ -710,28 +749,19 @@ export function CommercialLineItemsTable({
                                 type="number"
                                 min="0"
                                 step="0.001"
-                                value={String(
-                                  cartonCbmFromPacking(packing) ?? "",
-                                )}
+                                inputMode="decimal"
+                                value={
+                                  quoteCbmDrafts[quoteCbmKey] ??
+                                  formatQuoteCbm(packing)
+                                }
                                 disabled={!editable}
-                                onChange={(event) => {
-                                  if (!onItemsChange) return;
-                                  void updatePacking(
-                                    "carton_cbm",
-                                    event.target.value === ""
-                                      ? null
-                                      : Number(event.target.value),
-                                  );
-                                }}
-                                onBlur={(event) => {
-                                  if (onItemsChange) return;
-                                  void updatePacking(
-                                    "carton_cbm",
-                                    event.target.value === ""
-                                      ? null
-                                      : Number(event.target.value),
-                                  );
-                                }}
+                                onChange={(event) =>
+                                  setQuoteCbmDrafts((drafts) => ({
+                                    ...drafts,
+                                    [quoteCbmKey]: event.target.value,
+                                  }))
+                                }
+                                onBlur={() => void commitQuoteCbm()}
                               />
                             </td>
                           )}

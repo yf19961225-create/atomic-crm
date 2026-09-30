@@ -107,3 +107,27 @@ it("keeps the cropped template logo and appends a contained product drawing", as
     ),
   ).toHaveLength(2);
 });
+
+it.each([0.08, 0.125])(
+  "writes the saved decimal CBM %s without integer rounding",
+  async (cartonCbm) => {
+    const template = await fetch(templateUrl).then((response) =>
+      response.arrayBuffer(),
+    );
+    const output = await renderQuoteXlsx(
+      normalizeQuoteExportModel({ document_number: "RFQ260930003" }, [
+        {
+          ...item(1),
+          packing_snapshot: { qty_per_carton: 12, carton_cbm: cartonCbm },
+        },
+      ]),
+      template,
+    );
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(output);
+    const sheet = workbook.getWorksheet("QUOTE")!;
+
+    expect(sheet.getCell("H8").value).toBe(cartonCbm);
+    expect(sheet.getCell("H8").numFmt).toBe("0.000");
+  },
+);

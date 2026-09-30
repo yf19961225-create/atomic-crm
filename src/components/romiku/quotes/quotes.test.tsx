@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
 import { MemoryRouter, Routes } from "react-router";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";
 import "@/index.css";
 
@@ -44,7 +44,7 @@ const setup = async (path: string) => {
         quantity: 100,
         unit_price: 2,
         product_snapshot: { name: "Original snapshot" },
-        packing_snapshot: {},
+        packing_snapshot: { qty_per_carton: 12 },
       },
     ],
     romiku_website_inquiries: [
@@ -171,12 +171,50 @@ it("uses the fixed eight Quote columns and saves a manual CBM only on the Quote 
       .toBeVisible();
   expect(screen.getByText("总数量", { exact: true }).all()).toHaveLength(0);
   expect(screen.getByText("总金额", { exact: true }).all()).toHaveLength(0);
+  const qtyPerCarton = screen.getByLabelText("Qty/Ctn", { exact: true });
+  await expect.element(qtyPerCarton).toHaveAttribute("min", "1");
+  await expect.element(qtyPerCarton).toHaveAttribute("step", "1");
   await screen.getByLabelText("CBM", { exact: true }).fill("0.072");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   expect(
     (await provider.getOne("romiku_quote_items", { id: "qi" })).data
       .packing_snapshot,
-  ).toMatchObject({ carton_cbm: 0.072 });
+  ).toMatchObject({ qty_per_carton: 12, carton_cbm: 0.072 });
+});
+
+it("retains decimal Quote CBM values after blur, save, and refresh", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const cbm = screen.getByLabelText("CBM", { exact: true });
+  await cbm.click();
+  await userEvent.clear(cbm);
+  await userEvent.type(cbm, "0.08");
+  await screen.getByText("CBM", { exact: true }).click();
+  await expect.element(cbm).toHaveValue(0.08);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data
+      .packing_snapshot,
+  ).toMatchObject({ carton_cbm: 0.08 });
+
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const refreshedCbm = screen.getByLabelText("CBM", { exact: true });
+  await expect.element(refreshedCbm).toHaveValue(0.08);
+  await refreshedCbm.click();
+  await userEvent.clear(refreshedCbm);
+  await userEvent.type(refreshedCbm, "0.125");
+  await screen.getByText("CBM", { exact: true }).click();
+  await expect.element(refreshedCbm).toHaveValue(0.125);
+  await refreshedCbm.fill("-0.08");
+  await screen.getByText("CBM", { exact: true }).click();
+  await expect.element(refreshedCbm).toHaveValue(0.125);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data
+      .packing_snapshot,
+  ).toMatchObject({ carton_cbm: 0.125 });
 });
 
 it("edits a Quote-only Seller snapshot and disables XLSX export while there are unsaved edits", async () => {
