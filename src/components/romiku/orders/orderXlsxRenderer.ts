@@ -10,21 +10,24 @@ const IMAGE_PADDING = 5;
 const EMUS_PER_PIXEL = 9_525;
 const columnWidthPixels = (width: number) =>
   Math.floor(((256 * width + Math.floor(128 / 7)) / 256) * 7);
-const moneyFormat = (currency: "USD" | "CNY") =>
+export const moneyFormat = (currency: "USD" | "CNY") =>
   currency === "CNY"
     ? "¥#,##0.00;[Red]-¥#,##0.00"
     : "$#,##0.00;[Red]-$#,##0.00";
-type RowStyle = {
+export type RowStyle = {
   height?: number;
   styles: Array<Partial<ExcelJS.Style> | undefined>;
 };
-const captureStyle = (sheet: ExcelJS.Worksheet, row: number): RowStyle => ({
+export const captureStyle = (
+  sheet: ExcelJS.Worksheet,
+  row: number,
+): RowStyle => ({
   height: sheet.getRow(row).height,
   styles: Array.from({ length: 11 }, (_, column) =>
     column ? { ...sheet.getRow(row).getCell(column).style } : undefined,
   ),
 });
-const applyStyle = (
+export const applyStyle = (
   sheet: ExcelJS.Worksheet,
   row: number,
   source: RowStyle,
@@ -37,14 +40,14 @@ const applyStyle = (
     cell.style = { ...source.styles[column] };
   }
 };
-const unmerge = (sheet: ExcelJS.Worksheet, range: string) => {
+export const unmerge = (sheet: ExcelJS.Worksheet, range: string) => {
   try {
     sheet.unMergeCells(range);
   } catch {
     /* dynamic merge may be absent */
   }
 };
-const clearResidualDynamicMerges = (
+export const clearResidualDynamicMerges = (
   sheet: ExcelJS.Worksheet,
   firstRow: number,
   lastRow: number,
@@ -75,7 +78,7 @@ const clearTemplateDynamicMerges = (sheet: ExcelJS.Worksheet) =>
     ...Array.from({ length: 8 }, (_, i) => `B${20 + i}:C${20 + i}`),
     ...Array.from({ length: 8 }, (_, i) => `D${20 + i}:J${20 + i}`),
   ].forEach((range) => unmerge(sheet, range));
-const formatDate = (value: string) => {
+export const formatDate = (value: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   return match ? `${match[1]}.${Number(match[2])}.${Number(match[3])}` : value;
 };
@@ -152,13 +155,13 @@ const naturalImageDimensions = (buffer: ArrayBuffer): ImageDimensions => {
   throw new Error("Unable to read product image dimensions");
 };
 
-type PreparedProductImage = ImageDimensions & {
+export type PreparedProductImage = ImageDimensions & {
   row: number;
   buffer: ArrayBuffer;
   extension: "png" | "jpeg";
 };
 
-async function prepareProductImage(
+export async function prepareProductImage(
   imageUrl: string,
   row: number,
 ): Promise<PreparedProductImage | undefined> {
@@ -259,10 +262,12 @@ const packageProductAnchor = (
  * setup. Keep its generated dynamic cell region, then restore those untouched
  * OOXML parts and append only the new product-image anchors/relationships.
  */
-async function preserveTemplatePackage(
+export async function preserveTemplatePackage(
   template: ArrayBuffer,
   rendered: ArrayBuffer,
   productImages: PreparedProductImage[],
+  worksheetName: string,
+  printTitleLastRow: number,
 ): Promise<ArrayBuffer> {
   const [source, output] = await Promise.all([
     JSZip.loadAsync(template),
@@ -370,8 +375,7 @@ async function preserveTemplatePackage(
   }
   const workbookPath = "xl/workbook.xml";
   const workbookXml = await textPart(output, workbookPath);
-  const printTitles =
-    '<definedName name="_xlnm.Print_Titles" localSheetId="0">&apos;ORDER&apos;!$1:$8</definedName>';
+  const printTitles = `<definedName name="_xlnm.Print_Titles" localSheetId="0">&apos;${worksheetName}&apos;!$1:$${printTitleLastRow}</definedName>`;
   if (workbookXml) {
     const withPrintTitles = workbookXml.includes('name="_xlnm.Print_Titles"')
       ? workbookXml.replace(
@@ -569,5 +573,7 @@ export async function renderOrderXlsx(
     template,
     await workbook.xlsx.writeBuffer(),
     productImages,
+    model.worksheetName,
+    8,
   );
 }

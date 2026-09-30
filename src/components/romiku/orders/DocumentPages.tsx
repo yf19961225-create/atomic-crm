@@ -38,9 +38,13 @@ import {
 } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { OrderExportDetails } from "./OrderExportDetails";
+import { PiExportDetails } from "./PiExportDetails";
 import { normalizeOrderExportModel } from "./orderExportModel";
+import { normalizePiExportModel } from "./piExportModel";
 import { renderOrderXlsx } from "./orderXlsxRenderer";
+import { renderPiXlsx } from "./piXlsxRenderer";
 import orderTemplateUrl from "@/assets/order-templates/ROMIKU_订单_模板.xlsx?url";
+import piTemplateUrl from "@/assets/pi-templates/ROMIKU_PI_模板.xlsx?url";
 
 function download(data: BlobPart, type: string, name: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -421,6 +425,29 @@ function DocumentEditor({
       setMessage(errorMessage(cause));
     }
   };
+  const exportPi = async () => {
+    if (kind !== "pi") return;
+    if (session.editing) {
+      setFailed(true);
+      setMessage("请先保存当前 PI，再导出已保存的快照。");
+      return;
+    }
+    const model = normalizePiExportModel(record, items.data || []);
+    try {
+      const template = await fetch(piTemplateUrl).then((response) =>
+        response.arrayBuffer(),
+      );
+      const xlsx = await renderPiXlsx(model, template);
+      download(
+        xlsx,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `${model.document.number || "PI"}.xlsx`,
+      );
+    } catch (cause) {
+      setFailed(true);
+      setMessage(errorMessage(cause));
+    }
+  };
   async function save() {
     setBusy(true);
     setMessage("");
@@ -563,7 +590,17 @@ function DocumentEditor({
         </div>
       )}
       {kind === "pi" && (
-        <DocumentConversion source="pi" sourceId={String(record.id)} />
+        <div className="flex gap-4">
+          <DocumentConversion source="pi" sourceId={String(record.id)} />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={session.editing}
+            onClick={() => void exportPi()}
+          >
+            导出 XLSX
+          </Button>
+        </div>
       )}
       <p className="text-muted-foreground text-sm">
         修改仅应用于此{config.label}的快照；来源单据保留原始值。
@@ -576,6 +613,13 @@ function DocumentEditor({
       />
       {kind === "order" && (
         <OrderExportDetails
+          values={session.values}
+          editable={session.editing}
+          onChange={session.setValues}
+        />
+      )}
+      {kind === "pi" && (
+        <PiExportDetails
           values={session.values}
           editable={session.editing}
           onChange={session.setValues}

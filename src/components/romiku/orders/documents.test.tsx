@@ -178,6 +178,17 @@ it.each([
     });
   },
 );
+
+it("shows PI XLSX export only for a saved PI and disables it while editing", async () => {
+  const { screen } = await setup("/pi/p");
+  await expect
+    .element(screen.getByRole("button", { name: "导出 XLSX", exact: true }))
+    .toBeEnabled();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect
+    .element(screen.getByRole("button", { name: "导出 XLSX", exact: true }))
+    .toBeDisabled();
+});
 it.each([
   ["pi", "PI"],
   ["orders", "订单"],

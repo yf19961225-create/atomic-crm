@@ -34,10 +34,34 @@ export const defaultPiExportSnapshot = (): PiExportSnapshot => {
   return {
     template_key: "pi",
     terms_visible: true,
-    seller: { ...order.seller },
+    seller: {
+      ...order.seller,
+      address:
+        "72790, 3rd Street, Unit 4, 2nd Floor, Gate 153,Global Digital Trade Center Yiwu,China\n义乌市国际商贸城六区152号门2楼4单元3街72790",
+    },
     terms: structuredClone(order.terms),
   };
 };
+export function piExportSnapshot(value: unknown): PiExportSnapshot {
+  const defaults = defaultPiExportSnapshot();
+  const saved = (value as { pi_export?: Partial<PiExportSnapshot> } | null)
+    ?.pi_export;
+  if (!saved) return defaults;
+  return {
+    template_key: "pi",
+    terms_visible: saved.terms_visible !== false,
+    seller: { ...defaults.seller, ...saved.seller },
+    terms: Object.fromEntries(
+      Object.entries(defaults.terms).map(([key, term]) => [
+        key,
+        {
+          ...term,
+          ...(saved.terms?.[key as keyof typeof defaults.terms] || {}),
+        },
+      ]),
+    ) as PiExportSnapshot["terms"],
+  };
+}
 export function withPiExportSnapshot(
   snapshot: Record<string, unknown> | null | undefined,
   piExport: PiExportSnapshot = defaultPiExportSnapshot(),
