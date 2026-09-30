@@ -127,6 +127,18 @@ function positiveDecimal(value: unknown, maxScale: number, label: string) {
   return Number(decimal.scaled) / 10 ** decimal.scale;
 }
 
+export function parseQuoteUsdCnyRate(value: unknown) {
+  return positiveDecimal(value, 6, "USD 汇率");
+}
+
+export function parseQuoteSourceCnyUnitPrice(value: unknown) {
+  return decimalNumber(value, 4, "人民币单价");
+}
+
+export function parseQuoteUsdUnitPrice(value: unknown) {
+  return decimalNumber(value, 4, "单价");
+}
+
 /**
  * Divides exact user-entered decimal strings and rounds only the persisted
  * USD price to the existing four-decimal database contract.
@@ -190,7 +202,7 @@ export function quoteHeaderWrite(values: Values) {
     write.usd_cny_rate =
       write.usd_cny_rate === null || write.usd_cny_rate === ""
         ? null
-        : positiveDecimal(write.usd_cny_rate, 6, "USD 汇率");
+        : parseQuoteUsdCnyRate(write.usd_cny_rate);
   }
   if (write.fx_enabled === true && !write.usd_cny_rate)
     throw new Error("启用汇率换算时必须填写 USD 汇率。");
@@ -232,7 +244,7 @@ export function quoteItemWrite(values: Values) {
     write.source_cny_unit_price =
       write.source_cny_unit_price === null || write.source_cny_unit_price === ""
         ? null
-        : decimalNumber(write.source_cny_unit_price, 4, "人民币单价");
+        : parseQuoteSourceCnyUnitPrice(write.source_cny_unit_price);
   const product = write.product_snapshot as Values | undefined;
   if (product?.moq !== undefined && product.moq !== "")
     write.product_snapshot = {

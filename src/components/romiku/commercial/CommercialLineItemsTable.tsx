@@ -386,8 +386,16 @@ export function CommercialLineItemsTable({
                   const updateQuoteCnyPrice = async (raw: string) => {
                     const sourceCny = parseQuoteSourceCnyUnitPrice(raw);
                     let unitPrice = item.unit_price;
-                    if (quoteFxActive)
-                      unitPrice = calculateQuoteUsdUnitPrice(raw, quoteFxRate);
+                    if (quoteFxActive) {
+                      try {
+                        unitPrice = calculateQuoteUsdUnitPrice(
+                          raw,
+                          quoteFxRate,
+                        );
+                      } catch {
+                        // Keep the saved CNY source price until a valid rate arrives.
+                      }
+                    }
                     await save(item, {
                       source_cny_unit_price: sourceCny,
                       unit_price: unitPrice,
@@ -806,10 +814,6 @@ export function CommercialLineItemsTable({
                                     }));
                                     try {
                                       parseQuoteSourceCnyUnitPrice(raw);
-                                      calculateQuoteUsdUnitPrice(
-                                        raw,
-                                        quoteFxRate,
-                                      );
                                       void updateQuoteCnyPrice(raw);
                                     } catch {
                                       // Preserve a valid partial decimal draft.

@@ -260,6 +260,17 @@ it("recalculates every populated Quote CNY price when its USD rate changes", asy
   await expect.element(repricedUsd[2]).toHaveValue("2.6471");
 });
 
+it("retains a Quote CNY source price entered before the FX rate", async () => {
+  const { screen } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  await screen.getByLabelText("人民币单价", { exact: true }).fill("5.00");
+  await screen.getByLabelText("USD 汇率", { exact: true }).fill("6.77");
+  await expect
+    .element(screen.getByLabelText("单价(USD)", { exact: true }))
+    .toHaveValue("0.7386");
+});
+
 it("persists Quote FX pricing and restores direct USD edits only after FX is disabled", async () => {
   const { screen, provider } = await setup("/quotes/q");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
