@@ -63,7 +63,7 @@ select throws_ok($$update romiku_quotes set document_language='de'$$,'23514',nul
 insert into test_ids select 'pi',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'pi');
 insert into test_ids select 'order',romiku_convert_document('pi',(select id from test_ids where kind='pi'),'order');
 insert into test_ids select 'direct_order',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'order');
-select is((select document_number from romiku_pis where id=(select id from test_ids where kind='pi')),'RPI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','PI uses an independent Shanghai daily counter');
+select is((select document_number from romiku_pis where id=(select id from test_ids where kind='pi')),'PI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','new PI uses its PI-prefixed Shanghai daily counter');
 select is((select document_number from romiku_orders where id=(select id from test_ids where kind='order')),'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','Order uses an independent Shanghai daily counter');
 select is((select document_number from romiku_orders where id=(select id from test_ids where kind='direct_order')),'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','Order daily sequence increments independently');
 -- A stale counter must never regenerate an existing automatic number. This

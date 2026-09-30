@@ -97,7 +97,7 @@ create trigger romiku_audit before insert or update on public.romiku_quote_items
 create trigger romiku_audit before insert or update on public.romiku_quote_versions for each row execute function public.romiku_audit();
 create trigger romiku_history before update or delete on public.romiku_quote_versions for each row execute function public.romiku_preserve_history();
 create trigger romiku_audit before insert or update on public.romiku_pis for each row execute function public.romiku_audit();
-create trigger romiku_number before insert or update on public.romiku_pis for each row execute function public.romiku_assign_number('pi','RPI');
+create trigger romiku_number before insert or update on public.romiku_pis for each row execute function public.romiku_assign_number('pi','PI');
 create trigger romiku_audit before insert or update on public.romiku_pi_items for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_orders for each row execute function public.romiku_audit();
 create trigger romiku_number before insert or update on public.romiku_orders for each row execute function public.romiku_assign_number('order','OD');

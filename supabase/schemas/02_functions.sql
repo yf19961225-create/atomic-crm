@@ -477,14 +477,14 @@ DECLARE
   candidate text;
   candidate_exists boolean;
 BEGIN
-  IF (kind, prefix) NOT IN (('quote', 'RFQ'), ('pi', 'RPI'), ('order', 'OD')) THEN
+  IF (kind, prefix) NOT IN (('quote', 'RFQ'), ('pi', 'PI'), ('order', 'OD')) THEN
     RAISE EXCEPTION 'Unsupported daily document number kind/prefix: %/%', kind, prefix
       USING ERRCODE = '22023';
   END IF;
 
   -- Serialize allocations for one kind and Shanghai business day before reading
   -- historical documents. This allows a stale counter to self-heal safely.
-  PERFORM pg_advisory_xact_lock(hashtextextended(format('romiku-daily-number:%s:%s', kind, local_date), 0));
+  PERFORM pg_advisory_xact_lock(hashtextextended(format('romiku-daily-number:%s:%s:%s', kind, prefix, local_date), 0));
 
   CASE kind
     WHEN 'quote' THEN
@@ -505,9 +505,9 @@ BEGIN
   END CASE;
 
   LOOP
-    INSERT INTO public.romiku_document_daily_counters(document_kind, business_date, last_value)
-    VALUES (kind, local_date, greatest(existing_max, 0) + 1)
-    ON CONFLICT (document_kind, business_date)
+    INSERT INTO public.romiku_document_daily_counters(document_kind, business_date, number_prefix, last_value)
+    VALUES (kind, local_date, prefix, greatest(existing_max, 0) + 1)
+    ON CONFLICT (document_kind, business_date, number_prefix)
     DO UPDATE SET last_value = greatest(
       public.romiku_document_daily_counters.last_value,
       existing_max
@@ -554,7 +554,7 @@ BEGIN
   IF TG_ARGV[0] = 'quote' THEN
     NEW.document_number := public.romiku_next_daily_document_number('quote','RFQ');
   ELSIF TG_ARGV[0] = 'pi' THEN
-    NEW.document_number := public.romiku_next_daily_document_number('pi','RPI');
+    NEW.document_number := public.romiku_next_daily_document_number('pi','PI');
   ELSIF TG_ARGV[0] = 'order' THEN
     NEW.document_number := public.romiku_next_daily_document_number('order','OD');
   ELSE

@@ -538,8 +538,9 @@ create table public.romiku_orders (
 create table public.romiku_document_daily_counters (
     document_kind text not null check (document_kind in ('quote', 'pi', 'order')),
     business_date date not null,
+    number_prefix text not null,
     last_value integer not null check (last_value > 0),
-    primary key (document_kind, business_date)
+    primary key (document_kind, business_date, number_prefix)
 );
 
 create table public.romiku_production_order_counters (
