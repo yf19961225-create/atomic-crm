@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import fakeRestDataProvider from "ra-data-fakerest";
 import {
+  calculateQuoteUsdUnitPrice,
   createQuote,
   quoteFromInquiry,
   quoteHeaderWrite,
@@ -9,6 +10,42 @@ import {
 } from "./quoteWorkflow";
 
 describe("Quote snapshot boundaries", () => {
+  it("rounds the final USD price once after exact CNY/rate division", () => {
+    expect(calculateQuoteUsdUnitPrice("67.70", "6.7700")).toBe(10);
+    expect(calculateQuoteUsdUnitPrice("5.00", "6.77")).toBe(0.7386);
+    expect(calculateQuoteUsdUnitPrice("18.00", "6.77")).toBe(2.6588);
+    expect(() => calculateQuoteUsdUnitPrice("5.00001", "6.77")).toThrow(
+      "人民币单价",
+    );
+    expect(() => calculateQuoteUsdUnitPrice("5", "6.1234567")).toThrow(
+      "USD 汇率",
+    );
+    expect(() => calculateQuoteUsdUnitPrice("5", "0")).toThrow("USD 汇率");
+  });
+  it("keeps FX fields in Quote writes and source CNY price in Quote item writes", () => {
+    expect(
+      quoteHeaderWrite({ fx_enabled: true, usd_cny_rate: "6.7700" }),
+    ).toEqual({ fx_enabled: true, usd_cny_rate: 6.77 });
+    expect(() =>
+      quoteHeaderWrite({ fx_enabled: true, usd_cny_rate: 0 }),
+    ).toThrow("USD 汇率");
+    expect(
+      quoteItemWrite({
+        sku: "A",
+        quantity: 1,
+        unit_price: 0.7386,
+        source_cny_unit_price: "5.0000",
+      }),
+    ).toMatchObject({ source_cny_unit_price: 5, unit_price: 0.7386 });
+    expect(() =>
+      quoteItemWrite({
+        sku: "A",
+        quantity: 1,
+        unit_price: 0,
+        source_cny_unit_price: "-1",
+      }),
+    ).toThrow("人民币单价");
+  });
   it("sends only confirmed distinct item IDs to the server snapshot RPC", async () => {
     const rpc = vi.fn().mockResolvedValue({ data: "q-1", error: null });
     expect(await quoteFromInquiry({ rpc }, "in-1", ["i-2", "i-1"])).toBe("q-1");

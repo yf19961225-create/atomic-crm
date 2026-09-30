@@ -100,6 +100,50 @@ const pick = (values: Values, keys: string[]) =>
       .filter((key) => values[key] !== undefined)
       .map((key) => [key, values[key]]),
   );
+
+type ExactDecimal = { scaled: bigint; scale: number };
+
+function exactDecimal(value: unknown, maxScale: number, label: string) {
+  const raw = String(value ?? "").trim();
+  if (!/^\d+(?:\.\d+)?$/.test(raw))
+    throw new Error(`${label} 必须是有效的小数。`);
+  const [whole, fraction = ""] = raw.split(".");
+  if (fraction.length > maxScale)
+    throw new Error(`${label} 最多允许 ${maxScale} 位小数。`);
+  return {
+    scaled: BigInt(`${whole}${fraction}`),
+    scale: fraction.length,
+  } satisfies ExactDecimal;
+}
+
+function decimalNumber(value: unknown, maxScale: number, label: string) {
+  const decimal = exactDecimal(value, maxScale, label);
+  return Number(decimal.scaled) / 10 ** decimal.scale;
+}
+
+function positiveDecimal(value: unknown, maxScale: number, label: string) {
+  const decimal = exactDecimal(value, maxScale, label);
+  if (decimal.scaled <= 0n) throw new Error(`${label} 必须大于零。`);
+  return Number(decimal.scaled) / 10 ** decimal.scale;
+}
+
+/**
+ * Divides exact user-entered decimal strings and rounds only the persisted
+ * USD price to the existing four-decimal database contract.
+ */
+export function calculateQuoteUsdUnitPrice(
+  sourceCnyUnitPrice: unknown,
+  usdCnyRate: unknown,
+) {
+  const source = exactDecimal(sourceCnyUnitPrice, 4, "人民币单价");
+  const rate = exactDecimal(usdCnyRate, 6, "USD 汇率");
+  if (rate.scaled <= 0n) throw new Error("USD 汇率必须大于零。");
+  const numerator = source.scaled * 10n ** BigInt(rate.scale + 4);
+  const denominator = rate.scaled * 10n ** BigInt(source.scale);
+  const rounded = (numerator * 2n + denominator) / (denominator * 2n);
+  return Number(rounded) / 10_000;
+}
+
 function nonnegative(value: unknown, label: string) {
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0)
@@ -114,6 +158,8 @@ export function quoteHeaderWrite(values: Values) {
     "bank_snapshot",
     "terms_snapshot",
     "currency",
+    "fx_enabled",
+    "usd_cny_rate",
     "document_number",
     "document_language",
     "document_date",
@@ -136,6 +182,18 @@ export function quoteHeaderWrite(values: Values) {
     if (!/^[A-Z]{3}$/.test(String(write.currency)))
       throw new Error("请使用三位货币代码。");
   }
+  if (write.fx_enabled !== undefined) {
+    if (typeof write.fx_enabled !== "boolean")
+      throw new Error("启用汇率换算必须是布尔值。");
+  }
+  if (write.usd_cny_rate !== undefined) {
+    write.usd_cny_rate =
+      write.usd_cny_rate === null || write.usd_cny_rate === ""
+        ? null
+        : positiveDecimal(write.usd_cny_rate, 6, "USD 汇率");
+  }
+  if (write.fx_enabled === true && !write.usd_cny_rate)
+    throw new Error("启用汇率换算时必须填写 USD 汇率。");
   if (write.document_number !== undefined) {
     write.document_number = String(write.document_number).trim();
     if (!write.document_number) throw new Error("单据编号不能为空。");
@@ -157,6 +215,7 @@ export function quoteItemWrite(values: Values) {
     "sku",
     "quantity",
     "unit_price",
+    "source_cny_unit_price",
     "product_snapshot",
     "packing_snapshot",
     "requirement",
@@ -169,6 +228,11 @@ export function quoteItemWrite(values: Values) {
   write.quantity = nonnegative(values.quantity, "数量");
   if (!write.quantity) throw new Error("数量必须大于零。");
   write.unit_price = nonnegative(values.unit_price ?? 0, "单价");
+  if (write.source_cny_unit_price !== undefined)
+    write.source_cny_unit_price =
+      write.source_cny_unit_price === null || write.source_cny_unit_price === ""
+        ? null
+        : decimalNumber(write.source_cny_unit_price, 4, "人民币单价");
   const product = write.product_snapshot as Values | undefined;
   if (product?.moq !== undefined && product.moq !== "")
     write.product_snapshot = {

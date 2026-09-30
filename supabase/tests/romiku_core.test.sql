@@ -46,6 +46,12 @@ select is(
   'YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲',
   'new Quote owns the fixed Seller snapshot'
 );
+select is((select fx_enabled from romiku_quotes limit 1),false,'Quote FX is disabled by default');
+select is((select usd_cny_rate from romiku_quotes limit 1),null::numeric,'Quote FX rate defaults to null');
+select lives_ok($$update romiku_quotes set fx_enabled=true,usd_cny_rate=6.770000$$,'Quote accepts a positive USD/CNY rate');
+select throws_ok($$update romiku_quotes set usd_cny_rate=0$$,'23514',null,'Quote rejects a zero USD/CNY rate');
+select lives_ok($$update romiku_quote_items set source_cny_unit_price=67.7000$$,'Quote item accepts a nonnegative source CNY price');
+select throws_ok($$update romiku_quote_items set source_cny_unit_price=-0.0001$$,'23514',null,'Quote item rejects a negative source CNY price');
 update romiku_quote_items set quantity=240,unit_price=2,product_snapshot='{"name":"Quoted name"}';
 update romiku_quotes set freight=20,discount=10,other_expenses=15,counterparty_snapshot='{"name":"Buyer snapshot"}',bank_snapshot='{"bank":"Historical bank"}';
 select is((select total from romiku_quote_totals),505.00::numeric,'total = 480 + 20 + 15 - 10');
