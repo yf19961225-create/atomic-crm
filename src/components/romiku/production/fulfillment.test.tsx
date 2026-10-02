@@ -64,7 +64,23 @@ async function setup(path: string) {
     romiku_packing_lists: [
       { id: "p", document_number: "PL-001", order_id: "o" },
     ],
-    romiku_packing_items: [],
+    romiku_packing_items: [
+      {
+        id: "packed-i",
+        packing_list_id: "p",
+        order_id: "o",
+        source_order_item_id: "i",
+        sku: "A",
+        quantity: 20,
+        cartons: 0,
+        qty_per_carton: null,
+        length_cm: 0,
+        width_cm: 0,
+        height_cm: 0,
+        carton_weight_kg: 0,
+        product_snapshot: { name: "Lamp", unit: "PCS" },
+      },
+    ],
   });
   const screen = await render(
     <MemoryRouter initialEntries={[path]}>
@@ -106,10 +122,6 @@ it("shows ordered, packed and remaining quantities and blocks packing over the r
     .element(screen.getByRole("button", { name: "导出 Packing XLSX" }))
     .toBeVisible();
   expect(screen.getByText("Packing PDF", { exact: false }).query()).toBeNull();
-  await screen
-    .getByLabelText("从订单加入产品", { exact: true })
-    .selectOptions("i");
-  await screen.getByRole("button", { name: "加入", exact: true }).click();
   await screen.getByLabelText("quantity A", { exact: true }).fill("20");
   await screen.getByLabelText("cartons A", { exact: true }).fill("2");
   await screen.getByLabelText("qty_per_carton A", { exact: true }).fill("10");
@@ -125,31 +137,42 @@ it("shows ordered, packed and remaining quantities and blocks packing over the r
     1,
   );
 });
-it("creates multiple Packing Lists for the same Order and edits only the copied line", async () => {
+it("creates an Order Packing List with every remaining Order item and edits only its saved copy", async () => {
   const { screen, provider } = await setup("/packing-shipping/new?order=o");
   await screen.getByRole("button", { name: "创建装箱单", exact: true }).click();
-  await screen
-    .getByLabelText("从订单加入产品", { exact: true })
-    .selectOptions("i");
-  await screen.getByRole("button", { name: "加入", exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("quantity A", { exact: true }))
+    .toHaveValue(60);
+  await expect
+    .element(screen.getByLabelText("quantity B", { exact: true }))
+    .toHaveValue(200);
+  expect(
+    screen.getByLabelText("从订单加入产品", { exact: true }).query(),
+  ).toBeNull();
+  const packing = (
+    await readRelated(provider, "romiku_packing_lists", {})
+  ).find((item) => item.id !== "p");
+  expect(packing).toBeDefined();
   await screen.getByLabelText("unit A", { exact: true }).fill("SET");
   await screen.getByLabelText("quantity A", { exact: true }).fill("15");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
     .poll(
       async () =>
-        (await readRelated(provider, "romiku_packing_items", {}))[0].quantity,
+        (await readRelated(provider, "romiku_packing_items", {})).find(
+          (item) => item.packing_list_id === packing?.id && item.sku === "A",
+        )?.quantity,
     )
     .toBe(15);
-  const line = (await readRelated(provider, "romiku_packing_items", {}))[0];
-  expect(line.product_snapshot).toEqual({ name: "Lamp", unit: "SET" });
+  const line = (await readRelated(provider, "romiku_packing_items", {})).find(
+    (item) => item.packing_list_id === packing?.id && item.sku === "A",
+  );
+  expect(line).toBeDefined();
+  expect(line?.product_snapshot).toEqual({ name: "Lamp", unit: "SET" });
   expect(
     (await provider.getOne("romiku_order_items", { id: "i" })).data
       .product_snapshot,
   ).toEqual({ name: "Lamp", unit: "PCS" });
-  const packing = (
-    await readRelated(provider, "romiku_packing_lists", {})
-  ).find((item) => item.id !== "p");
   expect(packing).toMatchObject({
     packing_at: expect.any(String),
     seller_snapshot: {

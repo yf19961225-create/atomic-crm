@@ -1,9 +1,14 @@
 import { expect, it } from "vitest";
 import fakeRestDataProvider from "ra-data-fakerest";
-import { packingTotals, savePackingItem } from "./packingWorkflow";
+import {
+  createOrderPackingList,
+  packingTotals,
+  savePackingItem,
+} from "./packingWorkflow";
 import { readRelated } from "../outbound/workflow";
 function setup() {
   return fakeRestDataProvider({
+    romiku_orders: [{ id: "o", counterparty_snapshot: {} }],
     romiku_order_items: [
       {
         id: "i",
@@ -15,6 +20,13 @@ function setup() {
           image_url: "https://example.com/a.jpg",
         },
       },
+      {
+        id: "done",
+        order_id: "o",
+        sku: "DONE",
+        quantity: 12,
+        product_snapshot: { name: "Already packed" },
+      },
     ],
     romiku_order_item_remaining: [
       {
@@ -23,6 +35,13 @@ function setup() {
         ordered_quantity: 100,
         packed_quantity: 40,
         remaining_quantity: 60,
+      },
+      {
+        id: "done",
+        order_id: "o",
+        ordered_quantity: 12,
+        packed_quantity: 12,
+        remaining_quantity: 0,
       },
     ],
     romiku_packing_lists: [
@@ -75,6 +94,41 @@ it("packs a partial remaining quantity into another list and preserves Order sna
     cbm: 0.12,
     weight: 16,
   });
+});
+it("creates an Order Packing List with each remaining saved Order snapshot and skips complete lines", async () => {
+  const p = setup();
+  const packing = await createOrderPackingList(p, "o");
+  const rows = await readRelated(p, "romiku_packing_items", {
+    packing_list_id: packing.id,
+  });
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    packing_list_id: packing.id,
+    order_id: "o",
+    source_order_item_id: "i",
+    quantity: 60,
+    cartons: 0,
+    sku: "A",
+    product_snapshot: {
+      name: "Original",
+      image_url: "https://example.com/a.jpg",
+    },
+  });
+  expect(packing.buyer_snapshot).toEqual({});
+});
+it("rolls back a newly created Packing List when an automatic item import fails", async () => {
+  const p = setup();
+  const create = p.create.bind(p);
+  (p as any).create = async (resource: string, params: any) => {
+    if (resource === "romiku_packing_items")
+      throw new Error("simulated item failure");
+    return create(resource, params);
+  };
+
+  await expect(createOrderPackingList(p, "o")).rejects.toThrow(/已撤销/);
+  expect(await readRelated(p, "romiku_packing_lists", {})).toHaveLength(3);
+  expect(await readRelated(p, "romiku_packing_items", {})).toHaveLength(1);
 });
 it("blocks overpacking and invalid dimensions before a write", async () => {
   const p = setup();

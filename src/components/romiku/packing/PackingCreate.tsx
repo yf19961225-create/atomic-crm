@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { OrderSelect } from "../production/fulfillmentShared";
 import { defaultPackingSellerSnapshot } from "./packingExportSnapshot";
+import { createOrderPackingList } from "./packingWorkflow";
 
 export function PackingCreate() {
   const provider = useDataProvider(),
@@ -23,22 +24,20 @@ export function PackingCreate() {
     try {
       const isOrderBacked = creationMode === "order";
       if (isOrderBacked && !orderId) throw new Error("请选择订单。");
-      const order = isOrderBacked
-        ? (
-            await provider.getOne("romiku_orders", {
-              id: orderId,
-            })
-          ).data
-        : null;
-      const { data } = await provider.create("romiku_packing_lists", {
-        data: {
-          order_id: isOrderBacked ? orderId : null,
-          packing_at: new Date().toISOString(),
-          seller_snapshot: defaultPackingSellerSnapshot(),
-          buyer_snapshot: structuredClone(order?.counterparty_snapshot || {}),
-        },
-      });
-      navigate(`/packing-shipping/${data.id}`);
+      if (isOrderBacked) {
+        const packing = await createOrderPackingList(provider, orderId);
+        navigate(`/packing-shipping/${packing.id}`);
+      } else {
+        const { data } = await provider.create("romiku_packing_lists", {
+          data: {
+            order_id: null,
+            packing_at: new Date().toISOString(),
+            seller_snapshot: defaultPackingSellerSnapshot(),
+            buyer_snapshot: {},
+          },
+        });
+        navigate(`/packing-shipping/${data.id}`);
+      }
     } catch (cause) {
       setFailure(errorMessage(cause));
     } finally {
