@@ -102,6 +102,10 @@ it("creates selected production items in one supplier-free Production through th
 });
 it("shows ordered, packed and remaining quantities and blocks packing over the remaining amount", async () => {
   const { screen, provider } = await setup("/packing-shipping/p");
+  await expect
+    .element(screen.getByRole("button", { name: "导出 Packing XLSX" }))
+    .toBeVisible();
+  expect(screen.getByText("Packing PDF", { exact: false }).query()).toBeNull();
   await screen
     .getByLabelText("从订单加入产品", { exact: true })
     .selectOptions("i");

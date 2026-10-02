@@ -14,8 +14,20 @@ import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { FulfillmentItems } from "./FulfillmentItems";
 import { PackingItemsGrid } from "../packing/PackingItemsGrid";
 import { PackingExportDetails } from "../packing/PackingExportDetails";
+import { normalizePackingExportModel } from "../packing/packingExportModel";
+import { renderPackingXlsx } from "../packing/packingXlsxRenderer";
 import { productionStatusChoices } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+import packingTemplateUrl from "@/assets/packing-templates/ROMIKU_装箱单_模板.xlsx?url";
+
+function download(data: BlobPart, type: string, name: string) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 const localDateTimeLabel = (value: unknown) => {
   if (!value) return "—";
@@ -212,6 +224,7 @@ function FulfillmentEditor({
     config = fulfillmentConfig[kind];
   const [values, setValues] = useState<Values>(record),
     [busy, setBusy] = useState(false),
+    [exporting, setExporting] = useState(false),
     [failure, setFailure] = useState(""),
     [saved, setSaved] = useState(false);
   const items = useQuery({
@@ -256,6 +269,28 @@ function FulfillmentEditor({
       setBusy(false);
     }
   }
+  async function exportPackingXlsx() {
+    if (kind !== "packing" || !items.data) return;
+    setExporting(true);
+    setFailure("");
+    try {
+      const template = await fetch(packingTemplateUrl).then((response) => {
+        if (!response.ok) throw new Error("无法加载装箱单 XLSX 模板。");
+        return response.arrayBuffer();
+      });
+      const model = normalizePackingExportModel(record, items.data);
+      const xlsx = await renderPackingXlsx(model, template);
+      download(
+        xlsx,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `${model.document.number || "PACKING-LIST"}.xlsx`,
+      );
+    } catch (cause) {
+      setFailure(errorMessage(cause));
+    } finally {
+      setExporting(false);
+    }
+  }
   return (
     <section className="w-full min-w-0 space-y-5">
       <Link className="underline" to={config.path}>
@@ -289,11 +324,21 @@ function FulfillmentEditor({
       {failure && <p role="alert">{failure}</p>}
       {saved && <p role="status">{config.label}已保存。</p>}
       {kind === "packing" && (
-        <PackingExportDetails
-          values={values}
-          editable={!busy}
-          onChange={setValues}
-        />
+        <div className="flex flex-wrap gap-2">
+          <PackingExportDetails
+            values={values}
+            editable={!busy && !exporting}
+            onChange={setValues}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!items.data || exporting}
+            onClick={exportPackingXlsx}
+          >
+            导出 Packing XLSX
+          </Button>
+        </div>
       )}
       {items.error ? (
         <p role="alert">
