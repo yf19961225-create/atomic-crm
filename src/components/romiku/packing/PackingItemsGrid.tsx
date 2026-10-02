@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
 import { ProductLibraryLookup } from "../commercial/ProductLibraryLookup";
-import { savePackingItem } from "./packingWorkflow";
+import { resolvePackingItemDefaults, savePackingItem } from "./packingWorkflow";
 
 type Row = RaRecord & { [key: string]: unknown };
 const editable = [
@@ -15,10 +15,6 @@ const editable = [
   "carton_weight_kg",
 ];
 const number = (value: unknown) => Number(value || 0);
-const finiteNumber = (value: unknown, fallback = 0) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
 type CatalogSnapshot = {
   sanity_product_id?: unknown;
   sku?: unknown;
@@ -28,28 +24,17 @@ type CatalogSnapshot = {
 export function packingCatalogValues(
   snapshot: CatalogSnapshot,
 ): Record<string, unknown> {
-  const packing: Record<string, unknown> =
-    snapshot.packing_snapshot &&
-    typeof snapshot.packing_snapshot === "object" &&
-    !Array.isArray(snapshot.packing_snapshot)
-      ? (snapshot.packing_snapshot as Record<string, unknown>)
-      : {};
+  const defaults = resolvePackingItemDefaults(
+    { quantity: 1, packing_snapshot: snapshot.packing_snapshot },
+    1,
+  );
   return {
     sanity_product_id: String(snapshot.sanity_product_id || ""),
     sku: String(snapshot.sku || ""),
     product_snapshot: structuredClone(
       (snapshot.product_snapshot as Record<string, unknown>) || {},
     ),
-    quantity: 1,
-    cartons: 0,
-    qty_per_carton:
-      packing.qty_per_carton == null
-        ? null
-        : finiteNumber(packing.qty_per_carton, 0) || null,
-    length_cm: finiteNumber(packing.length_cm),
-    width_cm: finiteNumber(packing.width_cm),
-    height_cm: finiteNumber(packing.height_cm),
-    carton_weight_kg: finiteNumber(packing.carton_weight_kg),
+    ...defaults,
   };
 }
 export const packingColumnKeys = [
@@ -116,11 +101,11 @@ export function PackingItemsGrid({
   const change = (row: number, key: string, value: string) =>
     setDraft((current) =>
       current.map((item, index) =>
-        index === row
-          ? { ...item, [key]: value === "" ? "" : Number(value) }
-          : item,
+        index === row ? { ...item, [key]: value } : item,
       ),
     );
+  const inputValue = (value: unknown) =>
+    value === 0 || value === "" || value == null ? "" : String(value);
   const changeUnit = (row: number, value: string) =>
     setDraft((current) =>
       current.map((item, index) =>
@@ -200,7 +185,11 @@ export function PackingItemsGrid({
                     Object.fromEntries([
                       ...editable.map((key) => [
                         key,
-                        draft[i][key] === "" ? 0 : draft[i][key],
+                        draft[i][key] === ""
+                          ? key === "qty_per_carton"
+                            ? null
+                            : 0
+                          : draft[i][key],
                       ]),
                       ["product_snapshot", draft[i].product_snapshot],
                       ["sku", draft[i].sku],
@@ -316,7 +305,8 @@ export function PackingItemsGrid({
                           className="block w-full min-w-0 rounded border p-1 text-right"
                           type="number"
                           step="any"
-                          value={String(item[key] ?? "")}
+                          placeholder="0"
+                          value={inputValue(item[key])}
                           onChange={(event) =>
                             change(index, key, event.target.value)
                           }
@@ -341,7 +331,8 @@ export function PackingItemsGrid({
                       className="block w-full min-w-0 rounded border p-1 text-right"
                       type="number"
                       step="any"
-                      value={String(item.carton_weight_kg ?? "")}
+                      placeholder="0"
+                      value={inputValue(item.carton_weight_kg)}
                       onChange={(event) =>
                         change(index, "carton_weight_kg", event.target.value)
                       }

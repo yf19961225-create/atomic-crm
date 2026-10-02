@@ -1,14 +1,16 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import fakeRestDataProvider from "ra-data-fakerest";
 import {
   createOrderPackingList,
   packingTotals,
+  resolvePackingItemDefaults,
   savePackingItem,
 } from "./packingWorkflow";
 import { readRelated } from "../outbound/workflow";
 function setup() {
   return fakeRestDataProvider({
     romiku_orders: [{ id: "o", counterparty_snapshot: {} }],
+    romiku_product_suppliers: [],
     romiku_order_items: [
       {
         id: "i",
@@ -116,6 +118,101 @@ it("creates an Order Packing List with each remaining saved Order snapshot and s
     },
   });
   expect(packing.buyer_snapshot).toEqual({});
+});
+it("prefers saved Order packing values over preferred-supplier defaults", () => {
+  expect(
+    resolvePackingItemDefaults(
+      {
+        quantity: 48,
+        packing_snapshot: {
+          qty_per_carton: 12,
+          cartons: 4,
+          length_cm: 55,
+          width_cm: 45,
+          height_cm: 35,
+          carton_weight_kg: 10.5,
+        },
+      },
+      48,
+      {
+        qtyPerCarton: 24,
+        lengthCm: 50,
+        widthCm: 40,
+        heightCm: 30,
+        cartonWeightKg: 12.5,
+      },
+    ),
+  ).toMatchObject({
+    quantity: 48,
+    qty_per_carton: 12,
+    length_cm: 55,
+    width_cm: 45,
+    height_cm: 35,
+    carton_weight_kg: 10.5,
+    cartons: 4,
+  });
+});
+it("uses preferred or sole supplier values only for Order packing values that are missing", () => {
+  expect(
+    resolvePackingItemDefaults({ quantity: 24, packing_snapshot: {} }, 24, {
+      qtyPerCarton: 24,
+      lengthCm: 50,
+      widthCm: 40,
+      heightCm: 30,
+      cartonWeightKg: 12.5,
+    }),
+  ).toMatchObject({
+    qty_per_carton: 24,
+    length_cm: 50,
+    width_cm: 40,
+    height_cm: 30,
+    carton_weight_kg: 12.5,
+  });
+  expect(
+    resolvePackingItemDefaults(
+      { quantity: 24, packing_snapshot: {} },
+      24,
+      undefined,
+    ),
+  ).toMatchObject({
+    qty_per_carton: null,
+    length_cm: 0,
+    width_cm: 0,
+    height_cm: 0,
+    carton_weight_kg: 0,
+  });
+});
+it("applies one batched supplier-default result to bulk Order Packing creation", async () => {
+  const p = setup();
+  const defaults = vi.fn(
+    async () =>
+      new Map([
+        [
+          "i",
+          {
+            qtyPerCarton: 24,
+            lengthCm: 50,
+            widthCm: 40,
+            heightCm: 30,
+            cartonWeightKg: 12.5,
+          },
+        ],
+      ]),
+  );
+  const packing = await createOrderPackingList(p, "o", defaults);
+  const item = (await readRelated(p, "romiku_packing_items", {})).find(
+    (row) => row.packing_list_id === packing.id,
+  );
+
+  expect(defaults).toHaveBeenCalledTimes(1);
+  expect(item).toMatchObject({
+    quantity: 60,
+    qty_per_carton: 24,
+    length_cm: 50,
+    width_cm: 40,
+    height_cm: 30,
+    carton_weight_kg: 12.5,
+  });
 });
 it("rolls back a newly created Packing List when an automatic item import fails", async () => {
   const p = setup();

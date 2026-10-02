@@ -2,8 +2,10 @@ import type { DataProvider, RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { positiveQuantity } from "../production/productionWorkflow";
 import { readRelated } from "../outbound/workflow";
-import { withPackingItemUnit } from "./packingExportSnapshot";
-import { defaultPackingSellerSnapshot } from "./packingExportSnapshot";
+import {
+  defaultPackingSellerSnapshot,
+  withPackingItemUnit,
+} from "./packingExportSnapshot";
 
 const dimensions = [
   "cartons",
@@ -25,15 +27,35 @@ const numberOr = (value: unknown, fallback = 0) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 };
-function sourcePackingValues(
-  source: RaRecord,
+const positive = (value: unknown) => {
+  const valueAsNumber = numberOr(value, 0);
+  return valueAsNumber > 0 ? valueAsNumber : undefined;
+};
+
+/** The single saved-default policy used by all Packing item creation paths. */
+export function resolvePackingItemDefaults(
+  source: Record<string, unknown>,
   remainingQuantity: number,
+  supplier?: Pick<
+    SupplierDefaults,
+    "qtyPerCarton" | "lengthCm" | "widthCm" | "heightCm" | "cartonWeightKg"
+  >,
 ): Values {
   const packing =
     source.packing_snapshot && typeof source.packing_snapshot === "object"
       ? (source.packing_snapshot as PackingSnapshot)
       : {};
-  const qtyPerCarton = numberOr(packing.qty_per_carton, 0);
+  const qtyPerCarton =
+    positive(packing.qty_per_carton) ?? positive(supplier?.qtyPerCarton);
+  const length =
+    positive(packing.length_cm) ?? positive(supplier?.lengthCm) ?? 0;
+  const width = positive(packing.width_cm) ?? positive(supplier?.widthCm) ?? 0;
+  const height =
+    positive(packing.height_cm) ?? positive(supplier?.heightCm) ?? 0;
+  const weight =
+    positive(packing.carton_weight_kg) ??
+    positive(supplier?.cartonWeightKg) ??
+    0;
   const savedCartons = numberOr(packing.cartons, -1);
   // Cartons are only safe to bring over when the source snapshot exactly
   // represented this still-unallocated quantity. A later Packing List may
@@ -41,7 +63,7 @@ function sourcePackingValues(
   const cartons =
     Number.isInteger(savedCartons) &&
     savedCartons >= 0 &&
-    qtyPerCarton > 0 &&
+    qtyPerCarton != null &&
     Number(source.quantity) === remainingQuantity &&
     savedCartons * qtyPerCarton === remainingQuantity
       ? savedCartons
@@ -49,14 +71,55 @@ function sourcePackingValues(
   return {
     quantity: remainingQuantity,
     cartons,
-    qty_per_carton: qtyPerCarton > 0 ? qtyPerCarton : null,
-    length_cm: numberOr(packing.length_cm),
-    width_cm: numberOr(packing.width_cm),
-    height_cm: numberOr(packing.height_cm),
-    carton_weight_kg: numberOr(packing.carton_weight_kg),
-    product_snapshot: structuredClone(source.product_snapshot || {}),
+    qty_per_carton: qtyPerCarton ?? null,
+    length_cm: length,
+    width_cm: width,
+    height_cm: height,
+    carton_weight_kg: weight,
   };
 }
+
+type SupplierDefaults = {
+  qtyPerCarton?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  cartonWeightKg?: number | null;
+};
+type SupplierDefaultsLoader = (
+  provider: DataProvider,
+  sources: RaRecord[],
+) => Promise<Map<string, SupplierDefaults | undefined>>;
+
+/** One batched supplier read for the entire Order; never one query per row. */
+export const loadOrderPackingSupplierDefaults: SupplierDefaultsLoader = async (
+  provider,
+  sources,
+) => {
+  const suppliers = await readRelated(provider, "romiku_product_suppliers", {});
+  return new Map(
+    sources.map((source) => {
+      const matched = suppliers.filter(
+        (supplier) =>
+          supplier.sanity_product_id === source.sanity_product_id ||
+          (!supplier.sanity_product_id && supplier.sku === source.sku),
+      );
+      const selected =
+        matched.find((supplier) => supplier.preferred) ??
+        (matched.length === 1 ? matched[0] : undefined);
+      return [
+        String(source.id),
+        selected && {
+          qtyPerCarton: selected.qty_per_carton,
+          lengthCm: selected.length_cm,
+          widthCm: selected.width_cm,
+          heightCm: selected.height_cm,
+          cartonWeightKg: selected.carton_weight_kg,
+        },
+      ];
+    }),
+  );
+};
 
 /**
  * Creates an Order-backed Packing List and snapshots every currently
@@ -66,6 +129,7 @@ function sourcePackingValues(
 export async function createOrderPackingList(
   provider: DataProvider,
   orderId: string,
+  loadSupplierDefaults: SupplierDefaultsLoader = loadOrderPackingSupplierDefaults,
 ) {
   if (!orderId) throw new Error("请选择订单。");
   const [{ data: order }, sourceItems, remainingItems] = await Promise.all([
@@ -82,6 +146,7 @@ export async function createOrderPackingList(
   const eligible = sourceItems.filter(
     (source) => (remainingBySource.get(String(source.id)) || 0) > 0,
   );
+  const supplierDefaults = await loadSupplierDefaults(provider, eligible);
   const { data: packing } = await provider.create("romiku_packing_lists", {
     data: {
       order_id: orderId,
@@ -97,10 +162,14 @@ export async function createOrderPackingList(
         provider,
         packing,
         String(source.id),
-        sourcePackingValues(
-          source,
-          remainingBySource.get(String(source.id)) || 0,
-        ),
+        {
+          ...resolvePackingItemDefaults(
+            source,
+            remainingBySource.get(String(source.id)) || 0,
+            supplierDefaults.get(String(source.id)),
+          ),
+          product_snapshot: structuredClone(source.product_snapshot || {}),
+        },
       );
       created.push(result.data);
     }

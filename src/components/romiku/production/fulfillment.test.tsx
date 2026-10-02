@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
 import { MemoryRouter, Routes } from "react-router";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";
 import { readRelated } from "../outbound/workflow";
 import "@/index.css";
@@ -136,6 +136,32 @@ it("shows ordered, packed and remaining quantities and blocks packing over the r
   expect(await readRelated(provider, "romiku_packing_items", {})).toHaveLength(
     1,
   );
+});
+it("replaces zero-valued Packing dimensions with decimal input instead of appending", async () => {
+  const { screen, provider } = await setup("/packing-shipping/p");
+  const length = screen.getByLabelText("length_cm A", { exact: true });
+  await length.click();
+  await userEvent.type(length, "55");
+  await expect.element(length).toHaveValue(55);
+
+  const width = screen.getByLabelText("width_cm A", { exact: true });
+  await width.click();
+  await userEvent.type(width, "0.08");
+  await expect.element(width).toHaveValue(0.08);
+
+  const height = screen.getByLabelText("height_cm A", { exact: true });
+  await height.fill("50");
+  await userEvent.clear(height);
+  await userEvent.type(height, "55");
+  await expect.element(height).toHaveValue(55);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .poll(
+      async () =>
+        (await provider.getOne("romiku_packing_items", { id: "packed-i" }))
+          .data,
+    )
+    .toMatchObject({ length_cm: 55, width_cm: 0.08, height_cm: 55 });
 });
 it("creates an Order Packing List with every remaining Order item and edits only its saved copy", async () => {
   const { screen, provider } = await setup("/packing-shipping/new?order=o");
