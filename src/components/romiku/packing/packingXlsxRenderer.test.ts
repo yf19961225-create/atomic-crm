@@ -70,8 +70,16 @@ it.each([1, 4, 20])(
       `SKU-${count}`,
     );
     expect(sheet.getCell("M9").value).toBe(0.06);
+    expect(sheet.getCell("F9").numFmt).toBe("0");
+    expect(sheet.getCell("G9").numFmt).toBe("0");
+    expect(sheet.getCell("I9").numFmt).toBe("0");
+    expect(sheet.getCell("J9").numFmt).toBe("0.##");
+    expect(sheet.getCell("K9").numFmt).toBe("0.##");
+    expect(sheet.getCell("L9").numFmt).toBe("0.##");
     expect(sheet.getCell("M9").numFmt).toBe("0.000");
     expect(sheet.getCell("N9").numFmt).toBe("0.00");
+    expect(sheet.getCell("O9").numFmt).toBe("0.000");
+    expect(sheet.getCell("P9").numFmt).toBe("0.00");
     expect(sheet.getCell(`P${layout.totalsStart}`).value).toBe(
       (count * (count + 1)) / 2,
     );

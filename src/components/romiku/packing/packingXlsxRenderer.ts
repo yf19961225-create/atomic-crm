@@ -147,10 +147,22 @@ export async function renderPackingXlsx(
     ].forEach((value, column) => {
       if (column !== 3) sheet.getCell(row, column + 1).value = value;
     });
-    sheet.getCell(row, 13).numFmt = "0.000";
-    sheet.getCell(row, 14).numFmt = "0.00";
-    sheet.getCell(row, 15).numFmt = "0.000";
-    sheet.getCell(row, 16).numFmt = "0.00";
+    const numericFormats: Array<[number, string]> = [
+      [6, "0"],
+      [7, "0"],
+      [9, "0"],
+      [10, "0.##"],
+      [11, "0.##"],
+      [12, "0.##"],
+      [13, "0.000"],
+      [14, "0.00"],
+      [15, "0.000"],
+      [16, "0.00"],
+    ];
+
+    numericFormats.forEach(([column, numFmt]) => {
+      sheet.getCell(row, column).numFmt = numFmt;
+    });
   });
   [model.totals.cartons, model.totals.cbm, model.totals.weightKg].forEach(
     (value, index) => {
