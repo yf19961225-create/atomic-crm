@@ -21,9 +21,10 @@ export type RowStyle = {
 export const captureStyle = (
   sheet: ExcelJS.Worksheet,
   row: number,
+  columnCount = 10,
 ): RowStyle => ({
   height: sheet.getRow(row).height,
-  styles: Array.from({ length: 11 }, (_, column) =>
+  styles: Array.from({ length: columnCount + 1 }, (_, column) =>
     column ? { ...sheet.getRow(row).getCell(column).style } : undefined,
   ),
 });
@@ -31,10 +32,11 @@ export const applyStyle = (
   sheet: ExcelJS.Worksheet,
   row: number,
   source: RowStyle,
+  columnCount = 10,
 ) => {
   const target = sheet.getRow(row);
   target.height = source.height ?? FALLBACK_PRODUCT_ROW_HEIGHT;
-  for (let column = 1; column <= 10; column++) {
+  for (let column = 1; column <= columnCount; column++) {
     const cell = target.getCell(column);
     cell.value = null;
     cell.style = { ...source.styles[column] };
