@@ -73,9 +73,12 @@ it.each([1, 4, 20])(
     expect(sheet.getCell("F9").numFmt).toBe("0");
     expect(sheet.getCell("G9").numFmt).toBe("0");
     expect(sheet.getCell("I9").numFmt).toBe("0");
-    expect(sheet.getCell("J9").numFmt).toBe("0.##");
-    expect(sheet.getCell("K9").numFmt).toBe("0.##");
-    expect(sheet.getCell("L9").numFmt).toBe("0.##");
+    expect(sheet.getCell("J9").value).toBe(50);
+    expect(sheet.getCell("K9").value).toBe(40);
+    expect(sheet.getCell("L9").value).toBe(30);
+    expect(sheet.getCell("J9").numFmt).toBeUndefined();
+    expect(sheet.getCell("K9").numFmt).toBeUndefined();
+    expect(sheet.getCell("L9").numFmt).toBeUndefined();
     expect(sheet.getCell("M9").numFmt).toBe("0.000");
     expect(sheet.getCell("N9").numFmt).toBe("0.00");
     expect(sheet.getCell("O9").numFmt).toBe("0.000");
@@ -91,6 +94,33 @@ it.each([1, 4, 20])(
     expect(workbookXml).toContain("&apos;PACKING LIST&apos;!$1:$8");
   },
 );
+
+it("keeps decimal dimensions numeric without a trailing decimal format", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const output = await renderPackingXlsx(
+    normalizePackingExportModel({ document_number: "PL-DIMENSIONS" }, [
+      {
+        ...item(1),
+        length_cm: 50.5,
+        width_cm: 40.25,
+        height_cm: 30,
+      },
+    ]),
+    template,
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(output);
+  const sheet = workbook.getWorksheet("PACKING LIST")!;
+
+  expect(sheet.getCell("J9").value).toBe(50.5);
+  expect(sheet.getCell("K9").value).toBe(40.25);
+  expect(sheet.getCell("L9").value).toBe(30);
+  expect(sheet.getCell("J9").numFmt).toBeUndefined();
+  expect(sheet.getCell("K9").numFmt).toBeUndefined();
+  expect(sheet.getCell("L9").numFmt).toBeUndefined();
+});
 
 it("preserves the cropped logo and appends a saved product photo drawing", async () => {
   const canvas = document.createElement("canvas");

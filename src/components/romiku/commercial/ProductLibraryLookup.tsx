@@ -69,8 +69,15 @@ export function createItemSnapshot(
     localizedPowerSupply?: Record<string, string>;
     procurementPacking?: Pick<
       ProductOverlay,
-      "supplierCount" | "qtyPerCarton" | "lengthCm" | "widthCm" | "heightCm"
+      | "supplierCount"
+      | "qtyPerCarton"
+      | "lengthCm"
+      | "widthCm"
+      | "heightCm"
+      | "cartonWeightKg"
     >;
+    includeUnit?: boolean;
+    includeCartonWeight?: boolean;
   } = {},
 ) {
   const language = options.documentLanguage ?? "zh";
@@ -94,7 +101,8 @@ export function createItemSnapshot(
         overlay.qtyPerCarton != null ||
         overlay.lengthCm != null ||
         overlay.widthCm != null ||
-        overlay.heightCm != null),
+        overlay.heightCm != null ||
+        overlay.cartonWeightKg != null),
   );
   const packing = {
     description:
@@ -113,6 +121,9 @@ export function createItemSnapshot(
           length_cm: overlay?.lengthCm ?? null,
           width_cm: overlay?.widthCm ?? null,
           height_cm: overlay?.heightCm ?? null,
+          ...(options.includeCartonWeight
+            ? { carton_weight_kg: overlay?.cartonWeightKg ?? null }
+            : {}),
         }
       : {}),
   };
@@ -124,6 +135,9 @@ export function createItemSnapshot(
       name: localizedText(product.name, language) || product.sku || "",
       image_url: resolvedImageUrl ?? null,
       moq: product.moqQuantity ?? null,
+      ...(options.includeUnit
+        ? { unit: localizedText(product.moqUnit, language) }
+        : {}),
       ...(options.includeSpecification === false ? {} : { specification }),
     },
     packing_snapshot: {
@@ -141,6 +155,8 @@ export function ProductLibraryLookup({
   specificationMode = "all",
   documentLanguage = "zh",
   captureQuotePacking = false,
+  capturePacking = false,
+  includeUnit = false,
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
@@ -150,6 +166,10 @@ export function ProductLibraryLookup({
   documentLanguage?: DocumentLanguage;
   /** Capture ProductSupplier packing only when selecting into a Quote. */
   captureQuotePacking?: boolean;
+  /** Capture supplier packing only when a new document snapshot is selected. */
+  capturePacking?: boolean;
+  /** Save the Product Library unit in the selected item snapshot. */
+  includeUnit?: boolean;
 }) {
   const [search, setSearch] = useState(sku);
   const [query, setQuery] = useState("");
@@ -202,14 +222,15 @@ export function ProductLibraryLookup({
     const importMachineSpecifications =
       specificationMode === "machines-only" &&
       shouldImportProductSpecifications("quote", product);
-    const procurementPacking = captureQuotePacking
-      ? await loadProductProcurementOverlay(
-          [product],
-          createSupabaseProcurementOverlayClient(),
-        )
-          .then((overlay) => overlay.get(product.id))
-          .catch(() => undefined)
-      : undefined;
+    const procurementPacking =
+      captureQuotePacking || capturePacking
+        ? await loadProductProcurementOverlay(
+            [product],
+            createSupabaseProcurementOverlayClient(),
+          )
+            .then((overlay) => overlay.get(product.id))
+            .catch(() => undefined)
+        : undefined;
     onSelected(
       createItemSnapshot(product, images.get(product.id), {
         documentLanguage,
@@ -219,6 +240,8 @@ export function ProductLibraryLookup({
         includeSpecification:
           specificationMode === "all" || importMachineSpecifications,
         procurementPacking,
+        includeUnit,
+        includeCartonWeight: capturePacking,
       }),
     );
     setSearch(product.sku ?? "");

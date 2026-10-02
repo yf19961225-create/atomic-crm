@@ -151,6 +151,7 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
     await readRelated(provider, "romiku_packing_lists", {})
   ).find((item) => item.id !== "p");
   expect(packing).toMatchObject({
+    packing_at: expect.any(String),
     seller_snapshot: {
       company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲",
     },
@@ -162,6 +163,29 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
   expect(
     await readRelated(provider, "romiku_packing_lists", { order_id: "o" }),
   ).toHaveLength(2);
+});
+it("creates an independent Packing List with saved date and empty Buyer", async () => {
+  const { screen, provider } = await setup("/packing-shipping/new");
+  await screen.getByLabelText("直接创建 / 不关联订单", { exact: true }).click();
+  await screen.getByRole("button", { name: "创建装箱单", exact: true }).click();
+  await expect
+    .element(screen.getByText("独立装箱单：未关联订单。", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("从产品库添加产品", { exact: true }))
+    .toBeVisible();
+
+  const packing = (
+    await readRelated(provider, "romiku_packing_lists", {})
+  ).find((item) => item.id !== "p");
+  expect(packing).toMatchObject({
+    order_id: null,
+    packing_at: expect.any(String),
+    seller_snapshot: {
+      company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲",
+    },
+    buyer_snapshot: {},
+  });
 });
 it("edits a Production Order copy while retaining its Order source", async () => {
   const { screen, provider } = await setup("/production/new?order=o");

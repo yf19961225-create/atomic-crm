@@ -662,6 +662,14 @@ BEGIN
     IS DISTINCT FROM (OLD.source_order_item_id,OLD.order_id,OLD.packing_list_id) THEN
     RAISE EXCEPTION 'Packing item source is immutable' USING ERRCODE = '23514';
   END IF;
+  IF (NEW.source_order_item_id IS NULL) <> (NEW.order_id IS NULL) THEN
+    RAISE EXCEPTION 'Packing item requires Order and Order item source together or neither' USING ERRCODE = '23514';
+  END IF;
+  -- Independent Packing Lists have no Order allocation to reserve. The table
+  -- constraint keeps both source columns null together.
+  IF NEW.source_order_item_id IS NULL THEN
+    RETURN NEW;
+  END IF;
   -- Serialize every allocation against the source row. The following aggregate
   -- is a new READ COMMITTED statement after the lock, so it sees committed peers.
   SELECT i.quantity INTO ordered FROM public.romiku_order_items i

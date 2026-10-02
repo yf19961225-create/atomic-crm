@@ -73,6 +73,47 @@ describe("Product Library item snapshots", () => {
     ).toMatchObject({ qty_per_carton: 12 });
   });
 
+  it("captures selected supplier weight and the saved unit for an independent Packing snapshot", () => {
+    const snapshot = createItemSnapshot(
+      {
+        id: "packing-direct",
+        sku: "PACK-DIRECT",
+        skuSort: "PACK-DIRECT",
+        isPublished: true,
+        cartonQty: 12,
+        moqUnit: { zh: "PCS", en: "PCS" },
+      },
+      "https://example.com/packing-direct.jpg",
+      {
+        includeUnit: true,
+        includeCartonWeight: true,
+        procurementPacking: {
+          supplierCount: 1,
+          qtyPerCarton: 24,
+          lengthCm: 50,
+          widthCm: 40,
+          heightCm: 30,
+          cartonWeightKg: 8.5,
+        },
+      },
+    );
+
+    expect(snapshot).toMatchObject({
+      product_snapshot: {
+        name: "PACK-DIRECT",
+        image_url: "https://example.com/packing-direct.jpg",
+        unit: "PCS",
+      },
+      packing_snapshot: {
+        qty_per_carton: 24,
+        length_cm: 50,
+        width_cm: 40,
+        height_cm: 30,
+        carton_weight_kg: 8.5,
+      },
+    });
+  });
+
   it("imports specifications only for machine categories when a Quote selects a product", () => {
     const machine: SanityCatalogProduct = {
       id: "machine",

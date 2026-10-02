@@ -299,12 +299,16 @@ function FulfillmentEditor({
       <h1 className="text-3xl font-semibold">
         {record.document_number || config.label}
       </h1>
-      <p>
-        来源订单：{" "}
-        <Link className="underline" to={`/orders/${record.order_id}`}>
-          {record.order_id}
-        </Link>
-      </p>
+      {kind === "packing" && !record.order_id ? (
+        <p>独立装箱单：未关联订单。</p>
+      ) : (
+        <p>
+          来源订单：{" "}
+          <Link className="underline" to={`/orders/${record.order_id}`}>
+            {record.order_id}
+          </Link>
+        </p>
+      )}
       {kind === "production" && (
         <p>生成时间：{localDateTimeLabel(record.created_at)}</p>
       )}

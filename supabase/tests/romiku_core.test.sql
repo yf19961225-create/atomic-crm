@@ -211,6 +211,34 @@ select throws_ok($$update romiku_packing_items set quantity=101 where id='510000
 select is((select quantity from romiku_order_items where order_id=(select id from test_ids where kind='order')),240::numeric,'packing never changes order quantity');
 select is((select total_cbm from romiku_packing_totals where id='50000000-0000-0000-0000-000000000001'),0.12::numeric,'CBM derived with cm to cubic metre conversion');
 select is((select total_weight_kg from romiku_packing_totals where id='50000000-0000-0000-0000-000000000001'),20::numeric,'weight uses carton count');
+insert into romiku_packing_lists(id,order_id)
+values ('50000000-0000-0000-0000-000000000003',null);
+select ok(
+  (select packing_at is not null from romiku_packing_lists where id='50000000-0000-0000-0000-000000000003'),
+  'independent Packing defaults its saved packing date'
+);
+insert into romiku_packing_items(
+  id,packing_list_id,order_id,source_order_item_id,sanity_product_id,sku,
+  product_snapshot,quantity,cartons,length_cm,width_cm,height_cm,carton_weight_kg
+) values (
+  '51000000-0000-0000-0000-000000000003',
+  '50000000-0000-0000-0000-000000000003',
+  null,null,'sanity-direct','DIRECT-SKU',
+  '{"name":"Saved direct product","unit":"PCS"}',
+  12,1,50,40,30,8.5
+);
+select is(
+  (select total_cbm from romiku_packing_items where id='51000000-0000-0000-0000-000000000003'),
+  0.06::numeric,
+  'independent Packing calculates CBM from its saved dimensions'
+);
+select throws_ok(
+  $$insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity)
+    values ('50000000-0000-0000-0000-000000000003',null,
+      (select id from romiku_order_items limit 1),'bad-source',1)$$,
+  '23514',null,
+  'Packing item requires Order and Order item source together or neither'
+);
 
 insert into romiku_payments(id,order_id,kind,amount)
 select '52000000-0000-0000-0000-000000000001',id,'deposit',100

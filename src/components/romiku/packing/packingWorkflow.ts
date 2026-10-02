@@ -42,11 +42,12 @@ export async function savePackingItem(
   values: Values,
   previous?: RaRecord,
 ) {
+  const isOrderBacked = Boolean(parent.order_id);
   if (
     previous &&
     (previous.packing_list_id !== parent.id ||
-      previous.order_id !== parent.order_id ||
-      previous.source_order_item_id !== sourceId)
+      (previous.order_id || null) !== (parent.order_id || null) ||
+      String(previous.source_order_item_id || "") !== sourceId)
   )
     throw new Error("装箱产品项的来源不可更改。");
   const quantity = positiveQuantity(values.quantity);
@@ -66,25 +67,53 @@ export async function savePackingItem(
       ? null
       : positiveQuantity(values.qty_per_carton);
   data.remark = values.remark || null;
-  const { data: source } = await provider.getOne("romiku_order_items", {
-    id: sourceId,
-  });
-  if (source.order_id !== parent.order_id)
-    throw new Error("装箱来源必须属于该订单。");
-  // Fresh server availability catches stale forms; the Task2 trigger also serializes concurrent saves.
-  const { data: remaining } = await provider.getOne(
-    "romiku_order_item_remaining",
-    { id: sourceId },
-  );
-  const available =
-    Number(remaining.remaining_quantity) + Number(previous?.quantity || 0);
-  if (!Number.isFinite(available) || quantity > available)
-    throw new Error(`数量超过剩余可装箱数量（${available}）。`);
-  data.sku = previous?.sku || source.sku;
+  if (isOrderBacked) {
+    const { data: source } = await provider.getOne("romiku_order_items", {
+      id: sourceId,
+    });
+    if (source.order_id !== parent.order_id)
+      throw new Error("装箱来源必须属于该订单。");
+    // Fresh server availability catches stale forms; the Task2 trigger also serializes concurrent saves.
+    const { data: remaining } = await provider.getOne(
+      "romiku_order_item_remaining",
+      { id: sourceId },
+    );
+    const available =
+      Number(remaining.remaining_quantity) + Number(previous?.quantity || 0);
+    if (!Number.isFinite(available) || quantity > available)
+      throw new Error(`数量超过剩余可装箱数量（${available}）。`);
+    data.sku = previous?.sku || source.sku;
+    const productSnapshot = {
+      ...structuredClone(
+        previous?.product_snapshot || source.product_snapshot || {},
+      ),
+      ...((values.product_snapshot as Values) || {}),
+    };
+    data.product_snapshot = Object.hasOwn(productSnapshot, "unit")
+      ? withPackingItemUnit(productSnapshot, String(productSnapshot.unit || ""))
+      : productSnapshot;
+    return previous
+      ? provider.update("romiku_packing_items", {
+          id: previous.id,
+          data,
+          previousData: previous,
+        })
+      : provider.create("romiku_packing_items", {
+          data: {
+            ...data,
+            packing_list_id: parent.id,
+            order_id: parent.order_id,
+            source_order_item_id: source.id,
+            sanity_product_id: source.sanity_product_id || null,
+          },
+        });
+  }
+  if (sourceId) throw new Error("独立装箱单不能关联订单产品项。");
+  const sku = String(values.sku || previous?.sku || "").trim();
+  if (!sku) throw new Error("请选择产品。");
+  data.sku = sku;
   const productSnapshot = {
-    ...structuredClone(
-      previous?.product_snapshot || source.product_snapshot || {},
-    ),
+    ...structuredClone(previous?.product_snapshot || {}),
     ...((values.product_snapshot as Values) || {}),
   };
   data.product_snapshot = Object.hasOwn(productSnapshot, "unit")
@@ -100,9 +129,9 @@ export async function savePackingItem(
         data: {
           ...data,
           packing_list_id: parent.id,
-          order_id: parent.order_id,
-          source_order_item_id: source.id,
-          sanity_product_id: source.sanity_product_id || null,
+          order_id: null,
+          source_order_item_id: null,
+          sanity_product_id: values.sanity_product_id || null,
         },
       });
 }

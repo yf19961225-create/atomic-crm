@@ -28,6 +28,7 @@ function setup() {
     romiku_packing_lists: [
       { id: "p1", order_id: "o" },
       { id: "p2", order_id: "o" },
+      { id: "p3", order_id: null },
     ],
     romiku_packing_items: [
       {
@@ -116,4 +117,38 @@ it("credits the edited line quantity back while retaining its immutable source",
       previous,
     ),
   ).rejects.toThrow(/来源/);
+});
+it("saves an independent Packing product snapshot without reading an Order item", async () => {
+  const p = setup();
+  await savePackingItem(p, { id: "p3", order_id: null }, "", {
+    sku: "DIRECT-1",
+    sanity_product_id: "sanity-direct-1",
+    quantity: 12,
+    cartons: 1,
+    qty_per_carton: 12,
+    length_cm: 50,
+    width_cm: 40,
+    height_cm: 30,
+    carton_weight_kg: 8,
+    product_snapshot: {
+      name: "Saved direct product",
+      image_url: "https://example.com/direct.jpg",
+      specification: "Saved specification",
+      unit: "PCS",
+    },
+  });
+
+  const direct = (await readRelated(p, "romiku_packing_items", {})).find(
+    (item) => item.sku === "DIRECT-1",
+  );
+  expect(direct).toMatchObject({
+    packing_list_id: "p3",
+    order_id: null,
+    source_order_item_id: null,
+    sanity_product_id: "sanity-direct-1",
+    product_snapshot: {
+      name: "Saved direct product",
+      unit: "PCS",
+    },
+  });
 });

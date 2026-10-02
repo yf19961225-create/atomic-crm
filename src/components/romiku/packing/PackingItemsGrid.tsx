@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
+import { ProductLibraryLookup } from "../commercial/ProductLibraryLookup";
 import { readRelated } from "../outbound/workflow";
 import { savePackingItem } from "./packingWorkflow";
 
@@ -15,6 +16,43 @@ const editable = [
   "carton_weight_kg",
 ];
 const number = (value: unknown) => Number(value || 0);
+const finiteNumber = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+type CatalogSnapshot = {
+  sanity_product_id?: unknown;
+  sku?: unknown;
+  product_snapshot?: unknown;
+  packing_snapshot?: unknown;
+};
+export function packingCatalogValues(
+  snapshot: CatalogSnapshot,
+): Record<string, unknown> {
+  const packing: Record<string, unknown> =
+    snapshot.packing_snapshot &&
+    typeof snapshot.packing_snapshot === "object" &&
+    !Array.isArray(snapshot.packing_snapshot)
+      ? (snapshot.packing_snapshot as Record<string, unknown>)
+      : {};
+  return {
+    sanity_product_id: String(snapshot.sanity_product_id || ""),
+    sku: String(snapshot.sku || ""),
+    product_snapshot: structuredClone(
+      (snapshot.product_snapshot as Record<string, unknown>) || {},
+    ),
+    quantity: 1,
+    cartons: 0,
+    qty_per_carton:
+      packing.qty_per_carton == null
+        ? null
+        : finiteNumber(packing.qty_per_carton, 0) || null,
+    length_cm: finiteNumber(packing.length_cm),
+    width_cm: finiteNumber(packing.width_cm),
+    height_cm: finiteNumber(packing.height_cm),
+    carton_weight_kg: finiteNumber(packing.carton_weight_kg),
+  };
+}
 export const packingColumnKeys = [
   "no",
   "sku",
@@ -79,6 +117,12 @@ export function PackingItemsGrid({
   }, [items]);
   useEffect(() => {
     let cancelled = false;
+    if (!parent.order_id) {
+      setSources([]);
+      return () => {
+        cancelled = true;
+      };
+    }
     readRelated(provider, "romiku_order_items", { order_id: parent.order_id })
       .then((data) => !cancelled && setSources(data))
       .catch(() => !cancelled && setFailure("无法加载订单产品项。"));
@@ -167,6 +211,26 @@ export function PackingItemsGrid({
       setFailure("无法加载供应商装箱默认值。请稍后重试。");
     }
   };
+  const addCatalogProduct = (snapshot: CatalogSnapshot) => {
+    const values = packingCatalogValues(snapshot);
+    if (
+      !values.sku ||
+      draft.some(
+        (item) =>
+          item.sanity_product_id === values.sanity_product_id ||
+          item.sku === values.sku,
+      )
+    )
+      return;
+    setDraft((current) => [
+      ...current,
+      {
+        ...values,
+        id: `catalog-${values.sanity_product_id || values.sku}-${current.length}`,
+        source_order_item_id: null,
+      },
+    ]);
+  };
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
@@ -191,13 +255,17 @@ export function PackingItemsGrid({
                   await savePackingItem(
                     provider,
                     parent,
-                    String(draft[i].source_order_item_id),
+                    draft[i].source_order_item_id
+                      ? String(draft[i].source_order_item_id)
+                      : "",
                     Object.fromEntries([
                       ...editable.map((key) => [
                         key,
                         draft[i][key] === "" ? 0 : draft[i][key],
                       ]),
                       ["product_snapshot", draft[i].product_snapshot],
+                      ["sku", draft[i].sku],
+                      ["sanity_product_id", draft[i].sanity_product_id],
                     ]),
                     String(draft[i].id).startsWith("draft-")
                       ? undefined
@@ -219,38 +287,52 @@ export function PackingItemsGrid({
           </Button>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <label className="text-sm" htmlFor="packing-order-item">
-          从订单加入产品
-        </label>
-        <select
-          id="packing-order-item"
-          className="rounded border p-1"
-          value={sourceId}
-          onChange={(event) => setSourceId(event.target.value)}
-        >
-          <option value="">选择订单产品项</option>
-          {sources
-            .filter(
-              (source) =>
-                !draft.some((item) => item.source_order_item_id === source.id),
-            )
-            .map((source) => (
-              <option value={String(source.id)} key={source.id}>
-                {String(source.sku || "—")} ·{" "}
-                {String((source.product_snapshot as Row)?.name || "产品")}
-              </option>
-            ))}
-        </select>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!sourceId || saving}
-          onClick={addSource}
-        >
-          加入
-        </Button>
-      </div>
+      {parent.order_id ? (
+        <div className="flex items-center gap-2">
+          <label className="text-sm" htmlFor="packing-order-item">
+            从订单加入产品
+          </label>
+          <select
+            id="packing-order-item"
+            className="rounded border p-1"
+            value={sourceId}
+            onChange={(event) => setSourceId(event.target.value)}
+          >
+            <option value="">选择订单产品项</option>
+            {sources
+              .filter(
+                (source) =>
+                  !draft.some(
+                    (item) => item.source_order_item_id === source.id,
+                  ),
+              )
+              .map((source) => (
+                <option value={String(source.id)} key={source.id}>
+                  {String(source.sku || "—")} ·{" "}
+                  {String((source.product_snapshot as Row)?.name || "产品")}
+                </option>
+              ))}
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!sourceId || saving}
+            onClick={addSource}
+          >
+            加入
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="text-sm">从产品库添加产品</span>
+          <ProductLibraryLookup
+            capturePacking
+            includeUnit
+            onManualSku={() => undefined}
+            onSelected={addCatalogProduct}
+          />
+        </div>
+      )}
       <div className="w-full min-w-0 overflow-x-auto">
         <table className="w-full min-w-0 table-fixed text-sm">
           <colgroup>
