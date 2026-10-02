@@ -1,6 +1,7 @@
 import type { DataProvider, RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { positiveQuantity } from "../production/productionWorkflow";
+import { withPackingItemUnit } from "./packingExportSnapshot";
 
 const dimensions = [
   "cartons",
@@ -80,12 +81,15 @@ export async function savePackingItem(
   if (!Number.isFinite(available) || quantity > available)
     throw new Error(`数量超过剩余可装箱数量（${available}）。`);
   data.sku = previous?.sku || source.sku;
-  data.product_snapshot = {
+  const productSnapshot = {
     ...structuredClone(
       previous?.product_snapshot || source.product_snapshot || {},
     ),
     ...((values.product_snapshot as Values) || {}),
   };
+  data.product_snapshot = Object.hasOwn(productSnapshot, "unit")
+    ? withPackingItemUnit(productSnapshot, String(productSnapshot.unit || ""))
+    : productSnapshot;
   return previous
     ? provider.update("romiku_packing_items", {
         id: previous.id,

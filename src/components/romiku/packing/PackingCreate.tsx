@@ -4,6 +4,7 @@ import { useDataProvider } from "ra-core";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "../outbound/RelatedRecords";
 import { OrderSelect } from "../production/fulfillmentShared";
+import { defaultPackingSellerSnapshot } from "./packingExportSnapshot";
 
 export function PackingCreate() {
   const provider = useDataProvider(),
@@ -18,9 +19,15 @@ export function PackingCreate() {
     setFailure("");
     try {
       if (!orderId) throw new Error("请选择订单。");
-      await provider.getOne("romiku_orders", { id: orderId });
+      const { data: order } = await provider.getOne("romiku_orders", {
+        id: orderId,
+      });
       const { data } = await provider.create("romiku_packing_lists", {
-        data: { order_id: orderId },
+        data: {
+          order_id: orderId,
+          seller_snapshot: defaultPackingSellerSnapshot(),
+          buyer_snapshot: structuredClone(order.counterparty_snapshot || {}),
+        },
       });
       navigate(`/packing-shipping/${data.id}`);
     } catch (cause) {

@@ -13,6 +13,7 @@ import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { FulfillmentItems } from "./FulfillmentItems";
 import { PackingItemsGrid } from "../packing/PackingItemsGrid";
+import { PackingExportDetails } from "../packing/PackingExportDetails";
 import { productionStatusChoices } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 
@@ -225,9 +226,15 @@ function FulfillmentEditor({
     setFailure("");
     setSaved(false);
     try {
-      const data = Object.fromEntries(
-        fields.map(({ key }) => [key, values[key] || null]),
-      );
+      const data = Object.fromEntries([
+        ...fields.map(({ key }) => [key, values[key] || null]),
+        ...(kind === "packing"
+          ? [
+              ["seller_snapshot", values.seller_snapshot || {}],
+              ["buyer_snapshot", values.buyer_snapshot || {}],
+            ]
+          : []),
+      ]);
       const dateKey = kind === "production" ? "factory_due_at" : "packing_at";
       if (data[dateKey]) {
         const date = new Date(String(data[dateKey]));
@@ -281,6 +288,13 @@ function FulfillmentEditor({
       </details>
       {failure && <p role="alert">{failure}</p>}
       {saved && <p role="status">{config.label}已保存。</p>}
+      {kind === "packing" && (
+        <PackingExportDetails
+          values={values}
+          editable={!busy}
+          onChange={setValues}
+        />
+      )}
       {items.error ? (
         <p role="alert">
           无法加载产品项。 <Button onClick={() => items.refetch()}>重试</Button>

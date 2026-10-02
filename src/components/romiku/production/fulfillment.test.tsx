@@ -10,14 +10,23 @@ import "@/index.css";
 async function setup(path: string) {
   await page.viewport(1440, 1200);
   const provider = fakeRestDataProvider({
-    romiku_orders: [{ id: "o", document_number: "SO-001" }],
+    romiku_orders: [
+      {
+        id: "o",
+        document_number: "SO-001",
+        counterparty_snapshot: {
+          company: "Saved Order Buyer",
+          address: "Madrid",
+        },
+      },
+    ],
     romiku_order_items: [
       {
         id: "i",
         order_id: "o",
         sku: "A",
         quantity: 100,
-        product_snapshot: { name: "Lamp" },
+        product_snapshot: { name: "Lamp", unit: "PCS" },
         packing_snapshot: { cartons: 4 },
       },
       {
@@ -119,6 +128,7 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
     .getByLabelText("从订单加入产品", { exact: true })
     .selectOptions("i");
   await screen.getByRole("button", { name: "加入", exact: true }).click();
+  await screen.getByLabelText("unit A", { exact: true }).fill("SET");
   await screen.getByLabelText("quantity A", { exact: true }).fill("15");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
@@ -128,11 +138,23 @@ it("creates multiple Packing Lists for the same Order and edits only the copied 
     )
     .toBe(15);
   const line = (await readRelated(provider, "romiku_packing_items", {}))[0];
-  expect(line.product_snapshot).toEqual({ name: "Lamp" });
+  expect(line.product_snapshot).toEqual({ name: "Lamp", unit: "SET" });
   expect(
     (await provider.getOne("romiku_order_items", { id: "i" })).data
       .product_snapshot,
-  ).toEqual({ name: "Lamp" });
+  ).toEqual({ name: "Lamp", unit: "PCS" });
+  const packing = (
+    await readRelated(provider, "romiku_packing_lists", {})
+  ).find((item) => item.id !== "p");
+  expect(packing).toMatchObject({
+    seller_snapshot: {
+      company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲",
+    },
+    buyer_snapshot: {
+      company: "Saved Order Buyer",
+      address: "Madrid",
+    },
+  });
   expect(
     await readRelated(provider, "romiku_packing_lists", { order_id: "o" }),
   ).toHaveLength(2);
@@ -172,7 +194,7 @@ it("edits a Production Order copy while retaining its Order source", async () =>
   expect(
     (await provider.getOne("romiku_order_items", { id: "i" })).data
       .product_snapshot,
-  ).toEqual({ name: "Lamp" });
+  ).toEqual({ name: "Lamp", unit: "PCS" });
   expect(
     (await readRelated(provider, "romiku_production_orders", {}))[0]
       .supplier_id,

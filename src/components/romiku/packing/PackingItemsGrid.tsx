@@ -95,6 +95,20 @@ export function PackingItemsGrid({
           : item,
       ),
     );
+  const changeUnit = (row: number, value: string) =>
+    setDraft((current) =>
+      current.map((item, index) =>
+        index === row
+          ? {
+              ...item,
+              product_snapshot: {
+                ...((item.product_snapshot as Row) || {}),
+                unit: value,
+              },
+            }
+          : item,
+      ),
+    );
   const total = draft.reduce(
     (sum, item) => ({
       quantity: sum.quantity + number(item.quantity),
@@ -178,12 +192,13 @@ export function PackingItemsGrid({
                     provider,
                     parent,
                     String(draft[i].source_order_item_id),
-                    Object.fromEntries(
-                      editable.map((key) => [
+                    Object.fromEntries([
+                      ...editable.map((key) => [
                         key,
                         draft[i][key] === "" ? 0 : draft[i][key],
                       ]),
-                    ),
+                      ["product_snapshot", draft[i].product_snapshot],
+                    ]),
                     String(draft[i].id).startsWith("draft-")
                       ? undefined
                       : items.find((item) => item.id === draft[i].id),
@@ -280,6 +295,19 @@ export function PackingItemsGrid({
                   <td className="p-2">{String(item.sku || "")}</td>
                   <td className="p-2">
                     {String((item.product_snapshot as any)?.name || "")}
+                    <label className="mt-1 block text-xs">
+                      Unit
+                      <input
+                        aria-label={`unit ${item.sku}`}
+                        className="block w-full rounded border p-1"
+                        value={String(
+                          (item.product_snapshot as Row)?.unit || "",
+                        )}
+                        onChange={(event) =>
+                          changeUnit(index, event.target.value)
+                        }
+                      />
+                    </label>
                   </td>
                   <td className="p-2">
                     {(item.product_snapshot as any)?.image_url && (
