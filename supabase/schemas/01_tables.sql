@@ -753,6 +753,8 @@ create table public.romiku_packing_lists (
     shipping_mark text,
     batch_label text,
     notes text,
+    seller_snapshot jsonb not null default '{}',
+    buyer_snapshot jsonb not null default '{}',
     archived_at timestamptz,
     unique(id,order_id),
     owner_id uuid default auth.uid() references auth.users(id),

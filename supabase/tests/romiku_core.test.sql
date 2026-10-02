@@ -176,6 +176,30 @@ select is((select quantity from romiku_production_items where production_order_i
 
 insert into romiku_packing_lists(id,order_id) select '50000000-0000-0000-0000-000000000001',id from test_ids where kind='order';
 insert into romiku_packing_lists(id,order_id) select '50000000-0000-0000-0000-000000000002',id from test_ids where kind='order';
+select is(
+  (select seller_snapshot from romiku_packing_lists where id='50000000-0000-0000-0000-000000000001'),
+  '{}'::jsonb,
+  'Packing Seller snapshot defaults to an empty saved object'
+);
+select is(
+  (select buyer_snapshot from romiku_packing_lists where id='50000000-0000-0000-0000-000000000001'),
+  '{}'::jsonb,
+  'Packing Buyer snapshot defaults to an empty saved object'
+);
+update romiku_packing_lists
+set seller_snapshot='{"company_name":"Manual Packing Seller"}'::jsonb,
+    buyer_snapshot='{"company_name":"Manual Packing Buyer"}'::jsonb
+where id='50000000-0000-0000-0000-000000000002';
+select is(
+  (select seller_snapshot->>'company_name' from romiku_packing_lists where id='50000000-0000-0000-0000-000000000002'),
+  'Manual Packing Seller',
+  'Packing Seller snapshot accepts a document-only saved value'
+);
+select is(
+  (select buyer_snapshot->>'company_name' from romiku_packing_lists where id='50000000-0000-0000-0000-000000000002'),
+  'Manual Packing Buyer',
+  'Packing Buyer snapshot accepts a document-only saved value'
+);
 insert into romiku_packing_items(id,packing_list_id,order_id,source_order_item_id,sku,quantity,cartons,length_cm,width_cm,height_cm,carton_weight_kg)
 select '51000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',order_id,id,sku,100,2,50,40,30,10 from romiku_order_items where order_id=(select id from test_ids where kind='order');
 select is((select remaining_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),140::numeric,'partial shipment leaves 140');
