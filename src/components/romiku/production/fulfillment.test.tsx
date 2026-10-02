@@ -163,6 +163,36 @@ it("replaces zero-valued Packing dimensions with decimal input instead of append
     )
     .toMatchObject({ length_cm: 55, width_cm: 0.08, height_cm: 55 });
 });
+it("stages a Packing row removal until Save and restores it on Cancel", async () => {
+  const { screen, provider } = await setup("/packing-shipping/p");
+  await screen.getByRole("button", { name: "更多操作 A", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "从此装箱单删除", exact: true })
+    .click();
+  await screen.getByRole("button", { name: "确认移除", exact: true }).click();
+  expect(
+    screen.getByLabelText("quantity A", { exact: true }).query(),
+  ).toBeNull();
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("quantity A", { exact: true }))
+    .toBeVisible();
+
+  await screen.getByRole("button", { name: "更多操作 A", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "从此装箱单删除", exact: true })
+    .click();
+  await screen.getByRole("button", { name: "确认移除", exact: true }).click();
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .poll(async () => readRelated(provider, "romiku_packing_items", {}))
+    .toHaveLength(0);
+  expect(
+    (await provider.getOne("romiku_order_items", { id: "i" })).data,
+  ).toMatchObject({
+    quantity: 100,
+  });
+});
 it("creates an Order Packing List with every remaining Order item and edits only its saved copy", async () => {
   const { screen, provider } = await setup("/packing-shipping/new?order=o");
   await screen.getByRole("button", { name: "创建装箱单", exact: true }).click();

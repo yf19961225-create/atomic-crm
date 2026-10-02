@@ -22,6 +22,7 @@ describe("packing grid columns", () => {
       "total_cbm",
       "carton_weight_kg",
       "total_weight",
+      "actions",
     ]);
     expect(
       packingComputedValues({

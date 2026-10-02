@@ -52,6 +52,7 @@ export const packingColumnKeys = [
   "total_cbm",
   "carton_weight_kg",
   "total_weight",
+  "actions",
 ] as const;
 export const packingColumnWidths = [
   "3%",
@@ -66,6 +67,7 @@ export const packingColumnWidths = [
   "6%",
   "8%",
   "8%",
+  "4%",
   "8%",
   "8%",
 ] as const;
@@ -93,7 +95,9 @@ export function PackingItemsGrid({
   const provider = useDataProvider();
   const [draft, setDraft] = useState<Row[]>(items.map((item) => ({ ...item })));
   const [saving, setSaving] = useState(false),
-    [failure, setFailure] = useState("");
+    [failure, setFailure] = useState(""),
+    [menuId, setMenuId] = useState<string | null>(null),
+    [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   useEffect(() => {
     setDraft(items.map((item) => ({ ...item })));
   }, [items]);
@@ -199,6 +203,13 @@ export function PackingItemsGrid({
                       ? undefined
                       : items.find((item) => item.id === draft[i].id),
                   );
+                for (const item of items.filter(
+                  (saved) => !draft.some((row) => row.id === saved.id),
+                ))
+                  await provider.delete("romiku_packing_items", {
+                    id: item.id,
+                    previousData: item,
+                  });
                 await onSaved();
               } catch (cause) {
                 setFailure(
@@ -254,6 +265,7 @@ export function PackingItemsGrid({
                 "总体积",
                 "单箱重量",
                 "总重量",
+                "操作",
               ].map((label) => (
                 <th className="whitespace-nowrap p-2 text-left" key={label}>
                   {label}
@@ -341,6 +353,36 @@ export function PackingItemsGrid({
                   <td className="whitespace-nowrap p-2 text-right">
                     {computed.totalWeight}
                   </td>
+                  <td className="relative p-1 text-center">
+                    <Button
+                      aria-label={`更多操作 ${item.sku}`}
+                      className="h-7 w-7 p-0"
+                      type="button"
+                      variant="ghost"
+                      onClick={() =>
+                        setMenuId((current) =>
+                          current === String(item.id) ? null : String(item.id),
+                        )
+                      }
+                    >
+                      ⋯
+                    </Button>
+                    {menuId === String(item.id) && (
+                      <div className="absolute right-0 z-10 mt-1 rounded border bg-background p-1 shadow">
+                        <Button
+                          className="whitespace-nowrap"
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            setMenuId(null);
+                            setPendingDelete(item);
+                          }}
+                        >
+                          从此装箱单删除
+                        </Button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -362,10 +404,38 @@ export function PackingItemsGrid({
               <td className="whitespace-nowrap text-right">
                 {total.weight.toFixed(2)} kg
               </td>
+              <td />
             </tr>
           </tfoot>
         </table>
       </div>
+      {pendingDelete && (
+        <div
+          className="flex items-center gap-2 rounded border p-3"
+          role="alertdialog"
+        >
+          <p>确认从当前装箱单移除此产品？</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPendingDelete(null)}
+          >
+            返回
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              setDraft((current) =>
+                current.filter((item) => item.id !== pendingDelete.id),
+              );
+              setPendingDelete(null);
+            }}
+          >
+            确认移除
+          </Button>
+        </div>
+      )}
       {failure && <p role="alert">{failure}</p>}
     </section>
   );
