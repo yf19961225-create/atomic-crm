@@ -158,6 +158,8 @@ const naturalImageDimensions = (buffer: ArrayBuffer): ImageDimensions => {
 };
 
 export type PreparedProductImage = ImageDimensions & {
+  /** Zero-based target column; existing commercial templates default to D. */
+  column?: number;
   row: number;
   buffer: ArrayBuffer;
   extension: "png" | "jpeg";
@@ -256,7 +258,7 @@ const packageProductAnchor = (
     IMAGE_PADDING * EMUS_PER_PIXEL,
     Math.floor((cellHeightEmu - heightEmu) / 2),
   );
-  return `<xdr:oneCellAnchor><xdr:from><xdr:col>3</xdr:col><xdr:colOff>${colOffEmu}</xdr:colOff><xdr:row>${image.row - 1}</xdr:row><xdr:rowOff>${rowOffEmu}</xdr:rowOff></xdr:from><xdr:ext cx="${widthEmu}" cy="${heightEmu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${shapeId}" name="Product image ${productIndex}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${relationshipId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
+  return `<xdr:oneCellAnchor><xdr:from><xdr:col>${image.column ?? 3}</xdr:col><xdr:colOff>${colOffEmu}</xdr:colOff><xdr:row>${image.row - 1}</xdr:row><xdr:rowOff>${rowOffEmu}</xdr:rowOff></xdr:from><xdr:ext cx="${widthEmu}" cy="${heightEmu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${shapeId}" name="Product image ${productIndex}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${relationshipId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
 };
 
 /**
@@ -302,7 +304,23 @@ export async function preserveTemplatePackage(
   const productAnchors = productImages.map((image, index) =>
     packageProductAnchor(
       image,
-      photoColumnWidth,
+      image.column === undefined
+        ? photoColumnWidth
+        : columnWidthPixels(
+            Number(
+              [...sourceWorksheet.matchAll(/<col\b[^>]*\/>/g)]
+                .map(([column]) => ({
+                  min: Number(column.match(/\bmin="(\d+)"/)?.[1]),
+                  max: Number(column.match(/\bmax="(\d+)"/)?.[1]),
+                  width: Number(column.match(/\bwidth="([^"]+)"/)?.[1]),
+                }))
+                .find(
+                  (column) =>
+                    column.min <= image.column! + 1 &&
+                    column.max >= image.column! + 1,
+                )?.width || 8.43,
+            ),
+          ),
       firstRelationshipId + index,
       firstShapeId + index,
       index + 1,
@@ -330,6 +348,37 @@ export async function preserveTemplatePackage(
           .join("")}</Relationships>`,
       ),
     );
+  // Production templates may have no logo/drawing parts. Bootstrap the same
+  // package-level anchors rather than adding a separate image renderer.
+  if (!sourceDrawing && productImages.length) {
+    output.file(
+      drawingPath,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${productAnchors.join("")}</xdr:wsDr>`,
+    );
+    output.file(
+      relationshipPath,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${productImages.map((image, index) => `<Relationship Id="rId${firstRelationshipId + index}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${firstImageNumber + index}.${image.extension}"/>`).join("")}</Relationships>`,
+    );
+    const sheetRelationsPath = "xl/worksheets/_rels/sheet1.xml.rels";
+    const sheetRelations =
+      (await textPart(output, sheetRelationsPath)) ||
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+    const drawingRelationId = maxRelationshipId(sheetRelations) + 1;
+    output.file(
+      sheetRelationsPath,
+      sheetRelations.replace(
+        "</Relationships>",
+        `<Relationship Id="rId${drawingRelationId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`,
+      ),
+    );
+    output.file(
+      worksheetPath,
+      outputWorksheet.replace(
+        "</worksheet>",
+        `<drawing r:id="rId${drawingRelationId}"/></worksheet>`,
+      ),
+    );
+  }
   productImages.forEach((image, index) =>
     output.file(
       `xl/media/image${firstImageNumber + index}.${image.extension}`,
@@ -347,6 +396,15 @@ export async function preserveTemplatePackage(
         `<Default Extension="${extension}" ContentType="image/${extension === "jpeg" ? "jpeg" : "png"}"/></Types>`,
       );
   }
+  if (
+    !sourceDrawing &&
+    productImages.length &&
+    !contentTypes.includes('PartName="/xl/drawings/drawing1.xml"')
+  )
+    contentTypes = contentTypes.replace(
+      "</Types>",
+      '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>',
+    );
   if (contentTypes) output.file(contentTypesPath, contentTypes);
 
   const sourceMargins = sourceWorksheet.match(/<pageMargins\b[^>]*\/>/)?.[0];
@@ -361,7 +419,7 @@ export async function preserveTemplatePackage(
     /<printOptions\b[^>]*\/>/,
   )?.[0];
   if (outputWorksheet && sourceMargins && sourceSetup) {
-    const preservedWorksheet = outputWorksheet
+    const preservedWorksheet = (await textPart(output, worksheetPath))
       .replace(/<pageMargins\b[^>]*\/>/, sourceMargins)
       .replace(/<pageSetup\b[^>]*\/>/, sourceSetup)
       .replace(
@@ -378,7 +436,7 @@ export async function preserveTemplatePackage(
   const workbookPath = "xl/workbook.xml";
   const workbookXml = await textPart(output, workbookPath);
   const printTitles = `<definedName name="_xlnm.Print_Titles" localSheetId="0">&apos;${worksheetName}&apos;!$1:$${printTitleLastRow}</definedName>`;
-  if (workbookXml) {
+  if (workbookXml && printTitleLastRow > 0) {
     const withPrintTitles = workbookXml.includes('name="_xlnm.Print_Titles"')
       ? workbookXml.replace(
           /<definedName name="_xlnm\.Print_Titles"[^>]*>[^<]*<\/definedName>/,

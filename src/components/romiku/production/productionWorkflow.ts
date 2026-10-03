@@ -1,6 +1,7 @@
 import type { DataProvider, RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { readRelated } from "../outbound/workflow";
+import { createProductionMarkingSnapshot } from "../marking/markingProfile";
 
 export type ProductionSelection = {
   itemId: string;
@@ -40,6 +41,7 @@ export async function createProductionOrders(
     if (!source) throw new Error("所选产品项必须属于该订单。");
     const quantity = positiveQuantity(selection.quantity);
     items.push({
+      position: items.length + 1,
       order_id: orderId,
       source_order_item_id: source.id,
       sanity_product_id: source.sanity_product_id || null,
@@ -49,6 +51,17 @@ export async function createProductionOrders(
       packaging_snapshot: structuredClone(source.packing_snapshot || {}),
     });
   }
+  const { data: order } = await provider.getOne("romiku_orders", {
+    id: orderId,
+  });
+  const customer = order.formal_customer_id
+    ? (
+        await provider.getOne("romiku_formal_customers", {
+          id: order.formal_customer_id,
+        })
+      ).data
+    : undefined;
+  const marking_snapshot = createProductionMarkingSnapshot(order, customer);
   const documents: RaRecord[] = [];
   try {
     const { data } = await provider.create("romiku_production_orders", {
@@ -57,6 +70,7 @@ export async function createProductionOrders(
         supplier_id: null,
         supplier_snapshot: null,
         status: "pending",
+        marking_snapshot,
       },
     });
     documents.push(data);
@@ -96,6 +110,22 @@ export async function saveProductionItem(
     product_snapshot: structuredClone(source.product_snapshot || {}),
     packaging_snapshot: structuredClone(source.packing_snapshot || {}),
   };
+  const packaging = {
+    ...copy.packaging_snapshot,
+    ...((values.packaging_snapshot as Values) || {}),
+  };
+  for (const key of ["cartons", "qty_per_carton"]) {
+    if (
+      packaging[key] === undefined ||
+      packaging[key] === null ||
+      packaging[key] === ""
+    )
+      continue;
+    const number = Number(packaging[key]);
+    if (!Number.isFinite(number) || number < 0)
+      throw new Error("箱数和装箱数必须为非负数。");
+    packaging[key] = number;
+  }
   const data = {
     quantity: positiveQuantity(values.quantity),
     sku: copy.sku,
@@ -103,10 +133,7 @@ export async function saveProductionItem(
       ...copy.product_snapshot,
       ...((values.product_snapshot as Values) || {}),
     },
-    packaging_snapshot: {
-      ...copy.packaging_snapshot,
-      ...((values.packaging_snapshot as Values) || {}),
-    },
+    packaging_snapshot: packaging,
     production_note_zh: values.production_note_zh || null,
   };
   return previous
@@ -118,6 +145,15 @@ export async function saveProductionItem(
     : provider.create("romiku_production_items", {
         data: {
           ...data,
+          position:
+            (
+              await readRelated(provider, "romiku_production_items", {
+                production_order_id: parent.id,
+              })
+            ).reduce(
+              (max, item) => Math.max(max, Number(item.position) || 0),
+              0,
+            ) + 1,
           production_order_id: parent.id,
           order_id: parent.order_id,
           source_order_item_id: source.id,

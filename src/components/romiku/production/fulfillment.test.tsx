@@ -296,7 +296,7 @@ it("edits a Production Order copy while retaining its Order source", async () =>
     .toBeVisible();
   await expect.element(screen.getByText("图片", { exact: true })).toBeVisible();
   await expect
-    .element(screen.getByText("生产数量", { exact: true }))
+    .element(screen.getByText("装箱数", { exact: true }))
     .toBeVisible();
   await expect
     .element(screen.getByText("总数量", { exact: true }))
@@ -307,6 +307,16 @@ it("edits a Production Order copy while retaining its Order source", async () =>
     .toBeDisabled();
   await screen.getByLabelText("产品名称", { exact: true }).fill("Factory copy");
   await screen.getByLabelText("数量", { exact: true }).fill("30");
+  await screen.getByLabelText("箱数", { exact: true }).fill("5");
+  await screen.getByLabelText("装箱数", { exact: true }).fill("32");
+  await screen
+    .getByLabelText("产品规格", { exact: true })
+    .fill("Saved factory specification");
+  await expect
+    .element(
+      screen.getByText("总数量与箱数 × 装箱数不一致；仍可按本次生产数量保存。"),
+    )
+    .toBeVisible();
   await screen
     .getByRole("button", { name: "保存生产产品项", exact: true })
     .click();
@@ -317,6 +327,12 @@ it("edits a Production Order copy while retaining its Order source", async () =>
           .quantity,
     )
     .toBe(30);
+  expect(
+    (await readRelated(provider, "romiku_production_items", {}))[0],
+  ).toMatchObject({
+    packaging_snapshot: { cartons: 5, qty_per_carton: 32 },
+    product_snapshot: { specification: "Saved factory specification" },
+  });
   expect(
     (await provider.getOne("romiku_order_items", { id: "i" })).data
       .product_snapshot,

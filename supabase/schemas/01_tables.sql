@@ -279,6 +279,7 @@ create table public.romiku_source_urls (
 );
 
 create table public.romiku_formal_customers (
+    marking_profile jsonb not null default '{}' check (jsonb_typeof(marking_profile)='object'),
     id uuid primary key default gen_random_uuid(),
     name text not null,
     country text,
@@ -687,6 +688,7 @@ create table public.romiku_procurement_cost_history (
 );
 
 create table public.romiku_production_orders (
+    marking_snapshot jsonb not null default '{}' check (jsonb_typeof(marking_snapshot)='object'),
     id uuid primary key default gen_random_uuid(),
     document_number text not null unique,
     name text,
@@ -709,6 +711,7 @@ create table public.romiku_production_orders (
 );
 
 create table public.romiku_production_items (
+    position integer not null default 0 check (position >= 0),
     id uuid primary key default gen_random_uuid(),
     production_order_id uuid not null,
     order_id uuid not null,

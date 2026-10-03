@@ -1,3 +1,4 @@
+import { MarkingProfileEditor } from "../marking/MarkingProfileEditor";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
@@ -21,6 +22,10 @@ import { normalizePackingExportModel } from "../packing/packingExportModel";
 import { renderPackingXlsx } from "../packing/packingXlsxRenderer";
 import { productionStatusChoices } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+import { normalizeProductionExportModel } from "./productionExportModel";
+import { renderProductionXlsx } from "./productionXlsxRenderer";
+import { hydrateProductionMarkingImages } from "../marking/markingAssets";
+import productionTemplateUrl from "@/assets/production-templates/ROMIKU生产单模板.xlsx?url";
 import packingTemplateUrl from "@/assets/packing-templates/ROMIKU_装箱单_模板.xlsx?url";
 
 function download(data: BlobPart, type: string, name: string) {
@@ -313,6 +318,36 @@ function FulfillmentEditor({
       setBusy(false);
     }
   }
+  async function exportProductionXlsx() {
+    if (kind !== "production") return;
+    setExporting(true);
+    setFailure("");
+    try {
+      const [saved, savedItems, template] = await Promise.all([
+        provider.getOne("romiku_production_orders", { id: record.id }),
+        readRelated(provider, "romiku_production_items", {
+          production_order_id: record.id,
+        }),
+        fetch(productionTemplateUrl).then((response) => {
+          if (!response.ok) throw new Error("无法加载生产单 XLSX 模板。");
+          return response.arrayBuffer();
+        }),
+      ]);
+      const model = await hydrateProductionMarkingImages(
+        normalizeProductionExportModel(saved.data, savedItems),
+      );
+      const xlsx = await renderProductionXlsx(model, template);
+      download(
+        xlsx,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `${model.document.number || "PRODUCTION"}.xlsx`,
+      );
+    } catch (cause) {
+      setFailure(errorMessage(cause));
+    } finally {
+      setExporting(false);
+    }
+  }
   async function exportPackingXlsx() {
     if (kind !== "packing" || !items.data) return;
     setExporting(true);
@@ -379,6 +414,19 @@ function FulfillmentEditor({
           </fieldset>
         </form>
       </details>
+      {kind === "production" && (
+        <>
+          <MarkingProfileEditor kind="production" record={record} />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!items.data || busy || exporting}
+            onClick={exportProductionXlsx}
+          >
+            {exporting ? "正在导出生产单…" : "导出 Production XLSX"}
+          </Button>
+        </>
+      )}
       {failure && <p role="alert">{failure}</p>}
       {saved && <p role="status">{config.label}已保存。</p>}
       {kind === "packing" && (

@@ -2,6 +2,8 @@ import { WorkflowPage, type WorkflowConfig } from "../outbound/WorkflowPage";
 import { ownerField } from "../outbound/WorkflowFields";
 import { CustomerHistory } from "./CustomerHistory";
 
+import { MarkingProfileEditor } from "../marking/MarkingProfileEditor";
+
 const statuses = ["active", "inactive"];
 const config: WorkflowConfig = {
   kind: "customer",
@@ -21,6 +23,12 @@ const config: WorkflowConfig = {
     { key: "notes", label: "备注", type: "textarea" },
   ],
   extraTabs: [
+    {
+      title: "包装 / 唛头资料",
+      render: (record) => (
+        <MarkingProfileEditor kind="customer" record={record} />
+      ),
+    },
     {
       title: "来源历史",
       render: (record) => <CustomerHistory record={record} />,

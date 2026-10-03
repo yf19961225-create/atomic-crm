@@ -62,6 +62,18 @@ begin
   if cardinality(matched_fields) > 0 then return next; end if;
 end $_$;
 
+CREATE OR REPLACE FUNCTION "public"."romiku_marking_search_fields"("value" "jsonb") RETURNS "jsonb"
+    LANGUAGE "sql" IMMUTABLE PARALLEL SAFE
+    SET "search_path" TO ''
+    AS $$
+ select jsonb_build_object(
+   'marking.front_mark',value#>>'{front_mark,text}',
+   'marking.side_mark',value#>>'{side_mark,text}',
+   'marking.small_label',value#>>'{small_label,text}',
+   'marking.labeling_requirements',value->>'labeling_requirements',
+   'marking.production_requirements',value->>'production_requirements')
+$$;
+
 CREATE OR REPLACE FUNCTION "public"."romiku_search_snapshot"("value" "jsonb", "prefix" "text", "kind" "text") RETURNS "jsonb"
     LANGUAGE "plpgsql" IMMUTABLE PARALLEL SAFE
     SET "search_path" TO ''
@@ -283,8 +295,8 @@ CREATE OR REPLACE FUNCTION "public"."romiku_search_text"("value" "jsonb") RETURN
 $$;
 
 alter table public.romiku_formal_customers
-  add column business_search_fields jsonb generated always as (public.romiku_search_fields(jsonb_object(array['name',name,'country',country,'status',status,'notes',notes])||public.romiku_search_snapshot(logistics,'logistics','logistics')||public.romiku_search_snapshot(requirements,'requirements','requirements'))) stored,
-  add column business_search_text text generated always as (public.romiku_search_text(jsonb_object(array['name',name,'country',country,'status',status,'notes',notes])||public.romiku_search_snapshot(logistics,'logistics','logistics')||public.romiku_search_snapshot(requirements,'requirements','requirements'))) stored;
+  add column business_search_fields jsonb generated always as (public.romiku_search_fields(jsonb_object(array['name',name,'country',country,'status',status,'notes',notes])||public.romiku_search_snapshot(logistics,'logistics','logistics')||public.romiku_search_snapshot(requirements,'requirements','requirements')||public.romiku_marking_search_fields(marking_profile))) stored,
+  add column business_search_text text generated always as (public.romiku_search_text(jsonb_object(array['name',name,'country',country,'status',status,'notes',notes])||public.romiku_search_snapshot(logistics,'logistics','logistics')||public.romiku_search_snapshot(requirements,'requirements','requirements')||public.romiku_marking_search_fields(marking_profile))) stored;
 create index romiku_formal_customers_business_search_idx on public.romiku_formal_customers using gin (business_search_text extensions.gin_trgm_ops);
 
 alter table public.romiku_outbound_companies
@@ -313,8 +325,8 @@ alter table public.romiku_orders
 create index romiku_orders_business_search_idx on public.romiku_orders using gin (business_search_text extensions.gin_trgm_ops);
 
 alter table public.romiku_production_orders
-  add column business_search_fields jsonb generated always as (public.romiku_search_fields(jsonb_object(array['document_number',document_number,'name',name,'status',status,'anomaly_notes',anomaly_notes,'notes',notes])||jsonb_object(array['factory_due_at',public.romiku_search_date(factory_due_at)])||public.romiku_search_snapshot(supplier_snapshot,'supplier_snapshot','party'))) stored,
-  add column business_search_text text generated always as (public.romiku_search_text(jsonb_object(array['document_number',document_number,'name',name,'status',status,'anomaly_notes',anomaly_notes,'notes',notes])||jsonb_object(array['factory_due_at',public.romiku_search_date(factory_due_at)])||public.romiku_search_snapshot(supplier_snapshot,'supplier_snapshot','party'))) stored;
+  add column business_search_fields jsonb generated always as (public.romiku_search_fields(jsonb_object(array['document_number',document_number,'name',name,'status',status,'anomaly_notes',anomaly_notes,'notes',notes])||jsonb_object(array['factory_due_at',public.romiku_search_date(factory_due_at)])||public.romiku_search_snapshot(supplier_snapshot,'supplier_snapshot','party')||public.romiku_marking_search_fields(marking_snapshot))) stored,
+  add column business_search_text text generated always as (public.romiku_search_text(jsonb_object(array['document_number',document_number,'name',name,'status',status,'anomaly_notes',anomaly_notes,'notes',notes])||jsonb_object(array['factory_due_at',public.romiku_search_date(factory_due_at)])||public.romiku_search_snapshot(supplier_snapshot,'supplier_snapshot','party')||public.romiku_marking_search_fields(marking_snapshot))) stored;
 create index romiku_production_orders_business_search_idx on public.romiku_production_orders using gin (business_search_text extensions.gin_trgm_ops);
 
 alter table public.romiku_packing_lists
@@ -406,3 +418,6 @@ revoke all on function public.romiku_search_date(timestamptz) from public,anon;
 grant execute on function public.romiku_search_date(timestamptz) to authenticated,service_role;
 revoke all on function public.romiku_search_join(text[]) from public,anon;
 grant execute on function public.romiku_search_join(text[]) to authenticated,service_role;
+
+revoke all on function public.romiku_marking_search_fields(jsonb) from public,anon;
+grant execute on function public.romiku_marking_search_fields(jsonb) to authenticated,service_role;

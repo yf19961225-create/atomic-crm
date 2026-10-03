@@ -1,3 +1,4 @@
+import { recordValue } from "../marking/markingProfile";
 import { useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
@@ -43,17 +44,9 @@ export function FulfillmentItems({
   items: RaRecord[];
   onChanged: () => Promise<unknown>;
 }) {
-  const provider = useDataProvider();
   const [editing, setEditing] = useState<RaRecord | "new" | null>(null);
   const totals = packingTotals(items);
-  const sourceItems = useQuery({
-    queryKey: ["fulfillment-source-order-items", parent.order_id],
-    queryFn: () =>
-      readRelated(provider, "romiku_order_items", {
-        order_id: parent.order_id,
-      }),
-    enabled: kind === "production",
-  });
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
@@ -77,7 +70,7 @@ export function FulfillmentItems({
                 kind === "production" ? "产品名称" : "产品",
                 "图片",
                 ...(kind === "production"
-                  ? ["箱数", "生产数量", "总数量"]
+                  ? ["产品规格", "箱数", "装箱数", "总数量"]
                   : ["数量"]),
                 ...(kind === "packing"
                   ? ["箱数", "CBM", "重量", "唛头 / 备注"]
@@ -93,10 +86,6 @@ export function FulfillmentItems({
           <tbody>
             {items.map((item) => {
               const total = packingTotals([item]);
-              const source = sourceItems.data?.find(
-                (candidate) =>
-                  String(candidate.id) === String(item.source_order_item_id),
-              );
               return (
                 <tr key={item.id} className="border-t">
                   <td className="p-3">{item.sku}</td>
@@ -114,19 +103,22 @@ export function FulfillmentItems({
                   </td>
                   {kind === "production" && (
                     <td className="p-3">
+                      {item.product_snapshot?.specification}
+                    </td>
+                  )}
+                  {kind === "production" && (
+                    <td className="p-3">
                       {item.packaging_snapshot?.cartons ??
                         item.packaging_snapshot?.carton_qty ??
                         "—"}
                     </td>
                   )}
-                  <td className="p-3">{item.quantity}</td>
                   {kind === "production" && (
                     <td className="p-3">
-                      {source?.quantity ??
-                        item.packaging_snapshot?.order_quantity ??
-                        "—"}
+                      {item.packaging_snapshot?.qty_per_carton ?? "—"}
                     </td>
                   )}
+                  <td className="p-3">{item.quantity}</td>
                   {kind === "packing" ? (
                     <>
                       <td className="p-3">{item.cartons}</td>
@@ -208,6 +200,7 @@ function ItemEditor({
     staleTime: 0,
   });
   const available = remaining.data?.find((r) => String(r.id) === sourceId);
+  const packaging = recordValue(values.packaging_snapshot);
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -296,6 +289,9 @@ function ItemEditor({
             ...(kind === "packing"
               ? packingFields
               : [
+                  { key: "product_snapshot.specification", label: "产品规格" },
+                  { key: "packaging_snapshot.cartons", label: "箱数" },
+                  { key: "packaging_snapshot.qty_per_carton", label: "装箱数" },
                   {
                     key: "production_note_zh",
                     label: "生产备注（中文）",
@@ -311,6 +307,15 @@ function ItemEditor({
           values={values}
           onChange={setValues}
         />
+        {kind === "production" &&
+          Number(packaging.cartons) > 0 &&
+          Number(packaging.qty_per_carton) > 0 &&
+          Number(values.quantity) !==
+            Number(packaging.cartons) * Number(packaging.qty_per_carton) && (
+            <p role="status">
+              总数量与箱数 × 装箱数不一致；仍可按本次生产数量保存。
+            </p>
+          )}
         <div className="flex gap-3">
           <Button
             type="submit"
