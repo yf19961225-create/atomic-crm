@@ -37,7 +37,10 @@ export const RomikuLayout = ({ children }: { children: ReactNode }) => (
         <RomikuPrimaryNavigation />
       </SidebarContent>
     </Sidebar>
-    <main className="min-h-svh flex-1 px-4 py-6 md:px-8" id="main-content">
+    <main
+      className="min-h-svh min-w-0 flex-1 px-4 py-6 md:px-8"
+      id="main-content"
+    >
       <header className="mb-4 flex md:hidden">
         <SidebarTrigger aria-label="打开主导航" />
       </header>
