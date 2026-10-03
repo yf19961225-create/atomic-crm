@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
 import { ProductLibraryLookup } from "../commercial/ProductLibraryLookup";
-import { resolvePackingItemDefaults, savePackingItem } from "./packingWorkflow";
+import {
+  packingQuantity,
+  resolvePackingItemDefaults,
+  savePackingItem,
+} from "./packingWorkflow";
 
 type Row = RaRecord & { [key: string]: unknown };
 const editable = [
-  "quantity",
   "cartons",
   "qty_per_carton",
   "length_cm",
@@ -42,34 +45,38 @@ export const packingColumnKeys = [
   "sku",
   "name",
   "image",
-  "quantity",
+  "specification",
   "cartons",
   "qty_per_carton",
+  "unit",
+  "quantity",
   "length_cm",
   "width_cm",
   "height_cm",
   "per_cbm",
-  "total_cbm",
   "carton_weight_kg",
+  "total_cbm",
   "total_weight",
   "actions",
 ] as const;
 export const packingColumnWidths = [
   "3%",
-  "8%",
-  "14%",
-  "5%",
   "7%",
-  "6%",
-  "7%",
-  "6%",
-  "6%",
-  "6%",
-  "8%",
-  "8%",
+  "10%",
   "4%",
-  "8%",
-  "8%",
+  "11%",
+  "5%",
+  "5%",
+  "4%",
+  "6%",
+  "5%",
+  "5%",
+  "5%",
+  "6%",
+  "6%",
+  "7%",
+  "7%",
+  "4%",
 ] as const;
 
 export function packingComputedValues(item: Row) {
@@ -77,6 +84,7 @@ export function packingComputedValues(item: Row) {
     (number(item.length_cm) * number(item.width_cm) * number(item.height_cm)) /
     1_000_000;
   return {
+    quantity: packingQuantity(item),
     perCbm: `${perCbm.toFixed(3)} m³`,
     totalCbm: `${(perCbm * number(item.cartons)).toFixed(3)} m³`,
     totalWeight: `${(number(item.carton_weight_kg) * number(item.cartons)).toFixed(2)} kg`,
@@ -101,7 +109,14 @@ export function PackingItemsGrid({
   useEffect(() => {
     setDraft(items.map((item) => ({ ...item })));
   }, [items]);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(items);
+  const edited = JSON.stringify(draft) !== JSON.stringify(items);
+  const dirty =
+    edited ||
+    draft.some(
+      (item) =>
+        packingQuantity(item) > 0 &&
+        number(item.quantity) !== packingQuantity(item),
+    );
   const change = (row: number, key: string, value: string) =>
     setDraft((current) =>
       current.map((item, index) =>
@@ -126,7 +141,7 @@ export function PackingItemsGrid({
     );
   const total = draft.reduce(
     (sum, item) => ({
-      quantity: sum.quantity + number(item.quantity),
+      quantity: sum.quantity + packingQuantity(item),
       cartons: sum.cartons + number(item.cartons),
       cbm:
         sum.cbm +
@@ -167,7 +182,7 @@ export function PackingItemsGrid({
           <Button
             type="button"
             variant="outline"
-            disabled={!dirty || saving}
+            disabled={!edited || saving}
             onClick={() => setDraft(items.map((item) => ({ ...item })))}
           >
             取消
@@ -195,6 +210,7 @@ export function PackingItemsGrid({
                             : 0
                           : draft[i][key],
                       ]),
+                      ["quantity", packingQuantity(draft[i])],
                       ["product_snapshot", draft[i].product_snapshot],
                       ["sku", draft[i].sku],
                       ["sanity_product_id", draft[i].sanity_product_id],
@@ -242,7 +258,7 @@ export function PackingItemsGrid({
         </div>
       )}
       <div className="w-full min-w-0 overflow-x-auto">
-        <table className="w-full min-w-0 table-fixed text-sm">
+        <table className="w-full min-w-[1440px] table-fixed text-sm">
           <colgroup>
             {packingColumnKeys.map((key, index) => (
               <col key={key} style={{ width: packingColumnWidths[index] }} />
@@ -255,16 +271,18 @@ export function PackingItemsGrid({
                 "货号",
                 "产品名称",
                 "图片",
-                "总数量",
+                "产品规格",
                 "箱数",
                 "Qty/Ctn",
+                "Unit",
+                "总数量",
                 "长(cm)",
                 "宽(cm)",
                 "高(cm)",
-                "单箱体积",
-                "总体积",
-                "单箱重量",
-                "总重量",
+                "CBM",
+                "Weight",
+                "Total CBM",
+                "Total Weight",
                 "操作",
               ].map((label) => (
                 <th className="whitespace-nowrap p-2 text-left" key={label}>
@@ -275,30 +293,33 @@ export function PackingItemsGrid({
           </thead>
           <tbody>
             {draft.map((item, index) => {
-              const computed = packingComputedValues(item),
-                warning =
-                  item.qty_per_carton &&
-                  number(item.quantity) !==
-                    number(item.cartons) * number(item.qty_per_carton);
+              const computed = packingComputedValues(item);
+              const input = (key: string) => (
+                <input
+                  aria-label={`${key} ${item.sku}`}
+                  className="block w-full min-w-0 rounded border p-1 text-right"
+                  type="number"
+                  min="0"
+                  step={key === "cartons" ? "1" : "any"}
+                  placeholder="0"
+                  value={inputValue(item[key])}
+                  onChange={(event) => change(index, key, event.target.value)}
+                />
+              );
+              const calculated = (key: string, value: number | string) => (
+                <input
+                  aria-label={`${key} ${item.sku}`}
+                  className="block w-full min-w-0 bg-transparent p-1 text-right tabular-nums"
+                  readOnly
+                  value={value}
+                />
+              );
               return (
                 <tr className="border-t" key={String(item.id)}>
                   <td className="p-2">{index + 1}</td>
                   <td className="p-2">{String(item.sku || "")}</td>
                   <td className="p-2">
                     {String((item.product_snapshot as any)?.name || "")}
-                    <label className="mt-1 block text-xs">
-                      Unit
-                      <input
-                        aria-label={`unit ${item.sku}`}
-                        className="block w-full rounded border p-1"
-                        value={String(
-                          (item.product_snapshot as Row)?.unit || "",
-                        )}
-                        onChange={(event) =>
-                          changeUnit(index, event.target.value)
-                        }
-                      />
-                    </label>
                   </td>
                   <td className="p-2">
                     {(item.product_snapshot as any)?.image_url && (
@@ -309,49 +330,49 @@ export function PackingItemsGrid({
                       />
                     )}
                   </td>
-                  {editable.map((key) =>
-                    key === "carton_weight_kg" ? null : (
-                      <td className="min-w-0 p-1 text-right" key={key}>
-                        <input
-                          aria-label={`${key} ${item.sku}`}
-                          className="block w-full min-w-0 rounded border p-1 text-right"
-                          type="number"
-                          step="any"
-                          placeholder="0"
-                          value={inputValue(item[key])}
-                          onChange={(event) =>
-                            change(index, key, event.target.value)
-                          }
-                        />
-                        {key === "qty_per_carton" && warning && (
-                          <span title="数量与箱数×Qty/Ctn 不一致；允许尾箱">
-                            ⚠
-                          </span>
-                        )}
-                      </td>
-                    ),
-                  )}
-                  <td className="whitespace-nowrap p-2 text-right">
-                    {computed.perCbm}
+                  <td className="break-words p-2">
+                    {String(
+                      (item.product_snapshot as Row)?.specification || "",
+                    )}
                   </td>
-                  <td className="whitespace-nowrap p-2 text-right">
-                    {computed.totalCbm}
-                  </td>
-                  <td className="min-w-0 p-1 text-right">
+                  <td className="min-w-0 p-1">{input("cartons")}</td>
+                  <td className="min-w-0 p-1">{input("qty_per_carton")}</td>
+                  <td className="min-w-0 p-1">
                     <input
-                      aria-label={`carton_weight_kg ${item.sku}`}
-                      className="block w-full min-w-0 rounded border p-1 text-right"
-                      type="number"
-                      step="any"
-                      placeholder="0"
-                      value={inputValue(item.carton_weight_kg)}
+                      aria-label={`unit ${item.sku}`}
+                      className="block w-full min-w-0 rounded border p-1"
+                      value={String((item.product_snapshot as Row)?.unit || "")}
                       onChange={(event) =>
-                        change(index, "carton_weight_kg", event.target.value)
+                        changeUnit(index, event.target.value)
                       }
                     />
                   </td>
-                  <td className="whitespace-nowrap p-2 text-right">
-                    {computed.totalWeight}
+                  <td className="min-w-0 p-1">
+                    {calculated("quantity", computed.quantity)}
+                  </td>
+                  {["length_cm", "width_cm", "height_cm"].map((key) => (
+                    <td className="min-w-0 p-1" key={key}>
+                      {input(key)}
+                    </td>
+                  ))}
+                  <td className="min-w-0 p-1">
+                    {calculated(
+                      "carton_cbm",
+                      computed.perCbm.replace(" m³", ""),
+                    )}
+                  </td>
+                  <td className="min-w-0 p-1">{input("carton_weight_kg")}</td>
+                  <td className="min-w-0 p-1">
+                    {calculated(
+                      "total_cbm",
+                      computed.totalCbm.replace(" m³", ""),
+                    )}
+                  </td>
+                  <td className="min-w-0 p-1">
+                    {calculated(
+                      "total_weight_kg",
+                      computed.totalWeight.replace(" kg", ""),
+                    )}
                   </td>
                   <td className="relative p-1 text-center">
                     <Button
@@ -389,18 +410,14 @@ export function PackingItemsGrid({
           </tbody>
           <tfoot>
             <tr className="border-t font-semibold">
-              <td colSpan={4}>合计</td>
-              <td className="text-right">{total.quantity}</td>
+              <td colSpan={5}>合计</td>
               <td className="text-right">{total.cartons}</td>
-              <td />
-              <td />
-              <td />
-              <td />
-              <td />
+              <td colSpan={2} />
+              <td className="text-right">{total.quantity}</td>
+              <td colSpan={5} />
               <td className="whitespace-nowrap text-right">
                 {total.cbm.toFixed(3)} m³
               </td>
-              <td />
               <td className="whitespace-nowrap text-right">
                 {total.weight.toFixed(2)} kg
               </td>

@@ -122,7 +122,6 @@ it("shows ordered, packed and remaining quantities and blocks packing over the r
     .element(screen.getByRole("button", { name: "导出 Packing XLSX" }))
     .toBeVisible();
   expect(screen.getByText("Packing PDF", { exact: false }).query()).toBeNull();
-  await screen.getByLabelText("quantity A", { exact: true }).fill("20");
   await screen.getByLabelText("cartons A", { exact: true }).fill("2");
   await screen.getByLabelText("qty_per_carton A", { exact: true }).fill("10");
   await screen.getByLabelText("length_cm A", { exact: true }).fill("50");
@@ -139,6 +138,8 @@ it("shows ordered, packed and remaining quantities and blocks packing over the r
 });
 it("replaces zero-valued Packing dimensions with decimal input instead of appending", async () => {
   const { screen, provider } = await setup("/packing-shipping/p");
+  await screen.getByLabelText("cartons A", { exact: true }).fill("2");
+  await screen.getByLabelText("qty_per_carton A", { exact: true }).fill("10");
   const length = screen.getByLabelText("length_cm A", { exact: true });
   await length.click();
   await userEvent.type(length, "55");
@@ -197,11 +198,11 @@ it("creates an Order Packing List with every remaining Order item and edits only
   const { screen, provider } = await setup("/packing-shipping/new?order=o");
   await screen.getByRole("button", { name: "创建装箱单", exact: true }).click();
   await expect
-    .element(screen.getByLabelText("quantity A", { exact: true }))
-    .toHaveValue(60);
+    .element(screen.getByLabelText("cartons A", { exact: true }))
+    .toBeVisible();
   await expect
-    .element(screen.getByLabelText("quantity B", { exact: true }))
-    .toHaveValue(200);
+    .element(screen.getByLabelText("cartons B", { exact: true }))
+    .toBeVisible();
   expect(
     screen.getByLabelText("从订单加入产品", { exact: true }).query(),
   ).toBeNull();
@@ -210,7 +211,25 @@ it("creates an Order Packing List with every remaining Order item and edits only
   ).find((item) => item.id !== "p");
   expect(packing).toBeDefined();
   await screen.getByLabelText("unit A", { exact: true }).fill("SET");
-  await screen.getByLabelText("quantity A", { exact: true }).fill("15");
+  const imported = (
+    await readRelated(provider, "romiku_packing_items", {})
+  ).filter((item) => item.packing_list_id === packing?.id);
+  expect(imported).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ sku: "A", quantity: 60 }),
+      expect.objectContaining({ sku: "B", quantity: 200 }),
+    ]),
+  );
+  await screen.getByLabelText("cartons A", { exact: true }).fill("1");
+  await screen.getByLabelText("qty_per_carton A", { exact: true }).fill("15");
+  await screen.getByLabelText("cartons B", { exact: true }).fill("1");
+  await screen.getByLabelText("qty_per_carton B", { exact: true }).fill("200");
+  await expect
+    .element(screen.getByLabelText("quantity A", { exact: true }))
+    .toHaveValue("15");
+  await expect
+    .element(screen.getByLabelText("quantity B", { exact: true }))
+    .toHaveValue("200");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
     .poll(

@@ -303,3 +303,41 @@ it("saves an independent Packing product snapshot without reading an Order item"
     },
   });
 });
+
+// A stale quantity must never override a fully specified standard carton plan.
+it("persists CTN × Qty/Ctn instead of a stale independent quantity", async () => {
+  const provider = setup();
+  const { data: created } = await savePackingItem(provider, { id: "p3" }, "", {
+    sku: "STANDARD",
+    quantity: 1,
+    cartons: 5,
+    qty_per_carton: 32,
+    length_cm: 50,
+    width_cm: 50,
+    height_cm: 50,
+    carton_weight_kg: 55,
+    product_snapshot: { name: "Saved", specification: "Spec", unit: "PCS" },
+  });
+  const saved = (
+    await provider.getOne("romiku_packing_items", { id: created.id })
+  ).data;
+  expect(saved.quantity).toBe(160);
+  expect(packingTotals([saved])).toEqual({
+    cartons: 5,
+    cbm: 0.625,
+    weight: 275,
+  });
+});
+it("checks Order remaining capacity against the computed carton quantity", async () => {
+  const provider = setup();
+  await expect(
+    savePackingItem(provider, { id: "p2", order_id: "o" }, "i", {
+      quantity: 1,
+      cartons: 5,
+      qty_per_carton: 32,
+    }),
+  ).rejects.toThrow("数量超过剩余可装箱数量（60）");
+  expect(await readRelated(provider, "romiku_packing_items", {})).toHaveLength(
+    1,
+  );
+});

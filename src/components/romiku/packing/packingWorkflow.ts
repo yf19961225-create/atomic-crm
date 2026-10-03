@@ -32,6 +32,15 @@ const positive = (value: unknown) => {
   return valueAsNumber > 0 ? valueAsNumber : undefined;
 };
 
+/** Standard full-carton quantity, at the precision stored by PostgreSQL. */
+export function packingQuantity(item: Record<string, unknown>): number {
+  return (
+    Math.round(
+      numberOr(item.cartons) * numberOr(item.qty_per_carton) * 10_000,
+    ) / 10_000
+  );
+}
+
 /** The single saved-default policy used by all Packing item creation paths. */
 export function resolvePackingItemDefaults(
   source: Record<string, unknown>,
@@ -220,7 +229,14 @@ export async function savePackingItem(
       String(previous.source_order_item_id || "") !== sourceId)
   )
     throw new Error("装箱产品项的来源不可更改。");
-  const quantity = positiveQuantity(values.quantity);
+  const packing = { ...previous, ...values };
+  // Unconfigured Order imports retain the source remainder until the user
+  // supplies a carton plan. A configured plan always owns its saved quantity.
+  const quantity = positiveQuantity(
+    Number(packing.cartons) > 0 && Number(packing.qty_per_carton) > 0
+      ? packingQuantity(packing)
+      : values.quantity,
+  );
   const data: Values = { quantity };
   for (const key of dimensions) {
     const value = Number(values[key] ?? previous?.[key] ?? 0);

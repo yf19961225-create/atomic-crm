@@ -6,21 +6,23 @@ import {
 } from "./PackingItemsGrid";
 
 describe("packing grid columns", () => {
-  it("keeps carton weight after calculated CBM columns", () => {
+  it("matches the final 16-column Packing template before actions", () => {
     expect(packingColumnKeys).toEqual([
       "no",
       "sku",
       "name",
       "image",
-      "quantity",
+      "specification",
       "cartons",
       "qty_per_carton",
+      "unit",
+      "quantity",
       "length_cm",
       "width_cm",
       "height_cm",
       "per_cbm",
-      "total_cbm",
       "carton_weight_kg",
+      "total_cbm",
       "total_weight",
       "actions",
     ]);
@@ -31,9 +33,11 @@ describe("packing grid columns", () => {
         width_cm: 40,
         height_cm: 30,
         cartons: 2,
+        qty_per_carton: 32,
         carton_weight_kg: 12.5,
       }),
     ).toEqual({
+      quantity: 64,
       perCbm: "0.060 m³",
       totalCbm: "0.120 m³",
       totalWeight: "25.00 kg",
