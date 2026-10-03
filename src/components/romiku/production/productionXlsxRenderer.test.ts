@@ -181,3 +181,43 @@ it("wraps long labeling requirements inside E2:G2", async () => {
   expect(book.worksheets[0].getCell("E2").alignment.wrapText).toBe(true);
   expect(book.worksheets[0].getRow(2).height).toBeGreaterThan(137);
 });
+
+it.each([1, 5, 20])(
+  "preserves the template requirements body and red title styles after %i product rows",
+  async (count) => {
+    const source = await template();
+    const original = new ExcelJS.Workbook();
+    await original.xlsx.load(source);
+    const templateSheet = original.worksheets[0];
+    expect(templateSheet.model.merges).toContain("C6:G6");
+    const bodyStyle = structuredClone(templateSheet.getCell("C6").style);
+    const titleStyle = structuredClone(templateSheet.getCell("A6").style);
+    const model = normalizeProductionExportModel(
+      {
+        marking_snapshot: {
+          production_requirements:
+            "订单要求正文\nSaved production requirements",
+        },
+      },
+      Array.from({ length: count }, (_, i) => item(i + 1)),
+    );
+    const exported = new ExcelJS.Workbook();
+    await exported.xlsx.load(await renderProductionXlsx(model, source));
+    const sheet = exported.worksheets[0];
+    const body = sheet.getCell(`C${count + 5}`);
+    expect(body.text).toBe("订单要求正文\nSaved production requirements");
+    expect(sheet.model.merges).toContain(`C${count + 5}:G${count + 5}`);
+    expect(body.font.name).toBe(bodyStyle.font?.name);
+    expect(body.font.size).toBe(bodyStyle.font?.size);
+    expect(body.font).toEqual(bodyStyle.font);
+    expect(body.alignment).toEqual(bodyStyle.alignment);
+    expect(body.alignment.wrapText).toBe(bodyStyle.alignment?.wrapText);
+    expect(body.fill).toEqual(bodyStyle.fill);
+    expect(body.border).toEqual(bodyStyle.border);
+    expect(body.style).toEqual(bodyStyle);
+    expect(sheet.getCell(`A${count + 5}`).style).toEqual(titleStyle);
+    expect(sheet.getCell(`A${count + 5}`).text).toBe(
+      templateSheet.getCell("A6").text,
+    );
+  },
+);
