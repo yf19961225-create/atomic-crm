@@ -1,4 +1,6 @@
 import { RecordDelete } from "../shared/RecordDelete";
+import { useModuleSearch } from "../search/useBusinessSearch";
+import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
@@ -78,20 +80,35 @@ export function QuoteList() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
-  const {
-    data = [],
-    total,
-    isPending,
-    error,
-    refetch,
-  } = useGetList("romiku_quote_totals", {
-    pagination: { page, perPage: 25 },
-    sort: { field: "created_at", order: "DESC" },
-    filter: {
-      ...(status ? { status } : {}),
-      ...(search ? { "document_number@ilike": `%${search}%` } : {}),
+  const searchResult = useModuleSearch(
+    "quote",
+    "romiku_quote_totals",
+    search,
+    page,
+    status ? { status } : {},
+  );
+  const ordinary = useGetList(
+    "romiku_quote_totals",
+    {
+      pagination: { page, perPage: 25 },
+      sort: { field: "created_at", order: "DESC" },
+      filter: {
+        ...(status ? { status } : {}),
+      },
     },
-  });
+    { enabled: !search.trim() },
+  );
+  const data = searchResult.active
+    ? (searchResult.data ?? [])
+    : (ordinary.data ?? []);
+  const total = searchResult.active
+    ? searchResult.group?.total_count
+    : ordinary.total;
+  const isPending = searchResult.active
+    ? searchResult.isPending
+    : ordinary.isPending;
+  const error = searchResult.active ? searchResult.error : ordinary.error;
+  const refetch = searchResult.active ? searchResult.refetch : ordinary.refetch;
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
@@ -104,17 +121,14 @@ export function QuoteList() {
         独立报价单保留来源历史，并可编辑采购方、产品和商务快照。
       </p>
       <div className="flex flex-wrap gap-4">
-        <label>
-          报价单编号{" "}
-          <input
-            className="rounded border p-2"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-          />
-        </label>
+        <SearchInput
+          label={"搜索报价单"}
+          value={search}
+          onChange={(next) => {
+            setSearch(next);
+            setPage(1);
+          }}
+        />
         <label>
           状态{" "}
           <select
@@ -395,33 +409,36 @@ function QuoteEditor({
         <h1 className="text-3xl font-semibold">
           {record.document_number || "草稿报价单"}
         </h1>
-        {session.editing ? (
-          <div className="flex gap-2">
-            <Button type="button" disabled={busy} onClick={() => void save()}>
-              保存
+        <div className="flex items-center gap-2">
+          {session.editing ? (
+            <div className="flex gap-2">
+              <Button type="button" disabled={busy} onClick={() => void save()}>
+                保存
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={session.cancel}
+              >
+                取消
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" onClick={session.start}>
+              编辑
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={session.cancel}
-            >
-              取消
-            </Button>
-          </div>
-        ) : (
-          <Button type="button" onClick={session.start}>
-            编辑
-          </Button>
-        )}
+          )}
+          <RecordDelete
+            kind="quote"
+            id={String(record.id)}
+            label={String(record.document_number)}
+            redirectTo="/quotes"
+            disabled={busy || session.editing}
+          />
+        </div>
       </div>
-      <RecordDelete
-        kind="quote"
-        id={String(record.id)}
-        label={String(record.document_number)}
-        redirectTo="/quotes"
-        disabled={busy || session.editing}
-      />
+
       <SourceLinks record={record} />
       <div className="flex flex-wrap gap-3">
         <DocumentConversion source="quote" sourceId={String(record.id)} />

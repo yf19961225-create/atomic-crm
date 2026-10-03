@@ -19,6 +19,7 @@ const cases = [
   ["pi", "/pi", "romiku_pi_totals"],
   ["order", "/orders", "romiku_order_totals"],
   ["packing", "/packing-shipping", "romiku_packing_lists"],
+  ["production", "/production", "romiku_production_orders"],
   ["outbound", "/outbound-development", "romiku_outbound_companies"],
 ] as const;
 async function setup(path: string, resource: string, count = 1) {
@@ -165,6 +166,12 @@ for (const [kind, path, resource, items] of [
     "/packing-shipping",
     "romiku_packing_lists",
     "romiku_packing_items",
+  ],
+  [
+    "production",
+    "/production",
+    "romiku_production_orders",
+    "romiku_production_items",
   ],
   ["manual_task", "/calendar/tasks", "romiku_manual_tasks", "unused_items"],
 ] as const)

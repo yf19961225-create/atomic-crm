@@ -23,6 +23,7 @@ type DeleteKind =
   | "pi"
   | "order"
   | "packing"
+  | "production"
   | "outbound"
   | "manual_task";
 const descriptions: Record<DeleteKind, string> = {
@@ -31,6 +32,8 @@ const descriptions: Record<DeleteKind, string> = {
   pi: "将永久删除 PI 及产品行。已有订单时无法删除；来源报价单与关联任务会保留。",
   order:
     "将永久删除订单及产品行。已有生产单、装箱单或收款时无法删除；来源报价单、PI 与关联任务会保留。",
+  production:
+    "将永久删除生产单及自己的产品行，来源订单与订单产品行会保留，关联手动任务会保留并解除关联。已有生产跟进时无法删除。",
   packing:
     "将永久删除装箱单及产品行，来源订单与订单产品行会保留，并恢复可装箱数量。",
   outbound:

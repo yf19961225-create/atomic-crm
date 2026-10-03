@@ -8,6 +8,7 @@ import {
   Handshake,
   PackageCheck,
   ReceiptText,
+  Search,
   Send,
   Settings,
   ShipWheel,
@@ -23,6 +24,7 @@ export type RomikuNavigationItem = {
 
 export const romikuNavigation: RomikuNavigationItem[] = [
   { icon: Workflow, label: "工作台", path: "/" },
+  { icon: Search, label: "全局搜索", path: "/search" },
   {
     icon: ClipboardList,
     label: "网站询盘",

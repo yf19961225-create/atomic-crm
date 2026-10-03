@@ -1,4 +1,5 @@
 import { Route } from "react-router";
+import { GlobalSearch } from "../search/GlobalSearch";
 import { RomikuCalendar } from "../calendar/RomikuCalendar";
 import { ManualTaskList, ManualTaskPage } from "../calendar/ManualTasks";
 import { ProductLibrary } from "../products";
@@ -48,6 +49,7 @@ const placeholderRoutes = romikuNavigation
     (item) =>
       item.path !== "/" &&
       item.path !== "/calendar" &&
+      item.path !== "/search" &&
       item.path !== "/suppliers" &&
       item.path !== "/website-inquiries" &&
       item.path !== "/outbound-development" &&
@@ -69,6 +71,7 @@ const placeholderRoutes = romikuNavigation
 
 export const romikuRoutes = [
   ...placeholderRoutes,
+  <Route key="/search" path="/search" element={<GlobalSearch />} />,
   <Route key="/calendar" path="/calendar" element={<RomikuCalendar />} />,
   <Route
     key="/calendar/tasks"

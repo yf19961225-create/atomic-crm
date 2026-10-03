@@ -1,4 +1,6 @@
 import { RecordDelete } from "../shared/RecordDelete";
+import { useModuleSearch } from "../search/useBusinessSearch";
+import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
@@ -50,12 +52,27 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const config = fulfillmentConfig[kind],
     [params] = useSearchParams();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const orderId = params.get("order");
-  const query = useGetList(config.resource, {
-    pagination: { page, perPage: 25 },
-    sort: { field: "created_at", order: "DESC" },
-    filter: orderId ? { order_id: orderId } : {},
-  });
+  const searchResult = useModuleSearch(
+    kind,
+    config.resource,
+    search,
+    page,
+    orderId ? { order_id: orderId } : {},
+  );
+  const ordinary = useGetList(
+    config.resource,
+    {
+      pagination: { page, perPage: 25 },
+      sort: { field: "created_at", order: "DESC" },
+      filter: orderId ? { order_id: orderId } : {},
+    },
+    { enabled: !search.trim() },
+  );
+  const query = searchResult.active
+    ? { ...searchResult, total: searchResult.group?.total_count }
+    : ordinary;
   return (
     <section className="space-y-4">
       <div className="flex justify-between">
@@ -68,6 +85,14 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           </Link>
         </Button>
       </div>
+      <SearchInput
+        label={`搜索${config.plural}`}
+        value={search}
+        onChange={(next) => {
+          setSearch(next);
+          setPage(1);
+        }}
+      />
       {orderId && (
         <p>
           订单：{" "}
@@ -101,7 +126,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                   {title}
                 </th>
               ))}
-              {kind === "packing" && <th className="p-3">操作</th>}
+              <th className="p-3">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -147,10 +172,10 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                     {value || "—"}
                   </td>
                 ))}
-                {kind === "packing" && (
+                {(kind === "packing" || kind === "production") && (
                   <td className="p-3">
                     <RecordDelete
-                      kind="packing"
+                      kind={kind}
                       id={String(record.id)}
                       label={String(
                         record.document_number || record.name || record.id,
@@ -315,18 +340,19 @@ function FulfillmentEditor({
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>
-      <h1 className="text-3xl font-semibold">
-        {record.document_number || config.label}
-      </h1>
-      {kind === "packing" && (
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold">
+          {record.document_number || config.label}
+        </h1>
         <RecordDelete
-          kind="packing"
+          kind={kind}
           id={String(record.id)}
-          label={String(record.document_number)}
+          label={String(record.document_number || config.label)}
           redirectTo={config.path}
           disabled={busy || exporting}
         />
-      )}
+      </div>
+
       {kind === "packing" && !record.order_id ? (
         <p>独立装箱单：未关联订单。</p>
       ) : (

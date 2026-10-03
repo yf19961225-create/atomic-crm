@@ -197,3 +197,86 @@ test("parallel Production Orders derive unique per-Order P01/P02/P03 numbers", a
     );
   }
 });
+
+for (const firstWriter of ["followup", "delete"]) {
+  test(`Production deletion racing with ${firstWriter} preserves dependency integrity`, async () => {
+    const user = randomUUID();
+    const order = randomUUID();
+    const production = randomUUID();
+    const followup = randomUUID();
+    const auth = `set local role authenticated; select set_config('request.jwt.claim.sub','${user}',true);`;
+    await succeeds(`
+      insert into auth.users(id,email,raw_user_meta_data) values ('${user}','${user}@example.test','{}');
+      insert into public.romiku_orders(id) values ('${order}');
+      insert into public.romiku_production_orders(id,order_id) values ('${production}','${order}');
+    `);
+    const insert = `insert into public.romiku_production_followups(id,production_order_id,method,summary)
+      values ('${followup}','${production}','email','Concurrent QA followup');`;
+    const remove = `select public.romiku_delete_record('production','${production}');`;
+    try {
+      let signal;
+      const ready = new Promise((resolve) => {
+        signal = resolve;
+      });
+      const first = sql(
+        `begin; ${auth} ${firstWriter === "followup" ? insert : remove}
+        select 'FIRST_LOCK_HELD'; select pg_sleep(0.8); commit;`,
+        (output) => {
+          if (output.includes("FIRST_LOCK_HELD")) signal();
+        },
+      );
+      await Promise.race([
+        ready,
+        first.then((result) => {
+          assert.equal(result.code, 0, result.stderr);
+        }),
+      ]);
+      const second = sql(
+        `begin; ${auth} ${firstWriter === "followup" ? remove : insert} commit;`,
+      );
+      const [a, b] = await Promise.all([first, second]);
+      assert.equal(a.code, 0, a.stderr);
+      if (firstWriter === "followup") {
+        assert.equal(b.code, 0, b.stderr);
+        assert.match(b.stdout, /HAS_DOWNSTREAM/);
+        assert.equal(
+          await succeeds(
+            `select count(*) from public.romiku_production_orders where id='${production}'`,
+          ),
+          "1",
+        );
+        assert.equal(
+          await succeeds(
+            `select count(*) from public.romiku_production_followups where id='${followup}'`,
+          ),
+          "1",
+        );
+      } else {
+        assert.match(a.stdout, /"ok": true/);
+        assert.notEqual(b.code, 0);
+        assert.match(b.stderr, /23503/);
+        assert.equal(
+          await succeeds(
+            `select count(*) from public.romiku_production_orders where id='${production}'`,
+          ),
+          "0",
+        );
+        assert.equal(
+          await succeeds(
+            `select count(*) from public.romiku_production_followups where id='${followup}'`,
+          ),
+          "0",
+        );
+      }
+    } finally {
+      await succeeds(`
+        delete from public.romiku_production_followups where id='${followup}';
+        delete from public.romiku_production_orders where id='${production}';
+        delete from public.romiku_production_order_counters where order_id='${order}';
+        delete from public.romiku_orders where id='${order}';
+        delete from public.sales where user_id='${user}';
+        delete from auth.users where id='${user}';
+      `);
+    }
+  });
+}
