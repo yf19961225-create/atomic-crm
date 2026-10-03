@@ -1,3 +1,4 @@
+import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useDataProvider } from "ra-core";
@@ -103,11 +104,13 @@ export function RomikuWorkbench() {
             <table className="w-full text-left text-sm">
               <thead className="bg-muted">
                 <tr>
-                  {["来源", "事项", "截止时间", "优先级", "金额"].map((t) => (
-                    <th className="p-3" key={t}>
-                      {t}
-                    </th>
-                  ))}
+                  {["来源", "事项", "截止时间", "优先级", "金额", "操作"].map(
+                    (t) => (
+                      <th className="p-3" key={t}>
+                        {t}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -138,6 +141,22 @@ export function RomikuWorkbench() {
                       {action.amount !== undefined
                         ? `${action.currency} ${action.amount.toFixed(2)}`
                         : "—"}
+                    </td>
+                    <td className="p-3">
+                      {action.source_table === "romiku_manual_tasks" ? (
+                        <RecordDelete
+                          kind="manual_task"
+                          id={action.source_id}
+                          label={action.title}
+                        />
+                      ) : (
+                        <Link
+                          className="underline"
+                          to={sourceHref(action.source_table, action.source_id)}
+                        >
+                          打开来源
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}

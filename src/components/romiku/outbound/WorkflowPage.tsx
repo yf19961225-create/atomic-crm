@@ -1,3 +1,4 @@
+import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
@@ -240,6 +241,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   {title}
                 </th>
               ))}
+              {config.kind === "outbound" && <th className="p-3">操作</th>}
             </tr>
           </thead>
           <tbody>
@@ -298,6 +300,20 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 {config.kind !== "customer" && (
                   <FollowupCells record={record} kind={config.kind} />
                 )}
+                {config.kind === "outbound" && (
+                  <td className="p-3">
+                    <RecordDelete
+                      kind="outbound"
+                      id={String(record.id)}
+                      label={String(
+                        record.document_number || record.name || record.id,
+                      )}
+                      onDeleted={() => {
+                        if (data.length === 1 && page > 1) setPage(page - 1);
+                      }}
+                    />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -347,6 +363,10 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 config={config}
                 id={selected}
                 onCreated={open}
+                onDeleted={() => {
+                  open(null);
+                  if (data.length === 1 && page > 1) setPage(page - 1);
+                }}
               />
             )}
           </div>
@@ -360,10 +380,12 @@ function WorkflowDrawer({
   config,
   id,
   onCreated,
+  onDeleted,
 }: {
   config: WorkflowConfig;
   id: string;
   onCreated: (id: string) => void;
+  onDeleted: () => void;
 }) {
   const { data, isPending, error } = useGetOne(
     workflowResources[config.kind],
@@ -372,22 +394,35 @@ function WorkflowDrawer({
   );
   if (id === "new")
     return config.createLabel ? (
-      <RecordEditor config={config} onCreated={onCreated} />
+      <RecordEditor
+        config={config}
+        onCreated={onCreated}
+        onDeleted={onDeleted}
+      />
     ) : (
       <p>网站询盘会从网站自动进入。</p>
     );
   if (isPending) return <p>正在加载记录…</p>;
   if (error || !data) return <p role="alert">无法加载此记录。</p>;
-  return <RecordEditor config={config} record={data} onCreated={onCreated} />;
+  return (
+    <RecordEditor
+      config={config}
+      record={data}
+      onCreated={onCreated}
+      onDeleted={onDeleted}
+    />
+  );
 }
 function RecordEditor({
   config,
   record,
   onCreated,
+  onDeleted,
 }: {
   config: WorkflowConfig;
   record?: RaRecord;
   onCreated: (id: string) => void;
+  onDeleted: () => void;
 }) {
   const provider = useDataProvider();
   const refresh = useRefresh();
@@ -444,6 +479,15 @@ function RecordEditor({
             新建报价单
           </Link>
         </Button>
+      )}
+      {record && config.kind === "outbound" && (
+        <RecordDelete
+          kind="outbound"
+          id={String(record.id)}
+          label={String(record.name)}
+          onDeleted={onDeleted}
+          disabled={busy}
+        />
       )}
       <TabsList className="h-auto flex-wrap justify-start">
         <TabsTrigger value="档案">档案</TabsTrigger>

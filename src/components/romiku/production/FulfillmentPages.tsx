@@ -1,3 +1,4 @@
+import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
@@ -100,6 +101,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                   {title}
                 </th>
               ))}
+              {kind === "packing" && <th className="p-3">操作</th>}
             </tr>
           </thead>
           <tbody>
@@ -145,6 +147,21 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                     {value || "—"}
                   </td>
                 ))}
+                {kind === "packing" && (
+                  <td className="p-3">
+                    <RecordDelete
+                      kind="packing"
+                      id={String(record.id)}
+                      label={String(
+                        record.document_number || record.name || record.id,
+                      )}
+                      onDeleted={() => {
+                        if (query.data?.length === 1 && page > 1)
+                          setPage(page - 1);
+                      }}
+                    />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -155,7 +172,9 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
         <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
           上一页
         </Button>
-        <span>第 {page} 页</span>
+        <span>
+          第 {page} 页{query.total !== undefined && ` · 共 ${query.total} 条`}
+        </span>
         <Button
           disabled={
             query.total !== undefined
@@ -299,6 +318,15 @@ function FulfillmentEditor({
       <h1 className="text-3xl font-semibold">
         {record.document_number || config.label}
       </h1>
+      {kind === "packing" && (
+        <RecordDelete
+          kind="packing"
+          id={String(record.id)}
+          label={String(record.document_number)}
+          redirectTo={config.path}
+          disabled={busy || exporting}
+        />
+      )}
       {kind === "packing" && !record.order_id ? (
         <p>独立装箱单：未关联订单。</p>
       ) : (

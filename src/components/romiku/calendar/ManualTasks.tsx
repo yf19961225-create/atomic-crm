@@ -1,3 +1,4 @@
+import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useDataProvider, useGetOne, type RaRecord } from "ra-core";
@@ -73,6 +74,11 @@ export function ManualTaskList() {
               · {priorityLabel(task.priority)} ·{" "}
               {task.completed_at ? "已完成" : "待处理"}
             </span>
+            <RecordDelete
+              kind="manual_task"
+              id={String(task.id)}
+              label={String(task.title)}
+            />
           </li>
         ))}
       </ul>
@@ -205,6 +211,15 @@ function TaskEditor({
       <h1 className="text-3xl font-semibold">
         {record ? "编辑手动任务" : "新建手动任务"}
       </h1>
+      {record && (
+        <RecordDelete
+          kind="manual_task"
+          id={String(record.id)}
+          label={String(record.title)}
+          redirectTo="/calendar/tasks"
+          disabled={busy}
+        />
+      )}
       <div className="flex gap-4">
         <Link className="underline" to="/calendar/tasks">
           手动任务

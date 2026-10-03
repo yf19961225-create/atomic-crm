@@ -1,3 +1,4 @@
+import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
@@ -170,6 +171,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                   {label}
                 </th>
               ))}
+              <th className="p-3">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -209,6 +211,18 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                     {Number(record.remaining_amount).toFixed(2)}
                   </td>
                 )}
+                <td className="p-3">
+                  <RecordDelete
+                    kind={kind}
+                    id={String(record.id)}
+                    label={String(
+                      record.document_number || record.name || record.id,
+                    )}
+                    onDeleted={() => {
+                      if (data.length === 1 && page > 1) setPage(page - 1);
+                    }}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -564,6 +578,13 @@ function DocumentEditor({
           </Button>
         )}
       </div>
+      <RecordDelete
+        kind={kind}
+        id={String(record.id)}
+        label={String(record.document_number)}
+        redirectTo={config.path}
+        disabled={busy || session.editing}
+      />
       <DocumentSources record={record} />
       {kind === "order" && (
         <div className="flex gap-4">

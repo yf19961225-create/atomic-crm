@@ -181,7 +181,7 @@ revoke all on table public.romiku_numbering_rules from public, anon, authenticat
 grant select, insert, update, delete on table public.romiku_numbering_rules to authenticated;
 grant all on table public.romiku_numbering_rules to service_role;
 revoke all on table public.romiku_outbound_companies from public, anon, authenticated;
-grant select, insert, update, delete on table public.romiku_outbound_companies to authenticated;
+grant select, insert, update on table public.romiku_outbound_companies to authenticated;
 grant all on table public.romiku_outbound_companies to service_role;
 revoke all on table public.romiku_outbound_contacts from public, anon, authenticated;
 grant select, insert, update, delete on table public.romiku_outbound_contacts to authenticated;
@@ -318,3 +318,6 @@ revoke all on function public.romiku_preserve_payment_currency() from public, an
 grant execute on function public.romiku_preserve_payment_currency() to authenticated, service_role;
 revoke all on function public.romiku_submit_website_inquiry(jsonb) from public, anon, authenticated;
 grant execute on function public.romiku_submit_website_inquiry(jsonb) to service_role;
+
+revoke all on function public.romiku_delete_record(text,uuid) from public, anon;
+grant execute on function public.romiku_delete_record(text,uuid) to authenticated;

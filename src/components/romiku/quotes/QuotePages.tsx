@@ -1,3 +1,4 @@
+import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
@@ -159,6 +160,7 @@ export function QuoteList() {
                   {label}
                 </th>
               ))}
+              <th className="p-3">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -191,6 +193,18 @@ export function QuoteList() {
                 <td className="p-3">{record.valid_until || "—"}</td>
                 <td className="p-3">
                   {record.currency} {Number(record.total).toFixed(2)}
+                </td>
+                <td className="p-3">
+                  <RecordDelete
+                    kind="quote"
+                    id={String(record.id)}
+                    label={String(
+                      record.document_number || record.name || record.id,
+                    )}
+                    onDeleted={() => {
+                      if (data.length === 1 && page > 1) setPage(page - 1);
+                    }}
+                  />
                 </td>
               </tr>
             ))}
@@ -401,6 +415,13 @@ function QuoteEditor({
           </Button>
         )}
       </div>
+      <RecordDelete
+        kind="quote"
+        id={String(record.id)}
+        label={String(record.document_number)}
+        redirectTo="/quotes"
+        disabled={busy || session.editing}
+      />
       <SourceLinks record={record} />
       <div className="flex flex-wrap gap-3">
         <DocumentConversion source="quote" sourceId={String(record.id)} />
