@@ -1,3 +1,4 @@
+import { OrderProductionPanel } from "../production/OrderProductionPanel";
 import { OrderCustomerArchive } from "../customers/OrderCustomerArchive";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
@@ -655,7 +656,10 @@ function DocumentEditor({
         onChange={session.setValues}
       />
       {kind === "order" && !session.editing && (
-        <OrderProductionInstructions id={record.id} />
+        <>
+          <OrderProductionInstructions id={record.id} />
+          <OrderProductionPanel order={record} />
+        </>
       )}
       {kind === "order" && (
         <OrderExportDetails

@@ -1,4 +1,5 @@
-import { MarkingProfileEditor } from "../marking/MarkingProfileEditor";
+import { ProductionWorkbench } from "./ProductionWorkbench";
+import { savedBuyerName } from "./productionWorkspace";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
@@ -15,7 +16,6 @@ import {
 import { errorMessage } from "../outbound/RelatedRecords";
 import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
-import { FulfillmentItems } from "./FulfillmentItems";
 import { PackingItemsGrid } from "../packing/PackingItemsGrid";
 import { PackingExportDetails } from "../packing/PackingExportDetails";
 import { normalizePackingExportModel } from "../packing/packingExportModel";
@@ -54,6 +54,7 @@ const localDateTimeLabel = (value: unknown) => {
 };
 
 export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
+  const provider = useDataProvider();
   const config = fulfillmentConfig[kind],
     [params] = useSearchParams();
   const [page, setPage] = useState(1);
@@ -78,6 +79,19 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const query = searchResult.active
     ? { ...searchResult, total: searchResult.group?.total_count }
     : ordinary;
+  const parentIds = [
+    ...new Set((query.data || []).map((r) => r.order_id).filter(Boolean)),
+  ];
+  const parents = useQuery({
+    queryKey: ["production-list-orders", parentIds],
+    queryFn: () => provider.getMany("romiku_orders", { ids: parentIds }),
+    enabled: kind === "production" && parentIds.length > 0,
+  });
+  const filteredOrder = useGetOne(
+    "romiku_orders",
+    { id: orderId || "" },
+    { enabled: !!orderId },
+  );
   return (
     <section className="space-y-4">
       <div className="flex justify-between">
@@ -102,7 +116,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
         <p>
           订单：{" "}
           <Link className="underline" to={`/orders/${orderId}`}>
-            {orderId}
+            {filteredOrder.data?.document_number || "正在加载订单…"}
           </Link>{" "}
           ·{" "}
           <Link className="underline" to={config.path}>
@@ -121,8 +135,9 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           <thead>
             <tr>
               {[
-                "单据",
-                "订单",
+                ...(kind === "production"
+                  ? ["订单编号", "客户", "生产单编号"]
+                  : ["单据", "订单"]),
                 ...(kind === "production"
                   ? ["状态", "工厂交期", "生成时间"]
                   : ["批次", "装箱日期", "唛头"]),
@@ -137,24 +152,53 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           <tbody>
             {query.data?.map((record) => (
               <tr key={record.id} className="border-t">
+                {kind === "production" && (
+                  <>
+                    <td className="p-3">
+                      <Link
+                        className="underline font-medium"
+                        to={`/orders/${record.order_id}`}
+                      >
+                        {parents.data?.data.find(
+                          (o) => o.id === record.order_id,
+                        )?.document_number ||
+                          (parents.error ? "订单无法读取" : "正在加载订单…")}
+                      </Link>
+                    </td>
+                    <td className="p-3">
+                      {savedBuyerName(
+                        parents.data?.data.find(
+                          (o) => o.id === record.order_id,
+                        ),
+                      )}
+                    </td>
+                  </>
+                )}
                 <td className="p-3">
                   <Link
                     className="underline"
                     to={`${config.path}/${record.id}`}
                   >
-                    {record.document_number || record.id}
+                    {record.document_number ||
+                      (kind === "production" ? "未编号生产单" : record.id)}
                   </Link>
                 </td>
-                <td className="p-3">
-                  <Link className="underline" to={`/orders/${record.order_id}`}>
-                    {record.order_id}
-                  </Link>
-                </td>
+                {kind !== "production" && (
+                  <td className="p-3">
+                    <Link
+                      className="underline"
+                      to={`/orders/${record.order_id}`}
+                    >
+                      {record.order_id}
+                    </Link>
+                  </td>
+                )}
                 {(kind === "production"
                   ? [
                       <InlineStatusSelect
                         resource={config.resource}
                         recordId={String(record.id)}
+                        recordLabel={String(record.document_number || "生产单")}
                         status={String(record.status || "pending")}
                         choices={productionStatusChoices.map(
                           ({ id, label }) => ({
@@ -281,6 +325,11 @@ function FulfillmentEditor({
     queryFn: () =>
       readRelated(provider, config.items, { [config.foreignKey]: record.id }),
   });
+  const parent = useGetOne(
+    "romiku_orders",
+    { id: record.order_id },
+    { enabled: kind === "production" },
+  );
   const fields = kind === "production" ? productionFields : packingFields;
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -370,6 +419,39 @@ function FulfillmentEditor({
       setExporting(false);
     }
   }
+  if (kind === "production") {
+    if (items.isPending || parent.isPending) return <p>正在加载生产工作台…</p>;
+    if (items.error || parent.error || !parent.data || !items.data)
+      return (
+        <p role="alert">
+          无法载入生产工作台。
+          <Button
+            onClick={() => {
+              void items.refetch();
+              void parent.refetch();
+            }}
+          >
+            重试
+          </Button>
+        </p>
+      );
+    return (
+      <>
+        <ProductionWorkbench
+          record={record}
+          items={items.data}
+          order={parent.data}
+          onSaved={async () => {
+            await items.refetch();
+            await onSaved();
+          }}
+          onExport={() => void exportProductionXlsx()}
+          exporting={exporting}
+        />
+        {failure && <p role="alert">{failure}</p>}
+      </>
+    );
+  }
   return (
     <section className="w-full min-w-0 space-y-5">
       <Link className="underline" to={config.path}>
@@ -398,9 +480,6 @@ function FulfillmentEditor({
           </Link>
         </p>
       )}
-      {kind === "production" && (
-        <p>生成时间：{localDateTimeLabel(record.created_at)}</p>
-      )}
       <details>
         <summary className="cursor-pointer">{config.label}详情</summary>
         <form className="space-y-4 py-4" onSubmit={save}>
@@ -414,19 +493,6 @@ function FulfillmentEditor({
           </fieldset>
         </form>
       </details>
-      {kind === "production" && (
-        <>
-          <MarkingProfileEditor kind="production" record={record} />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!items.data || busy || exporting}
-            onClick={exportProductionXlsx}
-          >
-            {exporting ? "正在导出生产单…" : "导出 Production XLSX"}
-          </Button>
-        </>
-      )}
       {failure && <p role="alert">{failure}</p>}
       {saved && <p role="status">{config.label}已保存。</p>}
       {kind === "packing" && (
@@ -452,18 +518,11 @@ function FulfillmentEditor({
         </p>
       ) : items.isPending ? (
         <p>正在加载产品项…</p>
-      ) : kind === "packing" ? (
+      ) : (
         <PackingItemsGrid
           parent={record}
           items={items.data}
           onSaved={items.refetch}
-        />
-      ) : (
-        <FulfillmentItems
-          kind={kind}
-          parent={record}
-          items={items.data}
-          onChanged={items.refetch}
         />
       )}
     </section>

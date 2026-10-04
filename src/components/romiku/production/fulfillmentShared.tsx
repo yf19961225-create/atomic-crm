@@ -47,7 +47,8 @@ export function OrderSelect({
         <option value="">请选择订单</option>
         {query.data?.map((o) => (
           <option key={o.id} value={o.id}>
-            {o.document_number || o.id} · {o.counterparty_snapshot?.name}
+            {o.document_number || "未编号订单"} ·{" "}
+            {o.counterparty_snapshot?.name}
           </option>
         ))}
       </select>

@@ -1,0 +1,106 @@
+import type { RaRecord } from "ra-core";
+import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
+import {
+  normalizeItemMarkingOverride,
+  resolveProductionItemMarking,
+} from "../marking/productionInstructions";
+export function productionSuffix(number: unknown, orderNumber: unknown) {
+  const full = String(number || "未编号生产单"),
+    prefix = `${String(orderNumber)}-`;
+  return full.startsWith(prefix) ? full.slice(prefix.length) : full;
+}
+export const savedBuyerName = (order?: RaRecord) => {
+  const s = order?.counterparty_snapshot;
+  return String(
+    s?.company_name ||
+      s?.company ||
+      s?.name ||
+      s?.business_name ||
+      "未填写客户",
+  );
+};
+export function workspaceExpected(record: RaRecord, items: RaRecord[]) {
+  return {
+    header_updated_at: record.updated_at,
+    items: items.map((i) => ({ id: i.id, updated_at: i.updated_at })),
+  };
+}
+export function itemLabelSummary(common: unknown, override: unknown) {
+  const result = resolveProductionItemMarking(common, override);
+  return result.labels
+    .map((l) =>
+      l.mode === "image" ? l.image_asset?.name || "图片标签" : l.text,
+    )
+    .filter(Boolean)
+    .join(" + ");
+}
+export async function saveProductionWorkspace(
+  record: RaRecord,
+  items: RaRecord[],
+  expected: unknown,
+  isNew = false,
+  allowOverassigned = false,
+) {
+  const header: Record<string, unknown> = {};
+  for (const key of [
+    "name",
+    "status",
+    "factory_due_at",
+    "anomaly_notes",
+    "notes",
+    "marking_snapshot",
+  ])
+    if (record[key] !== undefined) header[key] = record[key];
+  if (!isNew && record.document_number)
+    header.document_number = record.document_number;
+  header.allow_overassigned = allowOverassigned;
+  const payload = items.map((i) => ({
+    id: i.isNew ? null : i.id,
+    source_order_item_id: i.source_order_item_id,
+    quantity: Number(i.quantity),
+    product_snapshot: Object.fromEntries(
+      ["name", "specification", "image_url"]
+        .filter((k) => i.product_snapshot?.[k] !== undefined)
+        .map((k) => [k, i.product_snapshot[k]]),
+    ),
+    packaging_snapshot: Object.fromEntries(
+      ["cartons", "qty_per_carton"].map((k) => {
+        const value =
+          i.packaging_snapshot?.[k] ??
+          (k === "cartons" ? i.packaging_snapshot?.carton_qty : null);
+        return [k, value == null || value === "" ? null : Number(value)];
+      }),
+    ),
+    production_note_zh: i.production_note_zh || null,
+    marking_override: normalizeItemMarkingOverride(i.marking_override),
+  }));
+  const { data, error } = await getSupabaseClient().rpc(
+    "romiku_save_production_workspace",
+    {
+      production_id: isNew ? null : record.id,
+      source_order_id: record.order_id,
+      header,
+      items: payload,
+      expected,
+    },
+  );
+  if (error || !data) throw new Error("保存未完成，请检查连接后重试。");
+  return data as { ok: boolean; id?: string; message?: string; code?: string };
+}
+export async function syncOrderProductionDefaults(
+  orderId: string,
+  expected: unknown = null,
+) {
+  const { data, error } = await getSupabaseClient().rpc(
+    "romiku_sync_order_production_defaults",
+    { source_order_id: orderId, expected },
+  );
+  if (error || !data) throw new Error("无法读取或同步生产单，请刷新后重试。");
+  if (!data.ok) throw new Error(data.message || "同步未完成。");
+  return data as {
+    ok: true;
+    token?: string;
+    productions?: RaRecord[];
+    count?: number;
+  };
+}

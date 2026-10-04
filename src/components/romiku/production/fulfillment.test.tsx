@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -7,6 +7,10 @@ import { page, userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";
 import { readRelated } from "../outbound/workflow";
 import "@/index.css";
+const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
+vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
+  getSupabaseClient: () => ({ rpc }),
+}));
 async function setup(path: string) {
   await page.viewport(1440, 1200);
   const provider = fakeRestDataProvider({
@@ -87,6 +91,64 @@ async function setup(path: string) {
       },
     ],
   });
+  rpc.mockImplementation(async (name, args) => {
+    if (name !== "romiku_save_production_workspace")
+      throw new Error("Unexpected RPC");
+    let parent;
+    if (args.production_id != null) {
+      const old = (
+        await provider.getOne("romiku_production_orders", {
+          id: args.production_id,
+        })
+      ).data;
+      parent = (
+        await provider.update("romiku_production_orders", {
+          id: old.id,
+          data: args.header,
+          previousData: old,
+        })
+      ).data;
+    } else
+      parent = (
+        await provider.create("romiku_production_orders", {
+          data: {
+            order_id: args.source_order_id,
+            document_number: "SO-001-P01",
+            supplier_id: null,
+            supplier_snapshot: null,
+            ...args.header,
+          },
+        })
+      ).data;
+    for (const line of args.items) {
+      if (line.id != null) {
+        const old = (
+          await provider.getOne("romiku_production_items", { id: line.id })
+        ).data;
+        await provider.update("romiku_production_items", {
+          id: line.id,
+          data: line,
+          previousData: old,
+        });
+      } else {
+        const source = (
+          await provider.getOne("romiku_order_items", {
+            id: line.source_order_item_id,
+          })
+        ).data;
+        const { id: _id, ...rest } = line;
+        await provider.create("romiku_production_items", {
+          data: {
+            ...rest,
+            order_id: args.source_order_id,
+            production_order_id: parent.id,
+            sku: source.sku,
+          },
+        });
+      }
+    }
+    return { data: { ok: true, id: parent.id }, error: null };
+  });
   const screen = await render(
     <MemoryRouter initialEntries={[path]}>
       <CoreAdminContext dataProvider={provider}>
@@ -109,10 +171,16 @@ it("creates selected production items in one supplier-free Production through th
   await expect
     .element(screen.getByText("生产数量", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  expect(
+    await readRelated(provider, "romiku_production_orders", {}),
+  ).toHaveLength(0);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
-    .element(screen.getByRole("status"))
-    .toHaveTextContent("已创建 1 张生产单");
+    .element(screen.getByRole("button", { name: "编辑", exact: true }))
+    .toBeVisible();
   const rows = await readRelated(provider, "romiku_production_orders", {});
   expect(rows).toHaveLength(1);
   expect(rows[0].supplier_id).toBeNull();
@@ -293,38 +361,40 @@ it("creates an independent Packing List with saved date and empty Buyer", async 
 it("edits a Production Order copy while retaining its Order source", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
   await screen.getByLabelText("选择 A", { exact: true }).click();
-  await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
-  await screen.getByRole("link").nth(1).click();
-  await expect.element(screen.getByText("货号", { exact: true })).toBeVisible();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect.element(screen.getByText("SKU", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("产品", { exact: true })).toBeVisible();
   await expect
-    .element(screen.getByText("产品名称", { exact: true }))
+    .element(screen.getByText("图片", { exact: true }).last())
     .toBeVisible();
-  await expect.element(screen.getByText("图片", { exact: true })).toBeVisible();
   await expect
     .element(screen.getByText("装箱数", { exact: true }))
     .toBeVisible();
   await expect
     .element(screen.getByText("总数量", { exact: true }))
     .toBeVisible();
-  await screen.getByRole("button", { name: "编辑生产产品项" }).click();
-  await expect
-    .element(screen.getByLabelText("订单产品项", { exact: true }))
-    .toBeDisabled();
-  await screen.getByLabelText("产品名称", { exact: true }).fill("Factory copy");
-  await screen.getByLabelText("数量", { exact: true }).fill("30");
-  await screen.getByLabelText("箱数", { exact: true }).fill("5");
-  await screen.getByLabelText("装箱数", { exact: true }).fill("32");
+  expect(
+    screen.getByLabelText("订单产品项", { exact: true }).query(),
+  ).toBeNull();
   await screen
-    .getByLabelText("产品规格", { exact: true })
+    .getByLabelText("产品名称 A", { exact: true })
+    .fill("Factory copy");
+  await screen.getByLabelText("总数量 A", { exact: true }).fill("30");
+  await screen.getByLabelText("箱数 A", { exact: true }).fill("5");
+  await screen.getByLabelText("装箱数 A", { exact: true }).fill("32");
+  await screen
+    .getByLabelText("产品规格 A", { exact: true })
     .fill("Saved factory specification");
   await expect
     .element(
       screen.getByText("总数量与箱数 × 装箱数不一致；仍可按本次生产数量保存。"),
     )
     .toBeVisible();
-  await screen
-    .getByRole("button", { name: "保存生产产品项", exact: true })
-    .click();
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -351,13 +421,16 @@ it("edits a Production Order copy while retaining its Order source", async () =>
 it("saves a manual Production Order number without changing its source Order", async () => {
   const { screen, provider } = await setup("/production/new?order=o");
   await screen.getByLabelText("选择 A", { exact: true }).click();
-  await screen.getByRole("button", { name: "创建生产单", exact: true }).click();
-  await screen.getByRole("link").nth(1).click();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByText("生产单详情", { exact: true }).click();
   await screen
     .getByLabelText("单据编号", { exact: true })
     .fill("RCI260920001-P01");
-  await screen.getByRole("button", { name: "保存生产单", exact: true }).click();
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
     .poll(
       async () =>

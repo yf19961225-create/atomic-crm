@@ -6,6 +6,7 @@ export type InlineStatusChoice = { value: string; label: string };
 export function InlineStatusSelect({
   resource,
   recordId,
+  recordLabel,
   status,
   choices,
   label = "状态",
@@ -13,6 +14,7 @@ export function InlineStatusSelect({
 }: {
   resource: string;
   recordId: string;
+  recordLabel?: string;
   status: string;
   choices: InlineStatusChoice[];
   label?: string;
@@ -49,7 +51,7 @@ export function InlineStatusSelect({
   return (
     <span className="inline-flex items-center gap-2">
       <select
-        aria-label={`${label} ${recordId}`}
+        aria-label={`${label} ${recordLabel || recordId}`}
         className="rounded border bg-background px-2 py-1"
         value={value}
         disabled={busy}

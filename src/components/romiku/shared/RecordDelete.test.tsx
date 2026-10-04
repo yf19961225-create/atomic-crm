@@ -177,9 +177,18 @@ for (const [kind, path, resource, items] of [
 ] as const)
   it(`${kind} detail deletes and returns to its list`, async () => {
     const provider = fakeRestDataProvider({
+      romiku_orders: [
+        {
+          id: "parent-order",
+          document_number: "OD-PARENT",
+          counterparty_snapshot: {},
+        },
+      ],
+      romiku_production_orders: [],
       [resource]: [
         {
           id: "x",
+          order_id: kind === "production" ? "parent-order" : null,
           document_number: "DETAIL-X",
           title: "DETAIL-X",
           status: "draft",

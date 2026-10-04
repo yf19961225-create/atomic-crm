@@ -48,6 +48,7 @@ async function setup(path: string) {
     romiku_orders: [
       { id: "o", document_number: "SO-001", source_pi_id: "p", ...header },
     ],
+    romiku_production_orders: [],
     romiku_order_items: [
       { id: "oi", order_id: "o", source_pi_item_id: "pii", ...item },
     ],
@@ -88,7 +89,7 @@ it("shows the database receivable in the Orders list and opens its detail", asyn
     .toBeVisible();
   await screen.getByRole("link", { name: "SO-001", exact: true }).click();
   await expect
-    .element(screen.getByRole("heading", { name: "SO-001" }))
+    .element(screen.getByRole("heading", { name: "SO-001", exact: true }))
     .toBeVisible();
 });
 it("writes the selected SUN5 Quote machine specification into the item snapshot textarea", async () => {
@@ -166,7 +167,7 @@ it.each([
       .click();
     await screen.getByRole("button", { name: `确认并创建${target}` }).click();
     await expect
-      .element(screen.getByRole("heading", { name: heading }))
+      .element(screen.getByRole("heading", { name: heading, exact: true }))
       .toBeVisible();
     expect(rpc).toHaveBeenCalledWith("romiku_convert_document", {
       source_kind: path.startsWith("/pi") ? "pi" : "quote",
