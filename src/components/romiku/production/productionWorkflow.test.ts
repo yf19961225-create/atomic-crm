@@ -1,11 +1,20 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import fakeRestDataProvider from "ra-data-fakerest";
 import { createProductionOrders } from "./productionWorkflow";
 import { readRelated } from "../outbound/workflow";
 
 it("creates one Production for every selected batch without supplier grouping", async () => {
   const provider = fakeRestDataProvider({
-    romiku_orders: [{ id: "o" }],
+    romiku_orders: [
+      {
+        id: "o",
+        production_defaults_snapshot: {
+          schema_version: 2,
+          initialized_at: "2026-10-03",
+          source: { kind: "manual" },
+        },
+      },
+    ],
     romiku_order_items: [1, 2, 3].map((id) => ({
       id: `i${id}`,
       order_id: "o",
@@ -65,7 +74,7 @@ it("validates every source before creating any production document", async () =>
   );
 });
 
-it("copies customer marking once and keeps Production independent of customer and Order changes", async () => {
+it("copies only saved Order marking once and keeps Production independent of customer and Order changes", async () => {
   const asset = {
     bucket: "romiku-marking-assets",
     path: "front-original.png",
@@ -84,7 +93,18 @@ it("copies customer marking once and keeps Production independent of customer an
   const provider = fakeRestDataProvider({
     romiku_formal_customers: [{ id: "c", marking_profile: profile }],
     romiku_orders: [
-      { id: "o", formal_customer_id: "c", notes: "Order requirements" },
+      {
+        id: "o",
+        formal_customer_id: "c",
+        notes: "Ignored latest notes",
+        production_defaults_snapshot: {
+          ...profile,
+          schema_version: 2,
+          initialized_at: "2026-10-03",
+          production_requirements: "Order requirements\nCustomer packing",
+          source: { kind: "customer" },
+        },
+      },
     ],
     romiku_order_items: [
       {
@@ -103,9 +123,15 @@ it("copies customer marking once and keeps Production independent of customer an
     romiku_production_orders: [],
     romiku_production_items: [],
   });
+  const getOne = vi.spyOn(provider, "getOne");
   const [production] = await createProductionOrders(provider, "o", [
     { itemId: "i", quantity: 150 },
   ]);
+  expect(
+    getOne.mock.calls.some(
+      ([resource]) => resource === "romiku_formal_customers",
+    ),
+  ).toBe(false);
   expect(production.marking_snapshot).toMatchObject({
     front_mark: { image_asset: asset },
     side_mark: { text: "Old side" },
@@ -124,7 +150,15 @@ it("copies customer marking once and keeps Production independent of customer an
   });
   await provider.update("romiku_orders", {
     id: "o",
-    data: { notes: "Changed Order" },
+    data: {
+      notes: "Changed Order",
+      production_defaults_snapshot: {
+        schema_version: 2,
+        initialized_at: "2026-10-04",
+        source: { kind: "manual" },
+        small_label: { mode: "text", text: "P02 only" },
+      },
+    },
     previousData: { id: "o" },
   });
   await provider.update("romiku_order_items", {
@@ -132,6 +166,10 @@ it("copies customer marking once and keeps Production independent of customer an
     data: { product_snapshot: { name: "Changed product" } },
     previousData: { id: "i" },
   });
+  const [second] = await createProductionOrders(provider, "o", [
+    { itemId: "i", quantity: 20 },
+  ]);
+  expect(second.marking_snapshot.small_label.text).toBe("P02 only");
   const saved = (
     await provider.getOne("romiku_production_orders", { id: production.id })
   ).data;
@@ -147,7 +185,16 @@ it("copies customer marking once and keeps Production independent of customer an
 
 it("creates with an empty independent marking snapshot when no customer defaults exist", async () => {
   const provider = fakeRestDataProvider({
-    romiku_orders: [{ id: "o" }],
+    romiku_orders: [
+      {
+        id: "o",
+        production_defaults_snapshot: {
+          schema_version: 2,
+          initialized_at: "2026-10-03",
+          source: { kind: "manual" },
+        },
+      },
+    ],
     romiku_order_items: [{ id: "i", order_id: "o", sku: "A" }],
     romiku_production_orders: [],
     romiku_production_items: [],
@@ -161,4 +208,23 @@ it("creates with an empty independent marking snapshot when no customer defaults
     labeling_requirements: "",
     production_requirements: "",
   });
+});
+
+it("refuses an uninitialized Order and never falls back to current Customer or notes", async () => {
+  const provider = fakeRestDataProvider({
+    romiku_orders: [
+      { id: "o", formal_customer_id: "c", notes: "Do not guess" },
+    ],
+    romiku_formal_customers: [
+      { id: "c", marking_profile: { small_label: { text: "New" } } },
+    ],
+    romiku_order_items: [{ id: "i", order_id: "o", sku: "A" }],
+    romiku_production_orders: [],
+  });
+  await expect(
+    createProductionOrders(provider, "o", [{ itemId: "i", quantity: 1 }]),
+  ).rejects.toThrow("尚未初始化");
+  expect(await readRelated(provider, "romiku_production_orders", {})).toEqual(
+    [],
+  );
 });

@@ -14,6 +14,11 @@ async function setup(path: string) {
       {
         id: "o",
         document_number: "SO-001",
+        production_defaults_snapshot: {
+          schema_version: 2,
+          initialized_at: "2026-10-03",
+          source: { kind: "manual" },
+        },
         counterparty_snapshot: {
           company: "Saved Order Buyer",
           address: "Madrid",

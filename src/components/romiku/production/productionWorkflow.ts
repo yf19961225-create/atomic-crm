@@ -1,7 +1,7 @@
 import type { DataProvider, RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { readRelated } from "../outbound/workflow";
-import { createProductionMarkingSnapshot } from "../marking/markingProfile";
+import { copyOrderProductionInstructions } from "../marking/productionInstructions";
 
 export type ProductionSelection = {
   itemId: string;
@@ -54,14 +54,7 @@ export async function createProductionOrders(
   const { data: order } = await provider.getOne("romiku_orders", {
     id: orderId,
   });
-  const customer = order.formal_customer_id
-    ? (
-        await provider.getOne("romiku_formal_customers", {
-          id: order.formal_customer_id,
-        })
-      ).data
-    : undefined;
-  const marking_snapshot = createProductionMarkingSnapshot(order, customer);
+  const marking_snapshot = copyOrderProductionInstructions(order);
   const documents: RaRecord[] = [];
   try {
     const { data } = await provider.create("romiku_production_orders", {

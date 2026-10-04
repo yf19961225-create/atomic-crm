@@ -40,6 +40,7 @@ import {
   documentStatusLabel,
 } from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+import { OrderProductionInstructions } from "../marking/OrderProductionInstructions";
 import { OrderExportDetails } from "./OrderExportDetails";
 import { PiExportDetails } from "./PiExportDetails";
 import { normalizeOrderExportModel } from "./orderExportModel";
@@ -649,6 +650,9 @@ function DocumentEditor({
         values={session.values}
         onChange={session.setValues}
       />
+      {kind === "order" && !session.editing && (
+        <OrderProductionInstructions id={record.id} />
+      )}
       {kind === "order" && (
         <OrderExportDetails
           values={session.values}

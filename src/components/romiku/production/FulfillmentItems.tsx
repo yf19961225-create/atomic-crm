@@ -1,3 +1,4 @@
+import { ProductionItemMarking } from "../marking/ProductionItemMarking";
 import { recordValue } from "../marking/markingProfile";
 import { useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
@@ -144,6 +145,14 @@ export function FulfillmentItems({
           </tbody>
         </table>
       </div>
+      {kind === "production" && (
+        <ProductionItemMarking
+          key={parent.id}
+          parent={parent}
+          items={items}
+          onChanged={onChanged}
+        />
+      )}
       {!items.length && <p>暂无产品项。</p>}
       {editing !== null && (
         <ItemEditor
