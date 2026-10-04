@@ -48,6 +48,10 @@ export type WorkflowConfig = {
   createLabel?: string;
   statuses: string[];
   fields: Field[];
+  renderDetail?: (
+    record: RaRecord,
+    profile: React.ReactNode,
+  ) => React.ReactNode;
   extraTabs?: {
     title: string;
     fields?: Field[];
@@ -347,7 +351,9 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           if (!isOpen) open(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-3xl">
+        <SheetContent
+          className={`w-full overflow-y-auto ${config.kind === "customer" ? "sm:max-w-5xl" : "sm:max-w-3xl"}`}
+        >
           <SheetHeader>
             <SheetTitle>
               {selected === "new" ? config.createLabel : config.title}
@@ -404,7 +410,7 @@ function WorkflowDrawer({
     );
   if (isPending) return <p>正在加载记录…</p>;
   if (error || !data) return <p role="alert">无法加载此记录。</p>;
-  return (
+  const profile = (
     <RecordEditor
       config={config}
       record={data}
@@ -412,6 +418,7 @@ function WorkflowDrawer({
       onDeleted={onDeleted}
     />
   );
+  return config.renderDetail ? config.renderDetail(data, profile) : profile;
 }
 function RecordEditor({
   config,

@@ -27,7 +27,11 @@ export type SearchGroup = {
   items: SearchItem[];
 };
 export type SearchResponse = { groups: SearchGroup[] };
-export type SearchFilters = { status?: string; order_id?: string };
+export type SearchFilters = {
+  status?: string;
+  order_id?: string;
+  formal_customer_id?: string;
+};
 export type SearchArgs = {
   query: string;
   resource_types: SearchType[] | null;

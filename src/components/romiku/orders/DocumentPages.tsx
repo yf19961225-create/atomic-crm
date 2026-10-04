@@ -1,3 +1,4 @@
+import { OrderCustomerArchive } from "../customers/OrderCustomerArchive";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
@@ -604,6 +605,9 @@ function DocumentEditor({
       </div>
 
       <DocumentSources record={record} />
+      {kind === "order" && !session.editing && (
+        <OrderCustomerArchive record={record} />
+      )}
       {kind === "order" && (
         <div className="flex gap-4">
           <Link className="underline" to={`/production?order=${record.id}`}>

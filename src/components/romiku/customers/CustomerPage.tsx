@@ -1,5 +1,6 @@
 import { WorkflowPage, type WorkflowConfig } from "../outbound/WorkflowPage";
 import { ownerField } from "../outbound/WorkflowFields";
+import { Customer360 } from "./Customer360";
 import { CustomerHistory } from "./CustomerHistory";
 
 import { MarkingProfileEditor } from "../marking/MarkingProfileEditor";
@@ -7,6 +8,9 @@ import { MarkingProfileEditor } from "../marking/MarkingProfileEditor";
 const statuses = ["active", "inactive"];
 const config: WorkflowConfig = {
   kind: "customer",
+  renderDetail: (record, profile) => (
+    <Customer360 key={record.id} record={record} profile={profile} />
+  ),
   title: "正式客户",
   createLabel: "新建正式客户",
   statuses,

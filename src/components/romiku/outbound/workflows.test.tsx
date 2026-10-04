@@ -7,6 +7,26 @@ import { romikuRoutes } from "../routes/RomikuRoutes";
 import "@/index.css";
 import { page } from "vitest/browser";
 
+vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
+  getSupabaseClient: () => ({
+    rpc: async () => ({
+      data: {
+        total_count: 0,
+        has_more: false,
+        orders: [],
+        summary: {
+          order_count: 0,
+          in_progress: 0,
+          completed: 0,
+          totals: [],
+          latest: null,
+        },
+      },
+      error: null,
+    }),
+  }),
+}));
+
 beforeEach(async () => {
   await page.viewport(1440, 1000);
 });
@@ -60,6 +80,14 @@ const seed = () => ({
 });
 const setup = async (path: string, data = seed()) => {
   const provider = fakeRestDataProvider(data);
+  const getOne = provider.getOne.bind(provider);
+  provider.getOne = (resource, params) =>
+    getOne(
+      resource === "romiku_formal_customer_directory"
+        ? "romiku_formal_customers"
+        : resource,
+      params,
+    );
   const screen = await render(
     <MemoryRouter initialEntries={[path]}>
       <CoreAdminContext dataProvider={provider}>
@@ -271,6 +299,7 @@ describe("independent ROMIKU workflows", () => {
       (await provider.getOne("romiku_outbound_companies", { id: "out-1" }))
         .data,
     ).toEqual(seed().romiku_outbound_companies[0]);
+    await screen.getByRole("tab", { name: "客户资料", exact: true }).click();
     await screen.getByRole("tab", { name: "联系人" }).click();
     for (const name of ["Accounts", "Receiving"]) {
       await screen.getByLabelText("联系人姓名", { exact: true }).fill(name);

@@ -36,6 +36,7 @@ export function useModuleSearch(
       page,
       filters.status || "",
       filters.order_id || "",
+      filters.formal_customer_id || "",
     ],
     enabled: !!query,
     queryFn: async () => {
