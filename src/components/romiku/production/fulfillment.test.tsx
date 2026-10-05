@@ -92,6 +92,46 @@ async function setup(path: string) {
     ],
   });
   rpc.mockImplementation(async (name, args) => {
+    if (name === "romiku_production_allocations") {
+      const sources = await readRelated(provider, "romiku_order_items", {
+        order_id: args.source_order_id,
+      });
+      const productions = await readRelated(
+        provider,
+        "romiku_production_orders",
+        { order_id: args.source_order_id },
+      );
+      const lines = await readRelated(provider, "romiku_production_items", {
+        order_id: args.source_order_id,
+      });
+      return {
+        data: sources.map((s) => {
+          const allocations = productions
+            .filter((p) => p.status !== "cancelled")
+            .map((p) => ({
+              id: p.id,
+              document_number: p.document_number,
+              quantity: lines
+                .filter(
+                  (i) =>
+                    i.production_order_id === p.id &&
+                    i.source_order_item_id === s.id,
+                )
+                .reduce((n, i) => n + Number(i.quantity), 0),
+            }))
+            .filter((a) => a.quantity > 0);
+          const assigned = allocations.reduce((n, a) => n + a.quantity, 0);
+          return {
+            ...s,
+            ordered_quantity: s.quantity,
+            production_quantity: assigned,
+            unallocated_quantity: s.quantity - assigned,
+            allocations,
+          };
+        }),
+        error: null,
+      };
+    }
     if (name !== "romiku_save_production_workspace")
       throw new Error("Unexpected RPC");
     let parent;
@@ -169,7 +209,7 @@ it("creates selected production items in one supplier-free Production through th
   await expect.element(screen.getByText("箱数", { exact: true })).toBeVisible();
   await expect.element(screen.getByText("4", { exact: true })).toBeVisible();
   await expect
-    .element(screen.getByText("生产数量", { exact: true }))
+    .element(screen.getByText("本次生产数量", { exact: true }))
     .toBeVisible();
   await screen
     .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })

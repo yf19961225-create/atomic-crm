@@ -33,45 +33,50 @@ export function MarkEditor({
           onChange({ ...value, mode: e.target.value as Mark["mode"] })
         }
       >
-        <option value="none">不显示</option>
-        <option value="text">文字</option>
-        <option value="image">图片</option>
+        <option value="none">不需要</option>
+        <option value="text">使用文字</option>
+        <option value="image">使用图片</option>
       </select>
-      <textarea
-        className="block w-full rounded border p-2"
-        aria-label={`${label}文字`}
-        value={value.text}
-        onChange={(e) => onChange({ ...value, text: e.target.value })}
-      />
+      {value.mode === "text" && (
+        <textarea
+          className="block w-full rounded border p-2"
+          aria-label={`${label}文字`}
+          value={value.text}
+          onChange={(e) => onChange({ ...value, text: e.target.value })}
+        />
+      )}
       {value.mode === "image" && (
         <>
           {value.image_asset && (
             <MarkingPreview asset={value.image_asset} label={label} />
           )}
-          <input
-            aria-label={`${label}图片`}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (!file) return;
-              setBusy(true);
-              parentBusy(true);
-              setError("");
-              try {
-                onChange({
-                  ...value,
-                  image_asset: await uploadMarkingImage(file),
-                });
-              } catch {
-                setError("图片上传失败，请重试。");
-              } finally {
-                setBusy(false);
-                parentBusy(false);
-              }
-            }}
-          />
+          <label className="block">
+            {value.image_asset ? "替换图片" : "上传图片"}
+            <input
+              aria-label={`${label}图片`}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setBusy(true);
+                parentBusy(true);
+                setError("");
+                try {
+                  onChange({
+                    ...value,
+                    image_asset: await uploadMarkingImage(file),
+                  });
+                } catch {
+                  setError("图片上传失败，请重试。");
+                } finally {
+                  setBusy(false);
+                  parentBusy(false);
+                }
+              }}
+            />
+          </label>
           <Button
             type="button"
             variant="outline"

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDataProvider } from "ra-core";
 
@@ -21,6 +22,7 @@ export function InlineStatusSelect({
   onUpdated?: (status: string) => void;
 }) {
   const provider = useDataProvider();
+  const cache = useQueryClient();
   const [value, setValue] = useState(status);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -38,12 +40,28 @@ export function InlineStatusSelect({
         data: { status: next },
         previousData: { id: recordId, status: previous },
       });
+      if (resource === "romiku_production_orders")
+        await cache.invalidateQueries({ queryKey: ["production-allocations"] });
       onUpdated?.(next);
       setMessage("状态已保存。");
-    } catch {
+    } catch (error) {
       setValue(previous);
       setFailed(true);
-      setMessage("状态保存失败，已恢复原状态。");
+      const problem = error as {
+        code?: string;
+        message?: string;
+        body?: { code?: string; message?: string };
+      };
+      const capacity =
+        resource === "romiku_production_orders" &&
+        (problem?.body?.code || problem?.code) === "P4201";
+      setMessage(
+        capacity
+          ? problem.body?.message ||
+              problem.message ||
+              "生产安排超过订单数量，请调整数量后重试。"
+          : "状态保存失败，已恢复原状态。",
+      );
     } finally {
       setBusy(false);
     }
@@ -64,7 +82,10 @@ export function InlineStatusSelect({
         ))}
       </select>
       {message && (
-        <span role={failed ? "alert" : "status"} className="sr-only">
+        <span
+          role={failed ? "alert" : "status"}
+          className={failed ? "max-w-md text-sm text-destructive" : "sr-only"}
+        >
           {message}
         </span>
       )}

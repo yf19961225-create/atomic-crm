@@ -1,3 +1,4 @@
+import type { AllocationIssue } from "./productionAllocation";
 import type { RaRecord } from "ra-core";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
 import {
@@ -39,7 +40,6 @@ export async function saveProductionWorkspace(
   items: RaRecord[],
   expected: unknown,
   isNew = false,
-  allowOverassigned = false,
 ) {
   const header: Record<string, unknown> = {};
   for (const key of [
@@ -53,7 +53,6 @@ export async function saveProductionWorkspace(
     if (record[key] !== undefined) header[key] = record[key];
   if (!isNew && record.document_number)
     header.document_number = record.document_number;
-  header.allow_overassigned = allowOverassigned;
   const payload = items.map((i) => ({
     id: i.isNew ? null : i.id,
     source_order_item_id: i.source_order_item_id,
@@ -85,7 +84,13 @@ export async function saveProductionWorkspace(
     },
   );
   if (error || !data) throw new Error("保存未完成，请检查连接后重试。");
-  return data as { ok: boolean; id?: string; message?: string; code?: string };
+  return data as {
+    ok: boolean;
+    id?: string;
+    message?: string;
+    code?: string;
+    dependencies?: AllocationIssue[];
+  };
 }
 export async function syncOrderProductionDefaults(
   orderId: string,

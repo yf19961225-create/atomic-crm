@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useDataProvider, useGetOne, type RaRecord } from "ra-core";
+import { useGetOne, type RaRecord } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { readRelated } from "../outbound/workflow";
+import {
+  readProductionAllocations,
+  AllocationDetails,
+} from "./productionAllocation";
 import { copyOrderProductionInstructions } from "../marking/productionInstructions";
 import { OrderSelect } from "./fulfillmentShared";
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { savedBuyerName } from "./productionWorkspace";
 export function ProductionCreate() {
-  const provider = useDataProvider(),
-    [params] = useSearchParams(),
+  const [params] = useSearchParams(),
     lockedOrder = params.get("order");
   const [orderId, setOrderId] = useState(lockedOrder || ""),
     [selection, setSelection] = useState<Record<string, string>>({}),
@@ -26,11 +28,24 @@ export function ProductionCreate() {
     { enabled: !!orderId },
   );
   const items = useQuery({
-    queryKey: ["production-source-items", orderId],
-    queryFn: () =>
-      readRelated(provider, "romiku_order_items", { order_id: orderId }),
+    queryKey: ["production-allocations", orderId],
+    queryFn: () => readProductionAllocations(orderId),
     enabled: !!orderId,
   });
+  useEffect(() => {
+    if (!items.data) return;
+    const available = new Set(
+      items.data
+        .filter((i) => i.unallocated_quantity > 0)
+        .map((i) => String(i.id)),
+    );
+    setSelection((old) => {
+      const entries = Object.entries(old).filter(([id]) => available.has(id));
+      return entries.length === Object.keys(old).length
+        ? old
+        : Object.fromEntries(entries);
+    });
+  }, [items.data]);
   function next() {
     try {
       if (!order.data || !items.data) throw new Error("请先载入订单与产品。");
@@ -40,6 +55,10 @@ export function ProductionCreate() {
           const quantity = Number(selection[String(i.id)]);
           if (!Number.isFinite(quantity) || quantity <= 0)
             throw new Error("生产数量必须大于零。");
+          if (quantity > Number(i.unallocated_quantity))
+            throw new Error(
+              `${i.sku} 本次数量不能超过剩余 ${Math.max(0, i.unallocated_quantity)}。`,
+            );
           return {
             id: crypto.randomUUID(),
             isNew: true,
@@ -124,27 +143,42 @@ export function ProductionCreate() {
         <table className="w-full text-left text-sm">
           <thead>
             <tr>
-              {["选择", "SKU / 产品", "箱数", "订单数量", "生产数量"].map(
-                (s) => (
-                  <th className="p-3" key={s}>
-                    {s}
-                  </th>
-                ),
-              )}
+              {[
+                "选择",
+                "SKU / 产品",
+                "箱数",
+                "订单数量",
+                "已安排",
+                "剩余",
+                "本次生产数量",
+              ].map((s) => (
+                <th className="p-3" key={s}>
+                  {s}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {items.data?.map((i) => (
-              <tr key={i.id} className="border-t">
+              <tr
+                key={i.id}
+                className={`border-t ${i.unallocated_quantity <= 0 ? "bg-muted text-muted-foreground" : ""}`}
+              >
                 <td className="p-3">
                   <input
                     type="checkbox"
+                    disabled={i.unallocated_quantity <= 0}
                     aria-label={`选择 ${i.sku}`}
                     checked={selection[String(i.id)] !== undefined}
                     onChange={(e) =>
                       setSelection((old) =>
                         e.target.checked
-                          ? { ...old, [i.id]: String(i.quantity) }
+                          ? {
+                              ...old,
+                              [i.id]: String(
+                                Math.max(0, i.unallocated_quantity),
+                              ),
+                            }
                           : Object.fromEntries(
                               Object.entries(old).filter(
                                 ([id]) => id !== String(i.id),
@@ -156,21 +190,29 @@ export function ProductionCreate() {
                 </td>
                 <td className="p-3">
                   {i.sku} · {i.product_snapshot?.name}
+                  {i.unallocated_quantity <= 0 && <p>已全部安排</p>}
+                  <AllocationDetails item={i} />
                 </td>
                 <td className="p-3">
                   {i.packing_snapshot?.cartons ??
                     i.packing_snapshot?.carton_qty ??
                     "—"}
                 </td>
-                <td className="p-3">{i.quantity}</td>
+                <td className="p-3">{i.ordered_quantity}</td>
+                <td className="p-3">{i.production_quantity}</td>
+                <td className="p-3">{Math.max(0, i.unallocated_quantity)}</td>
                 <td className="p-3">
                   <input
                     className="rounded border p-2"
                     type="number"
                     min="0.0001"
                     step="any"
+                    max={Math.max(0, i.unallocated_quantity)}
                     aria-label={`生产数量 ${i.sku}`}
-                    disabled={selection[String(i.id)] === undefined}
+                    disabled={
+                      selection[String(i.id)] === undefined ||
+                      i.unallocated_quantity <= 0
+                    }
                     value={selection[String(i.id)] ?? ""}
                     onChange={(e) =>
                       setSelection((old) => ({
@@ -187,6 +229,9 @@ export function ProductionCreate() {
       </div>
       {orderId && items.isPending && <p>正在加载订单产品…</p>}
       {items.data?.length === 0 && <p>此订单没有产品项。</p>}
+      <p className="text-sm text-muted-foreground">
+        已取消生产单不占用额度；已归档或已完成生产单仍计入已安排数量。
+      </p>
       {failure && <p role="alert">{failure}</p>}
       <Button
         disabled={

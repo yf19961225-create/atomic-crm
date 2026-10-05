@@ -5,7 +5,13 @@ import { useDataProvider, type RaRecord } from "ra-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { RecordDelete } from "../shared/RecordDelete";
-import { readRelated } from "../outbound/workflow";
+import {
+  readProductionAllocations,
+  AllocationDetails,
+  AllocationBlocker,
+  documentCapacity,
+  type AllocationIssue,
+} from "./productionAllocation";
 import {
   productionStatusChoices,
   productionStatusLabel,
@@ -68,11 +74,14 @@ export function ProductionWorkbench({
     [message, setMessage] = useState("");
   const [special, setSpecial] = useState<string | null>(null),
     [confirmReload, setConfirmReload] = useState(false),
-    [overAssigned, setOverAssigned] = useState("");
+    [overAssigned, setOverAssigned] = useState<{
+      message: string;
+      issues: AllocationIssue[];
+    } | null>(null),
+    [editingInstructions, setEditingInstructions] = useState(false);
   const source = useQuery({
-    queryKey: ["production-source-items", order.id],
-    queryFn: () =>
-      readRelated(provider, "romiku_order_items", { order_id: order.id }),
+    queryKey: ["production-allocations", order.id],
+    queryFn: () => readProductionAllocations(String(order.id)),
     enabled: editing,
   });
   const profile = normalizeProductionInstructions(draft.marking_snapshot),
@@ -88,6 +97,7 @@ export function ProductionWorkbench({
     setLines(structuredClone(items));
     setBase(workspaceExpected(record, items));
     setEditing(true);
+    setEditingInstructions(false);
     setFailure("");
     setMessage("");
   }
@@ -99,16 +109,17 @@ export function ProductionWorkbench({
     setDraft(structuredClone(record));
     setLines(structuredClone(items));
     setEditing(false);
+    setEditingInstructions(false);
     setSpecial(null);
     setConfirmReload(false);
-    setOverAssigned("");
+    setOverAssigned(null);
     setFailure("");
   }
   function change(id: RaRecord["id"], patch: Partial<RaRecord>) {
     setLines((rows) => rows.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-    setOverAssigned("");
+    setOverAssigned(null);
   }
-  async function save(allow = false) {
+  async function save() {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
@@ -138,18 +149,22 @@ export function ProductionWorkbench({
         lines,
         isNew ? { order_updated_at: order.updated_at } : base,
         isNew,
-        allow,
       );
       if (!result.ok) {
         if (result.code === "OVER_ASSIGNED")
-          setOverAssigned(result.message || "生产数量超过订单数量。");
+          setOverAssigned({
+            message: result.message || "生产安排超过订单数量。",
+            issues: result.dependencies || [],
+          });
         else setFailure(result.message || "保存失败。");
         return;
       }
       committed.current = true;
       setEditing(false);
+      setEditingInstructions(false);
+      setConfirmReload(false);
       setSpecial(null);
-      setOverAssigned("");
+      setOverAssigned(null);
       await cache.invalidateQueries();
       await onSaved();
       setMessage("整张生产单已保存。");
@@ -236,73 +251,84 @@ export function ProductionWorkbench({
           <section className="space-y-4 rounded border p-4">
             <div className="flex flex-wrap justify-between gap-2">
               <h2 className="text-xl font-semibold">统一生产要求</h2>
-              {!editing && (
-                <Button variant="outline" onClick={start}>
-                  修改本生产单
+              {!editingInstructions && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!editing) start();
+                    setEditingInstructions(true);
+                  }}
+                >
+                  编辑统一要求
                 </Button>
               )}
+              <details>
+                <summary>⋯ 更多</summary>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (!editing) start();
+                    setConfirmReload(true);
+                  }}
+                >
+                  重新从订单载入统一要求
+                </Button>
+              </details>
             </div>
             <p className="text-sm text-muted-foreground">
-              来源：{order.document_number} ·{" "}
+              来源：订单 {order.document_number} ·{" "}
               {shownProfile.source.kind === "order"
                 ? "已从订单生产要求继承；本生产单独立保存"
                 : "本生产单已保存要求"}
               。修改订单不会自动覆盖已创建生产单。
             </p>
-            {editing ? (
+            {editing && editingInstructions ? (
               <>
                 <ProductionInstructionsFields
                   value={profile}
                   onChange={(marking_snapshot) => {
                     setDraft((d) => ({ ...d, marking_snapshot }));
-                    setOverAssigned("");
+                    setOverAssigned(null);
                   }}
                 />
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmReload(true)}
-                >
-                  重新载入订单默认值
-                </Button>
-                {confirmReload && (
-                  <div role="alertdialog" aria-label="确认重新载入订单默认值">
-                    <p>
-                      载入当前已保存的订单要求到编辑草稿，保留所有产品例外；点击整单保存后生效。
-                    </p>
-                    <Button
-                      onClick={async () => {
-                        setBusy(true);
-                        try {
-                          const { data } = await provider.getOne(
-                            "romiku_orders",
-                            { id: order.id },
-                          );
-                          setDraft((d) => ({
-                            ...d,
-                            marking_snapshot:
-                              copyOrderProductionInstructions(data),
-                          }));
-                          setConfirmReload(false);
-                        } catch {
-                          setFailure("无法读取订单默认值。");
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      确认载入草稿
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setConfirmReload(false)}
-                    >
-                      取消载入
-                    </Button>
-                  </div>
-                )}
               </>
             ) : (
               <SharedInstructionsSummary value={shownProfile} />
+            )}
+            {confirmReload && (
+              <div role="alertdialog" aria-label="确认重新从订单载入统一要求">
+                <p>
+                  将使用订单 {order.document_number}{" "}
+                  当前保存的统一生产要求，覆盖本生产单的统一生产要求。产品级特殊要求不会改变；点击整单保存后生效。
+                </p>
+                <Button
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      const { data } = await provider.getOne("romiku_orders", {
+                        id: order.id,
+                      });
+                      setDraft((d) => ({
+                        ...d,
+                        marking_snapshot: copyOrderProductionInstructions(data),
+                      }));
+                      setConfirmReload(false);
+                    } catch {
+                      setFailure("无法读取订单默认值。");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  确认载入草稿
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmReload(false)}
+                >
+                  取消载入
+                </Button>
+              </div>
             )}
           </section>
           {editing && (
@@ -393,6 +419,23 @@ export function ProductionWorkbench({
                       line.marking_override,
                     ),
                     packaging = line.packaging_snapshot || {};
+                  const allocation = source.data?.find(
+                    (i) => i.id === line.source_order_item_id,
+                  );
+                  const capacity = allocation
+                    ? Math.max(
+                        0,
+                        documentCapacity(allocation, record.id) -
+                          visible
+                            .filter(
+                              (i) =>
+                                i.id !== line.id &&
+                                i.source_order_item_id ===
+                                  line.source_order_item_id,
+                            )
+                            .reduce((n, i) => n + Number(i.quantity), 0),
+                      )
+                    : undefined;
                   const input = (
                     key: string,
                     label: string,
@@ -411,6 +454,11 @@ export function ProductionWorkbench({
                               : "0"
                             : undefined
                         }
+                        max={
+                          key === "quantity" && draft.status !== "cancelled"
+                            ? capacity
+                            : undefined
+                        }
                         className="w-28 rounded border p-2"
                         aria-label={`${label} ${line.sku}`}
                         value={value == null ? "" : String(value)}
@@ -423,7 +471,12 @@ export function ProductionWorkbench({
                     );
                   return (
                     <tr key={line.id} className="border-t align-top">
-                      <td className="p-3">{line.sku}</td>
+                      <td className="p-3">
+                        {line.sku}
+                        {editing && allocation && (
+                          <AllocationDetails item={allocation} />
+                        )}
+                      </td>
                       <td className="p-3">
                         {input(
                           "name",
@@ -614,7 +667,7 @@ export function ProductionWorkbench({
                   const s = source.data?.find(
                     (i) => String(i.id) === e.target.value,
                   );
-                  if (s)
+                  if (s && s.unallocated_quantity > 0)
                     setLines((rows) => [
                       ...rows,
                       {
@@ -622,7 +675,7 @@ export function ProductionWorkbench({
                         isNew: true,
                         source_order_item_id: s.id,
                         sku: s.sku,
-                        quantity: s.quantity,
+                        quantity: Math.max(0, s.unallocated_quantity),
                         product_snapshot: structuredClone(
                           s.product_snapshot || {},
                         ),
@@ -640,8 +693,14 @@ export function ProductionWorkbench({
                     (i) => !lines.some((l) => l.source_order_item_id === i.id),
                   )
                   .map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.sku} · {i.product_snapshot?.name}
+                    <option
+                      key={i.id}
+                      value={i.id}
+                      disabled={i.unallocated_quantity <= 0}
+                    >
+                      {i.sku} · {i.product_snapshot?.name} · 剩余{" "}
+                      {Math.max(0, i.unallocated_quantity)}
+                      {i.unallocated_quantity <= 0 ? "（已全部安排）" : ""}
                     </option>
                   ))}
               </select>
@@ -651,17 +710,10 @@ export function ProductionWorkbench({
             </label>
           )}
           {overAssigned && (
-            <div
-              role="alertdialog"
-              aria-label="确认超出订单数量"
-              className="rounded border p-4"
-            >
-              <p>{overAssigned}</p>
-              <Button onClick={() => void save(true)}>确认超量并保存</Button>
-              <Button variant="outline" onClick={() => setOverAssigned("")}>
-                返回修改
-              </Button>
-            </div>
+            <AllocationBlocker
+              message={overAssigned.message}
+              issues={overAssigned.issues}
+            />
           )}
         </fieldset>
         {!isNew && onExport && (

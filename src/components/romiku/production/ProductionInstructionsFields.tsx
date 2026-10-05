@@ -66,48 +66,36 @@ export function SharedInstructionsSummary({
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      {(["front_mark", "side_mark", "small_label"] as const)
-        .filter((key) => value[key].mode !== "none")
-        .map((key) => (
-          <EffectiveMark
-            key={key}
-            label={
-              {
-                front_mark: "正唛",
-                side_mark: "侧唛",
-                small_label: "统一小标签",
-              }[key]
-            }
-            mark={value[key]}
-          />
-        ))}
-      {value.labeling_requirements && (
+      {(["front_mark", "side_mark", "small_label"] as const).map((key) => (
+        <EffectiveMark
+          key={key}
+          label={
+            {
+              front_mark: "正唛",
+              side_mark: "侧唛",
+              small_label: "统一小标签",
+            }[key]
+          }
+          mark={value[key]}
+        />
+      ))}
+      {
         <p className="whitespace-pre-wrap">
-          贴标要求：{value.labeling_requirements}
+          贴标要求：{value.labeling_requirements || "无"}
         </p>
-      )}
-      {value.production_requirements && (
+      }
+      {
         <p className="whitespace-pre-wrap">
-          订单要求：{value.production_requirements}
+          订单要求：{value.production_requirements || "无"}
         </p>
-      )}
+      }
       {value.notes && (
         <p className="whitespace-pre-wrap">内部备注：{value.notes}</p>
       )}
       {value.additional_labels.map((label) => (
-        <EffectiveMark key={label.id} label="附加标签" mark={label} />
+        <EffectiveMark key={label.id} label="附加统一标签" mark={label} />
       ))}
-      {!value.production_requirements &&
-        !value.labeling_requirements &&
-        !value.notes &&
-        value.additional_labels.length === 0 &&
-        [value.front_mark, value.side_mark, value.small_label].every(
-          (m) => m.mode === "none",
-        ) && (
-          <p className="text-muted-foreground">
-            暂无统一要求；产品默认使用统一要求。
-          </p>
-        )}
+      {value.additional_labels.length === 0 && <p>附加统一标签：无</p>}
     </div>
   );
 }
@@ -136,7 +124,7 @@ export function ItemOverrideFields({
         >
           <option value="inherit">使用统一要求</option>
           <option value="append">在统一要求上额外增加</option>
-          <option value="replace">使用该产品独立要求</option>
+          <option value="replace">使用产品独立要求</option>
         </select>
       </label>
       {own.mode !== "inherit" && (
@@ -201,7 +189,7 @@ export function ResolvedItemInstructions({
           ? "使用统一要求"
           : own.mode === "append"
             ? "在统一要求上额外增加"
-            : "使用该产品独立要求"}
+            : "使用产品独立要求"}
       </p>
       {result.frontMark.mode !== "none" && (
         <EffectiveMark label="最终正唛" mark={result.frontMark} />

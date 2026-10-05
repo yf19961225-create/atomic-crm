@@ -65,6 +65,10 @@ it("uses one keyboard-searchable combobox with an explicit unlinked option", asy
 
   const input = screen.getByRole("combobox", { name: "正式客户" });
   await input.fill("bea buyer");
+  // Keyboard navigation requires the asynchronous directory result to exist.
+  await expect
+    .element(screen.getByRole("option", { name: /Global Beauty/ }))
+    .toBeVisible();
   await userEvent.keyboard("{ArrowDown}{Enter}");
   expect(onSelect).toHaveBeenLastCalledWith({
     formalCustomerId: "formal-2",

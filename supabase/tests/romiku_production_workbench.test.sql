@@ -30,9 +30,9 @@ select is((select product_snapshot->>'specification' from romiku_order_items whe
 select is(romiku_save_production_workspace(p.id,p.order_id,'{"notes":"stale"}',pg_temp.ws_items(p.id),jsonb_set(pg_temp.ws_expected(p.id),'{header_updated_at}','"2000-01-01"'))->>'code','STALE','stale session rejected') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{"notes":"bad write"}',jsonb_set(pg_temp.ws_items(p.id),'{0,source_order_item_id}',to_jsonb((select id::text from ws_ids where kind='foreign'))),pg_temp.ws_expected(p.id))->>'ok','false','foreign Order item rejected') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is((select notes from romiku_production_orders where id=(select id from ws_ids where kind='production')),'session saved','failed line rolls header back');
-select is(romiku_save_production_workspace(p.id,p.order_id,'{}',jsonb_set(pg_temp.ws_items(p.id),'{0,quantity}','150'),pg_temp.ws_expected(p.id))->>'code','OVER_ASSIGNED','over assignment requires explicit confirmation') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
-select is((select quantity from romiku_production_items where production_order_id=(select id from ws_ids where kind='production')),30::numeric,'warning is rollback-only');
-select is(romiku_save_production_workspace(p.id,p.order_id,'{"allow_overassigned":true}',jsonb_set(pg_temp.ws_items(p.id),'{0,quantity}','150'),pg_temp.ws_expected(p.id))->>'ok','true','explicitly confirmed over assignment allowed') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
+select is(romiku_save_production_workspace(p.id,p.order_id,'{}',jsonb_set(pg_temp.ws_items(p.id),'{0,quantity}','150'),pg_temp.ws_expected(p.id))->>'code','OVER_ASSIGNED','over assignment is blocked') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
+select is((select quantity from romiku_production_items where production_order_id=(select id from ws_ids where kind='production')),30::numeric,'blocked excess rolls back');
+select is(romiku_save_production_workspace(p.id,p.order_id,'{"allow_overassigned":true}',jsonb_set(pg_temp.ws_items(p.id),'{0,quantity}','150'),pg_temp.ws_expected(p.id))->>'ok','false','legacy override cannot bypass capacity') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{}','[]',pg_temp.ws_expected(p.id))->>'ok','false','empty session cannot erase rows') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{"order_id":"invalid"}',pg_temp.ws_items(p.id),pg_temp.ws_expected(p.id))->>'ok','false','header whitelist rejects source mutation') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 insert into romiku_production_orders(order_id,status,marking_snapshot,archived_at) select id,st,'{"production_requirements":"Keep"}',case when st='pending' then now() else null end from ws_ids cross join unnest(array['pending','completed','received','cancelled']) st where kind='order';
@@ -59,13 +59,13 @@ select is((select prosecdef from pg_proc where oid='public.romiku_sync_order_pro
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
 create policy ws_deny_update on romiku_production_items as restrictive for update to authenticated using(false);
 set local role authenticated;
-select is(romiku_save_production_workspace(p.id,p.order_id,'{"notes":"RLS denied","allow_overassigned":true}',pg_temp.ws_items(p.id),pg_temp.ws_expected(p.id))->>'ok','false','RLS denied row aborts whole session') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
+select is(romiku_save_production_workspace(p.id,p.order_id,'{"notes":"RLS denied"}',pg_temp.ws_items(p.id),pg_temp.ws_expected(p.id))->>'ok','false','RLS denied row aborts whole session') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is((select notes from romiku_production_orders where id=(select id from ws_ids where kind='production')),'session saved','RLS failure rolls header back');
 reset role; drop policy ws_deny_update on romiku_production_items;
 create function pg_temp.ws_fail() returns trigger language plpgsql as $$begin raise exception 'private database trigger detail';end$$;
 create trigger ws_late_failure before update on romiku_production_items for each row execute function pg_temp.ws_fail();
 set local role authenticated;
-select is(romiku_save_production_workspace(p.id,p.order_id,'{"notes":"late failure","allow_overassigned":true}',pg_temp.ws_items(p.id),pg_temp.ws_expected(p.id))->>'message','保存失败，整张生产单未写入，请刷新后重试。','late trigger error is sanitized') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
+select is(romiku_save_production_workspace(p.id,p.order_id,'{"notes":"late failure"}',pg_temp.ws_items(p.id),pg_temp.ws_expected(p.id))->>'message','保存失败，整张生产单未写入，请刷新后重试。','late trigger error is sanitized') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is((select notes from romiku_production_orders where id=(select id from ws_ids where kind='production')),'session saved','late trigger rolls header back');
 reset role; drop trigger ws_late_failure on romiku_production_items;
 create policy ws_deny_order_read on romiku_orders as restrictive for select to authenticated using(false);

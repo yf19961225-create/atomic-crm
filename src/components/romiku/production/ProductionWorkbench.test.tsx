@@ -1,3 +1,4 @@
+import { QueryClient } from "@tanstack/react-query";
 import { OrderProductionPanel } from "./OrderProductionPanel";
 import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
@@ -12,7 +13,14 @@ import {
 } from "react-router";
 import { FulfillmentDetail, FulfillmentList } from "./FulfillmentPages";
 import { ProductionCreate } from "./ProductionCreate";
-const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
+const { rpc, readAllocations } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  readAllocations: vi.fn(),
+}));
+vi.mock("./productionAllocation", async (original) => ({
+  ...(await original<typeof import("./productionAllocation")>()),
+  readProductionAllocations: readAllocations,
+}));
 vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
   getSupabaseClient: () => ({ rpc }),
 }));
@@ -22,6 +30,7 @@ async function setup(
   list = false,
   dataRouter = false,
   replaceOnly = false,
+  allocated = false,
 ) {
   rpc.mockReset();
   rpc.mockResolvedValue({ data: { ok: true, id: "p" }, error: null });
@@ -99,6 +108,29 @@ async function setup(
       },
     ],
   });
+  readAllocations.mockReset();
+  const sources = (
+    await provider.getList("romiku_order_items", {
+      pagination: { page: 1, perPage: 100 },
+      sort: { field: "id", order: "ASC" },
+      filter: {},
+    })
+  ).data;
+  readAllocations.mockResolvedValue(
+    sources.map((i) => ({
+      ...i,
+      ordered_quantity: 100,
+      production_quantity: allocated && i.sku === "SUN5" ? 100 : 60,
+      unallocated_quantity: allocated && i.sku === "SUN5" ? 0 : 40,
+      allocations: [
+        {
+          id: "other",
+          document_number: "OD001-P02",
+          quantity: allocated && i.sku === "SUN5" ? 100 : 60,
+        },
+      ],
+    })),
+  );
   const parent = (await provider.getOne("romiku_orders", { id: "o" })).data;
   const getMany = vi.spyOn(provider, "getMany");
   if (replaceOnly) {
@@ -117,8 +149,9 @@ async function setup(
       },
     });
   }
+  const cache = new QueryClient();
   const content = (
-    <CoreAdminContext dataProvider={provider}>
+    <CoreAdminContext dataProvider={provider} queryClient={cache}>
       <Routes>
         <Route
           path="/orders/o"
@@ -153,13 +186,16 @@ async function setup(
       <MemoryRouter initialEntries={[initial]}>{content}</MemoryRouter>
     ),
   );
-  return { screen, provider, getMany, router };
+  return { screen, provider, getMany, router, cache };
 }
 it("edits all products and common instructions in one session; Cancel performs no writes", async () => {
   const { screen } = await setup();
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByLabelText("产品规格 SUN5", { exact: true }).fill("Changed");
   await screen.getByLabelText("总数量 G03", { exact: true }).fill("30");
+  await screen
+    .getByRole("button", { name: "编辑统一要求", exact: true })
+    .click();
   await screen
     .getByLabelText("订单要求", { exact: true })
     .fill("Protect cartons");
@@ -302,6 +338,149 @@ it("shows resolved custom marks for replace-only overrides without falsely claim
     .element(screen.getByText("Private placement", { exact: true }))
     .toBeVisible();
   await expect
-    .element(screen.getByText("使用该产品独立要求", { exact: true }))
+    .element(screen.getByText("使用产品独立要求", { exact: true }))
+    .toBeVisible();
+});
+
+it("defaults partial allocation to remaining and disables only fully allocated products", async () => {
+  const { screen } = await setup(true, false, false, false, false, true);
+  await expect
+    .element(screen.getByLabelText("选择 SUN5", { exact: true }))
+    .toBeDisabled();
+  await expect
+    .element(screen.getByText("已全部安排", { exact: true }))
+    .toBeVisible();
+  await screen.getByLabelText("选择 G03", { exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("生产数量 G03", { exact: true }))
+    .toHaveValue(40);
+  await expect
+    .element(screen.getByLabelText("生产数量 G03", { exact: true }))
+    .toHaveAttribute("max", "40");
+  await screen.getByText("查看生产安排 G03", { exact: true }).click();
+  await expect
+    .element(screen.getByRole("link", { name: "OD001-P02", exact: true }))
+    .toHaveAttribute("href", "/production/other");
+  await screen.getByLabelText("生产数量 G03", { exact: true }).fill("41");
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  await expect.element(screen.getByRole("alert")).toHaveTextContent("剩余");
+  expect(rpc).not.toHaveBeenCalled();
+});
+it("shared instructions remain a summary during product editing until explicitly opened", async () => {
+  const { screen } = await setup();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  expect(screen.getByLabelText("正唛文字", { exact: true }).query()).toBeNull();
+  expect(screen.getByLabelText("订单要求", { exact: true }).query()).toBeNull();
+  await screen
+    .getByRole("button", { name: "编辑统一要求", exact: true })
+    .click();
+  await expect
+    .element(screen.getByLabelText("统一小标签文字", { exact: true }))
+    .toHaveValue("Made in China");
+  expect(screen.getByLabelText("正唛文字", { exact: true }).query()).toBeNull();
+  await screen
+    .getByLabelText("正唛显示方式", { exact: true })
+    .selectOptions("text");
+  await expect
+    .element(screen.getByLabelText("正唛文字", { exact: true }))
+    .toBeVisible();
+  await screen
+    .getByLabelText("正唛显示方式", { exact: true })
+    .selectOptions("image");
+  expect(screen.getByLabelText("正唛文字", { exact: true }).query()).toBeNull();
+  await expect
+    .element(screen.getByLabelText("正唛图片", { exact: true }))
+    .toBeVisible();
+  await screen
+    .getByLabelText("正唛显示方式", { exact: true })
+    .selectOptions("none");
+  expect(screen.getByLabelText("正唛图片", { exact: true }).query()).toBeNull();
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+});
+it("shows a detailed server blocker and cannot confirm excess", async () => {
+  const { screen } = await setup();
+  rpc.mockResolvedValue({
+    data: {
+      ok: false,
+      code: "OVER_ASSIGNED",
+      message: "生产安排超过订单数量，请调整本次数量后保存。",
+      dependencies: [
+        {
+          sku: "SUN5",
+          ordered_quantity: 100,
+          other_quantity: 60,
+          this_quantity: 50,
+          total_quantity: 110,
+          excess_quantity: 10,
+          allocations: [
+            { id: "other", document_number: "OD001-P02", quantity: 60 },
+          ],
+        },
+      ],
+    },
+    error: null,
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("总数量 SUN5", { exact: true }).fill("50");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .element(screen.getByRole("alert"))
+    .toHaveTextContent("其他生产单已安排：60");
+  await expect.element(screen.getByRole("alert")).toHaveTextContent("超出：10");
+  expect(
+    screen.getByRole("button", { name: "确认超量并保存" }).query(),
+  ).toBeNull();
+  expect(rpc.mock.calls[0][1].header).not.toHaveProperty("allow_overassigned");
+});
+
+it("clears a selected product when refreshed allocations consume its remaining quantity", async () => {
+  const { screen, cache } = await setup(true);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  readAllocations.mockResolvedValue([
+    {
+      id: "s1",
+      sku: "SUN5",
+      ordered_quantity: 100,
+      production_quantity: 100,
+      unallocated_quantity: 0,
+      allocations: [
+        { id: "other", document_number: "OD001-P02", quantity: 100 },
+      ],
+    },
+  ]);
+  await cache.invalidateQueries({ queryKey: ["production-allocations"] });
+  await expect
+    .element(screen.getByLabelText("选择 SUN5", { exact: true }))
+    .toBeDisabled();
+  await expect
+    .element(screen.getByLabelText("选择 SUN5", { exact: true }))
+    .not.toBeChecked();
+  await expect
+    .element(
+      screen.getByRole("button", {
+        name: "下一步：编辑整张生产单",
+        exact: true,
+      }),
+    )
+    .toBeDisabled();
+});
+
+it("returns shared requirements to read-only summary after a successful save", async () => {
+  const { screen } = await setup();
+  await screen
+    .getByRole("button", { name: "编辑统一要求", exact: true })
+    .click();
+  await screen
+    .getByLabelText("订单要求", { exact: true })
+    .fill("Saved common requirements");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .element(screen.getByRole("status"))
+    .toHaveTextContent("整张生产单已保存");
+  expect(screen.getByLabelText("订单要求", { exact: true }).query()).toBeNull();
+  await expect
+    .element(screen.getByRole("button", { name: "编辑统一要求", exact: true }))
     .toBeVisible();
 });
