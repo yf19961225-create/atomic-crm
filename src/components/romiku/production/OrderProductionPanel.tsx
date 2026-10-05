@@ -8,7 +8,12 @@ import { productionStatusLabel } from "../commercialLabels";
 import {
   productionSuffix,
   syncOrderProductionDefaults,
+  hasProductionInstructions,
+  EMPTY_PRODUCTION_DEFAULTS,
+  sharedInstructionsEqual,
 } from "./productionWorkspace";
+import { SharedInstructionsSummary } from "./ProductionInstructionsFields";
+import { normalizeProductionInstructions } from "../marking/productionInstructions";
 export function OrderProductionPanel({ order }: { order: RaRecord }) {
   const provider = useDataProvider(),
     cache = useQueryClient();
@@ -20,6 +25,8 @@ export function OrderProductionPanel({ order }: { order: RaRecord }) {
   const [preview, setPreview] = useState<{
       token?: string;
       productions?: RaRecord[];
+      source_snapshot: unknown;
+      order_document_number: string;
     } | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -35,9 +42,51 @@ export function OrderProductionPanel({ order }: { order: RaRecord }) {
       );
       if (confirm) {
         setPreview(null);
+        // A successful RPC count is not a content check. Read all targets in one
+        // request, bypassing cached getOne records, before reporting success.
+        const targets = preview?.productions || [];
+        try {
+          const { data } = await provider.getMany("romiku_production_orders", {
+            ids: targets.map((p) => p.id),
+          });
+          const failed = targets.filter((p) => {
+            const saved = data.find((row) => String(row.id) === String(p.id));
+            return (
+              !saved ||
+              String(saved.order_id) !== String(order.id) ||
+              !sharedInstructionsEqual(
+                saved.marking_snapshot,
+                preview?.source_snapshot,
+              )
+            );
+          });
+          if (!targets.length || failed.length) {
+            throw new Error(
+              `同步后核验未通过：${failed.map((p) => p.document_number).join("、") || "目标生产单缺失"}。`,
+            );
+          }
+          // Replace even inactive detail caches so opening either target cannot
+          // briefly render its pre-sync snapshot.
+          for (const saved of data)
+            cache.setQueryData(
+              ["romiku_production_orders", "getOne", { id: String(saved.id) }],
+              saved,
+            );
+        } catch (e) {
+          await cache.invalidateQueries();
+          throw new Error(
+            `${e instanceof Error && e.message.startsWith("同步后核验") ? e.message : "同步后核验无法完成。"}同步请求已提交，请重新打开目标生产单核对；未确认全部结果。`,
+          );
+        }
         await cache.invalidateQueries();
-        setMessage(`已同步 ${result.count} 张生产单，产品例外已保留。`);
-      } else setPreview(result);
+        setMessage(
+          `已将 ${preview?.order_document_number} 的统一生产要求同步到 ${targets.map((p) => productionSuffix(p.document_number, preview?.order_document_number)).join("、")}；产品级特殊要求已保留。`,
+        );
+      } else {
+        if (!hasProductionInstructions(result.source_snapshot))
+          throw new Error(EMPTY_PRODUCTION_DEFAULTS);
+        setPreview(result);
+      }
     } catch (e) {
       setPreview(null);
       setError(e instanceof Error ? e.message : "无法同步。");
@@ -108,6 +157,13 @@ export function OrderProductionPanel({ order }: { order: RaRecord }) {
           <p>
             仅覆盖以下生产单的统一要求，保留全部产品例外。已完成、已收货、已取消、已归档生产单不更新。
           </p>
+          <p className="font-medium">
+            订单 {preview.order_document_number} 当前已保存的统一要求
+          </p>
+          <SharedInstructionsSummary
+            value={normalizeProductionInstructions(preview.source_snapshot)}
+          />
+          <p>将同步到：</p>
           <ul>
             {preview.productions?.map((p) => (
               <li key={p.id}>{p.document_number}</li>

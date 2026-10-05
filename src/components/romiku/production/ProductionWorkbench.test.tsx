@@ -285,6 +285,8 @@ it("shows all Order children and previews sync targets; cancellation does not in
     data: {
       ok: true,
       token: "version",
+      source_snapshot: { production_requirements: "Saved Order instructions" },
+      order_document_number: "OD001",
       productions: [{ id: "p", document_number: "OD001-P01" }],
     },
     error: null,

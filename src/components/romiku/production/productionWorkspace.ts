@@ -3,6 +3,7 @@ import type { RaRecord } from "ra-core";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
 import {
   normalizeItemMarkingOverride,
+  normalizeProductionInstructions,
   resolveProductionItemMarking,
 } from "../marking/productionInstructions";
 export function productionSuffix(number: unknown, orderNumber: unknown) {
@@ -107,5 +108,40 @@ export async function syncOrderProductionDefaults(
     token?: string;
     productions?: RaRecord[];
     count?: number;
+    source_snapshot: unknown;
+    order_document_number: string;
   };
+}
+
+export const EMPTY_PRODUCTION_DEFAULTS =
+  "当前订单尚未设置统一生产要求，请先设置订单的生产要求 / 唛头与标签。";
+export function hasProductionInstructions(value: unknown) {
+  const p = normalizeProductionInstructions(value);
+  return (
+    [p.front_mark, p.side_mark, p.small_label, ...p.additional_labels].some(
+      (m) =>
+        m.mode === "text"
+          ? !!m.text.trim()
+          : m.mode === "image" && !!m.image_asset,
+    ) ||
+    [p.labeling_requirements, p.production_requirements, p.notes].some(
+      (v) => !!v.trim(),
+    )
+  );
+}
+export function sharedInstructionsEqual(left: unknown, right: unknown) {
+  const fields = [
+    "front_mark",
+    "side_mark",
+    "small_label",
+    "additional_labels",
+    "labeling_requirements",
+    "production_requirements",
+    "notes",
+  ] as const;
+  const shared = (value: unknown) => {
+    const normalized = normalizeProductionInstructions(value);
+    return fields.map((key) => normalized[key]);
+  };
+  return JSON.stringify(shared(left)) === JSON.stringify(shared(right));
 }
