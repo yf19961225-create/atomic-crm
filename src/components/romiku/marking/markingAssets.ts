@@ -77,22 +77,11 @@ export async function hydrateProductionMarkingImages(
       throw new Error(`${label}图片读取失败，请检查已保存图片后重试。`);
     }
   }
-  const [entries, items] = await Promise.all([
-    Promise.all(
-      markingKeys.map(
-        async (key) =>
-          [key, await resolve(model.marking[key], markingLabels[key])] as const,
-      ),
+  const entries = await Promise.all(
+    markingKeys.map(
+      async (key) =>
+        [key, await resolve(model.marking[key], markingLabels[key])] as const,
     ),
-    Promise.all(
-      model.items.map(async (item) => ({
-        ...item,
-        smallLabelImage: await resolve(
-          item.smallLabel,
-          `产品 ${item.sku} 小标签`,
-        ),
-      })),
-    ),
-  ]);
-  return { ...model, items, markingImages: Object.fromEntries(entries) };
+  );
+  return { ...model, markingImages: Object.fromEntries(entries) };
 }

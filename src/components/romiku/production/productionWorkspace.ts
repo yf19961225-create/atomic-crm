@@ -1,3 +1,4 @@
+import { normalizeBarcode, validateBarcode } from "./barcode";
 import type { AllocationIssue } from "./productionAllocation";
 import type { RaRecord } from "ra-core";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
@@ -54,10 +55,15 @@ export async function saveProductionWorkspace(
     if (record[key] !== undefined) header[key] = record[key];
   if (!isNew && record.document_number)
     header.document_number = record.document_number;
+  for (const item of items) {
+    const check = validateBarcode(item.barcode_number);
+    if (!check.ok) throw new Error(`${item.sku}：${check.message}`);
+  }
   const payload = items.map((i) => ({
     id: i.isNew ? null : i.id,
     source_order_item_id: i.source_order_item_id,
     quantity: Number(i.quantity),
+    barcode_number: normalizeBarcode(i.barcode_number),
     product_snapshot: Object.fromEntries(
       ["name", "specification", "image_url"]
         .filter((k) => i.product_snapshot?.[k] !== undefined)

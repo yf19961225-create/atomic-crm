@@ -1,3 +1,8 @@
+import {
+  ProductionBarcode,
+  BarcodePaste,
+  BARCODE_NOTE,
+} from "./ProductionBarcode";
 import { ProductionNavigationGuard } from "./ProductionNavigationGuard";
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -19,17 +24,13 @@ import {
 import {
   InstructionUploadContext,
   validateLabels,
-  EffectiveMark,
 } from "../marking/InstructionLabelsEditor";
 import {
   copyOrderProductionInstructions,
   normalizeProductionInstructions,
   normalizeItemMarkingOverride,
   ITEM_XLSX_WARNING,
-  ITEM_MARK_XLSX_WARNING,
-  hasItemMarkOverride,
   validateItemMarkingImages,
-  resolveProductionItemMarking,
 } from "../marking/productionInstructions";
 import {
   productionSuffix,
@@ -394,6 +395,22 @@ export function ProductionWorkbench({
             </details>
           )}
           <h2 className="text-xl font-semibold">所有产品</h2>
+          <p className="text-sm text-muted-foreground">{BARCODE_NOTE}</p>
+          {editing && (
+            <BarcodePaste
+              items={lines}
+              onApply={(values) =>
+                setLines((rows) =>
+                  rows.map((row) => {
+                    const value = values.find((v) => v.id === row.id);
+                    return value
+                      ? { ...row, barcode_number: value.barcode }
+                      : row;
+                  }),
+                )
+              }
+            />
+          )}
           <p className="text-sm text-amber-800">{ITEM_XLSX_WARNING}。</p>
           <div className="overflow-x-auto rounded border">
             <table className="w-full text-left text-sm">
@@ -407,8 +424,7 @@ export function ProductionWorkbench({
                     "箱数",
                     "装箱数",
                     "总数量",
-                    "小标签",
-                    "特殊要求",
+                    "条形码",
                     "操作",
                   ].map((s) => (
                     <th key={s} className="p-3">
@@ -419,14 +435,7 @@ export function ProductionWorkbench({
               </thead>
               <tbody>
                 {visible.map((line) => {
-                  const own = normalizeItemMarkingOverride(
-                      line.marking_override,
-                    ),
-                    packaging = line.packaging_snapshot || {};
-                  const resolved = resolveProductionItemMarking(
-                    shownProfile,
-                    own,
-                  );
+                  const packaging = line.packaging_snapshot || {};
                   const allocation = source.data?.find(
                     (i) => i.id === line.source_order_item_id,
                   );
@@ -605,62 +614,34 @@ export function ProductionWorkbench({
                             </p>
                           )}
                       </td>
-                      <td className="p-3 min-w-40">
-                        <EffectiveMark
-                          label="小标签"
-                          mark={resolved.smallLabel}
-                        />
-                        {resolved.smallLabel.mode !== "none" &&
-                          (own.field_overrides?.small_label?.mode ===
-                            "inherit" ||
-                            (!own.field_overrides?.small_label &&
-                              own.mode !== "replace")) && (
-                            <p className="text-xs text-muted-foreground">
-                              （统一）
-                            </p>
-                          )}
+                      <td className="p-3">
+                        {editing ? (
+                          <ProductionBarcode
+                            line={line}
+                            onChange={(barcode_number) =>
+                              change(line.id, { barcode_number })
+                            }
+                          />
+                        ) : (
+                          <span className="font-mono">
+                            {line.barcode_number || "—"}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3">
-                        {resolved.additionalLabels.length > 0 && (
-                          <p>
-                            {resolved.additionalLabels
-                              .map((l) =>
-                                l.mode === "image"
-                                  ? l.image_asset?.name || "图片标签"
-                                  : l.text,
+                        <details key={editing ? "edit" : "view"}>
+                          <summary>⋯ 更多</summary>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              setSpecial((s) =>
+                                s === String(line.id) ? null : String(line.id),
                               )
-                              .join(" + ")}
-                            （附加标签，仅 CRM）
-                          </p>
-                        )}
-                        <p>
-                          {Object.values(own.field_overrides || {}).some(
-                            (f) => f.mode !== "inherit",
-                          )
-                            ? "已设置产品特殊要求"
-                            : own.mode === "inherit"
-                              ? "使用统一要求"
-                              : own.mode === "append"
-                                ? "额外增加"
-                                : "历史产品独立要求"}
-                        </p>
-                        {hasItemMarkOverride(own) && (
-                          <p className="max-w-48 text-xs text-amber-800">
-                            {ITEM_MARK_XLSX_WARNING}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            setSpecial((s) =>
-                              s === String(line.id) ? null : String(line.id),
-                            )
-                          }
-                        >
-                          特殊要求 {line.sku}
-                        </Button>
+                            }
+                          >
+                            其他特殊要求 {line.sku}
+                          </Button>
+                        </details>
                       </td>
                     </tr>
                   );

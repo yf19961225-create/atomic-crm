@@ -1,5 +1,5 @@
-import ExcelJS from "exceljs";
 import JSZip from "jszip";
+import ExcelJS from "exceljs";
 import {
   applyStyle,
   captureStyle,
@@ -40,26 +40,13 @@ export async function renderProductionXlsx(
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(template);
   const sheet = workbook.worksheets[0];
-  // Audited template: A:G, row 3 headers, row 4 product, C6:G6 requirements.
-  // Extend this Production export only; the frozen commercial renderer is reused unchanged.
-  const labelColumn = 8;
-  sheet.getColumn(labelColumn).width = sheet.getColumn(3).width;
-  for (const row of [1, 2, 3])
-    sheet.getCell(row, labelColumn).style = structuredClone(
-      sheet.getCell(row, 7).style,
-    );
-  sheet.getCell("H3").value = "小标签";
-  sheet.getCell("D1").value = "统一小标签";
-  for (const row of [1, 2]) {
-    unmerge(sheet, `E${row}:G${row}`);
-    sheet.mergeCells(`E${row}:H${row}`);
-  }
-  const product = captureStyle(sheet, 4, 7),
-    footer = captureStyle(sheet, 5, 7),
-    requirements = captureStyle(sheet, 6, 7);
+  // Canonical A:H template: C barcode, D image, E description.
+  const product = captureStyle(sheet, 4, 8),
+    footer = captureStyle(sheet, 5, 8),
+    requirements = captureStyle(sheet, 6, 8);
   const labels = {
     cartons: sheet.getCell("A5").text,
-    quantity: sheet.getCell("F5").text,
+    quantity: sheet.getCell("G5").text,
     requirements: sheet.getCell("A6").text,
   };
   for (const range of [...sheet.model.merges])
@@ -76,10 +63,11 @@ export async function renderProductionXlsx(
   clearResidualDynamicMerges(sheet, 4, Math.max(9, requirementsRow));
   model.items.forEach((item, index) => {
     const row = 4 + index;
-    applyStyle(sheet, row, product, 7);
+    applyStyle(sheet, row, product, 8);
     [
       item.position,
       item.sku,
+      item.barcodeNumber,
       null,
       item.description,
       item.cartons,
@@ -88,39 +76,20 @@ export async function renderProductionXlsx(
     ].forEach((value, column) => {
       sheet.getCell(row, column + 1).value = value;
     });
-    const labelCell = sheet.getCell(row, labelColumn);
-    labelCell.style = structuredClone(sheet.getCell(row, 4).style);
-    labelCell.alignment = {
-      ...labelCell.alignment,
-      wrapText: true,
-      horizontal: "center",
-      vertical: "middle",
-    };
-    labelCell.value =
-      item.smallLabel.mode === "text" ? item.smallLabel.text : null;
+    sheet.getCell(row, 3).numFmt = "@";
     sheet.getRow(row).height = Math.max(
       product.height || 112,
       wrappedLines(item.description, 22) * 24 + 10,
-      item.smallLabel.mode === "text"
-        ? wrappedLines(item.smallLabel.text, 28) * 24 + 10
-        : 0,
     );
   });
-  applyStyle(sheet, footerRow, footer, 7);
-  sheet.mergeCells(`A${footerRow}:D${footerRow}`);
+  applyStyle(sheet, footerRow, footer, 8);
+  sheet.mergeCells(`A${footerRow}:E${footerRow}`);
   sheet.getCell(footerRow, 1).value = labels.cartons;
-  sheet.getCell(footerRow, 5).value = model.totals.cartons;
-  sheet.getCell(footerRow, 6).value = labels.quantity;
-  sheet.getCell(footerRow, 7).value = model.totals.quantity;
-  sheet.getCell(footerRow, 8).style = structuredClone(
-    sheet.getCell(footerRow, 7).style,
-  );
-  sheet.mergeCells(`G${footerRow}:H${footerRow}`);
-  applyStyle(sheet, requirementsRow, requirements, 7);
+  sheet.getCell(footerRow, 6).value = model.totals.cartons;
+  sheet.getCell(footerRow, 7).value = labels.quantity;
+  sheet.getCell(footerRow, 8).value = model.totals.quantity;
+  applyStyle(sheet, requirementsRow, requirements, 8);
   sheet.mergeCells(`A${requirementsRow}:B${requirementsRow}`);
-  sheet.getCell(requirementsRow, 8).style = structuredClone(
-    sheet.getCell(requirementsRow, 7).style,
-  );
   sheet.mergeCells(`C${requirementsRow}:H${requirementsRow}`);
   sheet.getCell(requirementsRow, 1).value = labels.requirements;
   sheet.getCell(requirementsRow, 3).value = model.requirements;
@@ -131,7 +100,8 @@ export async function renderProductionXlsx(
   const images: PreparedProductImage[] = [];
   for (const [index, key] of markingKeys.entries()) {
     const mark = model.marking[key],
-      cell = sheet.getCell(2, index + 2);
+      column = [0, 3, 4][index],
+      cell = sheet.getCell(2, column + 1);
     cell.value = mark.mode === "text" ? mark.text : null;
     cell.alignment = {
       ...cell.alignment,
@@ -153,12 +123,12 @@ export async function renderProductionXlsx(
         throw new Error(
           `${markingLabels[key]}图片无法嵌入，请检查已保存图片后重试。`,
         );
-      images.push({ ...image, column: index + 1 });
+      images.push({ ...image, column });
     }
   }
-  sheet.getCell("E2").value = model.marking.labeling_requirements;
-  sheet.getCell("E2").alignment = {
-    ...sheet.getCell("E2").alignment,
+  sheet.getCell("F2").value = model.marking.labeling_requirements;
+  sheet.getCell("F2").alignment = {
+    ...sheet.getCell("F2").alignment,
     wrapText: true,
     horizontal: "center",
     vertical: "middle",
@@ -175,64 +145,72 @@ export async function renderProductionXlsx(
         throw new Error(
           `产品 ${item.sku} 图片无法嵌入，请检查已保存图片后重试。`,
         );
-      return { ...image, column: 2 };
+      return { ...image, column: 3 };
     }),
   );
   photos.forEach((image) => {
     if (image) images.push(image);
   });
-  const labelImages = await Promise.all(
-    model.items.map(async (item, index) => {
-      if (item.smallLabel.mode !== "image") return undefined;
-      const image = await prepareProductImage(
-        item.smallLabelImage || "",
-        4 + index,
-      );
-      if (!image)
-        throw new Error(
-          `产品 ${item.sku} 小标签图片无法嵌入，请检查已保存图片后重试。`,
-        );
-      return { ...image, column: labelColumn - 1 };
-    }),
-  );
-  labelImages.forEach((image) => {
-    if (image) images.push(image);
-  });
   sheet.pageSetup.printArea = `A1:H${requirementsRow}`;
-  sheet.pageSetup.fitToPage = true;
-  sheet.pageSetup.fitToWidth = 1;
-  sheet.pageSetup.fitToHeight = 0;
-  // The shared package renderer reads widths and print setup from the template.
-  // Supply a Production-only derived package including H so contain uses its real width.
-  const source = await JSZip.loadAsync(template);
-  const path = "xl/worksheets/sheet1.xml";
-  let xml = await source.file(path)!.async("string");
-  xml = xml.replace(
-    "</cols>",
-    `<col min="8" max="8" width="${sheet.getColumn(8).width}" customWidth="1"/></cols>`,
-  );
-  xml = xml.replace(/<pageSetup\b[^>]*\/>/, (tag) =>
-    tag
-      .replace(/\s(?:scale|fitToWidth|fitToHeight)="[^"]*"/g, "")
-      .replace("/>", ' fitToWidth="1" fitToHeight="0"/>'),
-  );
-  if (xml.includes("<pageSetUpPr"))
-    xml = xml.replace(/<pageSetUpPr\b[^>]*\/>/, (tag) =>
-      tag.replace(/\sfitToPage="[^"]*"/, "").replace("/>", ' fitToPage="1"/>'),
-    );
-  else if (xml.includes("</sheetPr>"))
-    xml = xml.replace("</sheetPr>", '<pageSetUpPr fitToPage="1"/></sheetPr>');
-  else
-    xml = xml.replace(
-      /(<worksheet\b[^>]*>)/,
-      '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>',
-    );
-  source.file(path, xml);
-  return preserveTemplatePackage(
-    await source.generateAsync({ type: "arraybuffer" }),
+  const output = await preserveTemplatePackage(
+    template,
     await workbook.xlsx.writeBuffer(),
     images,
     sheet.name,
     0,
   );
+  // The shared helper fits single cells. Only this template's front mark spans A:C.
+  // Adjust its own anchor inside that merged area without changing column widths
+  // or any of the frozen commercial exporters.
+  const front = images.find((image) => image.column === 0 && image.row === 2);
+  if (!front) return output;
+  const width = [1, 2, 3].reduce(
+    (sum, col) =>
+      sum +
+      Math.floor(
+        ((256 * (sheet.getColumn(col).width || 8.43) + Math.floor(128 / 7)) /
+          256) *
+          7,
+      ),
+    0,
+  );
+  const height = ((sheet.getRow(2).height || 137) * 96) / 72;
+  const scale = Math.min(
+    (width - 10) / front.width,
+    (height - 10) / front.height,
+  );
+  const cx = Math.floor(front.width * scale * 9525),
+    cy = Math.floor(front.height * scale * 9525);
+  const x = Math.floor((width * 9525 - cx) / 2),
+    y = Math.floor((height * 9525 - cy) / 2);
+  const zip = await JSZip.loadAsync(output),
+    path = "xl/drawings/drawing1.xml";
+  const drawing = await zip.file(path)!.async("string");
+  zip.file(
+    path,
+    drawing.replace(
+      /<xdr:oneCellAnchor>[\s\S]*?<\/xdr:oneCellAnchor>/g,
+      (anchor) => {
+        if (
+          !anchor.includes("<xdr:col>0</xdr:col>") ||
+          !anchor.includes("<xdr:row>1</xdr:row>")
+        )
+          return anchor;
+        return anchor
+          .replace(
+            /<xdr:colOff>\d+<\/xdr:colOff>/,
+            `<xdr:colOff>${x}</xdr:colOff>`,
+          )
+          .replace(
+            /<xdr:rowOff>\d+<\/xdr:rowOff>/,
+            `<xdr:rowOff>${y}</xdr:rowOff>`,
+          )
+          .replace(
+            /<(xdr:ext|a:ext) cx="\d+" cy="\d+"\/>/g,
+            `<$1 cx="${cx}" cy="${cy}"/>`,
+          );
+      },
+    ),
+  );
+  return zip.generateAsync({ type: "arraybuffer" });
 }

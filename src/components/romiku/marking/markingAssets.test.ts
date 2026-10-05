@@ -84,7 +84,7 @@ it("resolves saved object paths only, and fails clearly if an image cannot be do
   );
 });
 
-it("hydrates effective item image labels from immutable paths, deduplicating inherited images", async () => {
+it("hydrates only the common label format and ignores historical item label images", async () => {
   download.mockReset();
   download.mockResolvedValue({ data: await png(), error: null });
   const asset = { bucket: "romiku-marking-assets", path: "saved/shared.png" };
@@ -104,8 +104,6 @@ it("hydrates effective item image labels from immutable paths, deduplicating inh
     ],
   );
   const result = await hydrateProductionMarkingImages(model);
-  expect(result.items[0].smallLabelImage).toMatch(/^data:image/);
-  expect(result.items[1].smallLabelImage).toBe(result.items[0].smallLabelImage);
-  expect(result.items[2].smallLabelImage).toBe("");
+  expect(result.markingImages.small_label).toMatch(/^data:image/);
   expect(download).toHaveBeenCalledExactlyOnceWith("saved/shared.png");
 });

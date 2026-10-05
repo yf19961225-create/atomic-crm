@@ -711,6 +711,7 @@ create table public.romiku_production_orders (
 );
 
 create table public.romiku_production_items (
+    barcode_number text null,
     position integer not null default 0 check (position >= 0),
     id uuid primary key default gen_random_uuid(),
     production_order_id uuid not null,

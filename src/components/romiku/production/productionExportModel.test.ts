@@ -109,3 +109,19 @@ it("copies legacy customer requirements from an uninitialized migrated profile b
   expect(cleared.front_mark).toMatchObject({ mode: "none", text: "" });
   expect(cleared.production_requirements).toBe("");
 });
+
+it("exports only saved item barcode, never source/product master or legacy labels", () => {
+  const item = {
+    barcode_number: "0123456789012",
+    product_snapshot: { barcode_number: "4006381333931" },
+    marking_override: { labels: [{ mode: "text", text: "1234567890128" }] },
+  };
+  expect(
+    normalizeProductionExportModel({}, [item]).items[0].barcodeNumber,
+  ).toBe("0123456789012");
+  expect(
+    normalizeProductionExportModel({}, [
+      { product_snapshot: item.product_snapshot },
+    ]).items[0].barcodeNumber,
+  ).toBeNull();
+});

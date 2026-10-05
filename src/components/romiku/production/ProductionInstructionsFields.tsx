@@ -27,7 +27,7 @@ export function ProductionInstructionsFields({
           (key, index) => (
             <MarkEditor
               key={key}
-              label={["正唛", "侧唛", "统一小标签"][index]}
+              label={["正唛", "侧唛", "小标签格式"][index]}
               value={value[key]}
               onChange={(mark) => onChange({ ...value, [key]: mark })}
             />
@@ -77,7 +77,7 @@ export function SharedInstructionsSummary({
             {
               front_mark: "正唛",
               side_mark: "侧唛",
-              small_label: "统一小标签",
+              small_label: "小标签格式",
             }[key]
           }
           mark={value[key]}

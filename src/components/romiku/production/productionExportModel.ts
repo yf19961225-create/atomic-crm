@@ -2,9 +2,8 @@ import {
   normalizeMarkingProfile,
   recordValue,
   type MarkingProfile,
-  type Mark,
 } from "../marking/markingProfile";
-import { resolveProductionItemMarking } from "../marking/productionInstructions";
+import { normalizeBarcode } from "./barcode";
 export type ProductionExportModel = {
   document: { number: string };
   marking: MarkingProfile;
@@ -19,8 +18,7 @@ export type ProductionExportModel = {
     cartons: number;
     qtyPerCarton: number | null;
     quantity: number;
-    smallLabel: Mark;
-    smallLabelImage: string;
+    barcodeNumber: string | null;
   }[];
   totals: { cartons: number; quantity: number };
   requirements: string;
@@ -60,11 +58,7 @@ export function normalizeProductionExportModel(
             ? null
             : numeric(packing.qty_per_carton),
         quantity: numeric(item.quantity),
-        smallLabel: resolveProductionItemMarking(
-          production.marking_snapshot,
-          item.marking_override,
-        ).smallLabel,
-        smallLabelImage: "",
+        barcodeNumber: normalizeBarcode(item.barcode_number),
       };
     });
   return {

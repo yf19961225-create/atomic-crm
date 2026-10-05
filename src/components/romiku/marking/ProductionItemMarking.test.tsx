@@ -37,7 +37,7 @@ it("previews append and replace, cancels without write, saves only the selected 
   await expect
     .element(
       screen.getByText(
-        "附加标签、产品级贴标要求及内部备注仅保存在 CRM，未输出到 Production XLSX",
+        "产品级特殊要求（含历史标签图片）仅保存在 CRM，未输出到 Production XLSX；产品行仅输出已保存的条形码数字",
         {
           exact: true,
         },

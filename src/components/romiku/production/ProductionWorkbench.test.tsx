@@ -194,6 +194,9 @@ it("edits all products and common instructions in one session; Cancel performs n
   await screen.getByLabelText("产品规格 SUN5", { exact: true }).fill("Changed");
   await screen.getByLabelText("总数量 G03", { exact: true }).fill("30");
   await screen
+    .getByLabelText("条形码 SUN5", { exact: true })
+    .fill("0123456789012");
+  await screen
     .getByRole("button", { name: "编辑统一要求", exact: true })
     .click();
   await screen
@@ -208,10 +211,12 @@ it("edits all products and common instructions in one session; Cancel performs n
     .element(screen.getByRole("link", { name: "OD001", exact: true }))
     .toBeVisible();
   const customRow = screen.getByRole("row").filter({ hasText: "G03" });
-  await expect.element(customRow).toHaveTextContent("Made in China");
+  await expect.element(customRow).not.toHaveTextContent("Made in China");
+  await customRow.getByText("⋯ 更多", { exact: true }).click();
+  await screen.getByRole("button", { name: "其他特殊要求 G03" }).click();
   await expect
-    .element(customRow)
-    .toHaveTextContent("Barcode（附加标签，仅 CRM）");
+    .element(screen.getByText("Barcode", { exact: true }))
+    .toBeVisible();
 });
 it("submits shared and multi-row changes once, retaining draft after server failure", async () => {
   const { screen } = await setup();
@@ -222,6 +227,9 @@ it("submits shared and multi-row changes once, retaining draft after server fail
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByLabelText("产品规格 SUN5", { exact: true }).fill("Changed");
   await screen.getByLabelText("总数量 G03", { exact: true }).fill("30");
+  await screen
+    .getByLabelText("条形码 SUN5", { exact: true })
+    .fill("0123456789012");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
     .element(screen.getByRole("alert"))
@@ -233,6 +241,7 @@ it("submits shared and multi-row changes once, retaining draft after server fail
     expect.arrayContaining([
       expect.objectContaining({
         id: "l1",
+        barcode_number: "0123456789012",
         product_snapshot: expect.objectContaining({ specification: "Changed" }),
       }),
       expect.objectContaining({ id: "l2", quantity: 30 }),
@@ -333,7 +342,12 @@ it("blocks history Back until the editing session is explicitly discarded", asyn
 it("shows resolved custom marks for replace-only overrides without falsely claiming inheritance", async () => {
   const { screen } = await setup(false, false, false, false, true);
   await screen
-    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .getByRole("row")
+    .filter({ hasText: "SUN5" })
+    .getByText("⋯ 更多", { exact: true })
+    .click();
+  await screen
+    .getByRole("button", { name: "其他特殊要求 SUN5", exact: true })
     .click();
   await expect
     .element(screen.getByText("PRIVATE FRONT", { exact: true }))
@@ -381,7 +395,7 @@ it("shared instructions remain a summary during product editing until explicitly
     .getByRole("button", { name: "编辑统一要求", exact: true })
     .click();
   await expect
-    .element(screen.getByLabelText("统一小标签文字", { exact: true }))
+    .element(screen.getByLabelText("小标签格式文字", { exact: true }))
     .toHaveValue("Made in China");
   expect(screen.getByLabelText("正唛文字", { exact: true }).query()).toBeNull();
   await screen
@@ -493,13 +507,18 @@ it("edits only the product small label in the whole session; cancel restores and
   const { screen, provider } = await setup();
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen
-    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .getByRole("row")
+    .filter({ hasText: "SUN5" })
+    .getByText("⋯ 更多", { exact: true })
+    .click();
+  await screen
+    .getByRole("button", { name: "其他特殊要求 SUN5", exact: true })
     .click();
   await screen.getByLabelText("产品小标签适用方式").selectOptions("override");
   await screen.getByLabelText("产品小标签文字").fill("Barcode SUN5");
   await expect
     .element(screen.getByRole("row").filter({ hasText: "SUN5" }))
-    .toHaveTextContent("Barcode SUN5");
+    .not.toHaveTextContent("Barcode SUN5");
   await screen.getByRole("button", { name: "取消", exact: true }).click();
   expect(rpc).not.toHaveBeenCalled();
   await expect
@@ -507,7 +526,12 @@ it("edits only the product small label in the whole session; cancel restores and
     .not.toHaveTextContent("Barcode SUN5");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen
-    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .getByRole("row")
+    .filter({ hasText: "SUN5" })
+    .getByText("⋯ 更多", { exact: true })
+    .click();
+  await screen
+    .getByRole("button", { name: "其他特殊要求 SUN5", exact: true })
     .click();
   await screen.getByLabelText("产品小标签适用方式").selectOptions("override");
   await screen.getByLabelText("产品小标签文字").fill("Barcode SUN5");
@@ -528,7 +552,7 @@ it("edits only the product small label in the whole session; cancel restores and
   await expect.element(screen.getByText("整张生产单已保存。")).toBeVisible();
   await expect
     .element(screen.getByRole("row").filter({ hasText: "SUN5" }))
-    .toHaveTextContent("Barcode SUN5");
+    .not.toHaveTextContent("Barcode SUN5");
   expect(
     (await provider.getOne("romiku_production_items", { id: "l1" })).data
       .marking_override.field_overrides.small_label.mark.text,
@@ -539,7 +563,12 @@ it("removing an independent image label switches the field to none and remains s
   const { screen } = await setup();
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen
-    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .getByRole("row")
+    .filter({ hasText: "SUN5" })
+    .getByText("⋯ 更多", { exact: true })
+    .click();
+  await screen
+    .getByRole("button", { name: "其他特殊要求 SUN5", exact: true })
     .click();
   await screen.getByLabelText("产品小标签适用方式").selectOptions("override");
   await screen.getByLabelText("产品小标签显示方式").selectOptions("image");
