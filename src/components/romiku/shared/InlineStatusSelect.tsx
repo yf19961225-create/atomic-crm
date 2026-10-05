@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDataProvider } from "ra-core";
 
 export type InlineStatusChoice = { value: string; label: string };
@@ -27,6 +27,7 @@ export function InlineStatusSelect({
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  useEffect(() => setValue(status), [status]);
   const change = async (next: string) => {
     if (next === value) return;
     const previous = value;
@@ -41,7 +42,7 @@ export function InlineStatusSelect({
         previousData: { id: recordId, status: previous },
       });
       if (resource === "romiku_production_orders")
-        await cache.invalidateQueries({ queryKey: ["production-allocations"] });
+        await cache.invalidateQueries();
       onUpdated?.(next);
       setMessage("状态已保存。");
     } catch (error) {

@@ -26,3 +26,8 @@ Ruling: no real Order fixtures rewritten to manufacture acceptance examples; tes
 - Additional race regression clears selection when refetched allocations exhaust a selected item.
 - Full frontend run exposed existing FormalCustomerSelector keyboard test racing asynchronous directory results (passes isolated, fails under concurrent suite). Test now waits for actual visible result before keyboard navigation; production selector untouched.
 - Typecheck, ESLint and build pass. Five XLSX implementation files untouched. Final full frontend: 934 passing, 2 existing skips.
+
+- Preview migration committed successfully; Preview pgTAP 358 passing. Branch URL and Preview-only Supabase env verified.
+- Browser acceptance passed partial/full capacity, cancellation release, direct restoration blocker, transaction blocker, saved summary, conditional modes, saved Order inheritance and append Barcode.
+- Browser uncovered stale InlineStatusSelect local state after cached rows refetch: added RED regressions for prop synchronization and query invalidation, then synchronized selected status and invalidated dependent caches after Production status writes. Final rerun/deployment in progress.
+- QA P05 created under dedicated QA Order OD261004001. Final state will be cancelled; QA Order common defaults restored to original empty values. Real OD261004002 historical excess remains untouched.

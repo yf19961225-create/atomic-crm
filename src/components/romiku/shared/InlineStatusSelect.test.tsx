@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { QueryClient } from "@tanstack/react-query";
 import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -62,4 +64,78 @@ it("shows the safe capacity error and retains cancelled status when restoration 
   await expect
     .element(screen.getByLabelText("状态 OD001-P02", { exact: true }))
     .toHaveValue("cancelled");
+});
+
+it("refreshes its selected value when a cached list refetches a newer Production status", async () => {
+  const provider = fakeRestDataProvider({
+    romiku_production_orders: [{ id: "p", status: "pending" }],
+  });
+  function RefetchedRow() {
+    const [status, setStatus] = useState("cancelled");
+    return (
+      <>
+        <button onClick={() => setStatus("pending")}>
+          Receive fresh status
+        </button>
+        <InlineStatusSelect
+          resource="romiku_production_orders"
+          recordId="p"
+          status={status}
+          choices={[
+            { value: "cancelled", label: "已取消" },
+            { value: "pending", label: "待生产" },
+          ]}
+        />
+      </>
+    );
+  }
+  const screen = await render(
+    <CoreAdminContext dataProvider={provider}>
+      <RefetchedRow />
+    </CoreAdminContext>,
+  );
+  await screen
+    .getByRole("button", { name: "Receive fresh status", exact: true })
+    .click();
+  await expect
+    .element(screen.getByLabelText("状态 p", { exact: true }))
+    .toHaveValue("pending");
+  await screen
+    .getByLabelText("状态 p", { exact: true })
+    .selectOptions("cancelled");
+  await expect
+    .element(screen.getByRole("status"))
+    .toHaveTextContent("状态已保存");
+  expect(
+    (await provider.getOne("romiku_production_orders", { id: "p" })).data
+      .status,
+  ).toBe("cancelled");
+});
+it("invalidates Production detail, list and Order child caches after a status mutation", async () => {
+  const provider = fakeRestDataProvider({
+    romiku_production_orders: [{ id: "p", status: "pending" }],
+  });
+  const cache = new QueryClient();
+  const detailKey = ["romiku_production_orders", "getOne", { id: "p" }];
+  cache.setQueryData(detailKey, { id: "p", status: "pending" });
+  const screen = await render(
+    <CoreAdminContext dataProvider={provider} queryClient={cache}>
+      <InlineStatusSelect
+        resource="romiku_production_orders"
+        recordId="p"
+        status="pending"
+        choices={[
+          { value: "cancelled", label: "已取消" },
+          { value: "pending", label: "待生产" },
+        ]}
+      />
+    </CoreAdminContext>,
+  );
+  await screen
+    .getByLabelText("状态 p", { exact: true })
+    .selectOptions("cancelled");
+  await expect
+    .element(screen.getByRole("status"))
+    .toHaveTextContent("状态已保存");
+  expect(cache.getQueryState(detailKey)?.isInvalidated).toBe(true);
 });
