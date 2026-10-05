@@ -3,6 +3,7 @@ import {
   MARKING_BUCKET,
   markingKeys,
   type MarkingAsset,
+  type Mark,
 } from "./markingProfile";
 import type { ProductionExportModel } from "../production/productionExportModel";
 export const markingLabels = {
@@ -61,25 +62,37 @@ const dataUrl = (blob: Blob) =>
 export async function hydrateProductionMarkingImages(
   model: ProductionExportModel,
 ): Promise<ProductionExportModel> {
-  const entries = await Promise.all(
-    markingKeys.map(async (key) => {
-      const mark = model.marking[key];
-      if (mark.mode !== "image") return [key, ""] as const;
-      if (!mark.image_asset)
-        throw new Error(
-          `${markingLabels[key]}选择了图片模式，但没有保存图片。`,
-        );
-      try {
-        return [
-          key,
-          await dataUrl(await downloadMarkingImage(mark.image_asset)),
-        ] as const;
-      } catch {
-        throw new Error(
-          `${markingLabels[key]}图片读取失败，请检查已保存图片后重试。`,
-        );
-      }
-    }),
-  );
-  return { ...model, markingImages: Object.fromEntries(entries) };
+  const downloads = new Map<string, Promise<string>>();
+  async function resolve(mark: Mark, label: string) {
+    if (mark.mode !== "image") return "";
+    if (!mark.image_asset)
+      throw new Error(`${label}选择了图片模式，但没有保存图片。`);
+    const asset = mark.image_asset,
+      key = `${asset.bucket}/${asset.path}`;
+    if (!downloads.has(key))
+      downloads.set(key, downloadMarkingImage(asset).then(dataUrl));
+    try {
+      return await downloads.get(key)!;
+    } catch {
+      throw new Error(`${label}图片读取失败，请检查已保存图片后重试。`);
+    }
+  }
+  const [entries, items] = await Promise.all([
+    Promise.all(
+      markingKeys.map(
+        async (key) =>
+          [key, await resolve(model.marking[key], markingLabels[key])] as const,
+      ),
+    ),
+    Promise.all(
+      model.items.map(async (item) => ({
+        ...item,
+        smallLabelImage: await resolve(
+          item.smallLabel,
+          `产品 ${item.sku} 小标签`,
+        ),
+      })),
+    ),
+  ]);
+  return { ...model, items, markingImages: Object.fromEntries(entries) };
 }

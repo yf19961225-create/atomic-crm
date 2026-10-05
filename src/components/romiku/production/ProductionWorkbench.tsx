@@ -19,15 +19,19 @@ import {
 import {
   InstructionUploadContext,
   validateLabels,
+  EffectiveMark,
 } from "../marking/InstructionLabelsEditor";
 import {
   copyOrderProductionInstructions,
   normalizeProductionInstructions,
   normalizeItemMarkingOverride,
   ITEM_XLSX_WARNING,
+  ITEM_MARK_XLSX_WARNING,
+  hasItemMarkOverride,
+  validateItemMarkingImages,
+  resolveProductionItemMarking,
 } from "../marking/productionInstructions";
 import {
-  itemLabelSummary,
   productionSuffix,
   savedBuyerName,
   saveProductionWorkspace,
@@ -133,6 +137,7 @@ export function ProductionWorkbench({
       );
       validateLabels(profile.additional_labels);
       for (const line of lines) {
+        validateItemMarkingImages(line.marking_override);
         const own = normalizeItemMarkingOverride(line.marking_override);
         if (own.mode !== "inherit") validateLabels(own.labels);
         if (own.mode === "replace")
@@ -389,9 +394,7 @@ export function ProductionWorkbench({
             </details>
           )}
           <h2 className="text-xl font-semibold">所有产品</h2>
-          <p className="text-sm text-amber-800">
-            {ITEM_XLSX_WARNING}。附加统一标签及内部备注仍仅保存在 CRM。
-          </p>
+          <p className="text-sm text-amber-800">{ITEM_XLSX_WARNING}。</p>
           <div className="overflow-x-auto rounded border">
             <table className="w-full text-left text-sm">
               <thead>
@@ -404,7 +407,8 @@ export function ProductionWorkbench({
                     "箱数",
                     "装箱数",
                     "总数量",
-                    "标签状态",
+                    "小标签",
+                    "特殊要求",
                     "操作",
                   ].map((s) => (
                     <th key={s} className="p-3">
@@ -419,6 +423,10 @@ export function ProductionWorkbench({
                       line.marking_override,
                     ),
                     packaging = line.packaging_snapshot || {};
+                  const resolved = resolveProductionItemMarking(
+                    shownProfile,
+                    own,
+                  );
                   const allocation = source.data?.find(
                     (i) => i.id === line.source_order_item_id,
                   );
@@ -597,20 +605,48 @@ export function ProductionWorkbench({
                             </p>
                           )}
                       </td>
+                      <td className="p-3 min-w-40">
+                        <EffectiveMark
+                          label="小标签"
+                          mark={resolved.smallLabel}
+                        />
+                        {resolved.smallLabel.mode !== "none" &&
+                          (own.field_overrides?.small_label?.mode ===
+                            "inherit" ||
+                            (!own.field_overrides?.small_label &&
+                              own.mode !== "replace")) && (
+                            <p className="text-xs text-muted-foreground">
+                              （统一）
+                            </p>
+                          )}
+                      </td>
                       <td className="p-3">
+                        {resolved.additionalLabels.length > 0 && (
+                          <p>
+                            {resolved.additionalLabels
+                              .map((l) =>
+                                l.mode === "image"
+                                  ? l.image_asset?.name || "图片标签"
+                                  : l.text,
+                              )
+                              .join(" + ")}
+                            （附加标签，仅 CRM）
+                          </p>
+                        )}
                         <p>
-                          {itemLabelSummary(shownProfile, own) ||
-                            (own.mode === "inherit"
-                              ? "使用统一要求"
-                              : "已设置特殊要求")}
-                        </p>
-                        {itemLabelSummary(shownProfile, own) && (
-                          <p className="text-muted-foreground text-xs">
-                            {own.mode === "inherit"
+                          {Object.values(own.field_overrides || {}).some(
+                            (f) => f.mode !== "inherit",
+                          )
+                            ? "已设置产品特殊要求"
+                            : own.mode === "inherit"
                               ? "使用统一要求"
                               : own.mode === "append"
                                 ? "额外增加"
-                                : "产品独立要求"}
+                                : "历史产品独立要求"}
+                        </p>
+                        {hasItemMarkOverride(own) && (
+                          <p className="max-w-48 text-xs text-amber-800">
+                            {ITEM_MARK_XLSX_WARNING}
                           </p>
                         )}
                       </td>

@@ -15,10 +15,12 @@ export function MarkEditor({
   value,
   onChange,
   label,
+  allowNone = true,
 }: {
   value: Mark;
   onChange: (v: Mark) => void;
   label: string;
+  allowNone?: boolean;
 }) {
   const parentBusy = useContext(InstructionUploadContext);
   const [busy, setBusy] = useState(false),
@@ -33,7 +35,7 @@ export function MarkEditor({
           onChange({ ...value, mode: e.target.value as Mark["mode"] })
         }
       >
-        <option value="none">不需要</option>
+        {allowNone && <option value="none">不需要</option>}
         <option value="text">使用文字</option>
         <option value="image">使用图片</option>
       </select>

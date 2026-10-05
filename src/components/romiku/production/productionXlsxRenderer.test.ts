@@ -51,11 +51,11 @@ it.each([1, 5, 25])(
     expect(sheet.getCell(`C${count + 5}`).text).toBe("Saved requirement");
     expect(sheet.model.merges).toEqual(
       expect.arrayContaining([
-        "E1:G1",
-        "E2:G2",
+        "E1:H1",
+        "E2:H2",
         `A${count + 4}:D${count + 4}`,
         `A${count + 5}:B${count + 5}`,
-        `C${count + 5}:G${count + 5}`,
+        `C${count + 5}:H${count + 5}`,
       ]),
     );
     const original = new ExcelJS.Workbook();
@@ -71,11 +71,12 @@ it.each([1, 5, 25])(
     const sourceXml = await src
       .file("xl/worksheets/sheet1.xml")!
       .async("string");
-    expect(xml.match(/<pageSetup\b[^>]*\/>/)?.[0]).toBe(
-      sourceXml.match(/<pageSetup\b[^>]*\/>/)?.[0],
+    expect(xml.match(/<pageSetup\b[^>]*\/>/)?.[0]).toContain('fitToWidth="1"');
+    expect(xml.match(/<pageMargins\b[^>]*\/>/)?.[0]).toBe(
+      sourceXml.match(/<pageMargins\b[^>]*\/>/)?.[0],
     );
     expect(await zip.file("xl/workbook.xml")!.async("string")).toContain(
-      `$A1:$G${count + 5}`,
+      `$A1:$H${count + 5}`,
     );
     expect(xml).not.toContain("OD261003001-P01");
   },
@@ -97,13 +98,14 @@ it("embeds all marking images and product image using the shared contain anchors
     [{ ...item(1), product_snapshot: { image_url: url } }],
   );
   model.markingImages = { front_mark: url, side_mark: url, small_label: url };
+  model.items[0].smallLabelImage = url;
   const zip = await JSZip.loadAsync(
     await renderProductionXlsx(model, await template()),
   );
   const drawing = await zip.file("xl/drawings/drawing1.xml")!.async("string");
   const doc = new DOMParser().parseFromString(drawing, "application/xml");
   const anchors = Array.from(doc.getElementsByTagName("xdr:oneCellAnchor"));
-  expect(anchors).toHaveLength(4);
+  expect(anchors).toHaveLength(5);
   const positions = anchors.map((a) => [
     a.getElementsByTagName("xdr:col")[0].textContent,
     a.getElementsByTagName("xdr:row")[0].textContent,
@@ -114,6 +116,7 @@ it("embeds all marking images and product image using the shared contain anchors
       ["2", "1"],
       ["3", "1"],
       ["2", "3"],
+      ["7", "3"],
     ]),
   );
   for (const a of anchors) {
@@ -139,7 +142,7 @@ it("embeds all marking images and product image using the shared contain anchors
   );
   expect(
     Object.keys(zip.files).filter((f) => /^xl\/media\/image\d+\.png$/.test(f)),
-  ).toHaveLength(4);
+  ).toHaveLength(5);
 });
 it("does not silently export a missing marking image", async () => {
   const model = normalizeProductionExportModel(
@@ -206,7 +209,7 @@ it.each([1, 5, 20])(
     const sheet = exported.worksheets[0];
     const body = sheet.getCell(`C${count + 5}`);
     expect(body.text).toBe("订单要求正文\nSaved production requirements");
-    expect(sheet.model.merges).toContain(`C${count + 5}:G${count + 5}`);
+    expect(sheet.model.merges).toContain(`C${count + 5}:H${count + 5}`);
     expect(body.font.name).toBe(bodyStyle.font?.name);
     expect(body.font.size).toBe(bodyStyle.font?.size);
     expect(body.font).toEqual(bodyStyle.font);
@@ -219,5 +222,115 @@ it.each([1, 5, 20])(
     expect(sheet.getCell(`A${count + 5}`).text).toBe(
       templateSheet.getCell("A6").text,
     );
+  },
+);
+
+it.each([1, 5, 20])(
+  "exports %i mixed resolved small labels with bounded images and unchanged product/footer content",
+  async (count) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 100;
+    canvas.getContext("2d")!.fillRect(0, 0, 200, 100);
+    const png = canvas.toDataURL("image/png");
+    const model = normalizeProductionExportModel(
+      {
+        marking_snapshot: {
+          front_mark: { mode: "text", text: "YUN SHANG" },
+          side_mark: { mode: "text", text: "YUN SHANG" },
+          small_label: { mode: "text", text: "Made in China" },
+          production_requirements: "Bag",
+        },
+      },
+      Array.from({ length: count }, (_, i) => ({
+        ...item(i + 1),
+        product_snapshot: { image_url: png, name: "Lamp" },
+        marking_override:
+          i % 4 === 0
+            ? {
+                field_overrides: {
+                  small_label: {
+                    mode: "override",
+                    mark: {
+                      mode: "image",
+                      image_asset: {
+                        bucket: "romiku-marking-assets",
+                        path: "saved/label.png",
+                      },
+                    },
+                  },
+                },
+              }
+            : i % 4 === 1
+              ? {
+                  field_overrides: {
+                    small_label: {
+                      mode: "override",
+                      mark: { mode: "text", text: "Barcode" },
+                    },
+                  },
+                }
+              : i % 4 === 2
+                ? { field_overrides: { small_label: { mode: "none" } } }
+                : { mode: "inherit" },
+      })),
+    );
+    for (const row of model.items)
+      if (row.smallLabel?.mode === "image") row.smallLabelImage = png;
+    const out = await renderProductionXlsx(model, await template());
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(out);
+    const sh = book.worksheets[0];
+    expect(sh.getCell("H3").text).toBe("小标签");
+    expect(sh.getCell("D1").text).toBe("统一小标签");
+    expect(sh.getCell("B2").text).toBe("YUN SHANG");
+    expect(sh.getCell("C2").text).toBe("YUN SHANG");
+    expect(sh.getCell("D2").text).toBe("Made in China");
+    for (let i = 0; i < count; i++) {
+      expect(sh.getCell(`H${i + 4}`).text).toBe(
+        i % 4 === 1 ? "Barcode" : i % 4 === 3 ? "Made in China" : "",
+      );
+      expect(sh.getCell(`H${i + 4}`).alignment).toMatchObject({
+        wrapText: true,
+        horizontal: "center",
+        vertical: "middle",
+      });
+      expect(sh.getRow(i + 4).height).toBe(112);
+    }
+    expect(sh.getCell(`E${count + 4}`).value).toBe(5 * count);
+    expect(sh.getCell(`G${count + 4}`).value).toBe(150 * count);
+    expect(sh.getCell(`C${count + 5}`).text).toBe("Bag");
+    const zip = await JSZip.loadAsync(out),
+      xml = await zip.file("xl/drawings/drawing1.xml")!.async("string");
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
+    const anchors = Array.from(doc.getElementsByTagName("xdr:oneCellAnchor"));
+    const labels = anchors.filter(
+      (a) => a.getElementsByTagName("xdr:col")[0].textContent === "7",
+    );
+    expect(labels).toHaveLength(Math.ceil(count / 4));
+    expect(
+      anchors.filter(
+        (a) => a.getElementsByTagName("xdr:col")[0].textContent === "2",
+      ),
+    ).toHaveLength(count);
+    for (const a of labels) {
+      const ext = a.getElementsByTagName("xdr:ext")[0];
+      const width = Number(ext.getAttribute("cx")),
+        height = Number(ext.getAttribute("cy"));
+      const x = Number(a.getElementsByTagName("xdr:colOff")[0].textContent),
+        y = Number(a.getElementsByTagName("xdr:rowOff")[0].textContent);
+      expect(width / height).toBeCloseTo(2, 4);
+      expect(x).toBeGreaterThan(0);
+      expect(y).toBeGreaterThan(0);
+      const cellWidth =
+        Math.floor(
+          ((256 * sh.getColumn(8).width! + Math.floor(128 / 7)) / 256) * 7,
+        ) * 9525;
+      expect(width + 2 * x).toBeLessThanOrEqual(cellWidth);
+      expect(height + 2 * y).toBeLessThanOrEqual(112 * 12700);
+      expect(width).toBeGreaterThan(100 * 9525);
+    }
+    expect(sh.pageSetup.printArea).toBe(`A1:H${count + 5}`);
+    expect(sh.pageSetup.fitToWidth).toBe(1);
   },
 );

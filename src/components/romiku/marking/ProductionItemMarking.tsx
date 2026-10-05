@@ -14,6 +14,7 @@ import {
   resolveProductionItemMarking,
   ITEM_XLSX_WARNING,
   type InstructionLabel,
+  validateItemMarkingImages,
 } from "./productionInstructions";
 import { updateItemMarking } from "./instructionWorkflow";
 export function ItemMarkingResult({
@@ -67,6 +68,7 @@ export function ProductionItemMarking({
     setError("");
     setMessage("");
     try {
+      if (action === "set") validateItemMarkingImages(value);
       if (action === "set" && value.mode !== "inherit") {
         validateLabels(value.labels);
         if (value.mode === "replace")
@@ -83,11 +85,7 @@ export function ProductionItemMarking({
         String(parent.id),
         action === "set" ? [String(editing!.id)] : selected,
         action,
-        action === "set"
-          ? value.mode === "inherit"
-            ? { mode: "inherit" }
-            : value
-          : { labels },
+        action === "set" ? value : { labels },
       );
       await onChanged();
       await cache.invalidateQueries({ queryKey: ["romiku-search"] });

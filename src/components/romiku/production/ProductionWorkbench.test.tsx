@@ -207,9 +207,11 @@ it("edits all products and common instructions in one session; Cancel performs n
   await expect
     .element(screen.getByRole("link", { name: "OD001", exact: true }))
     .toBeVisible();
+  const customRow = screen.getByRole("row").filter({ hasText: "G03" });
+  await expect.element(customRow).toHaveTextContent("Made in China");
   await expect
-    .element(screen.getByText("Made in China + Barcode", { exact: true }))
-    .toBeVisible();
+    .element(customRow)
+    .toHaveTextContent("Barcode（附加标签，仅 CRM）");
 });
 it("submits shared and multi-row changes once, retaining draft after server failure", async () => {
   const { screen } = await setup();
@@ -485,4 +487,69 @@ it("returns shared requirements to read-only summary after a successful save", a
   await expect
     .element(screen.getByRole("button", { name: "编辑统一要求", exact: true }))
     .toBeVisible();
+});
+
+it("edits only the product small label in the whole session; cancel restores and save refreshes final text", async () => {
+  const { screen, provider } = await setup();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .click();
+  await screen.getByLabelText("产品小标签适用方式").selectOptions("override");
+  await screen.getByLabelText("产品小标签文字").fill("Barcode SUN5");
+  await expect
+    .element(screen.getByRole("row").filter({ hasText: "SUN5" }))
+    .toHaveTextContent("Barcode SUN5");
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  expect(rpc).not.toHaveBeenCalled();
+  await expect
+    .element(screen.getByRole("row").filter({ hasText: "SUN5" }))
+    .not.toHaveTextContent("Barcode SUN5");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .click();
+  await screen.getByLabelText("产品小标签适用方式").selectOptions("override");
+  await screen.getByLabelText("产品小标签文字").fill("Barcode SUN5");
+  rpc.mockImplementation(async (_name, args) => {
+    for (const line of args.items) {
+      const previousData = (
+        await provider.getOne("romiku_production_items", { id: line.id })
+      ).data;
+      await provider.update("romiku_production_items", {
+        id: line.id,
+        previousData,
+        data: { marking_override: line.marking_override },
+      });
+    }
+    return { data: { ok: true, id: "p" }, error: null };
+  });
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.element(screen.getByText("整张生产单已保存。")).toBeVisible();
+  await expect
+    .element(screen.getByRole("row").filter({ hasText: "SUN5" }))
+    .toHaveTextContent("Barcode SUN5");
+  expect(
+    (await provider.getOne("romiku_production_items", { id: "l1" })).data
+      .marking_override.field_overrides.small_label.mark.text,
+  ).toBe("Barcode SUN5");
+});
+
+it("removing an independent image label switches the field to none and remains saveable", async () => {
+  const { screen } = await setup();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "特殊要求 SUN5", exact: true })
+    .click();
+  await screen.getByLabelText("产品小标签适用方式").selectOptions("override");
+  await screen.getByLabelText("产品小标签显示方式").selectOptions("image");
+  await screen.getByRole("button", { name: "移除图片", exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("产品小标签适用方式"))
+    .toHaveValue("none");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    rpc.mock.calls.at(-1)?.[1].items[0].marking_override.field_overrides
+      .small_label,
+  ).toEqual({ mode: "none" });
 });

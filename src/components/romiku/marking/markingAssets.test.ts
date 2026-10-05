@@ -83,3 +83,29 @@ it("resolves saved object paths only, and fails clearly if an image cannot be do
     /正唛.*图片/,
   );
 });
+
+it("hydrates effective item image labels from immutable paths, deduplicating inherited images", async () => {
+  download.mockReset();
+  download.mockResolvedValue({ data: await png(), error: null });
+  const asset = { bucket: "romiku-marking-assets", path: "saved/shared.png" };
+  const model = normalizeProductionExportModel(
+    {
+      marking_snapshot: { small_label: { mode: "image", image_asset: asset } },
+    },
+    [
+      { id: "a" },
+      { id: "b" },
+      {
+        id: "c",
+        marking_override: {
+          field_overrides: { small_label: { mode: "none" } },
+        },
+      },
+    ],
+  );
+  const result = await hydrateProductionMarkingImages(model);
+  expect(result.items[0].smallLabelImage).toMatch(/^data:image/);
+  expect(result.items[1].smallLabelImage).toBe(result.items[0].smallLabelImage);
+  expect(result.items[2].smallLabelImage).toBe("");
+  expect(download).toHaveBeenCalledExactlyOnceWith("saved/shared.png");
+});

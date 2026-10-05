@@ -36,9 +36,12 @@ it("previews append and replace, cancels without write, saves only the selected 
   );
   await expect
     .element(
-      screen.getByText("产品级标签例外当前尚未输出到 Production XLSX", {
-        exact: true,
-      }),
+      screen.getByText(
+        "附加标签、产品级贴标要求及内部备注仅保存在 CRM，未输出到 Production XLSX",
+        {
+          exact: true,
+        },
+      ),
     )
     .toBeVisible();
   await screen.getByLabelText("SUN5 标签操作").click();

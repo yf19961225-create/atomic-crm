@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import {
   applyStyle,
   captureStyle,
@@ -39,6 +40,20 @@ export async function renderProductionXlsx(
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(template);
   const sheet = workbook.worksheets[0];
+  // Audited template: A:G, row 3 headers, row 4 product, C6:G6 requirements.
+  // Extend this Production export only; the frozen commercial renderer is reused unchanged.
+  const labelColumn = 8;
+  sheet.getColumn(labelColumn).width = sheet.getColumn(3).width;
+  for (const row of [1, 2, 3])
+    sheet.getCell(row, labelColumn).style = structuredClone(
+      sheet.getCell(row, 7).style,
+    );
+  sheet.getCell("H3").value = "小标签";
+  sheet.getCell("D1").value = "统一小标签";
+  for (const row of [1, 2]) {
+    unmerge(sheet, `E${row}:G${row}`);
+    sheet.mergeCells(`E${row}:H${row}`);
+  }
   const product = captureStyle(sheet, 4, 7),
     footer = captureStyle(sheet, 5, 7),
     requirements = captureStyle(sheet, 6, 7);
@@ -73,9 +88,22 @@ export async function renderProductionXlsx(
     ].forEach((value, column) => {
       sheet.getCell(row, column + 1).value = value;
     });
+    const labelCell = sheet.getCell(row, labelColumn);
+    labelCell.style = structuredClone(sheet.getCell(row, 4).style);
+    labelCell.alignment = {
+      ...labelCell.alignment,
+      wrapText: true,
+      horizontal: "center",
+      vertical: "middle",
+    };
+    labelCell.value =
+      item.smallLabel.mode === "text" ? item.smallLabel.text : null;
     sheet.getRow(row).height = Math.max(
       product.height || 112,
       wrappedLines(item.description, 22) * 24 + 10,
+      item.smallLabel.mode === "text"
+        ? wrappedLines(item.smallLabel.text, 28) * 24 + 10
+        : 0,
     );
   });
   applyStyle(sheet, footerRow, footer, 7);
@@ -84,9 +112,16 @@ export async function renderProductionXlsx(
   sheet.getCell(footerRow, 5).value = model.totals.cartons;
   sheet.getCell(footerRow, 6).value = labels.quantity;
   sheet.getCell(footerRow, 7).value = model.totals.quantity;
+  sheet.getCell(footerRow, 8).style = structuredClone(
+    sheet.getCell(footerRow, 7).style,
+  );
+  sheet.mergeCells(`G${footerRow}:H${footerRow}`);
   applyStyle(sheet, requirementsRow, requirements, 7);
   sheet.mergeCells(`A${requirementsRow}:B${requirementsRow}`);
-  sheet.mergeCells(`C${requirementsRow}:G${requirementsRow}`);
+  sheet.getCell(requirementsRow, 8).style = structuredClone(
+    sheet.getCell(requirementsRow, 7).style,
+  );
+  sheet.mergeCells(`C${requirementsRow}:H${requirementsRow}`);
   sheet.getCell(requirementsRow, 1).value = labels.requirements;
   sheet.getCell(requirementsRow, 3).value = model.requirements;
   sheet.getRow(requirementsRow).height = Math.max(
@@ -146,9 +181,55 @@ export async function renderProductionXlsx(
   photos.forEach((image) => {
     if (image) images.push(image);
   });
-  sheet.pageSetup.printArea = `A1:G${requirementsRow}`;
+  const labelImages = await Promise.all(
+    model.items.map(async (item, index) => {
+      if (item.smallLabel.mode !== "image") return undefined;
+      const image = await prepareProductImage(
+        item.smallLabelImage || "",
+        4 + index,
+      );
+      if (!image)
+        throw new Error(
+          `产品 ${item.sku} 小标签图片无法嵌入，请检查已保存图片后重试。`,
+        );
+      return { ...image, column: labelColumn - 1 };
+    }),
+  );
+  labelImages.forEach((image) => {
+    if (image) images.push(image);
+  });
+  sheet.pageSetup.printArea = `A1:H${requirementsRow}`;
+  sheet.pageSetup.fitToPage = true;
+  sheet.pageSetup.fitToWidth = 1;
+  sheet.pageSetup.fitToHeight = 0;
+  // The shared package renderer reads widths and print setup from the template.
+  // Supply a Production-only derived package including H so contain uses its real width.
+  const source = await JSZip.loadAsync(template);
+  const path = "xl/worksheets/sheet1.xml";
+  let xml = await source.file(path)!.async("string");
+  xml = xml.replace(
+    "</cols>",
+    `<col min="8" max="8" width="${sheet.getColumn(8).width}" customWidth="1"/></cols>`,
+  );
+  xml = xml.replace(/<pageSetup\b[^>]*\/>/, (tag) =>
+    tag
+      .replace(/\s(?:scale|fitToWidth|fitToHeight)="[^"]*"/g, "")
+      .replace("/>", ' fitToWidth="1" fitToHeight="0"/>'),
+  );
+  if (xml.includes("<pageSetUpPr"))
+    xml = xml.replace(/<pageSetUpPr\b[^>]*\/>/, (tag) =>
+      tag.replace(/\sfitToPage="[^"]*"/, "").replace("/>", ' fitToPage="1"/>'),
+    );
+  else if (xml.includes("</sheetPr>"))
+    xml = xml.replace("</sheetPr>", '<pageSetUpPr fitToPage="1"/></sheetPr>');
+  else
+    xml = xml.replace(
+      /(<worksheet\b[^>]*>)/,
+      '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>',
+    );
+  source.file(path, xml);
   return preserveTemplatePackage(
-    template,
+    await source.generateAsync({ type: "arraybuffer" }),
     await workbook.xlsx.writeBuffer(),
     images,
     sheet.name,
