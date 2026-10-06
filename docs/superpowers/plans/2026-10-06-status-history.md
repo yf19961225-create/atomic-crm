@@ -36,13 +36,19 @@
 - [x] Implement supabase/schemas/18_status_history.sql, seven timestamp columns, batch context, totals view projections, one migration 20261006170000_status_history.sql. Run local pgTAP.
 - [x] Add shared StatusHistoryPanel.tsx and StatusAge.tsx with resource-scoped labels, actor names, migration wording, default collapse, paginated load more and refresh tests.
 - [x] Integrate seven detail panels and Inquiry/Quote ages. Invalidate caches on detail save as well as inline/batch; no export logic changes.
-- [ ] Full frontend, pgTAP, typecheck, lint, build; final review. Apply verified migration transactionally to Preview with original-value hashes and Preview pgTAP.
+- [x] Full frontend, pgTAP, typecheck, lint, build; final review. Apply verified migration transactionally to Preview with original-value hashes and Preview pgTAP.
 - [ ] Push current branch, inspect matching Preview deployment/public env, browser QA of real state persistence/history/age, repeated states, Production/Packing. Report final evidence.
 
 Ruling: Batch source is shared, but each row uses its actual post-lock update time (monotonic per record). A batch-start timestamp can predate concurrent writes and corrupt duration/order. Added a regression with an earlier batch marker.
 
 ## Verification ledger
 - Full local pgTAP: 943 assertions pass, all fixtures rolled back.
-- Full frontend: 1009 passed, 2 skipped. Typecheck/lint/build exit 0.
+- Full frontend: 1010 passed, 2 skipped. Typecheck/lint/build exit 0.
 - Independent read-only review: concurrency timestamp issue fixed; follow-up review clean.
-- Preview connection/migration/browser QA pending hidden Session Pooler input; no remote changes for this task yet.
+- Preview migration `20261006170000_status_history.sql` committed successfully to ciwaibtotispazfviims. 78 historical headers received migration baselines; original values (including status) verified unchanged. Preview pgTAP: 810/810 pass.
+- Branch pushed. Code deployment `1eb1bd45e206db771dddc5061cada3017a881625` READY, target Preview. Branch-scoped VITE_SUPABASE_URL verified as https://ciwaibtotispazfviims.supabase.co.
+- Actual browser: Inquiry WI-000163 pending_screening → pending_contact → pending_quote → customer_no_reply; duration resets immediately and four history rows persisted. Quote RFQ261006030 retained create plus all five transitions, including repeated following_up. Production OD261006013-P01 retained create/pending_send → scheduled → received. Packing PL-000162 retained draft → incomplete → draft → completed → sent. Read-only DB verification confirmed exact histories and every status_changed_at equals latest history timestamp; Production allocation remains 10 assigned / 90 unallocated.
+- Actual browser pagination: RFQ261006031 loaded 20 then 25 history entries, with Load More disappearing after the last page.
+- Browser QA discovered an existing pristine detail-form stale-cache issue after inline status changes. Fixed form synchronization while preserving dirty edits; regression demonstrated red then green. Full final suite includes the new regression.
+- Remaining browser checks are BLOCKED: auto-review failed due selected-model capacity, preventing further Preview browser access. This is a review-service failure, not a determination of unsafe action. No browser workaround attempted. Latest stale-form fix browser retest, PI/Order/Outbound detail smoke, migration baseline wording, unrelated-field/no-op UI save and batch-source UI verification remain unverified manually; automated coverage passes. Packing transitions were persisted and DB-verified, but final expanded panel recheck was interrupted.
+- No Payment, XLSX renderer/template, barcode or marking files changed. Production Supabase/Vercel, crm2.romiku.com and Sanity untouched.
