@@ -1,3 +1,4 @@
+import { StatusAge } from "./StatusAge";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useDataProvider } from "ra-core";
@@ -13,6 +14,8 @@ export function InlineStatusSelect({
   label = "状态",
   onUpdated,
   formatError,
+  statusChangedAt,
+  showAge = false,
 }: {
   resource: string;
   recordId: string;
@@ -22,9 +25,13 @@ export function InlineStatusSelect({
   label?: string;
   onUpdated?: (status: string) => void;
   formatError?: (error: unknown) => string;
+  statusChangedAt?: string | null;
+  showAge?: boolean;
 }) {
   const provider = useDataProvider();
   const cache = useQueryClient();
+  const [changedAt, setChangedAt] = useState(statusChangedAt);
+  useEffect(() => setChangedAt(statusChangedAt), [statusChangedAt]);
   const [value, setValue] = useState(status);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -38,11 +45,13 @@ export function InlineStatusSelect({
     setMessage("");
     setFailed(false);
     try {
-      await provider.update(resource, {
+      const result = await provider.update(resource, {
         id: recordId,
         data: { status: next },
         previousData: { id: recordId, status: previous },
       });
+      if (result.data.status_changed_at)
+        setChangedAt(result.data.status_changed_at);
       await cache.invalidateQueries();
       onUpdated?.(next);
       setMessage("状态已保存。");
@@ -69,7 +78,13 @@ export function InlineStatusSelect({
     }
   };
   return (
-    <span className="inline-flex items-center gap-2">
+    <span
+      className={
+        showAge
+          ? "inline-flex flex-col items-start gap-1"
+          : "inline-flex items-center gap-2"
+      }
+    >
       <select
         aria-label={`${label} ${recordLabel || recordId}`}
         className="rounded border bg-background px-2 py-1"
@@ -83,6 +98,7 @@ export function InlineStatusSelect({
           </option>
         ))}
       </select>
+      {showAge && <StatusAge changedAt={changedAt} />}
       {message && (
         <span
           role={failed ? "alert" : "status"}

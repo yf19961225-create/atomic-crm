@@ -23,6 +23,7 @@ const inquiry = {
   whatsapp: "+57 300 123 4567",
   message: "Keep original message",
   status: "pending_screening",
+  status_changed_at: new Date(Date.now() - 3 * 86400000).toISOString(),
   raw_payload: { original: true },
 };
 async function setup(path = "/website-inquiries") {
@@ -198,4 +199,11 @@ it("renders ten columns with bounded contact and grouped followup content", asyn
   const long = cells.find((x) => x.textContent?.includes("longlong"))!;
   expect(long.querySelectorAll(".truncate")).toHaveLength(2);
   expect(long.querySelector("[title]")).not.toBeNull();
+});
+
+it("shows Inquiry state duration within its existing status cell", async () => {
+  const { screen } = await setup();
+  await expect
+    .element(screen.getByLabelText("当前状态持续时间"))
+    .toHaveTextContent("3天");
 });

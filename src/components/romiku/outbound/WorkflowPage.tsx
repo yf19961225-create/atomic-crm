@@ -1,3 +1,4 @@
+import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { statusOptions } from "../shared/workflowStatus";
 import { BulkActions } from "../shared/BulkActions";
@@ -454,6 +455,8 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   {config.kind === "inquiry" ? (
                     <InlineStatusSelect
                       resource={resource}
+                      showAge
+                      statusChangedAt={record.status_changed_at}
                       recordId={String(record.id)}
                       recordLabel={record.document_number}
                       status={record.status}
@@ -647,7 +650,7 @@ function RecordEditor({
         record,
       );
       refresh();
-      if (config.kind === "inquiry") await cache.invalidateQueries();
+      if (config.kind !== "customer") await cache.invalidateQueries();
       setMessage("记录已保存。");
       if (!record) onCreated(String(result.data.id));
     } catch (cause) {
@@ -739,6 +742,14 @@ function RecordEditor({
         <TabsContent value="跟进">
           <Followups kind={config.kind} id={record.id} />
         </TabsContent>
+      )}
+      {record && config.kind !== "customer" && (
+        <StatusHistoryPanel
+          resourceType={
+            config.kind === "inquiry" ? "website_inquiry" : "outbound"
+          }
+          resourceId={String(record.id)}
+        />
       )}
       {record && config.kind === "customer" && (
         <p className="text-sm">

@@ -1,3 +1,4 @@
+import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { statusOptions } from "../shared/workflowStatus";
@@ -9,7 +10,7 @@ import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   WorkflowFields,
@@ -364,6 +365,7 @@ function FulfillmentEditor({
   record: RaRecord;
   onSaved: () => Promise<unknown>;
 }) {
+  const cache = useQueryClient();
   const provider = useDataProvider(),
     config = fulfillmentConfig[kind];
   const [values, setValues] = useState<Values>(record),
@@ -411,6 +413,7 @@ function FulfillmentEditor({
       });
       setValues(result.data);
       await onSaved();
+      await cache.invalidateQueries();
       setSaved(true);
     } catch (cause) {
       setFailure(errorMessage(cause));
@@ -499,6 +502,10 @@ function FulfillmentEditor({
           onExport={() => void exportProductionXlsx()}
           exporting={exporting}
         />
+        <StatusHistoryPanel
+          resourceType="production"
+          resourceId={String(record.id)}
+        />
         {failure && <p role="alert">{failure}</p>}
       </>
     );
@@ -521,6 +528,10 @@ function FulfillmentEditor({
         />
       </div>
 
+      <StatusHistoryPanel
+        resourceType="packing"
+        resourceId={String(record.id)}
+      />
       {kind === "packing" && !record.order_id ? (
         <p>独立装箱单：未关联订单。</p>
       ) : (

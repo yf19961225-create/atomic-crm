@@ -75,7 +75,7 @@ end $$;
 revoke all on function public.romiku_batch_delete(text,uuid[]) from public,anon;
 grant execute on function public.romiku_batch_delete(text,uuid[]) to authenticated;
 create or replace function public.romiku_batch_status(kind text,ids uuid[],target_status text) returns jsonb language plpgsql security invoker set search_path='' as $$
-declare v uuid; label text; success jsonb:='[]'; failed jsonb:='[]'; allowed text[];
+declare v uuid; label text; success jsonb:='[]'; failed jsonb:='[]'; allowed text[]; previous_source text;
 begin
 if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 条记录。'); end if;
  case kind
@@ -87,6 +87,8 @@ if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),se
  when 'outbound' then allowed:=array['to_develop','contacted','no_reply','replied','communicating','purchase_intent','to_quote','quoted','sampling','paused','invalid'];
  else return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','该类型不支持批量修改状态。'); end case;
  if target_status is null or not target_status=any(allowed) then return jsonb_build_object('ok',false,'code','INVALID_STATUS','message','不支持的目标状态。'); end if;
+ previous_source:=current_setting('romiku.status_change_source',true);
+ perform set_config('romiku.status_change_source','batch',true);
  for v in select distinct unnest(ids) order by 1 loop
   label:=null;
   begin
@@ -104,6 +106,7 @@ if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),se
   exception when sqlstate 'P4201' then failed:=failed||jsonb_build_array(jsonb_build_object('id',v,'label',coalesce(label,'生产单'),'code','OVER_ALLOCATED','message',sqlerrm));
   when others then failed:=failed||jsonb_build_array(jsonb_build_object('id',v,'label',coalesce(label,'记录'),'code','UPDATE_FAILED','message','状态修改失败，记录未被更改。请刷新后重试。')); end;
  end loop;
+ perform set_config('romiku.status_change_source',coalesce(previous_source,''),true);
  return jsonb_build_object('ok',true,'succeeded',success,'failed',failed);
 end $$;
 revoke all on function public.romiku_batch_status(text,uuid[],text) from public,anon;

@@ -1,3 +1,4 @@
+import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { statusOptions, statusLabel } from "../shared/workflowStatus";
@@ -9,7 +10,7 @@ import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -465,6 +466,7 @@ function DocumentEditor({
   record: RaRecord;
   onSaved: () => Promise<unknown>;
 }) {
+  const cache = useQueryClient();
   const config = documentConfig[kind],
     provider = useDataProvider();
   const [busy, setBusy] = useState(false),
@@ -543,6 +545,7 @@ function DocumentEditor({
       await items.refetch();
       session.commit(result.data, session.items);
       await onSaved();
+      await cache.invalidateQueries();
       setMessage(`${config.label}已保存。`);
     } catch (cause) {
       setFailed(true);
@@ -695,6 +698,7 @@ function DocumentEditor({
       <p className="text-muted-foreground text-sm">
         修改仅应用于此{config.label}的快照；来源单据保留原始值。
       </p>
+      <StatusHistoryPanel resourceType={kind} resourceId={String(record.id)} />
       <DocumentHeaderSummary
         kind={kind}
         editable={session.editing}

@@ -1,3 +1,4 @@
+import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { RecordDelete } from "../shared/RecordDelete";
@@ -6,7 +7,7 @@ import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowFields, type Field } from "../outbound/WorkflowFields";
@@ -213,6 +214,8 @@ export function QuoteList() {
                 <td className="p-3">
                   <InlineStatusSelect
                     resource="romiku_quotes"
+                    showAge
+                    statusChangedAt={record.status_changed_at}
                     recordId={String(record.id)}
                     recordLabel={record.document_number || "报价单"}
                     status={String(record.status || quoteStatuses[0])}
@@ -328,6 +331,7 @@ function QuoteEditor({
   onSaved: () => Promise<unknown>;
 }) {
   const provider = useDataProvider();
+  const cache = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -383,6 +387,7 @@ function QuoteEditor({
       await items.refetch();
       session.commit(result.data, session.items);
       await onSaved();
+      await cache.invalidateQueries();
       setMessage("报价单已保存。");
     } catch (cause) {
       setFailed(true);
@@ -474,6 +479,7 @@ function QuoteEditor({
       <p className="text-muted-foreground text-sm">
         保留来源链接；报价单修改仅应用于此单据。
       </p>
+      <StatusHistoryPanel resourceType="quote" resourceId={String(record.id)} />
       <DocumentHeaderSummary
         kind="quote"
         editable={session.editing}
