@@ -1,5 +1,12 @@
 export const workflowStatusLabels = {
-  quote: { pending_quote: "待报价", sent: "已发送", won: "已成交" },
+  quote: {
+    pending_quote: "待报价",
+    quoted: "已报价",
+    following_up: "跟进中",
+    customer_no_reply: "客户未回复",
+    won: "已成交",
+    invalid: "无效",
+  },
   pi: {
     draft: "待制作",
     sent: "已发送",

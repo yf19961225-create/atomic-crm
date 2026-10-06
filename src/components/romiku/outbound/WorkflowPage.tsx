@@ -1,3 +1,5 @@
+import { InlineStatusSelect } from "../shared/InlineStatusSelect";
+import { statusOptions } from "../shared/workflowStatus";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { useModuleSearch } from "../search/useBusinessSearch";
@@ -11,7 +13,7 @@ import {
   useRefresh,
   type RaRecord,
 } from "ra-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -51,6 +53,7 @@ export type WorkflowConfig = {
   createLabel?: string;
   statuses: string[];
   fields: Field[];
+  renderSummary?: (record: RaRecord) => React.ReactNode;
   renderDetail?: (
     record: RaRecord,
     profile: React.ReactNode,
@@ -78,11 +81,38 @@ function FollowupCells({
   );
   if (!data)
     return (
-      <td colSpan={4} className="p-3">
+      <td colSpan={kind === "inquiry" ? 2 : 4} className="p-3">
         {error ? "无法加载跟进数据" : "正在加载…"}
       </td>
     );
   const state = deriveFollowupState(data as Followup[], record.status);
+  if (kind === "inquiry")
+    return (
+      <>
+        <td className="p-3 text-xs leading-5">
+          <div>
+            最近：
+            {state.last_contact_at
+              ? new Date(state.last_contact_at).toLocaleDateString("zh-CN", {
+                  month: "2-digit",
+                  day: "2-digit",
+                })
+              : "—"}
+          </div>
+          <div>
+            下次：
+            {state.next_follow_up_at
+              ? new Date(state.next_follow_up_at).toLocaleDateString("zh-CN", {
+                  month: "2-digit",
+                  day: "2-digit",
+                })
+              : "—"}
+          </div>
+          <div>{state.follow_up_count} 次</div>
+        </td>
+        <td className="p-3 text-xs">{state.overdue ? "已逾期" : "—"}</td>
+      </>
+    );
   return (
     <>
       <td className="p-3">{formatDate(state.last_contact_at)}</td>
@@ -262,7 +292,18 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         </div>
       )}
       <div className="overflow-x-auto rounded-md border">
-        <table className="w-full text-left text-sm">
+        <table
+          className={`w-full text-left text-sm ${config.kind === "inquiry" ? "table-fixed" : ""}`}
+        >
+          {config.kind === "inquiry" && (
+            <colgroup>
+              {[40, "17%", "7%", "9%", "22%", 118, "7%", 104, 64, 44].map(
+                (width, index) => (
+                  <col key={index} style={{ width }} />
+                ),
+              )}
+            </colgroup>
+          )}
           <thead className="bg-muted">
             <tr>
               {config.kind !== "customer" && (
@@ -272,16 +313,18 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 config.kind === "inquiry" ? "询盘／客户" : "公司",
                 "国家／地区",
                 ...(config.kind === "inquiry"
-                  ? ["提交时间", "电子邮箱"]
+                  ? ["提交时间", "联系方式"]
                   : ["主要联系人"]),
                 ...(config.kind === "outbound"
                   ? ["品牌", "采购品类", "价值等级"]
                   : []),
                 "状态",
                 "负责人",
-                ...(config.kind !== "customer"
-                  ? ["最近联系", "下次跟进", "跟进次数", "到期状态"]
-                  : []),
+                ...(config.kind === "inquiry"
+                  ? ["跟进", "到期状态"]
+                  : config.kind === "outbound"
+                    ? ["最近联系", "下次跟进", "跟进次数", "到期状态"]
+                    : []),
               ].map((title) => (
                 <th className="whitespace-nowrap p-3 font-medium" key={title}>
                   {title}
@@ -299,12 +342,46 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 <td className="p-3">
                   <div className="flex flex-col items-start gap-1">
                     <button
-                      className="text-primary text-left font-medium underline underline-offset-4"
+                      className={`text-primary max-w-full text-left font-medium ${config.kind === "inquiry" ? "block w-full" : "underline underline-offset-4"}`}
+                      aria-label={
+                        config.kind === "inquiry"
+                          ? [
+                              record.document_number,
+                              record.company,
+                              record.customer_name,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")
+                          : undefined
+                      }
                       onClick={() => open(String(record.id))}
                     >
-                      {config.kind === "inquiry"
-                        ? `${record.document_number} · ${record.customer_name}`
-                        : record.name}
+                      {config.kind === "inquiry" ? (
+                        <>
+                          <span
+                            className="block truncate"
+                            title={record.document_number}
+                          >
+                            {record.document_number}
+                          </span>
+                          <span
+                            className="text-muted-foreground block truncate text-xs"
+                            title={[record.company, record.customer_name]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          >
+                            {[
+                              ...new Set(
+                                [record.company, record.customer_name].filter(
+                                  Boolean,
+                                ),
+                              ),
+                            ].join(" · ")}
+                          </span>
+                        </>
+                      ) : (
+                        record.name
+                      )}
                     </button>
                     {config.kind === "outbound" && record.website && (
                       <a
@@ -318,11 +395,40 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                     )}
                   </div>
                 </td>
-                <td className="p-3">{record.country || "—"}</td>
+                <td
+                  className={config.kind === "inquiry" ? "truncate p-3" : "p-3"}
+                  title={record.country || undefined}
+                >
+                  {record.country || "—"}
+                </td>
                 {config.kind === "inquiry" ? (
                   <>
-                    <td className="p-3">{formatDate(record.submitted_at)}</td>
-                    <td className="p-3">{record.email}</td>
+                    <td
+                      className="p-3 text-xs"
+                      title={formatDate(record.submitted_at)}
+                    >
+                      {record.submitted_at
+                        ? new Date(record.submitted_at).toLocaleDateString(
+                            "zh-CN",
+                          )
+                        : "—"}
+                    </td>
+                    <td className="min-w-0 p-3">
+                      {record.email && (
+                        <div className="truncate" title={record.email}>
+                          {record.email}
+                        </div>
+                      )}
+                      {record.whatsapp && (
+                        <div
+                          className="truncate text-xs text-muted-foreground"
+                          title={`WhatsApp: ${record.whatsapp}`}
+                        >
+                          WhatsApp: {record.whatsapp}
+                        </div>
+                      )}
+                      {!record.email && !record.whatsapp && "—"}
+                    </td>
                   </>
                 ) : (
                   <ContactCell record={record} kind={config.kind} />
@@ -337,9 +443,23 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   </>
                 )}
                 <td className="p-3">
-                  {relationshipStatusLabel(record.status)}
+                  {config.kind === "inquiry" ? (
+                    <InlineStatusSelect
+                      resource={resource}
+                      recordId={String(record.id)}
+                      recordLabel={record.document_number}
+                      status={record.status}
+                      choices={statusOptions("website_inquiry")}
+                      onUpdated={selection.clear}
+                      formatError={errorMessage}
+                    />
+                  ) : (
+                    relationshipStatusLabel(record.status)
+                  )}
                 </td>
-                <td className="p-3">
+                <td
+                  className={config.kind === "inquiry" ? "truncate p-3" : "p-3"}
+                >
                   {record.owner_id
                     ? owners.data?.find(
                         (owner) => owner.user_id === record.owner_id,
@@ -484,6 +604,7 @@ function RecordEditor({
 }) {
   const provider = useDataProvider();
   const refresh = useRefresh();
+  const cache = useQueryClient();
   const [values, setValues] = useState<Values>(
     record
       ? {
@@ -518,6 +639,7 @@ function RecordEditor({
         record,
       );
       refresh();
+      if (config.kind === "inquiry") await cache.invalidateQueries();
       setMessage("记录已保存。");
       if (!record) onCreated(String(result.data.id));
     } catch (cause) {
@@ -563,16 +685,12 @@ function RecordEditor({
       </TabsList>
       <form onSubmit={submit} className="space-y-4" hidden={!editingRecord}>
         <TabsContent value="档案" className="space-y-4">
+          {record && config.renderSummary?.(record)}
           <WorkflowFields
             fields={config.fields}
             values={values}
             onChange={setValues}
           />
-          {record && config.kind === "inquiry" && (
-            <p className="text-sm">
-              {record.customer_name} · {record.company} · {record.email}
-            </p>
-          )}
           {config.kind === "customer" && (
             <p className="text-muted-foreground text-sm">
               来源关联仅用于查看历史；关联不会移动、合并或转换来源记录。

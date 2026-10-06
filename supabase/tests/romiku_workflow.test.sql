@@ -28,7 +28,7 @@ insert into romiku_order_items(id,order_id,sku,quantity) select child,id,'WORKFL
 insert into romiku_production_orders(id,order_id) select id,(select id from ids where kind='order') from ids where kind in ('production','production2');
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select (select id from ids where kind='production'),id,child,'WORKFLOW',10 from ids where kind='order';
 select is((select status from romiku_production_orders where id=(select id from ids where kind='production')),'pending_send','production default');
-select is(romiku_batch_status('quote',array[(select id from ids where kind='quote')],'sent')->>'ok','true','quote sent');
+select is(romiku_batch_status('quote',array[(select id from ids where kind='quote')],'quoted')->>'ok','true','quote sent');
 select is(romiku_batch_status('quote',array[(select id from ids where kind='quote')],'won')->>'ok','true','quote won');
 select is(romiku_batch_status('pi',array[(select id from ids where kind='pi')],'confirmed')->>'ok','true','PI confirmed');
 select is(romiku_batch_status('packing',array[(select id from ids where kind='packing')],'incomplete')->>'ok','true','packing incomplete');
@@ -37,7 +37,7 @@ select is(romiku_batch_status('packing',array[(select id from ids where kind='pa
 select is(romiku_batch_status('website_inquiry',array[(select id from ids where kind='website_inquiry')],value)->>'ok','true','inquiry status '||value) from unnest(array['pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid','pending_screening']) value;
 select is(romiku_batch_status('order',array[(select id from ids where kind='order')],'voided')->>'code','UNSUPPORTED_KIND','Order not arbitrary batch status');
 select is(romiku_batch_status('quote',array[(select id from ids where kind='quote')],'confirmed')->>'code','INVALID_STATUS','fixed status whitelist');
-select is(romiku_batch_status('quote',array[(select id from ids where kind='pi')],'sent')->'failed'->0->>'code','NOT_FOUND','wrong resource ID rejected');
+select is(romiku_batch_status('quote',array[(select id from ids where kind='pi')],'quoted')->'failed'->0->>'code','NOT_FOUND','wrong resource ID rejected');
 select is(romiku_batch_status('production',array[(select id from ids where kind='production')],'scheduled')->>'ok','true','production scheduled');
 select is(romiku_batch_status('production',array[(select id from ids where kind='production')],'received')->>'ok','true','production received');
 select is((select unallocated_quantity from romiku_order_item_remaining where id=(select child from ids where kind='order')),0::numeric,'received still occupies');

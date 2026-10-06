@@ -120,7 +120,7 @@ describe("website intake HTTP boundary", () => {
     {},
     { ...payload, customerName: " " },
     { ...payload, email: "invalid" },
-    { ...payload, whatsapp: null },
+    { ...payload, whatsapp: 573001234567 },
     { ...payload, country: 3 },
     { ...payload, message: undefined },
     { ...payload, company: null },
@@ -242,3 +242,18 @@ describe("website intake HTTP boundary", () => {
     });
   });
 });
+
+it.each([undefined, null, "", "   ", " +57 300 123 4567 "])(
+  "accepts backward-compatible optional WhatsApp %s without altering raw payload",
+  async (whatsapp) => {
+    const input = { ...payload, whatsapp };
+    const response = await endpoint.fetch(request(input));
+    expect(response.status).toBe(201);
+    const call = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/rpc/"),
+    )!;
+    expect(JSON.parse(String(call[1]?.body))).toEqual({
+      payload: JSON.parse(JSON.stringify(input)),
+    });
+  },
+);

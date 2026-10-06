@@ -1,3 +1,4 @@
+import { InquirySummary } from "./InquirySummary";
 import { type RaRecord } from "ra-core";
 import { WorkflowPage, type WorkflowConfig } from "../outbound/WorkflowPage";
 import { ownerField } from "../outbound/WorkflowFields";
@@ -74,6 +75,7 @@ const config: WorkflowConfig = {
   kind: "inquiry",
   title: "网站询盘",
   statuses: inquiryStatuses,
+  renderSummary: (record) => <InquirySummary record={record} />,
   fields: [
     {
       key: "status",

@@ -12,6 +12,7 @@ export function InlineStatusSelect({
   choices,
   label = "状态",
   onUpdated,
+  formatError,
 }: {
   resource: string;
   recordId: string;
@@ -20,6 +21,7 @@ export function InlineStatusSelect({
   choices: InlineStatusChoice[];
   label?: string;
   onUpdated?: (status: string) => void;
+  formatError?: (error: unknown) => string;
 }) {
   const provider = useDataProvider();
   const cache = useQueryClient();
@@ -60,7 +62,7 @@ export function InlineStatusSelect({
           ? problem.body?.message ||
               problem.message ||
               "生产安排超过订单数量，请调整数量后重试。"
-          : "状态保存失败，已恢复原状态。",
+          : formatError?.(error) || "状态保存失败，已恢复原状态。",
       );
     } finally {
       setBusy(false);

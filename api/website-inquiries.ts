@@ -13,7 +13,7 @@ const submissionSchema = z.object({
     .string()
     .max(320)
     .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
-  whatsapp: nonempty(100),
+  whatsapp: z.string().max(100).nullish(),
   country: nonempty(100),
   message: z.string().max(10_000),
   company: z.string().max(200).optional(),

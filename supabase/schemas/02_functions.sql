@@ -892,7 +892,7 @@ BEGIN
   IF payload IS NULL OR jsonb_typeof(payload) <> 'object' THEN
     RAISE EXCEPTION 'Invalid inquiry payload' USING ERRCODE = '22023';
   END IF;
-  FOREACH field_name IN ARRAY ARRAY['customerName','email','whatsapp','country','message'] LOOP
+  FOREACH field_name IN ARRAY ARRAY['customerName','email','country','message'] LOOP
     IF jsonb_typeof(payload->field_name) IS DISTINCT FROM 'string'
        OR length(payload->>field_name) > (CASE field_name WHEN 'message' THEN 10000 WHEN 'email' THEN 320 WHEN 'customerName' THEN 200 ELSE 100 END)
        OR (field_name <> 'message' AND (payload->>field_name) !~ '[^[:space:]]') THEN
@@ -901,6 +901,10 @@ BEGIN
   END LOOP;
   IF (payload->>'email') !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' THEN
     RAISE EXCEPTION 'Invalid email' USING ERRCODE = '22023';
+  END IF;
+  IF payload ? 'whatsapp' AND payload->'whatsapp' <> 'null'::jsonb
+     AND (jsonb_typeof(payload->'whatsapp') IS DISTINCT FROM 'string' OR length(payload->>'whatsapp') > 100) THEN
+    RAISE EXCEPTION 'Invalid WhatsApp' USING ERRCODE = '22023';
   END IF;
   IF payload ? 'company' AND (jsonb_typeof(payload->'company') IS DISTINCT FROM 'string' OR length(payload->>'company') > 200) THEN
     RAISE EXCEPTION 'Invalid company' USING ERRCODE = '22023';
@@ -927,7 +931,7 @@ BEGIN
   END LOOP;
 
   INSERT INTO public.romiku_website_inquiries(customer_name,company,email,whatsapp,country,message,raw_payload,owner_id)
-  VALUES(payload->>'customerName',payload->>'company',payload->>'email',payload->>'whatsapp',payload->>'country',payload->>'message',payload,NULL)
+  VALUES(payload->>'customerName',payload->>'company',payload->>'email',nullif(btrim(payload->>'whatsapp', E' \t\n\r'),''),payload->>'country',payload->>'message',payload,NULL)
   RETURNING romiku_website_inquiries.id,romiku_website_inquiries.document_number INTO inquiry_id,inquiry_number;
   INSERT INTO public.romiku_website_inquiry_items(inquiry_id,sku,quantity,requirement,owner_id)
   SELECT inquiry_id,value->>'sku',(value->>'quantity')::numeric,value->>'requirement',NULL

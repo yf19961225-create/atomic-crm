@@ -79,7 +79,7 @@ declare v uuid; label text; success jsonb:='[]'; failed jsonb:='[]'; allowed tex
 begin
 if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 条记录。'); end if;
  case kind
- when 'quote' then allowed:=array['pending_quote','sent','won'];
+ when 'quote' then allowed:=array['pending_quote','quoted','following_up','customer_no_reply','won','invalid'];
  when 'pi' then allowed:=array['draft','sent','confirmed','cancelled'];
  when 'production' then allowed:=array['pending_send','scheduled','received','cancelled'];
  when 'packing' then allowed:=array['draft','incomplete','completed','sent'];

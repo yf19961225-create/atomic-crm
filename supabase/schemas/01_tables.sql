@@ -838,16 +838,16 @@ create index romiku_procurement_cost_history_product_supplier_id_idx on public.r
 -- Workflow lifecycle additions (audited migration keeps historical mapping separate).
 -- Explicitly audited Preview mapping. Abort rather than guess other historical meanings.
 do $$ begin
- if exists(select 1 from public.romiku_quotes where status not in ('draft','pending_quote','sent','won'))
+ if exists(select 1 from public.romiku_quotes where status not in ('draft','pending_quote','sent','quoted','following_up','customer_no_reply','won','invalid'))
  or exists(select 1 from public.romiku_production_orders where status not in ('pending','in_production','pending_send','scheduled','received','cancelled'))
  or exists(select 1 from public.romiku_website_inquiries where status not in ('new','pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid')) then
  raise exception 'Unmapped historical status: migration requires a fresh audit'; end if;
 end $$;
-update public.romiku_quotes set status='pending_quote' where status='draft';
+update public.romiku_quotes set status=case status when 'draft' then 'pending_quote' when 'sent' then 'quoted' end where status in ('draft','sent');
 update public.romiku_production_orders set status=case status when 'pending' then 'pending_send' when 'in_production' then 'scheduled' end where status in ('pending','in_production');
 alter table public.romiku_website_inquiries drop constraint romiku_website_inquiries_status_check;
 update public.romiku_website_inquiries set status='pending_screening' where status='new';
-alter table public.romiku_quotes alter column status set default 'pending_quote', add constraint romiku_quotes_status_check check(status in ('pending_quote','sent','won'));
+alter table public.romiku_quotes alter column status set default 'pending_quote', add constraint romiku_quotes_status_check check(status in ('pending_quote','quoted','following_up','customer_no_reply','won','invalid'));
 alter table public.romiku_pis add constraint romiku_pis_status_check check(status in ('draft','sent','confirmed','cancelled'));
 alter table public.romiku_production_orders alter column status set default 'pending_send', add constraint romiku_production_orders_status_check check(status in ('pending_send','scheduled','received','cancelled'));
 alter table public.romiku_website_inquiries alter column status set default 'pending_screening', add constraint romiku_website_inquiries_status_check check(status in ('pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid'));
