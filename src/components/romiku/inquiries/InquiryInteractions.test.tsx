@@ -207,3 +207,37 @@ it("shows Inquiry state duration within its existing status cell", async () => {
     .element(screen.getByLabelText("当前状态持续时间"))
     .toHaveTextContent("3天");
 });
+
+it("updates a pristine detail form after stale cached data refetches without discarding unsaved edits", async () => {
+  const { screen, provider, cache } = await setup();
+  await expect
+    .element(screen.getByRole("combobox", { name: "状态 WI-001", exact: true }))
+    .toBeVisible();
+  await provider.update("romiku_website_inquiries", {
+    id: "i1",
+    data: { status: "quoted" },
+    previousData: inquiry,
+  });
+  cache.setQueryData(["romiku_website_inquiries", "getOne", { id: "i1" }], {
+    data: inquiry,
+  });
+  await screen.getByRole("button", { name: /WI-001 Company Buyer/ }).click();
+  await expect
+    .element(screen.getByLabelText("状态", { exact: true }))
+    .toHaveValue("quoted");
+  await screen
+    .getByRole("textbox", { name: /处理备注/ })
+    .fill("Unsaved local note");
+  await provider.update("romiku_website_inquiries", {
+    id: "i1",
+    data: { status: "following_up" },
+    previousData: inquiry,
+  });
+  await cache.invalidateQueries();
+  await expect
+    .element(screen.getByRole("textbox", { name: /处理备注/ }))
+    .toHaveValue("Unsaved local note");
+  await expect
+    .element(screen.getByLabelText("状态", { exact: true }))
+    .toHaveValue("quoted");
+});

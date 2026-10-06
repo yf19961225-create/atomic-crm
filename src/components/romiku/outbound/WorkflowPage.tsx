@@ -5,7 +5,7 @@ import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { RecordDelete } from "../shared/RecordDelete";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   useDataProvider,
@@ -624,6 +624,18 @@ function RecordEditor({
         }
       : { status: config.statuses[0] },
   );
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (record && !dirty)
+      setValues({
+        ...record,
+        purchasing_categories: record.purchasing_categories?.join(", "),
+      });
+  }, [record, dirty]);
+  const editValues = (next: Values) => {
+    setDirty(true);
+    setValues(next);
+  };
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -651,6 +663,7 @@ function RecordEditor({
       );
       refresh();
       if (config.kind !== "customer") await cache.invalidateQueries();
+      setDirty(false);
       setMessage("记录已保存。");
       if (!record) onCreated(String(result.data.id));
     } catch (cause) {
@@ -700,7 +713,7 @@ function RecordEditor({
           <WorkflowFields
             fields={config.fields}
             values={values}
-            onChange={setValues}
+            onChange={editValues}
           />
           {config.kind === "customer" && (
             <p className="text-muted-foreground text-sm">
@@ -715,7 +728,7 @@ function RecordEditor({
               <WorkflowFields
                 fields={tab.fields!}
                 values={values}
-                onChange={setValues}
+                onChange={editValues}
               />
             </TabsContent>
           ))}
