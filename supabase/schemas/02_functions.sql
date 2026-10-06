@@ -602,6 +602,18 @@ CREATE OR REPLACE FUNCTION "public"."romiku_preserve_inquiry"() RETURNS "trigger
     AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN
+    -- Only the controlled RPC owner can use the transaction-local, record-scoped
+    -- deletion permit. Authenticated callers cannot bypass this guard by setting it.
+    IF current_user = pg_catalog.pg_get_userbyid(
+         (SELECT proowner FROM pg_catalog.pg_proc
+          WHERE oid = 'public.romiku_delete_record(text,uuid)'::regprocedure))
+       AND current_setting('role', true) = 'authenticated'
+       AND auth.uid() IS NOT NULL
+       AND current_setting('romiku.controlled_inquiry_delete', true) =
+         (to_jsonb(OLD)->>(CASE WHEN TG_TABLE_NAME = 'romiku_website_inquiries'
+                              THEN 'id' ELSE 'inquiry_id' END)) THEN
+      RETURN OLD;
+    END IF;
     RAISE EXCEPTION 'Archive inquiry originals instead of deleting' USING ERRCODE = '23514';
   END IF;
   IF TG_TABLE_NAME = 'romiku_website_inquiries' THEN
@@ -940,7 +952,7 @@ CREATE OR REPLACE FUNCTION "public"."romiku_delete_record"("kind" "text", "recor
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-declare pi_count int := 0; order_count int := 0; production_count int := 0; packing_count int := 0; payment_count int := 0; followup_count int := 0; inquiry_dependencies jsonb;
+declare pi_count int := 0; order_count int := 0; production_count int := 0; packing_count int := 0; payment_count int := 0; followup_count int := 0; inquiry_dependencies jsonb; previous_inquiry_delete text;
 begin
   if auth.uid() is null or coalesce(nullif(current_setting('role', true), 'none'), session_user) <> 'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。','dependencies','{}'::jsonb); end if;
   if kind is null or kind not in ('quote','pi','order','packing','outbound','manual_task','production','website_inquiry') then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。','dependencies','{}'::jsonb); end if;
@@ -984,9 +996,12 @@ begin
     perform 1 from public.romiku_website_inquiry_items where inquiry_id=record_id order by id for update;
     inquiry_dependencies:=public.romiku_inquiry_dependencies(record_id);
     if exists(select 1 from jsonb_each_text(inquiry_dependencies) d where d.value::int>0) then return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message','该询盘已有正式客户或下游商业单据，无法删除。可根据实际情况标记为无效。','dependencies',inquiry_dependencies); end if;
+    previous_inquiry_delete := current_setting('romiku.controlled_inquiry_delete',true);
+    perform set_config('romiku.controlled_inquiry_delete',record_id::text,true);
     delete from public.romiku_website_inquiry_followups where inquiry_id=record_id;
     delete from public.romiku_website_inquiry_items where inquiry_id=record_id;
     delete from public.romiku_website_inquiries where id=record_id;
+    perform set_config('romiku.controlled_inquiry_delete',coalesce(previous_inquiry_delete,''),true);
   elsif kind='outbound' then
     update public.romiku_formal_customers set source_outbound_company_id=null where source_outbound_company_id=record_id; update public.romiku_website_inquiries set outbound_company_id=null where outbound_company_id=record_id; update public.romiku_quotes set outbound_company_id=null where outbound_company_id=record_id; update public.romiku_pis set outbound_company_id=null where outbound_company_id=record_id; update public.romiku_orders set outbound_company_id=null where outbound_company_id=record_id; update public.romiku_manual_tasks set outbound_company_id=null where outbound_company_id=record_id;
     delete from public.romiku_outbound_followups where outbound_company_id=record_id; delete from public.romiku_source_urls where outbound_company_id=record_id; delete from public.romiku_outbound_contacts where outbound_company_id=record_id; delete from public.romiku_outbound_companies where id=record_id;

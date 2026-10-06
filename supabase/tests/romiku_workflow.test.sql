@@ -91,5 +91,22 @@ select is(romiku_delete_record('website_inquiry',(select id from ids where kind=
 update romiku_quotes set outbound_company_id=(select id from ids where kind='outbound') where id=(select id from ids where kind='quote');
 select is(jsonb_array_length(romiku_batch_delete('outbound',array[(select id from ids where kind='outbound')])->'succeeded'),1,'Outbound commercial detach allowed');
 select ok(exists(select 1 from romiku_quotes where id=(select id from ids where kind='quote') and outbound_company_id is null),'Quote survives Outbound deletion');
+-- A free inquiry must pass both preflight and the immutable-originals trigger.
+insert into ids(kind) values('free_inquiry');
+insert into romiku_website_inquiries(id,customer_name,email) select id,'Free QA Inquiry','free@example.test' from ids where kind='free_inquiry';
+insert into romiku_website_inquiry_items(inquiry_id,sku,quantity) select id,'FREE',1 from ids where kind='free_inquiry';
+insert into romiku_website_inquiry_followups(inquiry_id,method,summary) select id,'email','Own followup' from ids where kind='free_inquiry';
+select is(jsonb_array_length(romiku_delete_preflight('website_inquiry',array[(select id from ids where kind='free_inquiry')])->'deletable'),1,'free Inquiry preflight eligible');
+select throws_ok($$update romiku_website_inquiries set message='changed' where id=(select id from ids where kind='free_inquiry')$$,'23514',null,'Inquiry originals remain immutable');
+select set_config('romiku.controlled_inquiry_delete',(select id::text from ids where kind='free_inquiry'),true);
+select throws_ok($$delete from romiku_website_inquiries where id=(select id from ids where kind='free_inquiry')$$,'42501',null,'spoofed controlled-delete marker cannot bypass permissions');
+select set_config('romiku.controlled_inquiry_delete','',true);
+
+select is(romiku_delete_record('website_inquiry',(select id from ids where kind='free_inquiry'))->>'ok','true','free Inquiry controlled deletion passes originals guard');
+select is(current_setting('romiku.controlled_inquiry_delete',true),'','controlled Inquiry deletion clears its permit');
+select is((select count(*) from romiku_website_inquiry_items where inquiry_id=(select id from ids where kind='free_inquiry')),0::bigint,'free Inquiry items deleted');
+select is((select count(*) from romiku_website_inquiry_followups where inquiry_id=(select id from ids where kind='free_inquiry')),0::bigint,'free Inquiry followups deleted');
+select throws_ok($$delete from romiku_website_inquiries where false$$,'42501',null,'direct Inquiry header delete still denied');
+select throws_ok($$delete from romiku_website_inquiry_items where false$$,'42501',null,'direct Inquiry item delete still denied');
 select * from finish();
 rollback;
