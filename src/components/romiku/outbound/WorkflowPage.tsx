@@ -297,7 +297,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         >
           {config.kind === "inquiry" && (
             <colgroup>
-              {[40, "17%", "7%", "9%", "22%", 118, "7%", 104, 64, 44].map(
+              {[40, "16%", "9%", "9%", "21%", 118, "7%", 104, 64, 52].map(
                 (width, index) => (
                   <col key={index} style={{ width }} />
                 ),
@@ -330,7 +330,15 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   {title}
                 </th>
               ))}
-              {config.kind !== "customer" && <th className="p-3">操作</th>}
+              {config.kind !== "customer" && (
+                <th
+                  className={
+                    config.kind === "inquiry" ? "whitespace-nowrap p-2" : "p-3"
+                  }
+                >
+                  操作
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -470,7 +478,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   <FollowupCells record={record} kind={config.kind} />
                 )}
                 {config.kind !== "customer" && (
-                  <td className="p-3">
+                  <td className={config.kind === "inquiry" ? "p-2" : "p-3"}>
                     <RecordDelete
                       kind={
                         config.kind === "inquiry"
