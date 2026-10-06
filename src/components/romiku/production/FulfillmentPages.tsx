@@ -1,3 +1,6 @@
+import { BulkActions } from "../shared/BulkActions";
+import { usePageSelection } from "../shared/usePageSelection";
+import { statusOptions } from "../shared/workflowStatus";
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { savedBuyerName } from "./productionWorkspace";
 import { RecordDelete } from "../shared/RecordDelete";
@@ -59,20 +62,21 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
     [params] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
   const orderId = params.get("order");
-  const searchResult = useModuleSearch(
-    kind,
-    config.resource,
-    search,
-    page,
-    orderId ? { order_id: orderId } : {},
-  );
+  const searchResult = useModuleSearch(kind, config.resource, search, page, {
+    ...(orderId ? { order_id: orderId } : {}),
+    ...(status ? { status } : {}),
+  });
   const ordinary = useGetList(
     config.resource,
     {
       pagination: { page, perPage: 25 },
       sort: { field: "created_at", order: "DESC" },
-      filter: orderId ? { order_id: orderId } : {},
+      filter: {
+        ...(orderId ? { order_id: orderId } : {}),
+        ...(status ? { status } : {}),
+      },
     },
     { enabled: !search.trim() },
   );
@@ -85,12 +89,20 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const parents = useQuery({
     queryKey: ["production-list-orders", parentIds],
     queryFn: () => provider.getMany("romiku_orders", { ids: parentIds }),
-    enabled: kind === "production" && parentIds.length > 0,
+    enabled: parentIds.length > 0,
   });
   const filteredOrder = useGetOne(
     "romiku_orders",
     { id: orderId || "" },
     { enabled: !!orderId },
+  );
+  const selection = usePageSelection(
+    query.data || [],
+    JSON.stringify([kind, page, search, status, orderId]),
+    page,
+    query.total,
+    query.isPending || !!query.error,
+    setPage,
   );
   return (
     <section className="space-y-4">
@@ -111,6 +123,30 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           setSearch(next);
           setPage(1);
         }}
+      />
+      <label>
+        状态{" "}
+        <select
+          className="rounded border p-2"
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">全部状态</option>
+          {statusOptions(kind).map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <BulkActions
+        kind={kind}
+        ids={selection.ids}
+        onDone={selection.clear}
+        disabled={query.isPending || !!query.error}
       />
       {orderId && (
         <p>
@@ -134,13 +170,14 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
         <table className="w-full text-left text-sm">
           <thead>
             <tr>
+              <th className="p-3">{selection.header}</th>
               {[
                 ...(kind === "production"
                   ? ["订单编号", "客户", "生产单编号"]
                   : ["单据", "订单"]),
                 ...(kind === "production"
                   ? ["状态", "工厂交期", "生成时间"]
-                  : ["批次", "装箱日期", "唛头"]),
+                  : ["状态", "批次", "装箱日期", "唛头"]),
               ].map((title) => (
                 <th className="p-3" key={title}>
                   {title}
@@ -152,6 +189,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           <tbody>
             {query.data?.map((record) => (
               <tr key={record.id} className="border-t">
+                <td className="p-3">{selection.checkbox(record)}</td>
                 {kind === "production" && (
                   <>
                     <td className="p-3">
@@ -179,18 +217,23 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                     className="underline"
                     to={`${config.path}/${record.id}`}
                   >
-                    {record.document_number ||
-                      (kind === "production" ? "未编号生产单" : record.id)}
+                    {record.document_number || "未编号单据"}
                   </Link>
                 </td>
                 {kind !== "production" && (
                   <td className="p-3">
-                    <Link
-                      className="underline"
-                      to={`/orders/${record.order_id}`}
-                    >
-                      {record.order_id}
-                    </Link>
+                    {record.order_id ? (
+                      <Link
+                        className="underline"
+                        to={`/orders/${record.order_id}`}
+                      >
+                        {parents.data?.data.find(
+                          (o) => o.id === record.order_id,
+                        )?.document_number || "正在加载订单…"}
+                      </Link>
+                    ) : (
+                      "独立装箱单"
+                    )}
                   </td>
                 )}
                 {(kind === "production"
@@ -199,7 +242,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                         resource={config.resource}
                         recordId={String(record.id)}
                         recordLabel={String(record.document_number || "生产单")}
-                        status={String(record.status || "pending")}
+                        status={String(record.status || "pending_send")}
                         choices={productionStatusChoices.map(
                           ({ id, label }) => ({
                             value: id,
@@ -212,6 +255,13 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                       localDateTimeLabel(record.created_at),
                     ]
                   : [
+                      <InlineStatusSelect
+                        resource={config.resource}
+                        recordId={String(record.id)}
+                        recordLabel={record.document_number || "装箱单"}
+                        status={String(record.status || "draft")}
+                        choices={statusOptions("packing")}
+                      />,
                       record.batch_label,
                       record.packing_at,
                       record.shipping_mark,
@@ -230,6 +280,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                         record.document_number || record.name || record.id,
                       )}
                       onDeleted={() => {
+                        selection.clear();
                         if (query.data?.length === 1 && page > 1)
                           setPage(page - 1);
                       }}

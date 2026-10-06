@@ -169,7 +169,7 @@ select b.*,coalesce(p.received_amount,0) as received_amount,
     from public.romiku_orders d
     left join (select order_id, sum(amount) as subtotal from public.romiku_order_items group by order_id) i on i.order_id = d.id) b
     left join (select order_id,sum(amount) as received_amount,sum(amount) filter (where kind='deposit') as deposit_received
-      from public.romiku_payments group by order_id) p on p.order_id=b.id;
+      from public.romiku_payments where status='active' group by order_id) p on p.order_id=b.id;
 
 create or replace view public.romiku_order_item_remaining with (security_invoker = true) as
 select i.id,i.order_id,i.sku,i.quantity as ordered_quantity,
@@ -205,7 +205,7 @@ select distinct on (product_supplier_id,currency) *
 create or replace view public.romiku_calendar with (security_invoker = true) as
 select 'inquiry_follow_up:' || id::text as id,'inquiry_follow_up'::text as event_type,'romiku_website_inquiries'::text as source_table,
     id as source_id,document_number as title,next_follow_up_at as due_at,owner_id,status as status
-    from public.romiku_website_inquiries where next_follow_up_at is not null and archived_at is null and status not in ('processed','invalid')
+    from public.romiku_website_inquiries where next_follow_up_at is not null and archived_at is null and status not in ('won','invalid')
 union all
 select 'outbound_follow_up:' || id::text as id,'outbound_follow_up'::text as event_type,'romiku_outbound_companies'::text as source_table,
     id as source_id,name as title,next_follow_up_at as due_at,owner_id,status as status
@@ -229,14 +229,14 @@ select 'pi_due:' || id::text as id,'pi_due'::text as event_type,'romiku_pis'::te
 union all
 select 'order_delivery:' || id::text as id,'order_delivery'::text as event_type,'romiku_orders'::text as source_table,
     id as source_id,document_number as title,expected_delivery_at as due_at,owner_id,status as status
-    from public.romiku_orders where expected_delivery_at is not null and archived_at is null and actual_delivery_at is null
+    from public.romiku_orders where expected_delivery_at is not null and archived_at is null and actual_delivery_at is null and status<>'voided'
 union all
 select 'production_due:' || id::text as id,'production_due'::text as event_type,'romiku_production_orders'::text as source_table,
     id as source_id,document_number as title,factory_due_at as due_at,owner_id,status as status
-    from public.romiku_production_orders where factory_due_at is not null and archived_at is null and status not in ('completed','received','cancelled')
+    from public.romiku_production_orders where factory_due_at is not null and archived_at is null and status not in ('received','cancelled')
 union all
 select 'packing:' || id::text as id,'packing'::text as event_type,'romiku_packing_lists'::text as source_table,
-    id as source_id,document_number as title,packing_at as due_at,owner_id,'scheduled'::text as status
+    id as source_id,document_number as title,packing_at as due_at,owner_id,status
     from public.romiku_packing_lists where packing_at is not null and archived_at is null
 union all
 select 'manual_task:' || id::text as id,'manual_task'::text as event_type,'romiku_manual_tasks'::text as source_table,
@@ -247,7 +247,7 @@ create or replace view public.romiku_workbench with (security_invoker = true) as
 select e.*,e.due_at < now() as is_overdue from public.romiku_calendar e
 union all
 select 'inquiry_new:'||id::text,'inquiry_new','romiku_website_inquiries',id,document_number,submitted_at,owner_id,status,false
-  from public.romiku_website_inquiries where status in ('new','pending') and archived_at is null
+  from public.romiku_website_inquiries where status in ('pending_screening','pending_contact') and archived_at is null
 union all
 select 'production_anomaly:'||id::text,'production_anomaly','romiku_production_orders',id,document_number,factory_due_at,owner_id,status,
   coalesce(factory_due_at < now(),false)
@@ -256,4 +256,4 @@ union all
 select 'order_receivable:'||id::text,'order_receivable','romiku_orders',id,document_number,
   case when deposit_remaining>0 then deposit_due_at else balance_due_at end,owner_id,status,
   coalesce(case when deposit_remaining>0 then deposit_due_at else balance_due_at end < now(),false)
-  from public.romiku_order_totals where remaining_amount>0 and archived_at is null;
+  from public.romiku_order_totals where remaining_amount>0 and archived_at is null and status<>'voided';

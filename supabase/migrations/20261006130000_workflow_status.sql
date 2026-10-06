@@ -1,4 +1,31 @@
--- Existing business model; invoker RPCs add atomic edit sessions only.
+-- Explicitly audited Preview mapping. Abort rather than guess other historical meanings.
+do $$ begin
+ if exists(select 1 from public.romiku_quotes where status not in ('draft','pending_quote','sent','won'))
+ or exists(select 1 from public.romiku_production_orders where status not in ('pending','in_production','pending_send','scheduled','received','cancelled'))
+ or exists(select 1 from public.romiku_website_inquiries where status not in ('new','pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid')) then
+ raise exception 'Unmapped historical status: migration requires a fresh audit'; end if;
+end $$;
+update public.romiku_quotes set status='pending_quote' where status='draft';
+update public.romiku_production_orders set status=case status when 'pending' then 'pending_send' when 'in_production' then 'scheduled' end where status in ('pending','in_production');
+alter table public.romiku_website_inquiries drop constraint romiku_website_inquiries_status_check;
+update public.romiku_website_inquiries set status='pending_screening' where status='new';
+alter table public.romiku_quotes alter column status set default 'pending_quote', add constraint romiku_quotes_status_check check(status in ('pending_quote','sent','won'));
+alter table public.romiku_pis add constraint romiku_pis_status_check check(status in ('draft','sent','confirmed','cancelled'));
+alter table public.romiku_production_orders alter column status set default 'pending_send', add constraint romiku_production_orders_status_check check(status in ('pending_send','scheduled','received','cancelled'));
+alter table public.romiku_website_inquiries alter column status set default 'pending_screening', add constraint romiku_website_inquiries_status_check check(status in ('pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid'));
+alter table public.romiku_packing_lists add column status text not null default 'draft' check(status in ('draft','incomplete','completed','sent'));
+create index romiku_packing_lists_status_idx on public.romiku_packing_lists(status);
+-- Only unambiguous input aliases are accepted from stale clients; final values are stored.
+create or replace function public.romiku_normalize_workflow_status() returns trigger language plpgsql set search_path='' as $$ begin
+ if tg_table_name='romiku_quotes' and new.status='draft' then new.status:='pending_quote';
+ elsif tg_table_name='romiku_production_orders' and new.status='pending' then new.status:='pending_send';
+ elsif tg_table_name='romiku_production_orders' and new.status='in_production' then new.status:='scheduled';
+ elsif tg_table_name='romiku_website_inquiries' and new.status='new' then new.status:='pending_screening'; end if;
+ return new; end $$;
+create trigger aa_normalize_workflow_status before insert or update of status on public.romiku_quotes for each row execute function public.romiku_normalize_workflow_status();
+create trigger aa_normalize_workflow_status before insert or update of status on public.romiku_production_orders for each row execute function public.romiku_normalize_workflow_status();
+create trigger aa_normalize_workflow_status before insert or update of status on public.romiku_website_inquiries for each row execute function public.romiku_normalize_workflow_status();
+
 create or replace function public.romiku_save_production_workspace(
  production_id uuid, source_order_id uuid, header jsonb, items jsonb, expected jsonb
 ) returns jsonb language plpgsql security invoker set search_path='' as $$
@@ -129,8 +156,6 @@ exception
  when others then return jsonb_build_object('ok',false,'code',code,'message',message,'dependencies',issues);
 end
 $$;
-
--- Only effective shared content counts; initialization metadata and hidden text do not.
 create or replace function public.romiku_has_production_instructions(value jsonb)
 returns boolean language sql immutable parallel safe set search_path='' as $$
  select coalesce(
@@ -146,9 +171,6 @@ returns boolean language sql immutable parallel safe set search_path='' as $$
   ) or exists (select 1 from unnest(array['labeling_requirements','production_requirements','notes']) k
     where jsonb_typeof(value->k)='string' and btrim(value->>k,E' \t\n\r')<>''),false)
 $$;
-revoke all on function public.romiku_has_production_instructions(jsonb) from public,anon;
-grant execute on function public.romiku_has_production_instructions(jsonb) to authenticated,service_role;
-
 create or replace function public.romiku_sync_order_production_defaults(source_order_id uuid, expected jsonb default null)
 returns jsonb language plpgsql security invoker set search_path='' as $$
 declare o public.romiku_orders%rowtype; rows jsonb; token text; n integer; saved jsonb; verified integer;
@@ -179,5 +201,135 @@ begin
 exception when others then return jsonb_build_object('ok',false,'message','同步未完成，所有生产单保持原值，请刷新后重试。');
 end
 $$;
-revoke all on function public.romiku_save_production_workspace(uuid,uuid,jsonb,jsonb,jsonb),public.romiku_sync_order_production_defaults(uuid,jsonb) from public,anon;
-grant execute on function public.romiku_save_production_workspace(uuid,uuid,jsonb,jsonb,jsonb),public.romiku_sync_order_production_defaults(uuid,jsonb) to authenticated,service_role;
+create or replace function public.romiku_valid_ean13(value text)
+returns boolean language sql immutable parallel safe set search_path='' as $$
+ select value is null or (value ~ '^[0-9]{13}$' and
+ (select sum((substr(value,n,1))::integer * case when n%2=0 then 3 else 1 end)%10=0 from generate_series(1,13) n where value ~ '^[0-9]{13}$'))
+$$;
+create or replace function public.romiku_production_item_barcode_guard()
+returns trigger language plpgsql security invoker set search_path='' as $$
+begin
+ new.barcode_number:=nullif(btrim(new.barcode_number,E' \t\n\r'),'');
+ if new.barcode_number is null then return new; end if;
+ if not public.romiku_valid_ean13(new.barcode_number) then raise exception using errcode='P4202',message='EAN-13 必须是 13 位数字且校验位正确。'; end if;
+ insert into public.romiku_production_barcodes(barcode_number,sku,source,source_order_item_id)
+ values(new.barcode_number,btrim(new.sku),'manual',new.source_order_item_id) on conflict(barcode_number) do nothing;
+ if not exists(select 1 from public.romiku_production_barcodes where barcode_number=new.barcode_number and sku=btrim(new.sku)) then
+ raise exception using errcode='P4203',message='该条形码已用于其他 SKU，请核对号码。'; end if;
+ return new;
+end $$;
+create or replace function public.romiku_production_barcode(source_item_id uuid, generate_number boolean default false, production_item_id uuid default null)
+returns jsonb language plpgsql security invoker set search_path='' as $$
+declare s public.romiku_order_items%rowtype; saved_item public.romiku_production_items%rowtype; candidates jsonb; body text; candidate text; n integer; total integer; inserted integer;
+begin
+ if auth.uid() is null then return jsonb_build_object('ok',false,'message','请先登录。'); end if;
+ select * into s from public.romiku_order_items where id=source_item_id;
+ if not found then return jsonb_build_object('ok',false,'message','无法读取所属订单产品。'); end if;
+ -- Same order serialization also covers workspace saves and split-production reuse.
+ perform 1 from public.romiku_orders where id=s.order_id for update;
+ if not found then return jsonb_build_object('ok',false,'message','无法读取所属订单。'); end if;
+ if production_item_id is not null then
+  select * into saved_item from public.romiku_production_items where id=production_item_id and source_order_item_id=s.id and order_id=s.order_id;
+  if not found then return jsonb_build_object('ok',false,'message','无法读取已保存的生产产品。'); end if;
+  s.sku:=saved_item.sku;
+ end if;
+ select coalesce(jsonb_agg(v.barcode_number order by v.barcode_number),'[]') into candidates from (
+ select i.barcode_number from public.romiku_production_items i where i.order_id=s.order_id and btrim(i.sku)=btrim(s.sku) and i.barcode_number is not null
+ union
+ select b.barcode_number from public.romiku_production_barcodes b join public.romiku_order_items oi on oi.id=b.source_order_item_id where oi.order_id=s.order_id and b.sku=btrim(s.sku)
+ ) v;
+ if jsonb_array_length(candidates)>0 then return jsonb_build_object('ok',true,'kind','reuse','candidates',candidates); end if;
+ if not generate_number then return jsonb_build_object('ok',true,'kind','empty','candidates','[]'::jsonb); end if;
+ for attempt in 1..20 loop
+  body:='';total:=0;
+  for n in 1..12 loop
+   candidate:=floor(random()*10)::integer::text;body:=body||candidate;total:=total+candidate::integer*case when n%2=0 then 3 else 1 end;
+  end loop;
+  candidate:=body||((10-total%10)%10)::text;
+  -- Primary key claims the number atomically across every CRM item and session.
+  insert into public.romiku_production_barcodes(barcode_number,sku,source,source_order_item_id) values(candidate,btrim(s.sku),'generated',s.id) on conflict do nothing;
+  get diagnostics inserted=row_count;
+  if inserted=1 then return jsonb_build_object('ok',true,'kind','generated','candidates',jsonb_build_array(candidate)); end if;
+ end loop;
+ return jsonb_build_object('ok',false,'message','暂时无法生成未使用号码，请重试。');
+exception when others then return jsonb_build_object('ok',false,'message','条形码读取或生成失败，请刷新后重试。');
+end $$;
+create or replace function public.romiku_order_delete_eligibility(order_uuid uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare o public.romiku_orders; p record; productions jsonb:='[]'; reasons jsonb:='[]'; pc int; payments int; packings int; label text;
+begin
+ select * into o from public.romiku_orders where id=order_uuid;
+ if not found then return jsonb_build_object('order_id',order_uuid,'document_number','订单不存在','production_count',0,'packing_count',0,'payment_count',0,'delete_mode','blocked','cascade_productions','[]'::jsonb,'blocked_reasons',jsonb_build_array('订单不存在。'),'code','NOT_FOUND'); end if;
+ select count(*) into packings from public.romiku_packing_lists where order_id=order_uuid;
+ select count(*) into payments from public.romiku_payments where order_id=order_uuid;
+ if packings>0 then reasons:=reasons||jsonb_build_array(format('已有 %s 张装箱单，无法删除。',packings)); end if;
+ if payments>0 then reasons:=reasons||jsonb_build_array('该订单存在收款历史，不能永久删除。可以作废订单。'); end if;
+ for p in select po.*, (select count(*) from public.romiku_production_followups f where f.production_order_id=po.id) followups from public.romiku_production_orders po where po.order_id=order_uuid order by po.document_number,po.id loop
+  label:=case p.status when 'pending_send' then '待发送' when 'cancelled' then '已取消' when 'scheduled' then '已排产' when 'completed' then '已完成' when 'received' then '已收货' else '非允许删除状态' end;
+  productions:=productions||jsonb_build_array(jsonb_build_object('id',p.id,'document_number',p.document_number,'status',p.status,'status_label',label,'followup_count',p.followups,'archived',p.archived_at is not null));
+  if p.archived_at is not null then reasons:=reasons||jsonb_build_array(format('%s 已归档，无法删除。',p.document_number)); end if;
+  if p.status not in ('pending_send','cancelled') then reasons:=reasons||jsonb_build_array(format('%s 已处于%s，无法删除。',p.document_number,label)); end if;
+  if p.followups>0 then reasons:=reasons||jsonb_build_array(format('%s 已有 %s 条生产跟进记录，无法删除。',p.document_number,p.followups)); end if;
+ end loop;
+ pc:=jsonb_array_length(productions);
+ return jsonb_build_object('order_id',o.id,'document_number',o.document_number,'production_count',pc,'packing_count',packings,'payment_count',payments,'delete_mode',case when jsonb_array_length(reasons)>0 then 'blocked' when pc>0 then 'cascade_production' else 'order_only' end,'cascade_productions',productions,'blocked_reasons',reasons,'code',case when jsonb_array_length(reasons)>0 then 'HAS_DOWNSTREAM' else null end);
+end $$;
+create or replace function public.romiku_order_delete_preflight(ids uuid[])
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare v uuid; row_data jsonb; deletable jsonb:='[]'; blocked jsonb:='[]';
+begin
+ if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;
+ if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 张订单。'); end if;
+ for v in select distinct unnest(ids) order by 1 loop
+  row_data:=public.romiku_order_delete_eligibility(v);
+  if row_data->>'delete_mode'='blocked' then blocked:=blocked||jsonb_build_array(row_data); else deletable:=deletable||jsonb_build_array(row_data); end if;
+ end loop;
+ return jsonb_build_object('ok',true,'deletable',deletable,'blocked',blocked);
+end $$;
+create or replace function public.romiku_delete_order_controlled(order_uuid uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare policy jsonb; child record; outcome jsonb; message text;
+begin
+ -- FK inserts require KEY SHARE on these rows. Lock before the fresh policy read.
+ perform 1 from public.romiku_orders where id=order_uuid for update;
+ if not found then return jsonb_build_object('ok',false,'code','NOT_FOUND','message','记录不存在。','dependencies','{}'::jsonb); end if;
+ perform 1 from public.romiku_production_orders where order_id=order_uuid order by id for update;
+ policy:=public.romiku_order_delete_eligibility(order_uuid);
+ if policy->>'delete_mode'='blocked' then
+  if (policy->>'payment_count')::int>0 then
+   message:='该订单存在收款历史，不能永久删除。可以作废订单。';
+  elsif (policy->>'packing_count')::int>0 then
+   message:=format('该订单已有 %s 张生产单、%s 张装箱单、%s 条收款记录，无法删除。',policy->>'production_count',policy->>'packing_count',policy->>'payment_count');
+  else select string_agg(value,' ') into message from jsonb_array_elements_text(policy->'blocked_reasons'); end if;
+  return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message',message,'dependencies',jsonb_build_object('production',(policy->>'production_count')::int,'packing',(policy->>'packing_count')::int,'payments',(policy->>'payment_count')::int));
+ end if;
+ for child in select id from public.romiku_production_orders where order_id=order_uuid order by id loop
+  outcome:=public.romiku_delete_record('production',child.id);
+  -- A returned child failure MUST raise here so this exception block restores
+  -- earlier children and task links, not just the child that failed.
+  if outcome->>'ok' is distinct from 'true' then raise exception 'controlled child delete failed'; end if;
+ end loop;
+ update public.romiku_manual_tasks set order_id=null where order_id=order_uuid;
+ delete from public.romiku_order_items where order_id=order_uuid;
+ delete from public.romiku_orders where id=order_uuid;
+ -- Numbering ledgers and barcode reservations deliberately survive the document.
+ return jsonb_build_object('ok',true);
+exception when others then
+ return jsonb_build_object('ok',false,'code','DELETE_FAILED','message','删除失败，记录未被更改。请刷新后重试或联系管理员。','dependencies','{}'::jsonb);
+end $$;
+create or replace function public.romiku_batch_delete_orders(ids uuid[])
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare v uuid; label text; outcome jsonb; deleted jsonb:='[]'; failed jsonb:='[]';
+begin
+ if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;
+ if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 张订单。'); end if;
+ for v in select distinct unnest(ids) order by 1 loop
+  select document_number into label from public.romiku_orders where id=v;
+  outcome:=public.romiku_delete_record('order',v);
+  outcome:=outcome||jsonb_build_object('order_id',v,'document_number',coalesce(label,'订单不存在'));
+  if outcome->>'ok'='true' then deleted:=deleted||jsonb_build_array(outcome);
+  else failed:=failed||jsonb_build_array(outcome||jsonb_build_object('status',case when outcome->>'code'='HAS_DOWNSTREAM' then 'blocked_at_execution' else 'failed' end)); end if;
+ end loop;
+ return jsonb_build_object('ok',true,'deleted',deleted,'failed',failed);
+end $$;
+revoke all on function public.romiku_normalize_workflow_status() from public,anon,authenticated;

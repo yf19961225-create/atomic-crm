@@ -261,13 +261,13 @@ select 'production'::text resource_type,h.id,h.document_number title,coalesce(h.
  union all
 select 'packing'::text resource_type,h.id,h.document_number title,coalesce(h.name,'') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_packing_lists h
  cross join lateral public.romiku_search_matches((h.business_search_fields - 'name' || jsonb_build_object('document_name',h.business_search_fields->'name')),q,pattern,search_phone) m
- where q<>'' and 'packing'=any(types) and (status_filter is null or null::text=status_filter) and (order_filter is null or h.order_id=order_filter) and (h.business_search_text like '%'||pattern||'%' escape E'\\' or (search_phone is not null and h.business_search_text like '%'||search_phone||'%'))
+ where q<>'' and 'packing'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or h.order_id=order_filter) and (h.business_search_text like '%'||pattern||'%' escape E'\\' or (search_phone is not null and h.business_search_text like '%'||search_phone||'%'))
  union all
 select 'packing'::text resource_type,h.id,h.document_number title,coalesce(h.name,'') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_packing_lists h join public.romiku_packing_items i on i.packing_list_id=h.id
  cross join lateral public.romiku_search_matches((select jsonb_object_agg('items.'||j.key,j.value) from jsonb_each(i.business_search_fields) j),q,pattern,search_phone) m
- where q<>'' and 'packing'=any(types) and (status_filter is null or null::text=status_filter) and (order_filter is null or h.order_id=order_filter) and (i.business_search_text like '%'||pattern||'%' escape E'\\' or (search_phone is not null and i.business_search_text like '%'||search_phone||'%'))
+ where q<>'' and 'packing'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or h.order_id=order_filter) and (i.business_search_text like '%'||pattern||'%' escape E'\\' or (search_phone is not null and i.business_search_text like '%'||search_phone||'%'))
  union all
-select 'packing'::text resource_type,h.id,h.document_number title,coalesce(h.name,'') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_packing_lists h join public.romiku_orders src on src.id=h.order_id cross join lateral public.romiku_search_matches(jsonb_build_object('source_order.document_number',lower(src.document_number)),q,pattern,null) m where q<>'' and 'packing'=any(types) and (status_filter is null or null::text=status_filter) and (order_filter is null or h.order_id=order_filter) and src.source_search_text like '%'||pattern||'%' escape E'\\'
+select 'packing'::text resource_type,h.id,h.document_number title,coalesce(h.name,'') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_packing_lists h join public.romiku_orders src on src.id=h.order_id cross join lateral public.romiku_search_matches(jsonb_build_object('source_order.document_number',lower(src.document_number)),q,pattern,null) m where q<>'' and 'packing'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or h.order_id=order_filter) and src.source_search_text like '%'||pattern||'%' escape E'\\'
   ), merged as (
     select resource_type,id,title,subtitle,created_at,min(rank) rank,array_agg(distinct f order by f) matched_fields
     from hits cross join lateral unnest(matched_fields) a(f)
@@ -282,13 +282,17 @@ declare result jsonb; types text[]:=coalesce(resource_types,array['formal_custom
 begin
  if auth.uid() is null then raise exception 'Authentication required' using errcode='42501'; end if;
  if "limit" is null or "limit" not between 1 and 50 or "offset" is null or "offset"<0 then raise exception 'Invalid search arguments' using errcode='22023'; end if;
+ if query is null or length(query)>500 or filters is null or jsonb_typeof(filters)<>'object' then raise exception 'Invalid search arguments' using errcode='22023'; end if;
+ if array_ndims(types)>1 or exists(select 1 from unnest(types) t where t is null or t not in ('formal_customer','outbound','website_inquiry','quote','pi','order','production','packing')) then raise exception 'Unsupported resource type' using errcode='22023'; end if;
+ if exists(select 1 from jsonb_each(filters) f where f.key not in ('status','order_id','formal_customer_id') or jsonb_typeof(f.value)<>'string') then raise exception 'Unsupported search filter' using errcode='22023'; end if;
  -- Evaluate the helper even for an empty resource list so validation is never skipped.
  if cardinality(types)=0 then perform 1 from public.romiku_business_search_hits(query,types,filters) limit 1; end if;
  with requested as (select t resource_type,min(n) position from unnest(types) with ordinality a(t,n) group by t),
- numbered as (select *,row_number() over(partition by resource_type order by rank,created_at desc,id) n,count(*) over(partition by resource_type) total_count from public.romiku_business_search_hits(query,types,filters))
+ statuses as (select 'quote'::text resource_type,id,status from public.romiku_quotes union all select 'pi',id,status from public.romiku_pis union all select 'order',id,status from public.romiku_orders union all select 'production',id,status from public.romiku_production_orders union all select 'packing',id,status from public.romiku_packing_lists union all select 'website_inquiry',id,status from public.romiku_website_inquiries union all select 'outbound',id,status from public.romiku_outbound_companies union all select 'formal_customer',id,status from public.romiku_formal_customers),
+ numbered as (select h.*,s.status,row_number() over(partition by h.resource_type order by rank,created_at desc,h.id) n,count(*) over(partition by h.resource_type) total_count from public.romiku_business_search_hits(query,types,filters) h join statuses s on s.resource_type=h.resource_type and s.id=h.id)
  select jsonb_build_object('groups',coalesce(jsonb_agg(jsonb_build_object(
  'resource_type',r.resource_type,'total_count',coalesce(p.total_count,0),'limit',"limit",'offset',"offset",'has_more',coalesce(p.total_count,0)>("offset"::bigint+"limit"),'items',coalesce(p.items,'[]'::jsonb)) order by r.position),'[]'::jsonb)) into result
- from requested r left join lateral (select max(n.total_count) total_count,jsonb_agg(jsonb_build_object('id',n.id,'title',n.title,'subtitle',n.subtitle,'matched_fields',n.matched_fields,'rank',n.rank) order by n.n) filter(where n.n>"offset" and n.n<="offset"::bigint+"limit") items from numbered n where n.resource_type=r.resource_type) p on true;
+ from requested r left join lateral (select max(n.total_count) total_count,jsonb_agg(jsonb_build_object('id',n.id,'title',n.title,'subtitle',n.subtitle,'matched_fields',n.matched_fields,'rank',n.rank,'status',n.status) order by n.n) filter(where n.n>"offset" and n.n<="offset"::bigint+"limit") items from numbered n where n.resource_type=r.resource_type) p on true;
  return result;
 end $$;
 revoke all on function public.romiku_business_search_hits(text,text[],jsonb) from public,anon;

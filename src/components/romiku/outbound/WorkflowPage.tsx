@@ -1,3 +1,6 @@
+import { BulkActions } from "../shared/BulkActions";
+import { usePageSelection } from "../shared/usePageSelection";
+import { useModuleSearch } from "../search/useBusinessSearch";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -136,23 +139,51 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
   const [search, setSearch] = useState("");
   const resource = workflowResources[config.kind];
   const nameKey = config.kind === "inquiry" ? "customer_name" : "name";
+  const ordinary = useGetList(
+    resource,
+    {
+      pagination: { page, perPage: 25 },
+      sort: {
+        field: config.kind === "inquiry" ? "submitted_at" : "name",
+        order: config.kind === "inquiry" ? "DESC" : "ASC",
+      },
+      filter: {
+        ...(status ? { status } : {}),
+        ...(search ? { [`${nameKey}@ilike`]: `%${search}%` } : {}),
+      },
+    },
+    { enabled: config.kind === "customer" || !search.trim() },
+  );
+  const kind =
+    config.kind === "inquiry"
+      ? "website_inquiry"
+      : config.kind === "outbound"
+        ? "outbound"
+        : "formal_customer";
+  const searched = useModuleSearch(
+    kind,
+    resource,
+    config.kind === "customer" ? "" : search,
+    page,
+    status ? { status } : {},
+  );
   const {
     data = [],
     total,
     isPending,
     error,
     refetch,
-  } = useGetList(resource, {
-    pagination: { page, perPage: 25 },
-    sort: {
-      field: config.kind === "inquiry" ? "submitted_at" : "name",
-      order: config.kind === "inquiry" ? "DESC" : "ASC",
-    },
-    filter: {
-      ...(status ? { status } : {}),
-      ...(search ? { [`${nameKey}@ilike`]: `%${search}%` } : {}),
-    },
-  });
+  } = searched.active
+    ? { ...searched, total: searched.group?.total_count }
+    : ordinary;
+  const selection = usePageSelection(
+    data,
+    JSON.stringify([kind, page, search, status]),
+    page,
+    total,
+    isPending || !!error,
+    setPage,
+  );
   const provider = useDataProvider();
   const owners = useQuery({
     queryKey: ["romiku-owners"],
@@ -213,6 +244,14 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           </select>
         </label>
       </div>
+      {kind !== "formal_customer" && (
+        <BulkActions
+          kind={kind}
+          ids={selection.ids}
+          onDone={selection.clear}
+          disabled={isPending || !!error}
+        />
+      )}
       {isPending && <p>正在加载记录…</p>}
       {error && (
         <div role="alert">
@@ -226,6 +265,9 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted">
             <tr>
+              {config.kind !== "customer" && (
+                <th className="p-3">{selection.header}</th>
+              )}
               {[
                 config.kind === "inquiry" ? "询盘／客户" : "公司",
                 "国家／地区",
@@ -245,12 +287,15 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   {title}
                 </th>
               ))}
-              {config.kind === "outbound" && <th className="p-3">操作</th>}
+              {config.kind !== "customer" && <th className="p-3">操作</th>}
             </tr>
           </thead>
           <tbody>
             {data.map((record) => (
               <tr key={record.id} className="hover:bg-muted/50 border-t">
+                {config.kind !== "customer" && (
+                  <td className="p-3">{selection.checkbox(record)}</td>
+                )}
                 <td className="p-3">
                   <div className="flex flex-col items-start gap-1">
                     <button
@@ -304,15 +349,20 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 {config.kind !== "customer" && (
                   <FollowupCells record={record} kind={config.kind} />
                 )}
-                {config.kind === "outbound" && (
+                {config.kind !== "customer" && (
                   <td className="p-3">
                     <RecordDelete
-                      kind="outbound"
+                      kind={
+                        config.kind === "inquiry"
+                          ? "website_inquiry"
+                          : "outbound"
+                      }
                       id={String(record.id)}
                       label={String(
                         record.document_number || record.name || record.id,
                       )}
                       onDeleted={() => {
+                        selection.clear();
                         if (data.length === 1 && page > 1) setPage(page - 1);
                       }}
                     />
@@ -370,6 +420,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 id={selected}
                 onCreated={open}
                 onDeleted={() => {
+                  selection.clear();
                   open(null);
                   if (data.length === 1 && page > 1) setPage(page - 1);
                 }}

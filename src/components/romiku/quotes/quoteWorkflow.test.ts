@@ -118,7 +118,7 @@ describe("Quote snapshot boundaries", () => {
   it("allows manual document-number edits while stripping source, audit and calculated fields", () => {
     expect(
       quoteHeaderWrite({
-        status: "draft",
+        status: "pending_quote",
         currency: "usd",
         other_expenses: "15",
         source_website_inquiry_id: "replacement",
@@ -127,7 +127,7 @@ describe("Quote snapshot boundaries", () => {
         total: 12,
       }),
     ).toEqual({
-      status: "draft",
+      status: "pending_quote",
       currency: "USD",
       other_expenses: 15,
       formal_customer_id: "created",

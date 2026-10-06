@@ -1,11 +1,8 @@
+import { statusLabel } from "../shared/workflowStatus";
 import { Link } from "react-router";
 import { type CustomerDocument, money } from "./customerBusinessApi";
 import { BusinessLink } from "./CustomerBusinessHistory";
 import { searchLabels } from "../search/search";
-import {
-  documentStatusLabel,
-  productionStatusChoices,
-} from "../commercialLabels";
 export function CustomerDocuments({ items }: { items: CustomerDocument[] }) {
   return (
     <div className="overflow-x-auto">
@@ -52,14 +49,7 @@ export function CustomerDocuments({ items }: { items: CustomerDocument[] }) {
                 )}
               </td>
               <td className="p-2">
-                {d.resource_type === "production"
-                  ? productionStatusChoices.find((s) => s.id === d.status)
-                      ?.label ||
-                    d.status ||
-                    "—"
-                  : d.resource_type === "packing"
-                    ? "—"
-                    : documentStatusLabel(d.status || "")}
+                {statusLabel(d.resource_type, d.status)}
                 {d.archived_at && " · 已归档"}
               </td>
               <td className="p-2">

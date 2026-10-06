@@ -1,3 +1,5 @@
+import { BulkActions } from "../shared/BulkActions";
+import { usePageSelection } from "../shared/usePageSelection";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
@@ -109,6 +111,14 @@ export function QuoteList() {
     : ordinary.isPending;
   const error = searchResult.active ? searchResult.error : ordinary.error;
   const refetch = searchResult.active ? searchResult.refetch : ordinary.refetch;
+  const selection = usePageSelection(
+    data,
+    JSON.stringify([page, search, status]),
+    page,
+    total,
+    isPending || !!error,
+    setPage,
+  );
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
@@ -148,6 +158,12 @@ export function QuoteList() {
           </select>
         </label>
       </div>
+      <BulkActions
+        kind="quote"
+        ids={selection.ids}
+        onDone={selection.clear}
+        disabled={isPending || !!error}
+      />
       {isPending && <p>正在加载报价单…</p>}
       {error && (
         <div role="alert">
@@ -161,6 +177,7 @@ export function QuoteList() {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted">
             <tr>
+              <th className="p-3">{selection.header}</th>
               {[
                 "报价单",
                 "采购方",
@@ -180,6 +197,7 @@ export function QuoteList() {
           <tbody>
             {data.map((record) => (
               <tr key={record.id} className="border-t">
+                <td className="p-3">{selection.checkbox(record)}</td>
                 <td className="p-3">
                   <Link
                     className="font-medium underline"
@@ -196,6 +214,7 @@ export function QuoteList() {
                   <InlineStatusSelect
                     resource="romiku_quotes"
                     recordId={String(record.id)}
+                    recordLabel={record.document_number || "报价单"}
                     status={String(record.status || quoteStatuses[0])}
                     choices={quoteStatuses.map((value) => ({
                       value,
@@ -216,6 +235,7 @@ export function QuoteList() {
                       record.document_number || record.name || record.id,
                     )}
                     onDeleted={() => {
+                      selection.clear();
                       if (data.length === 1 && page > 1) setPage(page - 1);
                     }}
                   />

@@ -43,13 +43,18 @@ insert into romiku_packing_lists(id,order_id) values ((select id from ids where 
 insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity) select (select id from ids where kind='packing'),order_id,id,sku,4 from romiku_order_items where order_id=(select id from ids where kind='order');
 insert into romiku_payments(order_id,kind,amount) select id,'deposit',1 from ids cross join generate_series(1,3) where kind='order';
 select is(romiku_delete_record('order',(select id from ids where kind='order'))->'dependencies','{"production":2,"packing":1,"payments":3}'::jsonb,'exact downstream counts');
-select is(romiku_delete_record('order',(select id from ids where kind='order'))->>'message','该订单已有 2 张生产单、1 张装箱单、3 条收款记录，无法删除。','readable dependency message');
+select is(romiku_delete_record('order',(select id from ids where kind='order'))->>'message','该订单存在收款历史，不能永久删除。可以作废订单。','readable dependency message');
 select is(romiku_delete_record('packing',(select id from ids where kind='packing')),'{"ok":true}'::jsonb,'packing deleted');
 select is((select remaining_quantity from romiku_order_item_remaining where order_id=(select id from ids where kind='order')),10::numeric,'packing delete restores order remaining');
 select is((select count(*) from romiku_packing_items where packing_list_id=(select id from ids where kind='packing')),0::bigint,'packing children removed');
 reset role;
 delete from romiku_production_orders where order_id=(select id from ids where kind='order');
-delete from romiku_payments where order_id=(select id from ids where kind='order');
+-- Financial history is immutable. Use a fresh no-payment Order for downstream deletion tests.
+update romiku_orders set source_pi_id=null,source_quote_id=null where id=(select id from ids where kind='order');
+update ids set id=gen_random_uuid() where kind='order';
+insert into romiku_orders(id,source_pi_id,source_quote_id) values ((select id from ids where kind='order'),(select id from ids where kind='pi'),(select id from ids where kind='quote'));
+insert into romiku_order_items(order_id,sku,quantity) select id,'DELETE-SKU',10 from ids where kind='order';
+insert into romiku_production_orders(order_id) select id from ids where kind='order';
 set local role authenticated;
 insert into romiku_manual_tasks(title,order_id) select 'keep order task',id from ids where kind='order';
 select is(romiku_delete_record('order',(select id from ids where kind='order')),'{"ok":true}'::jsonb,'order deleted while historical counter is retained');

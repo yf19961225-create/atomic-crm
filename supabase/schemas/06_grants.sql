@@ -321,3 +321,5 @@ grant execute on function public.romiku_submit_website_inquiry(jsonb) to service
 
 revoke all on function public.romiku_delete_record(text,uuid) from public, anon;
 grant execute on function public.romiku_delete_record(text,uuid) to authenticated;
+
+revoke delete on public.romiku_payments from authenticated,anon;

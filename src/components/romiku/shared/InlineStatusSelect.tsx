@@ -41,8 +41,7 @@ export function InlineStatusSelect({
         data: { status: next },
         previousData: { id: recordId, status: previous },
       });
-      if (resource === "romiku_production_orders")
-        await cache.invalidateQueries();
+      await cache.invalidateQueries();
       onUpdated?.(next);
       setMessage("状态已保存。");
     } catch (error) {

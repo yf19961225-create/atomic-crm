@@ -17,7 +17,7 @@ export function paymentSummary(
   const deposit = (totalCents * cents(percent) + 5000n) / 10000n;
   const sum = (kind: string) =>
     payments
-      .filter((p) => p.kind === kind)
+      .filter((p) => p.kind === kind && p.status !== "voided")
       .reduce((sum, p) => sum + cents(p.amount), 0n);
   const depositReceived = sum("deposit"),
     balanceReceived = sum("balance"),

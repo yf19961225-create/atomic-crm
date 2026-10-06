@@ -13,7 +13,7 @@ select set_config('request.jwt.claim.sub','de700000-0000-0000-0000-000000000001'
 insert into romiku_orders(id) select id from sy_ids where kind='order';
 insert into romiku_order_items(id,order_id,sku,quantity) select s.id,o.id,'SUN5',100 from sy_ids s cross join sy_ids o where s.kind='source' and o.kind='order';
 insert into romiku_production_orders(id,order_id,status,archived_at,marking_snapshot)
-select p.id,o.id,case when p.kind='p07' then 'in_production' when p.kind in ('p06','archived') then 'pending' else p.kind end,
+select p.id,o.id,case when p.kind='p07' then 'scheduled' when p.kind in ('p06','archived') then 'pending_send' when p.kind='completed' then 'received' else p.kind end,
 case when p.kind='archived' then now() end,
 case when p.kind='p07' then '{}'::jsonb else '{"production_requirements":"Own before sync"}'::jsonb end
 from sy_ids p cross join sy_ids o where o.kind='order' and p.kind not in ('order','source');

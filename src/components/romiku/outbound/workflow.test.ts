@@ -77,7 +77,7 @@ describe("workflow write boundaries and calculated state", () => {
       deriveFollowupState(history, "paused", new Date("2026-09-17")).overdue,
     ).toBe(false);
     expect(
-      deriveFollowupState(history, "processed", new Date("2026-09-17")).overdue,
+      deriveFollowupState(history, "won", new Date("2026-09-17")).overdue,
     ).toBe(false);
     expect(deriveFollowupState([], "to_develop")).toEqual({
       last_contact_at: null,
@@ -100,7 +100,7 @@ describe("workflow write boundaries and calculated state", () => {
   it("writes handling fields only and cannot overwrite website originals or computed fields", () => {
     expect(
       toWorkflowWrite("inquiry", {
-        status: "processed",
+        status: "won",
         customer_name: "Rewrite",
         raw_payload: {},
         items: [],
@@ -110,7 +110,7 @@ describe("workflow write boundaries and calculated state", () => {
         formal_customer_id: "c-1",
       }),
     ).toEqual({
-      status: "processed",
+      status: "won",
       owner_id: null,
       formal_customer_id: "c-1",
     });

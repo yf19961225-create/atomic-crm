@@ -28,7 +28,7 @@ select is((select raw_payload from romiku_website_inquiries where id=(select id 
 select is((select customer_name from romiku_website_inquiries where id=(select id from intake_result)),'  Original Buyer  ','original customer name is not normalized');
 select is((select company from romiku_website_inquiries where id=(select id from intake_result)),null::text,'legacy payload needs no company');
 select is((select owner_id from romiku_website_inquiries where id=(select id from intake_result)),null::uuid,'untrusted owner ignored and inquiry unassigned');
-select is((select status from romiku_website_inquiries where id=(select id from intake_result)),'new','untrusted status ignored');
+select is((select status from romiku_website_inquiries where id=(select id from intake_result)),'pending_screening','untrusted status ignored');
 select is((select created_by from romiku_website_inquiries where id=(select id from intake_result)),null::uuid,'server intake has no invented user');
 select is((select requirement from romiku_website_inquiry_items where inquiry_id=(select id from intake_result) and quantity=20),'White packaging','original item requirement retained');
 select lives_ok($$select romiku_submit_website_inquiry((select value from intake_payload))$$,'identical submission accepted again');

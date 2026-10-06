@@ -834,3 +834,32 @@ create index romiku_production_items_source_order_item_id_idx on public.romiku_p
 create index romiku_packing_lists_order_id_idx on public.romiku_packing_lists (order_id);
 create index romiku_packing_items_source_order_item_id_idx on public.romiku_packing_items (source_order_item_id);
 create index romiku_procurement_cost_history_product_supplier_id_idx on public.romiku_procurement_cost_history (product_supplier_id);
+
+-- Workflow lifecycle additions (audited migration keeps historical mapping separate).
+-- Explicitly audited Preview mapping. Abort rather than guess other historical meanings.
+do $$ begin
+ if exists(select 1 from public.romiku_quotes where status not in ('draft','pending_quote','sent','won'))
+ or exists(select 1 from public.romiku_production_orders where status not in ('pending','in_production','pending_send','scheduled','received','cancelled'))
+ or exists(select 1 from public.romiku_website_inquiries where status not in ('new','pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid')) then
+ raise exception 'Unmapped historical status: migration requires a fresh audit'; end if;
+end $$;
+update public.romiku_quotes set status='pending_quote' where status='draft';
+update public.romiku_production_orders set status=case status when 'pending' then 'pending_send' when 'in_production' then 'scheduled' end where status in ('pending','in_production');
+alter table public.romiku_website_inquiries drop constraint romiku_website_inquiries_status_check;
+update public.romiku_website_inquiries set status='pending_screening' where status='new';
+alter table public.romiku_quotes alter column status set default 'pending_quote', add constraint romiku_quotes_status_check check(status in ('pending_quote','sent','won'));
+alter table public.romiku_pis add constraint romiku_pis_status_check check(status in ('draft','sent','confirmed','cancelled'));
+alter table public.romiku_production_orders alter column status set default 'pending_send', add constraint romiku_production_orders_status_check check(status in ('pending_send','scheduled','received','cancelled'));
+alter table public.romiku_website_inquiries alter column status set default 'pending_screening', add constraint romiku_website_inquiries_status_check check(status in ('pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid'));
+alter table public.romiku_packing_lists add column status text not null default 'draft' check(status in ('draft','incomplete','completed','sent'));
+create index romiku_packing_lists_status_idx on public.romiku_packing_lists(status);
+-- Only unambiguous input aliases are accepted from stale clients; final values are stored.
+
+alter table public.romiku_payments
+ add column status text not null default 'active' check(status in ('active','voided')),
+ add column voided_at timestamptz,
+ add column voided_by uuid references auth.users(id),
+ add column voided_by_label text,
+ add column void_reason text,
+ add constraint romiku_payment_void_audit check ((status='active' and voided_at is null and voided_by is null and void_reason is null and voided_by_label is null) or (status='voided' and voided_at is not null and voided_by is not null and void_reason is not null and length(btrim(void_reason))>0 and voided_by_label is not null));
+alter table public.romiku_orders add column voided_at timestamptz, add column voided_by uuid references auth.users(id), add column voided_by_label text, add column void_reason text;

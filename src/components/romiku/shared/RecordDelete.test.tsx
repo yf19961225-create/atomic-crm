@@ -47,7 +47,7 @@ async function setup(path: string, resource: string, count = 1) {
       id: String(i + 1),
       document_number: `DELETE-${i + 1}`,
       name: `DELETE-${i + 1}`,
-      status: "draft",
+      status: "pending_quote",
       currency: "USD",
       total: 0,
       created_at: String(i).padStart(3, "0"),
@@ -159,7 +159,7 @@ it("Workbench deletes only manual tasks and keeps derived sources", async () => 
     ...Object.fromEntries(actionResources.map((resource) => [resource, []])),
     sales: [],
     romiku_quotes: [
-      { id: "q", document_number: "KEEP-QUOTE", status: "draft" },
+      { id: "q", document_number: "KEEP-QUOTE", status: "pending_quote" },
     ],
     romiku_manual_tasks: [{ id: "t", title: "DELETE-TASK", quote_id: "q" }],
   });
@@ -225,7 +225,7 @@ for (const [kind, path, resource, items] of [
           order_id: kind === "production" ? "parent-order" : null,
           document_number: "DETAIL-X",
           title: "DETAIL-X",
-          status: "draft",
+          status: "pending_quote",
           currency: "USD",
           counterparty_snapshot: {},
           terms_snapshot: {},

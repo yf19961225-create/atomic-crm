@@ -42,7 +42,7 @@ const setup = async (
       {
         id: "q",
         document_number: "Q-001",
-        status: "draft",
+        status: "pending_quote",
         currency: "USD",
         counterparty_snapshot: { name: "Ana" },
         source_website_inquiry_id: "in",

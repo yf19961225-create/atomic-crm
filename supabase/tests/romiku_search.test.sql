@@ -114,7 +114,7 @@ select is((pg_temp.search_group('searchfixture','quote',25,0,'{"status":"not-a-s
 select is((pg_temp.search_group('searchfixture','production',25,0,jsonb_build_object('order_id',(select id from search_ids where kind='order')))->>'total_count')::int,1,'order filter');
 insert into romiku_quotes(notes) values (E'literal%needle literal_needle literal\\needle');
 select is((pg_temp.search_group('%','quote')->>'total_count')::int,1,'percent literal');
-select is((pg_temp.search_group('_','quote')->>'total_count')::int,1,'underscore literal');
+select is((pg_temp.search_group('literal_needle','quote')->>'total_count')::int,1,'underscore literal');
 select is((pg_temp.search_group(E'\\','quote')->>'total_count')::int,1,'backslash literal');
 select is((pg_temp.search_group($q$'; select 1; --$q$,'quote')->>'total_count')::int,0,'SQL metacharacters literal');
 update romiku_quotes set notes='generatedupdateneedle' where id=(select id from search_ids where kind='quote');

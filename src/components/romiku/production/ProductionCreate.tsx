@@ -76,7 +76,7 @@ export function ProductionCreate() {
         record: {
           id: "new",
           order_id: orderId,
-          status: "pending",
+          status: "pending_send",
           marking_snapshot: copyOrderProductionInstructions(order.data),
         },
         items: lines,

@@ -1,3 +1,4 @@
+import { statusLabel } from "../shared/workflowStatus";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -72,6 +73,11 @@ function GroupResults({ group, query }: { group: SearchGroup; query: string }) {
               >
                 {item.title}
               </Link>
+              {item.status && (
+                <span className="ml-2 rounded bg-muted px-2 text-xs">
+                  {statusLabel(group.resource_type, item.status)}
+                </span>
+              )}
               {item.subtitle && (
                 <span className="ml-2 text-sm text-muted-foreground">
                   {item.subtitle}

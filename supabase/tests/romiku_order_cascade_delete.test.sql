@@ -17,9 +17,9 @@ create temporary table cases(label text primary key,id uuid default gen_random_u
 insert into cases(label) values ('pending1'),('pending2'),('cancelled'),('mixed'),('completed'),('received'),('unknown'),('archived'),('followup'),('packing'),('payment'),('late'),('rollback'),('independent');
 insert into romiku_orders(id) select id from cases;
 insert into romiku_order_items(id,order_id,sku,quantity) select item,id,'CASCADE',100 from cases;
-insert into romiku_production_orders(id,order_id,status,archived_at) select p,id,case when label in ('cancelled','completed','received','unknown') then label else 'pending' end,case when label='archived' then now() end from cases where label<>'independent';
+insert into romiku_production_orders(id,order_id,status,archived_at) select p,id,case when label in ('completed','received') then 'received' when label='unknown' then 'scheduled' when label='cancelled' then 'cancelled' else 'pending_send' end,case when label='archived' then now() end from cases where label<>'independent';
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select p,id,item,'CASCADE',10 from cases where label<>'independent';
-insert into romiku_production_orders(order_id,status) select id,case when label='mixed' then 'in_production' else 'pending' end from cases where label in ('pending2','mixed','rollback');
+insert into romiku_production_orders(order_id,status) select id,case when label='mixed' then 'scheduled' else 'pending' end from cases where label in ('pending2','mixed','rollback');
 insert into romiku_production_followups(production_order_id,method,summary) select p,'email','keep followup' from cases where label='followup';
 insert into romiku_packing_lists(order_id) select id from cases where label='packing';
 insert into romiku_packing_lists(notes) values ('independent must not block unrelated order');
@@ -34,7 +34,7 @@ select is((select jsonb_array_length(x->'cascade_productions') from preview,json
 select is(romiku_delete_record('order',(select id from cases where label='mixed'))->>'code','HAS_DOWNSTREAM','mixed blocks single deletion');
 select is(romiku_delete_record('order',(select id from cases where label='completed'))->>'code','HAS_DOWNSTREAM','completed blocks single deletion');
 select is(romiku_delete_record('order',(select id from cases where label='received'))->>'code','HAS_DOWNSTREAM','received blocks single deletion');
-select is(romiku_delete_record('order',(select id from cases where label='unknown'))->>'code','HAS_DOWNSTREAM','unknown blocks single deletion');
+select is(romiku_delete_record('order',(select id from cases where label='unknown'))->>'code','HAS_DOWNSTREAM','scheduled blocks single deletion');
 select is(romiku_delete_record('order',(select id from cases where label='archived'))->>'code','HAS_DOWNSTREAM','archived blocks single deletion');
 select is(romiku_delete_record('order',(select id from cases where label='followup'))->>'code','HAS_DOWNSTREAM','followup blocks single deletion');
 select is(romiku_delete_record('order',(select id from cases where label='packing'))->>'code','HAS_DOWNSTREAM','packing blocks single deletion');
@@ -76,7 +76,7 @@ insert into cases(label) values ('late_status'),('late_followup'),('late_archive
 insert into romiku_orders(id) select id from cases where label like 'late_%' or label='batch_survivor';
 insert into romiku_production_orders(id,order_id) select p,id from cases where label like 'late_%';
 select is(jsonb_array_length(romiku_order_delete_preflight(array(select id from cases where label like 'late_%'))->'deletable'),4,'all late-change fixtures initially eligible');
-update romiku_production_orders set status='in_production' where id=(select p from cases where label='late_status');
+update romiku_production_orders set status='scheduled' where id=(select p from cases where label='late_status');
 insert into romiku_production_followups(production_order_id,method,summary) select p,'email','late followup' from cases where label='late_followup';
 update romiku_production_orders set archived_at=now() where id=(select p from cases where label='late_archive');
 insert into romiku_packing_lists(order_id) select id from cases where label='late_pack';
@@ -110,5 +110,6 @@ select ok(exists(select 1 from romiku_outbound_companies where id=(select id fro
 select ok(exists(select 1 from romiku_production_barcodes where barcode_number='0123456789012' and source_order_item_id is null),'barcode reservation retained and source detached');
 reset role;
 select results_eq('select * from romiku_document_daily_counters order by 1,2,3','select * from saved_counter order by 1,2,3','global document numbering counters unchanged');
+select throws_ok($$update romiku_production_orders set status='unknown' where id=(select p from cases where label='unknown')$$,'23514',null,'unknown statuses cannot be stored');
 select * from finish();
 rollback;

@@ -28,6 +28,8 @@ export type OrderCard = CustomerDocument & {
     amount: number;
     received_at: string;
     payment_reference?: string;
+    status?: string;
+    void_reason?: string;
   }[];
   payment_summary: { total: number; paid: number; balance: number };
 };

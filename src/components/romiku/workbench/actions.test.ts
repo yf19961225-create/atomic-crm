@@ -11,11 +11,11 @@ it("prioritizes overdue new inquiries without counting them twice", () => {
   const rows = buildActions(
     {
       romiku_website_inquiries: [
-        { id: "new", document_number: "WI-new", status: "new" },
+        { id: "new", document_number: "WI-new", status: "pending_screening" },
         {
           id: "late",
           document_number: "WI-late",
-          status: "new",
+          status: "pending_screening",
           next_follow_up_at: "2026-09-01T10:00:00Z",
         },
       ],
@@ -97,7 +97,7 @@ it("keeps unresolved production anomalies actionable after completion without du
           event_type: "production_anomaly",
           source_table: "romiku_production_orders",
           title: "Completed production",
-          status: "completed",
+          status: "received",
           due_at: "2026-09-20T10:00:00Z",
         },
         {
@@ -128,7 +128,7 @@ it("keeps unresolved production anomalies actionable after completion without du
         },
         {
           id: "completed",
-          status: "completed",
+          status: "received",
           anomaly_flags: ["quality"],
         },
         {
@@ -141,7 +141,7 @@ it("keeps unresolved production anomalies actionable after completion without du
           status: "cancelled",
           anomaly_flags: ["supplier_dispute"],
         },
-        { id: "cleared", status: "completed", anomaly_flags: [] },
+        { id: "cleared", status: "received", anomaly_flags: [] },
       ],
     },
     now,

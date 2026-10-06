@@ -36,6 +36,7 @@ async function setup(count = 3) {
       id: String(i + 1),
       document_number: `OD-${i + 1}`,
       status: "confirmed",
+      archived_at: null,
       currency: "USD",
       total: 0,
       created_at: String(i).padStart(3, "0"),
@@ -60,14 +61,14 @@ it("selects only the current page and clears on page, status and search changes"
     .not.toBeInTheDocument();
   await screen.getByRole("checkbox", { name: "全选当前页" }).click();
   await expect
-    .element(screen.getByText("已选择当前页 25 张订单"))
+    .element(screen.getByText("已选择 25 条（当前页）"))
     .toBeVisible();
   await screen.getByRole("button", { name: "下一页" }).click();
   await expect
     .element(screen.getByRole("button", { name: "批量删除", exact: true }))
     .not.toBeInTheDocument();
   await screen.getByRole("checkbox", { name: "全选当前页" }).click();
-  await expect.element(screen.getByText("已选择当前页 1 张订单")).toBeVisible();
+  await expect.element(screen.getByText("已选择 1 条（当前页）")).toBeVisible();
   await screen
     .getByRole("combobox", { name: "状态", exact: true })
     .selectOptions("confirmed");

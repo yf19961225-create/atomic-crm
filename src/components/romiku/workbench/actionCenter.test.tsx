@@ -19,7 +19,7 @@ const event = (
   title: id,
   owner_id: owner,
   due_at: due,
-  status: "pending",
+  status: "pending_contact",
   is_overdue: true,
 });
 const seed = () => ({
@@ -56,13 +56,13 @@ const seed = () => ({
     {
       id: "WI-new",
       document_number: "WI-new",
-      status: "new",
+      status: "pending_screening",
       owner_id: "user-one",
     },
     {
       id: "WI-pending",
       document_number: "WI-pending",
-      status: "pending",
+      status: "pending_contact",
       owner_id: "user-two",
     },
   ],
@@ -70,7 +70,7 @@ const seed = () => ({
     {
       id: "Q-open",
       document_number: "Q-open",
-      status: "draft",
+      status: "pending_quote",
       owner_id: "user-one",
     },
     { id: "Q-closed", document_number: "Q-closed", status: "declined" },

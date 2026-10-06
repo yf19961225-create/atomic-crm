@@ -1,10 +1,12 @@
-import { OrderDeleteDialog } from "./OrderDeleteDialog";
+import { BulkActions } from "../shared/BulkActions";
+import { usePageSelection } from "../shared/usePageSelection";
+import { statusOptions, statusLabel } from "../shared/workflowStatus";
 import { OrderProductionPanel } from "../production/OrderProductionPanel";
 import { OrderCustomerArchive } from "../customers/OrderCustomerArchive";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
@@ -38,10 +40,6 @@ import {
   documentHeaderWrite,
   type DocumentKind,
 } from "./documentWorkflow";
-import {
-  documentStatusChoices,
-  documentStatusLabel,
-} from "../commercialLabels";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { OrderProductionInstructions } from "../marking/OrderProductionInstructions";
 import { OrderExportDetails } from "./OrderExportDetails";
@@ -97,12 +95,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
   const [page, setPage] = useState(1),
     [search, setSearch] = useState(""),
     [status, setStatus] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [deletingIds, setDeletingIds] = useState<string[] | null>(null);
-  const changePage = (next: number) => {
-    setSelected([]);
-    setPage(next);
-  };
+  const [showArchived, setShowArchived] = useState(false);
   const searchResult = useModuleSearch(
     kind,
     config.totals,
@@ -117,6 +110,9 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
       sort: { field: "created_at", order: "DESC" },
       filter: {
         ...(status ? { status } : {}),
+        ...(kind === "order" && !showArchived
+          ? { "archived_at@is": null }
+          : {}),
       },
     },
     { enabled: !search.trim() },
@@ -132,17 +128,13 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
     : ordinary.isPending;
   const error = searchResult.active ? searchResult.error : ordinary.error;
   const refetch = searchResult.active ? searchResult.refetch : ordinary.refetch;
-  useEffect(() => {
-    if (kind === "order" && !isPending && !error && total !== undefined) {
-      const lastPage = Math.max(1, Math.ceil(total / 25));
-      if (page > lastPage) {
-        setSelected([]);
-        setPage(lastPage);
-      }
-    }
-  }, [kind, total, isPending, error, page]);
-  const visibleSelected = selected.filter((id) =>
-    data.some((row) => String(row.id) === id),
+  const selection = usePageSelection(
+    data,
+    JSON.stringify([kind, page, search, status, showArchived]),
+    page,
+    total,
+    isPending || !!error,
+    setPage,
   );
   return (
     <section className="space-y-4">
@@ -155,12 +147,24 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
       <p className="text-muted-foreground">
         独立保存采购方、产品和商务快照，并保留来源历史。
       </p>
+      {kind === "order" && (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => {
+              setShowArchived(e.target.checked);
+              setPage(1);
+            }}
+          />
+          显示已归档订单
+        </label>
+      )}
       <div className="flex gap-4">
         <SearchInput
           label={`搜索${config.plural}`}
           value={search}
           onChange={(next) => {
-            setSelected([]);
             setSearch(next);
             setPage(1);
           }}
@@ -171,43 +175,27 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
             className="rounded border p-2"
             value={status}
             onChange={(event) => {
-              setSelected([]);
               setStatus(event.target.value);
               setPage(1);
             }}
           >
             <option value="">全部状态</option>
-            {config.statuses.map((status) => (
-              <option value={status} key={status}>
-                {documentStatusLabel(status)}
-              </option>
-            ))}
+            {[...config.statuses, ...(kind === "order" ? ["voided"] : [])].map(
+              (status) => (
+                <option value={status} key={status}>
+                  {statusLabel(kind, status)}
+                </option>
+              ),
+            )}
           </select>
         </label>
       </div>
-      {kind === "order" && visibleSelected.length > 0 && (
-        <div className="flex items-center gap-3 rounded border p-3">
-          <span>已选择当前页 {visibleSelected.length} 张订单</span>
-          <Button
-            variant="destructive"
-            disabled={isPending || !!error}
-            onClick={() => setDeletingIds([...visibleSelected])}
-          >
-            批量删除
-          </Button>
-          <Button variant="outline" onClick={() => setSelected([])}>
-            取消选择
-          </Button>
-        </div>
-      )}
-      {deletingIds && (
-        <OrderDeleteDialog
-          ids={deletingIds}
-          batch
-          onClose={() => setDeletingIds(null)}
-          onDeleted={() => setSelected([])}
-        />
-      )}
+      <BulkActions
+        kind={kind}
+        ids={selection.ids}
+        onDone={selection.clear}
+        disabled={isPending || !!error}
+      />
       {isPending && <p>正在加载{config.plural}…</p>}
       {error && (
         <p role="alert">
@@ -219,31 +207,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted">
             <tr>
-              {kind === "order" && (
-                <th className="p-3">
-                  <input
-                    type="checkbox"
-                    aria-label="全选当前页"
-                    disabled={isPending || !!error || !data.length}
-                    checked={
-                      !!data.length && visibleSelected.length === data.length
-                    }
-                    ref={(node) => {
-                      if (node)
-                        node.indeterminate =
-                          visibleSelected.length > 0 &&
-                          visibleSelected.length < data.length;
-                    }}
-                    onChange={(event) =>
-                      setSelected(
-                        event.target.checked
-                          ? data.map((row) => String(row.id))
-                          : [],
-                      )
-                    }
-                  />
-                </th>
-              )}
+              <th className="p-3">{selection.header}</th>
               {[
                 config.label,
                 "采购方",
@@ -263,25 +227,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           <tbody>
             {data.map((record) => (
               <tr className="border-t" key={record.id}>
-                {kind === "order" && (
-                  <td className="p-3">
-                    <input
-                      type="checkbox"
-                      aria-label={`选择 ${record.document_number || "未编号订单"}`}
-                      disabled={isPending || !!error}
-                      checked={visibleSelected.includes(String(record.id))}
-                      onChange={(event) =>
-                        setSelected(
-                          event.target.checked
-                            ? [...visibleSelected, String(record.id)]
-                            : visibleSelected.filter(
-                                (id) => id !== String(record.id),
-                              ),
-                        )
-                      }
-                    />
-                  </td>
-                )}
+                <td className="p-3">{selection.checkbox(record)}</td>
                 <td className="p-3">
                   <Link
                     className="underline"
@@ -289,22 +235,30 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                   >
                     {record.document_number}
                   </Link>
+                  {record.archived_at && (
+                    <span className="ml-2 text-muted-foreground">已归档</span>
+                  )}
                 </td>
                 <td className="p-3">{record.counterparty_snapshot?.name}</td>
                 <td className="p-3">
                   <DocumentSources record={record} />
                 </td>
                 <td className="p-3">
-                  <InlineStatusSelect
-                    resource={config.resource}
-                    recordId={String(record.id)}
-                    status={String(record.status || config.statuses[0] || "")}
-                    choices={config.statuses.map((value) => ({
-                      value,
-                      label: documentStatusLabel(value),
-                    }))}
-                    label={`${config.label}状态`}
-                  />
+                  {record.status === "voided" ? (
+                    <span>已作废</span>
+                  ) : (
+                    <InlineStatusSelect
+                      resource={config.resource}
+                      recordId={String(record.id)}
+                      status={String(record.status || config.statuses[0] || "")}
+                      choices={config.statuses.map((value) => ({
+                        value,
+                        label: statusLabel(kind, value),
+                      }))}
+                      label={`${config.label}状态`}
+                      recordLabel={record.document_number || config.label}
+                    />
+                  )}
                 </td>
                 <td className="p-3">{record.document_date}</td>
                 <td className="p-3">
@@ -324,7 +278,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                       record.document_number || record.name || "未编号单据",
                     )}
                     onDeleted={() => {
-                      setSelected([]);
+                      selection.clear();
                       if (kind !== "order" && data.length === 1 && page > 1)
                         setPage(page - 1);
                     }}
@@ -342,7 +296,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <Button
           variant="outline"
           disabled={page === 1}
-          onClick={() => changePage(page - 1)}
+          onClick={() => setPage(page - 1)}
         >
           上一页
         </Button>
@@ -352,7 +306,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
-          onClick={() => changePage(page + 1)}
+          onClick={() => setPage(page + 1)}
         >
           下一页
         </Button>
@@ -602,9 +556,11 @@ function DocumentEditor({
     {
       key: "status",
       label: `${config.label}状态`,
-      choices: documentStatusChoices.filter(({ id }) =>
-        config.statuses.includes(id),
-      ),
+      choices: statusOptions(kind)
+        .filter(({ value }) =>
+          record.status === "voided" ? value === "voided" : value !== "voided",
+        )
+        .map(({ value, label }) => ({ id: value, label })),
       required: true,
     },
     ...(kind === "pi"

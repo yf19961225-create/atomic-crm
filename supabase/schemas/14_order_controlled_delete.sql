@@ -8,12 +8,12 @@ begin
  select count(*) into packings from public.romiku_packing_lists where order_id=order_uuid;
  select count(*) into payments from public.romiku_payments where order_id=order_uuid;
  if packings>0 then reasons:=reasons||jsonb_build_array(format('已有 %s 张装箱单，无法删除。',packings)); end if;
- if payments>0 then reasons:=reasons||jsonb_build_array(format('已有 %s 条收款记录，无法删除。',payments)); end if;
+ if payments>0 then reasons:=reasons||jsonb_build_array('该订单存在收款历史，不能永久删除。可以作废订单。'); end if;
  for p in select po.*, (select count(*) from public.romiku_production_followups f where f.production_order_id=po.id) followups from public.romiku_production_orders po where po.order_id=order_uuid order by po.document_number,po.id loop
-  label:=case p.status when 'pending' then '待生产' when 'cancelled' then '已取消' when 'in_production' then '生产中' when 'completed' then '已完成' when 'received' then '已收货' else '非允许删除状态' end;
+  label:=case p.status when 'pending_send' then '待发送' when 'cancelled' then '已取消' when 'scheduled' then '已排产' when 'completed' then '已完成' when 'received' then '已收货' else '非允许删除状态' end;
   productions:=productions||jsonb_build_array(jsonb_build_object('id',p.id,'document_number',p.document_number,'status',p.status,'status_label',label,'followup_count',p.followups,'archived',p.archived_at is not null));
   if p.archived_at is not null then reasons:=reasons||jsonb_build_array(format('%s 已归档，无法删除。',p.document_number)); end if;
-  if p.status not in ('pending','cancelled') then reasons:=reasons||jsonb_build_array(format('%s 已处于%s，无法删除。',p.document_number,label)); end if;
+  if p.status not in ('pending_send','cancelled') then reasons:=reasons||jsonb_build_array(format('%s 已处于%s，无法删除。',p.document_number,label)); end if;
   if p.followups>0 then reasons:=reasons||jsonb_build_array(format('%s 已有 %s 条生产跟进记录，无法删除。',p.document_number,p.followups)); end if;
  end loop;
  pc:=jsonb_array_length(productions);
@@ -46,7 +46,9 @@ begin
  perform 1 from public.romiku_production_orders where order_id=order_uuid order by id for update;
  policy:=public.romiku_order_delete_eligibility(order_uuid);
  if policy->>'delete_mode'='blocked' then
-  if (policy->>'packing_count')::int+(policy->>'payment_count')::int>0 then
+  if (policy->>'payment_count')::int>0 then
+   message:='该订单存在收款历史，不能永久删除。可以作废订单。';
+  elsif (policy->>'packing_count')::int>0 then
    message:=format('该订单已有 %s 张生产单、%s 张装箱单、%s 条收款记录，无法删除。',policy->>'production_count',policy->>'packing_count',policy->>'payment_count');
   else select string_agg(value,' ') into message from jsonb_array_elements_text(policy->'blocked_reasons'); end if;
   return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message',message,'dependencies',jsonb_build_object('production',(policy->>'production_count')::int,'packing',(policy->>'packing_count')::int,'payments',(policy->>'payment_count')::int));

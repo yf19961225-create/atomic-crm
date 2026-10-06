@@ -1,3 +1,4 @@
+import { workflowStatusLabels } from "./shared/workflowStatus";
 type DisplayLabels = Record<string, string>;
 
 const workflowChoicesFor = (labels: DisplayLabels) =>
@@ -8,14 +9,7 @@ const selectChoicesFor = (labels: DisplayLabels) =>
 const labelFor = (labels: DisplayLabels, value: unknown) =>
   labels[String(value)] ?? String(value ?? "");
 
-export const quoteStatusLabels = {
-  draft: "草稿",
-  sent: "已发送",
-  accepted: "已接受",
-  declined: "已拒绝",
-  expired: "已过期",
-  cancelled: "已取消",
-};
+export const quoteStatusLabels = workflowStatusLabels.quote;
 export const quoteStatusChoices = workflowChoicesFor(quoteStatusLabels);
 export const quoteStatusLabel = (value: unknown) =>
   labelFor(quoteStatusLabels, value);
@@ -29,6 +23,7 @@ export const documentStatusLabels = {
   shipped: "已发运",
   completed: "已完成",
   cancelled: "已取消",
+  voided: "已作废",
 };
 export const documentStatusChoices = workflowChoicesFor(documentStatusLabels);
 export const documentStatusLabel = (value: unknown) =>
@@ -43,13 +38,7 @@ export const paymentKindChoices = workflowChoicesFor(paymentKindLabels);
 export const paymentKindLabel = (value: unknown) =>
   labelFor(paymentKindLabels, value);
 
-export const productionStatusLabels = {
-  pending: "待生产",
-  in_production: "生产中",
-  completed: "已完成",
-  received: "已收货",
-  cancelled: "已取消",
-};
+export const productionStatusLabels = workflowStatusLabels.production;
 export const productionStatusChoices = workflowChoicesFor(
   productionStatusLabels,
 );

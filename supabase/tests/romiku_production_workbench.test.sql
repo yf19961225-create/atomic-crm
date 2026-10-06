@@ -35,7 +35,7 @@ select is((select quantity from romiku_production_items where production_order_i
 select is(romiku_save_production_workspace(p.id,p.order_id,'{"allow_overassigned":true}',jsonb_set(pg_temp.ws_items(p.id),'{0,quantity}','150'),pg_temp.ws_expected(p.id))->>'ok','false','legacy override cannot bypass capacity') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{}','[]',pg_temp.ws_expected(p.id))->>'ok','false','empty session cannot erase rows') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{"order_id":"invalid"}',pg_temp.ws_items(p.id),pg_temp.ws_expected(p.id))->>'ok','false','header whitelist rejects source mutation') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
-insert into romiku_production_orders(order_id,status,marking_snapshot,archived_at) select id,st,'{"production_requirements":"Keep"}',case when st='pending' then now() else null end from ws_ids cross join unnest(array['pending','completed','received','cancelled']) st where kind='order';
+insert into romiku_production_orders(order_id,status,marking_snapshot,archived_at) select id,st,'{"production_requirements":"Keep"}',case when st='pending_send' then now() else null end from ws_ids cross join unnest(array['pending_send','received','received','cancelled']) st where kind='order';
 truncate ws_result;
 insert into ws_result select romiku_sync_order_production_defaults((select id from ws_ids where kind='order'));
 select is((select jsonb_array_length(value->'productions') from ws_result),1,'preview excludes archived completed received cancelled');

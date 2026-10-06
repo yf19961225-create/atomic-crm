@@ -175,7 +175,7 @@ export function OrderDeleteDialog({
           <DialogDescription>
             {report
               ? "已根据执行时的最新依赖重新检查。"
-              : "仅可删除无装箱、无收款，且所有生产单均未归档、无跟进、状态为待生产或已取消的订单。此操作无法撤销。"}
+              : "仅可删除无装箱、无收款，且所有生产单均未归档、无跟进、状态为待发送或已取消的订单。此操作无法撤销。"}
           </DialogDescription>
         </DialogHeader>
         {!preflight && !failure && <p role="status">正在检查删除条件…</p>}

@@ -114,7 +114,10 @@ export function CustomerBusinessHistory({ orders }: { orders: OrderCard[] }) {
                             ? "尾款"
                             : "其他收款"}{" "}
                         · {money(p.amount, o.currency || "")} ·{" "}
-                        {p.received_at.slice(0, 10)}
+                        {p.received_at.slice(0, 10)} ·{" "}
+                        {p.status === "voided"
+                          ? `已作废：${p.void_reason || ""}`
+                          : "已收款"}
                         {p.payment_reference && ` · ${p.payment_reference}`}
                       </li>
                     ))}

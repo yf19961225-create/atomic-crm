@@ -1,6 +1,14 @@
+import { LifecycleDialog } from "../shared/LifecycleDialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { WorkflowFields, type Values } from "../outbound/WorkflowFields";
 import { readRelated } from "../outbound/workflow";
@@ -17,6 +25,8 @@ export function OrderPayments({
   total: number;
   editable?: boolean;
 }) {
+  const cache = useQueryClient();
+  const [voiding, setVoiding] = useState<RaRecord | null>(null);
   const provider = useDataProvider();
   const payments = useQuery({
     queryKey: ["order-payments", order.id],
@@ -56,7 +66,7 @@ export function OrderPayments({
       <p className="text-muted-foreground text-sm">
         收款使用订单币种（{order.currency}
         ）。记录收款后币种不可更改。分类待收金额
-        仅比较该类别收款；待收款包含全部收款。
+        仅比较该类别有效收款；已作废收款不计入汇总。
       </p>
       <div className="bg-muted grid gap-3 rounded p-4 sm:grid-cols-2">
         {Object.entries(labels).map(([key, label]) => (
@@ -87,6 +97,7 @@ export function OrderPayments({
                 "收款账户",
                 "收款单号",
                 "备注",
+                "状态 / 审计",
                 "操作",
               ].map((label) => (
                 <th className="p-2" key={label}>
@@ -97,7 +108,14 @@ export function OrderPayments({
           </thead>
           <tbody>
             {payments.data.map((payment) => (
-              <tr className="border-t" key={payment.id}>
+              <tr
+                className={
+                  payment.status === "voided"
+                    ? "border-t text-muted-foreground"
+                    : "border-t"
+                }
+                key={payment.id}
+              >
                 <td className="p-2">{paymentKindLabel(payment.kind)}</td>
                 <td className="p-2">
                   {order.currency} {Number(payment.amount).toFixed(2)}
@@ -109,7 +127,27 @@ export function OrderPayments({
                 <td className="p-2">{payment.payment_reference || "—"}</td>
                 <td className="p-2">{payment.notes}</td>
                 <td className="p-2">
-                  {editable && (
+                  <span>
+                    {payment.status === "voided" ? "已作废" : "已收款"}
+                  </span>
+                  <div>
+                    录入：
+                    {payment.created_at
+                      ? new Date(payment.created_at).toLocaleString()
+                      : "—"}
+                  </div>
+                  {payment.status === "voided" && (
+                    <div>
+                      作废：{new Date(payment.voided_at).toLocaleString()}
+                      <br />
+                      作废人：{payment.voided_by_label || "已登录用户"}
+                      <br />
+                      原因：{payment.void_reason}
+                    </div>
+                  )}
+                </td>
+                <td className="p-2">
+                  {editable && payment.status !== "voided" && (
                     <Button
                       variant="outline"
                       onClick={() => setEditing(payment)}
@@ -117,12 +155,41 @@ export function OrderPayments({
                       编辑收款
                     </Button>
                   )}
+                  {editable && payment.status !== "voided" && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`收款更多操作 ${order.currency} ${payment.amount}`}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => setVoiding(payment)}
+                        >
+                          作废收款
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {voiding && (
+        <LifecycleDialog
+          kind="payment"
+          id={String(voiding.id)}
+          label={`${order.currency} ${Number(voiding.amount).toFixed(2)}`}
+          onClose={() => setVoiding(null)}
+        />
+      )}
       {!payments.data.length && <p>暂无收款记录。</p>}
       {editable &&
         (editing === undefined ? (
@@ -134,7 +201,7 @@ export function OrderPayments({
             payment={editing}
             onCancel={() => setEditing(undefined)}
             onSaved={async () => {
-              await payments.refetch();
+              await cache.invalidateQueries();
               setEditing(undefined);
             }}
           />

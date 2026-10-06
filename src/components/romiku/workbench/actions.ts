@@ -59,9 +59,17 @@ export function buildActions(data: ActionData, now = new Date()): Action[] {
   const active = (resource: string) =>
     (data[resource] || []).filter((r) => !r.archived_at);
   for (const r of active("romiku_website_inquiries")) {
-    if (r.status === "new")
+    if (r.status === "pending_screening")
       add(r, "romiku_website_inquiries", "website_new", r.next_follow_up_at);
-    if (["pending", "following_up"].includes(r.status))
+    if (
+      [
+        "pending_contact",
+        "pending_quote",
+        "quoted",
+        "following_up",
+        "customer_no_reply",
+      ].includes(r.status)
+    )
       add(
         r,
         "romiku_website_inquiries",
@@ -76,11 +84,14 @@ export function buildActions(data: ActionData, now = new Date()): Action[] {
         ...e,
         group: isOverdue(e, now) ? "outbound_overdue" : "outbound",
       });
-    if (e.event_type === "order_delivery" && e.status !== "cancelled")
+    if (
+      e.event_type === "order_delivery" &&
+      !["cancelled", "voided"].includes(e.status)
+    )
       actions.push({ ...e, group: "delivery" });
     if (
       e.event_type === "production_anomaly" &&
-      ["completed", "received", "cancelled"].includes(e.status)
+      ["received", "cancelled"].includes(e.status)
     )
       actions.push({ ...e, group: "production", urgent: true });
   }
@@ -89,13 +100,22 @@ export function buildActions(data: ActionData, now = new Date()): Action[] {
     ["romiku_pis", "pi"],
   ] as const) {
     for (const r of active(resource))
-      if (["draft", "sent"].includes(r.status)) {
+      if (
+        [
+          resource === "romiku_quotes" ? "pending_quote" : "draft",
+          "sent",
+        ].includes(r.status)
+      ) {
         const dates = [r.follow_up_at, r.due_at].filter(Boolean).sort();
         add(r, resource, group, dates[0]);
       }
   }
   for (const r of active("romiku_order_totals")) {
-    if (r.status === "cancelled" || Number(r.remaining_amount) <= 0) continue;
+    if (
+      ["cancelled", "voided"].includes(r.status) ||
+      Number(r.remaining_amount) <= 0
+    )
+      continue;
     const deposit = Math.min(
       Number(r.deposit_remaining),
       Number(r.remaining_amount),
@@ -113,7 +133,7 @@ export function buildActions(data: ActionData, now = new Date()): Action[] {
       });
   }
   for (const r of active("romiku_production_orders"))
-    if (!["completed", "received", "cancelled"].includes(r.status))
+    if (!["received", "cancelled"].includes(r.status))
       add(r, "romiku_production_orders", "production", r.factory_due_at, {
         urgent: !!r.anomaly_flags?.length,
       });

@@ -1,26 +1,11 @@
+import { statusOptions } from "../shared/workflowStatus";
 import type { DataProvider, Identifier, RaRecord } from "ra-core";
 import { normalizeUrl, normalizeUrlMap } from "../shared/urlNormalization";
 
-export const outboundStatuses = [
-  "to_develop",
-  "contacted",
-  "no_reply",
-  "replied",
-  "communicating",
-  "purchase_intent",
-  "to_quote",
-  "quoted",
-  "sampling",
-  "paused",
-  "invalid",
-];
-export const inquiryStatuses = [
-  "new",
-  "pending",
-  "following_up",
-  "processed",
-  "invalid",
-];
+export const outboundStatuses = statusOptions("outbound").map((x) => x.value);
+export const inquiryStatuses = statusOptions("website_inquiry").map(
+  (x) => x.value,
+);
 export const followupMethods = [
   "WhatsApp",
   "Email",
@@ -62,7 +47,7 @@ export function deriveFollowupState(
     overdue:
       !!next &&
       Date.parse(next) < now.getTime() &&
-      !["paused", "invalid", "processed"].includes(status),
+      !["paused", "invalid", "won"].includes(status),
   };
 }
 

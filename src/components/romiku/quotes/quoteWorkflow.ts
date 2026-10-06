@@ -1,3 +1,4 @@
+import { statusOptions } from "../shared/workflowStatus";
 import type { DataProvider } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import {
@@ -11,14 +12,7 @@ export const quoteSourceResources = {
   outbound: "romiku_outbound_companies",
   customer: "romiku_formal_customers",
 };
-export const quoteStatuses = [
-  "draft",
-  "sent",
-  "accepted",
-  "declined",
-  "expired",
-  "cancelled",
-];
+export const quoteStatuses = statusOptions("quote").map((x) => x.value);
 type SnapshotRpc = {
   rpc: (
     name: string,
@@ -85,7 +79,7 @@ export async function createQuote(
   }
   return provider.create("romiku_quotes", {
     data: {
-      status: "draft",
+      status: "pending_quote",
       currency: "USD",
       document_language: "zh",
       counterparty_snapshot: snapshot,

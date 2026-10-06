@@ -56,7 +56,7 @@ update romiku_quote_items set quantity=240,unit_price=2,product_snapshot='{"name
 update romiku_quotes set freight=20,discount=10,other_expenses=15,counterparty_snapshot='{"name":"Buyer snapshot"}',bank_snapshot='{"bank":"Historical bank"}';
 select is((select total from romiku_quote_totals),505.00::numeric,'total = 480 + 20 + 15 - 10');
 select is((select quantity from romiku_website_inquiry_items where sku='SUNS15'),100::numeric,'quote changes never rewrite inquiry');
-select is((select status from romiku_website_inquiries limit 1),'new','conversion does not advance inquiry status');
+select is((select status from romiku_website_inquiries limit 1),'pending_screening','conversion does not advance inquiry status');
 select is(
   (select document_number from romiku_quotes limit 1),
   'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001',
@@ -128,7 +128,7 @@ select is((select quantity from romiku_order_items where order_id=(select id fro
 select is((select product_snapshot->>'name' from romiku_order_items where order_id=(select id from test_ids where kind='direct_order')),'Quoted name','direct Quote to Order snapshot independent');
 select is((select bank_snapshot->>'bank' from romiku_orders where id=(select id from test_ids where kind='order')),'Historical bank','bank snapshot copied');
 select is((select count(*) from romiku_formal_customers),0::bigint,'all conversions leave customer archive unchanged');
-select is((select status from romiku_quotes limit 1),'draft','source quote status remains manual');
+select is((select status from romiku_quotes limit 1),'pending_quote','source quote status remains manual');
 
 insert into romiku_suppliers(id,name) values ('40000000-0000-0000-0000-000000000001','Factory A'),('40000000-0000-0000-0000-000000000002','Factory B');
 select lives_ok($$insert into romiku_production_orders(order_id) select id from test_ids where kind='order'$$,'production allows an unspecified supplier');
@@ -270,7 +270,7 @@ select is((select remaining_amount from romiku_order_totals where id=(select id 
 select throws_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='order')$$,'23514',null,'orders with payments cannot reinterpret the payment currency');
 select is((select currency from romiku_orders where id=(select id from test_ids where kind='order')),'USD','payment remains denominated in its original order currency');
 select lives_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='direct_order')$$,'unpaid order currency remains editable');
-select throws_ok($$update romiku_payments set order_id=(select id from test_ids where kind='direct_order') where order_id=(select id from test_ids where kind='order')$$,'23514',null,'payment cannot move to a different order and currency');
+select throws_ok($$update romiku_payments set order_id=(select id from test_ids where kind='direct_order') where order_id=(select id from test_ids where kind='order')$$,'P4202',null,'payment cannot move to a different order and currency');
 update romiku_outbound_companies set next_follow_up_at=now()-interval '1 day';
 select is((select count(*) from romiku_calendar where event_type='outbound_follow_up'),1::bigint,'calendar derives outbound dates');
 select is((select count(*) from romiku_workbench where event_type='outbound_follow_up' and is_overdue),1::bigint,'workbench derives overdue work');

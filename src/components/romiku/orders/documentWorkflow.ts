@@ -1,3 +1,4 @@
+import { statusOptions } from "../shared/workflowStatus";
 import type { DataProvider } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { quoteHeaderWrite } from "../quotes/quoteWorkflow";
@@ -21,7 +22,7 @@ export const documentConfig = {
     items: "romiku_pi_items",
     totals: "romiku_pi_totals",
     foreignKey: "pi_id",
-    statuses: ["draft", "sent", "confirmed", "cancelled"],
+    statuses: statusOptions("pi").map((o) => o.value),
   },
   order: {
     label: "订单",
@@ -108,7 +109,10 @@ export function documentHeaderWrite(kind: DocumentKind, values: Values) {
   const { status, valid_until: _validity, ...commercial } = values;
   const write = quoteHeaderWrite(commercial);
   if (status !== undefined) {
-    if (!documentConfig[kind].statuses.includes(String(status)))
+    if (
+      !documentConfig[kind].statuses.includes(String(status)) &&
+      !(kind === "order" && status === "voided")
+    )
       throw new Error("请选择有效的单据状态。");
     write.status = status;
   }

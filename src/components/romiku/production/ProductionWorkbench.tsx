@@ -379,7 +379,7 @@ export function ProductionWorkbench({
                   <select
                     aria-label="生产状态"
                     className="ml-2 rounded border p-2"
-                    value={draft.status || "pending"}
+                    value={draft.status || "pending_send"}
                     onChange={(e) =>
                       setDraft((d) => ({ ...d, status: e.target.value }))
                     }

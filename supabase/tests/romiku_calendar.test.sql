@@ -38,8 +38,8 @@ update romiku_manual_tasks set completed_at=null,due_at=null where id='82000000-
 select is((select count(*) from romiku_calendar where source_id='82000000-0000-0000-0000-000000000009'),0::bigint,'unscheduled manual task is retained outside calendar');
 select is((select count(*) from romiku_manual_tasks where id='82000000-0000-0000-0000-000000000009'),1::bigint,'task source survives date clearing');
 select throws_ok($$update romiku_manual_tasks set order_id='82000000-0000-0000-0000-000000000005' where id='82000000-0000-0000-0000-000000000009'$$,'23514',null,'existing quote link prevents a second task relationship');
-update romiku_production_orders set status='completed' where id='82000000-0000-0000-0000-000000000007';
-update romiku_website_inquiries set status='processed' where id='82000000-0000-0000-0000-000000000001';
+update romiku_production_orders set status='received' where id='82000000-0000-0000-0000-000000000007';
+update romiku_website_inquiries set status='won' where id='82000000-0000-0000-0000-000000000001';
 update romiku_outbound_companies set status='paused' where id='82000000-0000-0000-0000-000000000002';
 select is((select count(*) from romiku_calendar where source_id in ('82000000-0000-0000-0000-000000000001','82000000-0000-0000-0000-000000000002','82000000-0000-0000-0000-000000000007')),0::bigint,'terminal source statuses remove actionable events');
 update romiku_packing_lists set archived_at=now() where id='82000000-0000-0000-0000-000000000008';

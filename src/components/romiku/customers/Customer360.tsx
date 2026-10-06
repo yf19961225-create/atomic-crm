@@ -102,7 +102,7 @@ export function Customer360({
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            累计订单金额按币种分别统计，包含草稿、不含取消订单；不做汇率换算。归档记录保持可见。
+            累计订单金额按币种分别统计，包含草稿、不含取消或作废订单；不做汇率换算。归档记录保持可见。
           </p>
           {summary.latest && (
             <p>

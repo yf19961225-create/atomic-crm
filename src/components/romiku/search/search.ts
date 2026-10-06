@@ -12,6 +12,7 @@ export const searchTypes = [
 ] as const;
 export type SearchType = (typeof searchTypes)[number];
 export type SearchItem = {
+  status?: string;
   id: string;
   title: string;
   subtitle: string;

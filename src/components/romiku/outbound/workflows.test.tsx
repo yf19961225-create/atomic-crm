@@ -58,7 +58,7 @@ const seed = () => ({
       company: "Original company",
       email: "ana@example.com",
       message: "Original request",
-      status: "new",
+      status: "pending_screening",
       raw_payload: {
         items: [
           { sku: "UNKNOWN", quantity: 20, requirement: "White packaging" },
@@ -239,9 +239,7 @@ describe("independent ROMIKU workflows", () => {
     await screen
       .getByLabelText("处理备注", { exact: true })
       .fill("Manual review");
-    await screen
-      .getByLabelText("状态", { exact: true })
-      .selectOptions("processed");
+    await screen.getByLabelText("状态", { exact: true }).selectOptions("won");
     await screen.getByRole("button", { name: "保存记录" }).click();
     await expect
       .poll(
@@ -249,7 +247,7 @@ describe("independent ROMIKU workflows", () => {
           (await provider.getOne("romiku_website_inquiries", { id: "in-1" }))
             .data.status,
       )
-      .toBe("processed");
+      .toBe("won");
     await screen.getByRole("tab", { name: "跟进" }).click();
     await screen
       .getByLabelText("摘要", { exact: true })
@@ -265,7 +263,7 @@ describe("independent ROMIKU workflows", () => {
       (await provider.getOne("romiku_website_inquiries", { id: "in-1" })).data,
     ).toMatchObject({
       ...before.romiku_website_inquiries[0],
-      status: "processed",
+      status: "won",
       processing_notes: "Manual review",
     });
     expect(

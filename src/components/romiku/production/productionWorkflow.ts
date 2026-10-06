@@ -62,7 +62,7 @@ export async function createProductionOrders(
         order_id: orderId,
         supplier_id: null,
         supplier_snapshot: null,
-        status: "pending",
+        status: "pending_send",
         marking_snapshot,
       },
     });

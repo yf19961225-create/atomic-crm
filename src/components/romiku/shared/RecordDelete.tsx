@@ -1,3 +1,4 @@
+import { LifecycleDialog } from "./LifecycleDialog";
 import { OrderDeleteDialog } from "../orders/OrderDeleteDialog";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
@@ -25,6 +26,7 @@ type DeleteKind =
   | "order"
   | "packing"
   | "production"
+  | "website_inquiry"
   | "outbound"
   | "manual_task";
 const descriptions: Record<DeleteKind, string> = {
@@ -39,6 +41,8 @@ const descriptions: Record<DeleteKind, string> = {
     "将永久删除装箱单及产品行，来源订单与订单产品行会保留，并恢复可装箱数量。",
   outbound:
     "将永久删除开发记录、联系人、跟进与来源网址。正式客户、询盘、报价单、PI、订单和任务会保留并解除关联。",
+  website_inquiry:
+    "将永久删除询盘及其产品行、跟进。已有正式客户或下游商业单据时无法删除。",
   manual_task: "将永久删除此手动任务，关联来源记录会保留。",
 };
 export function RecordDelete({
@@ -59,6 +63,7 @@ export function RecordDelete({
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
+  const [lifecycle, setLifecycle] = useState<"order" | "archive" | null>(null);
   const inFlight = useRef(false);
   const cache = useQueryClient();
   const navigate = useNavigate();
@@ -111,6 +116,16 @@ export function RecordDelete({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {kind === "order" && (
+            <>
+              <DropdownMenuItem onSelect={() => setLifecycle("order")}>
+                作废订单
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setLifecycle("archive")}>
+                归档订单
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuItem
             variant="destructive"
             onSelect={() => {
@@ -122,6 +137,14 @@ export function RecordDelete({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {lifecycle && (
+        <LifecycleDialog
+          kind={lifecycle}
+          id={id}
+          label={label}
+          onClose={() => setLifecycle(null)}
+        />
+      )}
       {kind === "order" ? (
         open && (
           <OrderDeleteDialog

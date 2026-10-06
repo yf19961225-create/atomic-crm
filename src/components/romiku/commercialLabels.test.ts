@@ -16,7 +16,7 @@ it("maps stored commercial enum identifiers to Chinese display labels without ch
   expect(quoteStatusLabel("sent")).toBe("已发送");
   expect(documentStatusLabel("ready_to_ship")).toBe("待发运");
   expect(paymentKindLabel("deposit")).toBe("定金");
-  expect(productionStatusLabel("in_production")).toBe("生产中");
+  expect(productionStatusLabel("scheduled")).toBe("已排产");
   expect(supplierStatusLabel("paused")).toBe("暂停");
 
   expect(quoteStatusChoices).toContainEqual({ id: "sent", label: "已发送" });
@@ -26,8 +26,8 @@ it("maps stored commercial enum identifiers to Chinese display labels without ch
   });
   expect(paymentKindChoices).toContainEqual({ id: "deposit", label: "定金" });
   expect(productionStatusChoices).toContainEqual({
-    id: "in_production",
-    label: "生产中",
+    id: "scheduled",
+    label: "已排产",
   });
   expect(supplierStatusChoices).toContainEqual({ id: "paused", name: "暂停" });
 });
