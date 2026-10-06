@@ -1,9 +1,10 @@
+import { OrderDeleteDialog } from "./OrderDeleteDialog";
 import { OrderProductionPanel } from "../production/OrderProductionPanel";
 import { OrderCustomerArchive } from "../customers/OrderCustomerArchive";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
@@ -96,6 +97,12 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
   const [page, setPage] = useState(1),
     [search, setSearch] = useState(""),
     [status, setStatus] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [deletingIds, setDeletingIds] = useState<string[] | null>(null);
+  const changePage = (next: number) => {
+    setSelected([]);
+    setPage(next);
+  };
   const searchResult = useModuleSearch(
     kind,
     config.totals,
@@ -125,6 +132,18 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
     : ordinary.isPending;
   const error = searchResult.active ? searchResult.error : ordinary.error;
   const refetch = searchResult.active ? searchResult.refetch : ordinary.refetch;
+  useEffect(() => {
+    if (kind === "order" && !isPending && !error && total !== undefined) {
+      const lastPage = Math.max(1, Math.ceil(total / 25));
+      if (page > lastPage) {
+        setSelected([]);
+        setPage(lastPage);
+      }
+    }
+  }, [kind, total, isPending, error, page]);
+  const visibleSelected = selected.filter((id) =>
+    data.some((row) => String(row.id) === id),
+  );
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
@@ -141,6 +160,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           label={`搜索${config.plural}`}
           value={search}
           onChange={(next) => {
+            setSelected([]);
             setSearch(next);
             setPage(1);
           }}
@@ -151,6 +171,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
             className="rounded border p-2"
             value={status}
             onChange={(event) => {
+              setSelected([]);
               setStatus(event.target.value);
               setPage(1);
             }}
@@ -164,6 +185,29 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           </select>
         </label>
       </div>
+      {kind === "order" && visibleSelected.length > 0 && (
+        <div className="flex items-center gap-3 rounded border p-3">
+          <span>已选择当前页 {visibleSelected.length} 张订单</span>
+          <Button
+            variant="destructive"
+            disabled={isPending || !!error}
+            onClick={() => setDeletingIds([...visibleSelected])}
+          >
+            批量删除
+          </Button>
+          <Button variant="outline" onClick={() => setSelected([])}>
+            取消选择
+          </Button>
+        </div>
+      )}
+      {deletingIds && (
+        <OrderDeleteDialog
+          ids={deletingIds}
+          batch
+          onClose={() => setDeletingIds(null)}
+          onDeleted={() => setSelected([])}
+        />
+      )}
       {isPending && <p>正在加载{config.plural}…</p>}
       {error && (
         <p role="alert">
@@ -175,6 +219,31 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <table className="w-full text-left text-sm">
           <thead className="bg-muted">
             <tr>
+              {kind === "order" && (
+                <th className="p-3">
+                  <input
+                    type="checkbox"
+                    aria-label="全选当前页"
+                    disabled={isPending || !!error || !data.length}
+                    checked={
+                      !!data.length && visibleSelected.length === data.length
+                    }
+                    ref={(node) => {
+                      if (node)
+                        node.indeterminate =
+                          visibleSelected.length > 0 &&
+                          visibleSelected.length < data.length;
+                    }}
+                    onChange={(event) =>
+                      setSelected(
+                        event.target.checked
+                          ? data.map((row) => String(row.id))
+                          : [],
+                      )
+                    }
+                  />
+                </th>
+              )}
               {[
                 config.label,
                 "采购方",
@@ -194,6 +263,25 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           <tbody>
             {data.map((record) => (
               <tr className="border-t" key={record.id}>
+                {kind === "order" && (
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`选择 ${record.document_number || "未编号订单"}`}
+                      disabled={isPending || !!error}
+                      checked={visibleSelected.includes(String(record.id))}
+                      onChange={(event) =>
+                        setSelected(
+                          event.target.checked
+                            ? [...visibleSelected, String(record.id)]
+                            : visibleSelected.filter(
+                                (id) => id !== String(record.id),
+                              ),
+                        )
+                      }
+                    />
+                  </td>
+                )}
                 <td className="p-3">
                   <Link
                     className="underline"
@@ -233,10 +321,12 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                     kind={kind}
                     id={String(record.id)}
                     label={String(
-                      record.document_number || record.name || record.id,
+                      record.document_number || record.name || "未编号单据",
                     )}
                     onDeleted={() => {
-                      if (data.length === 1 && page > 1) setPage(page - 1);
+                      setSelected([]);
+                      if (kind !== "order" && data.length === 1 && page > 1)
+                        setPage(page - 1);
                     }}
                   />
                 </td>
@@ -252,7 +342,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <Button
           variant="outline"
           disabled={page === 1}
-          onClick={() => setPage(page - 1)}
+          onClick={() => changePage(page - 1)}
         >
           上一页
         </Button>
@@ -262,7 +352,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
-          onClick={() => setPage(page + 1)}
+          onClick={() => changePage(page + 1)}
         >
           下一页
         </Button>

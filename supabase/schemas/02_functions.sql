@@ -966,9 +966,7 @@ begin
     if order_count>0 then return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message',format('该 PI 已有 %s 张订单，无法删除。',order_count),'dependencies',jsonb_build_object('orders',order_count)); end if;
     update public.romiku_manual_tasks set pi_id=null where pi_id=record_id; delete from public.romiku_pi_items where pi_id=record_id; delete from public.romiku_pis where id=record_id;
   elsif kind='order' then
-    select count(*) into production_count from public.romiku_production_orders where order_id=record_id; select count(*) into packing_count from public.romiku_packing_lists where order_id=record_id; select count(*) into payment_count from public.romiku_payments where order_id=record_id;
-    if production_count+packing_count+payment_count>0 then return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message',format('该订单已有 %s 张生产单、%s 张装箱单、%s 条收款记录，无法删除。',production_count,packing_count,payment_count),'dependencies',jsonb_build_object('production',production_count,'packing',packing_count,'payments',payment_count)); end if;
-    update public.romiku_manual_tasks set order_id=null where order_id=record_id; delete from public.romiku_order_items where order_id=record_id; delete from public.romiku_production_order_counters where order_id=record_id; delete from public.romiku_orders where id=record_id;
+    return public.romiku_delete_order_controlled(record_id);
   elsif kind='production' then
     select count(*) into followup_count from public.romiku_production_followups where production_order_id=record_id;
     if followup_count>0 then

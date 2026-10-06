@@ -1,3 +1,4 @@
+import { OrderDeleteDialog } from "../orders/OrderDeleteDialog";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -121,44 +122,56 @@ export function RecordDelete({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog
-        open={open}
-        onOpenChange={(value) => {
-          if (!inFlight.current) setOpen(value);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除 {label}？</DialogTitle>
-            <DialogDescription>
-              {descriptions[kind]}此操作无法撤销。
-            </DialogDescription>
-          </DialogHeader>
-          {failure && (
-            <p role="alert" className="text-destructive">
-              {failure}
-            </p>
-          )}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => setOpen(false)}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={busy}
-              onClick={() => void remove()}
-            >
-              {busy ? "正在删除…" : "确认删除"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {kind === "order" ? (
+        open && (
+          <OrderDeleteDialog
+            ids={[id]}
+            label={label}
+            onClose={() => setOpen(false)}
+            onDeleted={onDeleted}
+            redirectTo={redirectTo}
+          />
+        )
+      ) : (
+        <Dialog
+          open={open}
+          onOpenChange={(value) => {
+            if (!inFlight.current) setOpen(value);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>删除 {label}？</DialogTitle>
+              <DialogDescription>
+                {descriptions[kind]}此操作无法撤销。
+              </DialogDescription>
+            </DialogHeader>
+            {failure && (
+              <p role="alert" className="text-destructive">
+                {failure}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setOpen(false)}
+              >
+                取消
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={busy}
+                onClick={() => void remove()}
+              >
+                {busy ? "正在删除…" : "确认删除"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

@@ -547,8 +547,9 @@ create table public.romiku_document_daily_counters (
     primary key (document_kind, business_date, number_prefix)
 );
 
+-- Historical numbering ledger: keep rows after controlled Order deletion.
 create table public.romiku_production_order_counters (
-    order_id uuid primary key references public.romiku_orders(id),
+    order_id uuid primary key,
     last_value integer not null check (last_value > 0)
 );
 

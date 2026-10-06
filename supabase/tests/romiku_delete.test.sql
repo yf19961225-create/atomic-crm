@@ -52,7 +52,7 @@ delete from romiku_production_orders where order_id=(select id from ids where ki
 delete from romiku_payments where order_id=(select id from ids where kind='order');
 set local role authenticated;
 insert into romiku_manual_tasks(title,order_id) select 'keep order task',id from ids where kind='order';
-select is(romiku_delete_record('order',(select id from ids where kind='order')),'{"ok":true}'::jsonb,'order and internal counter deleted');
+select is(romiku_delete_record('order',(select id from ids where kind='order')),'{"ok":true}'::jsonb,'order deleted while historical counter is retained');
 select ok(exists(select 1 from romiku_pis where id=(select id from ids where kind='pi')) and exists(select 1 from romiku_quotes where id=(select id from ids where kind='quote')),'source PI and quote retained');
 select ok(exists(select 1 from romiku_manual_tasks where title='keep order task' and order_id is null),'order task detached');
 insert into romiku_manual_tasks(title,pi_id) select 'keep PI task',id from ids where kind='pi';

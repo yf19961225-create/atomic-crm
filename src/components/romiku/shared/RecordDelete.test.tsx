@@ -14,6 +14,25 @@ vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
 beforeEach(() => {
   rpc.mockReset();
 });
+const orderPreflight = (id: string, label: string) => ({
+  data: {
+    ok: true,
+    deletable: [
+      {
+        order_id: id,
+        document_number: label,
+        delete_mode: "order_only",
+        production_count: 0,
+        packing_count: 0,
+        payment_count: 0,
+        cascade_productions: [],
+        blocked_reasons: [],
+      },
+    ],
+    blocked: [],
+  },
+  error: null,
+});
 const cases = [
   ["quote", "/quotes", "romiku_quote_totals"],
   ["pi", "/pi", "romiku_pi_totals"],
@@ -50,6 +69,8 @@ for (const [kind, path, resource] of cases) {
   it(`${kind}: confirms before RPC and refreshes list/count after success`, async () => {
     const { screen, provider } = await setup(path, resource);
     rpc.mockImplementation(async (name, args) => {
+      if (kind === "order" && name === "romiku_order_delete_preflight")
+        return orderPreflight("1", "DELETE-1");
       expect(name).toBe("romiku_delete_record");
       expect(args).toEqual({ kind, record_id: "1" });
       await provider.delete(resource, { id: "1" });
@@ -58,12 +79,25 @@ for (const [kind, path, resource] of cases) {
     await screen.getByRole("button", { name: "更多操作 DELETE-1" }).click();
     await screen.getByRole("menuitem", { name: "删除", exact: true }).click();
     await expect.element(screen.getByRole("dialog")).toBeVisible();
-    expect(rpc).not.toHaveBeenCalled();
+    expect(
+      rpc.mock.calls.filter(
+        ([name]) => name !== "romiku_order_delete_preflight",
+      ),
+    ).toHaveLength(0);
     await screen.getByRole("button", { name: "取消", exact: true }).click();
-    expect(rpc).not.toHaveBeenCalled();
+    expect(
+      rpc.mock.calls.filter(
+        ([name]) => name !== "romiku_order_delete_preflight",
+      ),
+    ).toHaveLength(0);
     await screen.getByRole("button", { name: "更多操作 DELETE-1" }).click();
     await screen.getByRole("menuitem", { name: "删除", exact: true }).click();
-    await screen.getByRole("button", { name: "确认删除", exact: true }).click();
+    await screen
+      .getByRole("button", {
+        name: kind === "order" ? "删除订单及未执行生产单" : "确认删除",
+        exact: true,
+      })
+      .click();
     await expect.element(screen.getByText(/共 0/)).toBeVisible();
     await expect
       .element(screen.getByRole("button", { name: "更多操作 DELETE-1" }))
@@ -203,6 +237,8 @@ for (const [kind, path, resource, items] of [
       romiku_payments: [],
     });
     rpc.mockImplementation(async (name, args) => {
+      if (kind === "order" && name === "romiku_order_delete_preflight")
+        return orderPreflight("x", "DETAIL-X");
       expect(name).toBe("romiku_delete_record");
       expect(args).toEqual({ kind, record_id: "x" });
       await provider.delete(resource, { id: "x" });
@@ -220,6 +256,11 @@ for (const [kind, path, resource, items] of [
     );
     await screen.getByRole("button", { name: "更多操作 DETAIL-X" }).click();
     await screen.getByRole("menuitem", { name: "删除", exact: true }).click();
-    await screen.getByRole("button", { name: "确认删除", exact: true }).click();
+    await screen
+      .getByRole("button", {
+        name: kind === "order" ? "删除订单及未执行生产单" : "确认删除",
+        exact: true,
+      })
+      .click();
     await expect.element(screen.getByText("RETURNED-TO-LIST")).toBeVisible();
   });
