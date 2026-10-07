@@ -2,11 +2,11 @@ import {
   normalizeQuoteExportModel,
   quoteBuyerSnapshot,
   type QuoteExportModel,
-} from "../quotes/quoteExportModel";
+} from "../quotes/quoteExportModel.js";
 import {
   renderQuoteXlsx,
   type QuoteRenderOptions,
-} from "../quotes/quoteXlsxRenderer";
+} from "../quotes/quoteXlsxRenderer.js";
 
 const numberOrNull = (value: unknown): number | null => {
   if (value == null || value === "") return null;

@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import type { QuoteExportModel } from "./quoteExportModel";
+import type { QuoteExportModel } from "./quoteExportModel.js";
 import {
   applyStyle,
   captureStyle,
@@ -11,7 +11,7 @@ import {
   unmerge,
   type PreparedProductImage,
   type RowStyle,
-} from "../orders/orderXlsxRenderer";
+} from "../orders/orderXlsxRenderer.js";
 
 export type QuoteRenderOptions = {
   prepareImage?: (

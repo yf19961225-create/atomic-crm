@@ -1,11 +1,11 @@
-import { statusOptions } from "../shared/workflowStatus";
+import { statusOptions } from "../shared/workflowStatus.js";
 import type { DataProvider } from "ra-core";
 // Keep snapshot helpers usable by server-side XLSX without importing React UI.
 type Values = Record<string, unknown>;
 import {
   defaultQuoteExportSnapshot,
   withQuoteExportSnapshot,
-} from "./quoteExportSnapshot";
+} from "./quoteExportSnapshot.js";
 
 export type QuoteSource = "direct" | "inquiry" | "outbound" | "customer";
 export const quoteSourceResources = {

@@ -5,9 +5,9 @@ import { z } from "zod";
 import {
   normalizeInquiryExportModel,
   renderInquiryXlsx,
-} from "../src/components/romiku/inquiries/inquiryXlsxRenderer";
-import { readServerImageDimensions } from "./order-export-image";
-import type { PreparedProductImage } from "../src/components/romiku/orders/orderXlsxRenderer";
+} from "../src/components/romiku/inquiries/inquiryXlsxRenderer.js";
+import { readServerImageDimensions } from "./order-export-image.js";
+import type { PreparedProductImage } from "../src/components/romiku/orders/orderXlsxRenderer.js";
 
 const previewUrl = "https://ciwaibtotispazfviims.supabase.co";
 const schema = z.object({ id: z.uuid(), submissionId: z.uuid() });

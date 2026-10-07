@@ -1,6 +1,6 @@
-import { cartonCbmFromPacking } from "../commercial/commercialLineItems";
-import type { ContactSnapshot } from "../orders/orderExportSnapshot";
-import { quoteExportSnapshot } from "./quoteExportSnapshot";
+import { cartonCbmFromPacking } from "../commercial/commercialLineItems.js";
+import type { ContactSnapshot } from "../orders/orderExportSnapshot.js";
+import { quoteExportSnapshot } from "./quoteExportSnapshot.js";
 
 type SavedItem = {
   id?: unknown;

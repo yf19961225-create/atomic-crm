@@ -1,7 +1,7 @@
 import type { DataProvider, Identifier, RaRecord } from "ra-core";
 // Keep snapshot helpers usable by server-side XLSX without importing React UI.
 type Values = Record<string, unknown>;
-import { quoteItemWrite, quoteTotals } from "../quotes/quoteWorkflow";
+import { quoteItemWrite, quoteTotals } from "../quotes/quoteWorkflow.js";
 
 export type CommercialDocumentKind = "quote" | "pi" | "order";
 export type CommercialItem = RaRecord & {
