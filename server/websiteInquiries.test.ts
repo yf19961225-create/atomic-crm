@@ -292,3 +292,25 @@ it("accepts unknown packing values as null while retaining the normalized origin
   expect(response.status).toBe(201);
   expect((await response.json()).normalizedSubmission).toEqual(body);
 });
+
+it("logs only a fixed upstream stage and HTTP status when persistence is unavailable", async () => {
+  fetchMock.mockResolvedValueOnce(
+    Response.json(
+      { message: "test-service-role private database detail" },
+      { status: 401 },
+    ),
+  );
+  const response = await endpoint.fetch(request());
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({
+    success: false,
+    error: "intake_unavailable",
+  });
+  expect(warn).toHaveBeenCalledWith("website_inquiry_persistence_failed", {
+    stage: "rpc_http",
+    status: 401,
+  });
+  expect(JSON.stringify(warn.mock.calls)).not.toMatch(
+    /test-secret|test-service-role|private database|buyer@example/,
+  );
+});

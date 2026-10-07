@@ -136,6 +136,7 @@ export default {
       Authorization: `Bearer ${serviceRole}`,
     };
     let receipt: z.infer<typeof receiptSchema>[number];
+    let persistenceStage = "rpc_request";
     try {
       const result = await fetch(
         `${restUrl}/rpc/romiku_submit_website_inquiry`,
@@ -147,9 +148,20 @@ export default {
           body: JSON.stringify({ payload: validated.data }),
         },
       );
-      if (!result.ok) return reject(503, "intake_unavailable");
+      if (!result.ok) {
+        console.warn("website_inquiry_persistence_failed", {
+          stage: "rpc_http",
+          status: result.status,
+        });
+        return reject(503, "intake_unavailable");
+      }
+      persistenceStage = "receipt_validation";
       receipt = receiptSchema.parse(await result.json())[0];
     } catch {
+      // Fixed stages only. Never log errors, response bodies, headers or payloads.
+      console.warn("website_inquiry_persistence_failed", {
+        stage: persistenceStage,
+      });
       return reject(503, "intake_unavailable");
     }
     return Response.json(
