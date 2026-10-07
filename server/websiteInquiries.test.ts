@@ -314,3 +314,15 @@ it("logs only a fixed upstream stage and HTTP status when persistence is unavail
     /test-secret|test-service-role|private database|buyer@example/,
   );
 });
+
+it("detects malformed server authorization headers without logging their value", async () => {
+  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "private-key\ninvalid-header");
+  const response = await endpoint.fetch(request());
+  expect(response.status).toBe(503);
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(warn).toHaveBeenCalledWith("website_inquiry_persistence_failed", {
+    stage: "rpc_headers",
+    reason: "unexpected",
+  });
+  expect(JSON.stringify(warn.mock.calls)).not.toContain("private-key");
+});

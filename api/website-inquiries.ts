@@ -136,13 +136,15 @@ export default {
       Authorization: `Bearer ${serviceRole}`,
     };
     let receipt: z.infer<typeof receiptSchema>[number];
-    let persistenceStage = "rpc_request";
+    let persistenceStage = "rpc_headers";
     try {
+      const requestHeaders = new Headers(headers);
+      persistenceStage = "rpc_request";
       const result = await fetch(
         `${restUrl}/rpc/romiku_submit_website_inquiry`,
         {
           method: "POST",
-          headers,
+          headers: requestHeaders,
           signal: AbortSignal.timeout(10_000),
           // Only normalized business fields cross the persistence boundary.
           body: JSON.stringify({ payload: validated.data }),
@@ -157,10 +159,16 @@ export default {
       }
       persistenceStage = "receipt_validation";
       receipt = receiptSchema.parse(await result.json())[0];
-    } catch {
+    } catch (error) {
       // Fixed stages only. Never log errors, response bodies, headers or payloads.
       console.warn("website_inquiry_persistence_failed", {
         stage: persistenceStage,
+        reason:
+          error instanceof Error && error.name === "TimeoutError"
+            ? "timeout"
+            : error instanceof Error && error.message === "fetch failed"
+              ? "network"
+              : "unexpected",
       });
       return reject(503, "intake_unavailable");
     }
