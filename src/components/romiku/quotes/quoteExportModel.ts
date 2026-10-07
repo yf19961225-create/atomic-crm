@@ -7,6 +7,7 @@ type SavedItem = {
   position?: unknown;
   sku?: unknown;
   unit_price?: unknown;
+  requested_quantity_snapshot?: unknown;
   product_snapshot?: unknown;
   packing_snapshot?: unknown;
 };
@@ -18,12 +19,15 @@ export type QuoteExportItem = {
   imageUrl: string;
   specification: string;
   qtyPerCarton: number | null;
-  unitPrice: number;
+  unitPrice: number | null;
+  requestedQuantity: number | null;
   cartonCbm: number | null;
 };
 
 export type QuoteExportModel = {
-  worksheetName: "QUOTE";
+  worksheetName: "ROMIKU PI";
+  templateKind: "direct" | "website";
+  buyer: ContactSnapshot;
   document: { number: string; date: string };
   seller: ContactSnapshot;
   currency: "USD" | "CNY";
@@ -56,7 +60,9 @@ export function normalizeQuoteExportModel(
       String(left.id || "").localeCompare(String(right.id || "")),
   );
   return {
-    worksheetName: "QUOTE",
+    worksheetName: "ROMIKU PI",
+    templateKind: quote.source_website_inquiry_id ? "website" : "direct",
+    buyer: quoteBuyerSnapshot(quote.counterparty_snapshot),
     document: {
       number: String(quote.document_number || ""),
       date: String(quote.document_date || ""),
@@ -76,8 +82,29 @@ export function normalizeQuoteExportModel(
         ),
         qtyPerCarton: numberOrNull(packing.qty_per_carton),
         unitPrice: numberOrNull(item.unit_price) ?? 0,
+        requestedQuantity:
+          (numberOrNull(item.requested_quantity_snapshot) ?? 0) > 0
+            ? numberOrNull(item.requested_quantity_snapshot)
+            : null,
         cartonCbm: cartonCbmFromPacking(packing),
       };
     }),
+  };
+}
+
+/** Saved customer data only; company never hides the named contact. */
+export function quoteBuyerSnapshot(value: unknown): ContactSnapshot {
+  const source = object(value);
+  const text = (value: unknown) => String(value ?? "").trim();
+  const company = text(source.company || source.company_name);
+  const contact = text(
+    source.contact_name || source.customerName || source.name,
+  );
+  return {
+    company_name: [...new Set([company, contact].filter(Boolean))].join("\n"),
+    address: text(source.shipping_address || source.address),
+    tel_whatsapp: text(source.whatsapp || source.phone),
+    website: text(source.website),
+    email: text(source.email),
   };
 }

@@ -58,6 +58,8 @@ export default defineConfig({
             "doc/**",
             "supabase/**",
             "server/**",
+            // Standalone PHP QA uses Node's test runner, not a browser runtime.
+            "website-qa/**",
             ".supabase-e2e/**",
             "e2e/**/*.spec.{ts,tsx}",
             // Harness hook tests are Node-only (they import node:fs / node:path

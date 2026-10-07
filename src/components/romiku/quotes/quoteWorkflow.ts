@@ -1,6 +1,7 @@
 import { statusOptions } from "../shared/workflowStatus";
 import type { DataProvider } from "ra-core";
-import type { Values } from "../outbound/WorkflowFields";
+// Keep snapshot helpers usable by server-side XLSX without importing React UI.
+type Values = Record<string, unknown>;
 import {
   defaultQuoteExportSnapshot,
   withQuoteExportSnapshot,
@@ -156,7 +157,7 @@ function nonnegative(value: unknown, label: string) {
     throw new Error(`${label} 必须是有限的非负数。`);
   return number;
 }
-export function quoteHeaderWrite(values: Values) {
+export function quoteHeaderWrite(values: Values, previous?: Values) {
   const write = pick(values, [
     "status",
     "counterparty_snapshot",
@@ -179,6 +180,19 @@ export function quoteHeaderWrite(values: Values) {
     "shipment_method",
     "notes",
   ]);
+  // Website conversion initially stores the same contact in name/contact_name.
+  // The existing buyer-name input edits name; keep this Quote's export alias in
+  // sync only when that input changes, without touching its source Inquiry.
+  const buyer = values.counterparty_snapshot as Values | undefined;
+  const savedBuyer = previous?.counterparty_snapshot as Values | undefined;
+  if (
+    previous?.source_website_inquiry_id &&
+    buyer &&
+    typeof buyer.name === "string" &&
+    buyer.name !== savedBuyer?.name
+  ) {
+    write.counterparty_snapshot = { ...buyer, contact_name: buyer.name };
+  }
   for (const key of ["freight", "discount", "other_expenses"])
     if (key in write) write[key] = nonnegative(write[key], key);
   for (const key of ["valid_until", "follow_up_at", "due_at"])

@@ -1,3 +1,5 @@
+import { QuoteInquirySource } from "../inquiries/InquiryQuoteLinks";
+import websiteQuoteTemplateUrl from "@/assets/quote-templates/ROMIKU_报价单_网站询盘来源模板.xlsx?url";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
@@ -46,17 +48,28 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-function SourceLinks({ record }: { record: RaRecord }) {
+function SourceLinks({
+  record,
+  detail = false,
+}: {
+  record: RaRecord;
+  detail?: boolean;
+}) {
   return (
     <div className="flex flex-wrap gap-3 text-sm">
-      {record.source_website_inquiry_id && (
-        <Link
-          className="underline"
-          to={`/website-inquiries?record=${encodeURIComponent(record.source_website_inquiry_id)}`}
-        >
-          网站询盘
-        </Link>
-      )}
+      {record.source_website_inquiry_id &&
+        (detail ? (
+          <QuoteInquirySource
+            inquiryId={String(record.source_website_inquiry_id)}
+          />
+        ) : (
+          <Link
+            className="underline"
+            to={`/website-inquiries?record=${encodeURIComponent(record.source_website_inquiry_id)}`}
+          >
+            网站询盘
+          </Link>
+        ))}
       {record.outbound_company_id && (
         <Link
           className="underline"
@@ -374,7 +387,7 @@ function QuoteEditor({
     try {
       const result = await provider.update("romiku_quotes", {
         id: record.id,
-        data: quoteHeaderWrite(session.values),
+        data: quoteHeaderWrite(session.values, record),
         previousData: record,
       });
       await commitCommercialItems(
@@ -404,9 +417,11 @@ function QuoteEditor({
     }
     try {
       const model = normalizeQuoteExportModel(record, items.data || []);
-      const template = await fetch(quoteTemplateUrl).then((response) =>
-        response.arrayBuffer(),
-      );
+      const template = await fetch(
+        model.templateKind === "website"
+          ? websiteQuoteTemplateUrl
+          : quoteTemplateUrl,
+      ).then((response) => response.arrayBuffer());
       const xlsx = await renderQuoteXlsx(model, template);
       download(
         xlsx,
@@ -464,7 +479,7 @@ function QuoteEditor({
         </div>
       </div>
 
-      <SourceLinks record={record} />
+      <SourceLinks record={record} detail />
       <div className="flex flex-wrap gap-3">
         <DocumentConversion source="quote" sourceId={String(record.id)} />
         <Button
@@ -534,6 +549,7 @@ function QuoteEditor({
                 session.values.fx_enabled === true
               }
               quoteFxRate={session.values.usd_cny_rate}
+              websiteSourceQuote={Boolean(record.source_website_inquiry_id)}
               documentLanguage={
                 session.values.document_language === "en" ||
                 session.values.document_language === "es"

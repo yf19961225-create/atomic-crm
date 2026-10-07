@@ -1,3 +1,4 @@
+import { orderInquiryItems } from "../inquiries/inquirySavedItems";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useDataProvider, useGetOne } from "ra-core";
@@ -177,10 +178,12 @@ function InquiryConfirmation({
   const inquiry = useGetOne("romiku_website_inquiries", { id: inquiryId });
   const items = useQuery({
     queryKey: ["quote-original-items", inquiryId],
-    queryFn: () =>
-      readRelated(provider, "romiku_website_inquiry_items", {
-        inquiry_id: inquiryId,
-      }),
+    queryFn: async () =>
+      orderInquiryItems(
+        await readRelated(provider, "romiku_website_inquiry_items", {
+          inquiry_id: inquiryId,
+        }),
+      ),
   });
   const [excluded, setExcluded] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);

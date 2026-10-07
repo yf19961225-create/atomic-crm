@@ -1,3 +1,4 @@
+import { orderInquiryItems, savedInquiryProduct } from "./inquirySavedItems";
 import { InquirySummary } from "./InquirySummary";
 import { type RaRecord } from "ra-core";
 import { WorkflowPage, type WorkflowConfig } from "../outbound/WorkflowPage";
@@ -15,6 +16,12 @@ function OriginalSubmission({ record }: { record: RaRecord }) {
     isPending,
     error,
   } = useRelated("romiku_website_inquiry_items", "inquiry_id", record.id);
+  const items = orderInquiryItems(data).map<
+    RaRecord & { display: ReturnType<typeof savedInquiryProduct> }
+  >((item) => ({
+    ...item,
+    display: savedInquiryProduct(item.product_snapshot),
+  }));
   return (
     <div className="space-y-4">
       <dl className="grid grid-cols-2 gap-2">
@@ -22,6 +29,7 @@ function OriginalSubmission({ record }: { record: RaRecord }) {
           "document_number",
           "customer_name",
           "company",
+          "brand",
           "email",
           "whatsapp",
           "country",
@@ -43,15 +51,31 @@ function OriginalSubmission({ record }: { record: RaRecord }) {
         <thead>
           <tr>
             <th>SKU</th>
-            <th>数量</th>
+            <th>产品名称</th>
+            <th>图片</th>
+            <th>产品规格</th>
+            <th>询价数量</th>
             <th>需求</th>
             <th>商品匹配</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((item) => (
+          {items.map((item) => (
             <tr key={item.id} className="border-t">
               <td className="py-3">{item.sku}</td>
+              <td>{item.display.name || "—"}</td>
+              <td>
+                {item.display.imageUrl && (
+                  <img
+                    src={item.display.imageUrl}
+                    alt={item.display.name || item.sku}
+                    className="h-12 w-12 object-contain"
+                  />
+                )}
+              </td>
+              <td className="whitespace-pre-wrap">
+                {item.display.specification || "—"}
+              </td>
               <td>{item.quantity}</td>
               <td className="whitespace-pre-wrap">{item.requirement}</td>
               <td>商品匹配：{relationshipStatusLabel(item.match_status)}</td>

@@ -617,14 +617,18 @@ BEGIN
     RAISE EXCEPTION 'Archive inquiry originals instead of deleting' USING ERRCODE = '23514';
   END IF;
   IF TG_TABLE_NAME = 'romiku_website_inquiries' THEN
-    IF (NEW.customer_name,NEW.company,NEW.email,NEW.whatsapp,NEW.country,NEW.message,NEW.raw_payload,NEW.submitted_at)
+    IF (NEW.customer_name,NEW.company,NEW.email,NEW.whatsapp,NEW.country,NEW.message,NEW.raw_payload,NEW.submitted_at,NEW.submission_id,NEW.source,NEW.brand)
        IS DISTINCT FROM
-       (OLD.customer_name,OLD.company,OLD.email,OLD.whatsapp,OLD.country,OLD.message,OLD.raw_payload,OLD.submitted_at) THEN
+       (OLD.customer_name,OLD.company,OLD.email,OLD.whatsapp,OLD.country,OLD.message,OLD.raw_payload,OLD.submitted_at,OLD.submission_id,OLD.source,OLD.brand) THEN
       RAISE EXCEPTION 'Website submission is immutable' USING ERRCODE = '23514';
     END IF;
   ELSE
-    IF (NEW.inquiry_id,NEW.sku,NEW.quantity,NEW.requirement)
-       IS DISTINCT FROM (OLD.inquiry_id,OLD.sku,OLD.quantity,OLD.requirement) THEN
+    IF NEW.product_snapshot IS DISTINCT FROM OLD.product_snapshot
+       AND EXISTS(SELECT 1 FROM public.romiku_website_inquiries h WHERE h.id=OLD.inquiry_id AND h.submission_id IS NOT NULL) THEN
+      RAISE EXCEPTION 'Original inquiry product snapshot is immutable' USING ERRCODE = '23514';
+    END IF;
+    IF (NEW.inquiry_id,NEW.sku,NEW.quantity,NEW.requirement,NEW.position)
+       IS DISTINCT FROM (OLD.inquiry_id,OLD.sku,OLD.quantity,OLD.requirement,OLD.position) THEN
       RAISE EXCEPTION 'Original inquiry item is immutable' USING ERRCODE = '23514';
     END IF;
   END IF;
@@ -737,10 +741,10 @@ BEGIN
   END IF;
   INSERT INTO public.romiku_quotes(source_website_inquiry_id,outbound_company_id,formal_customer_id,counterparty_snapshot)
   VALUES (source.id,source.outbound_company_id,source.formal_customer_id,
-    jsonb_build_object('name',source.customer_name,'company',source.company,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
+    jsonb_build_object('name',source.customer_name,'contact_name',source.customer_name,'company',source.company,'brand',source.brand,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
   RETURNING id INTO new_id;
-  INSERT INTO public.romiku_quote_items(quote_id,source_website_inquiry_item_id,sanity_product_id,sku,quantity,requirement,product_snapshot,position)
-  SELECT new_id,i.id,i.sanity_product_id,i.sku,i.quantity,i.requirement,i.product_snapshot,array_position(selected_item_ids,i.id)
+  INSERT INTO public.romiku_quote_items(quote_id,source_website_inquiry_item_id,sanity_product_id,sku,quantity,requested_quantity_snapshot,requirement,product_snapshot,packing_snapshot,position)
+  SELECT new_id,i.id,i.sanity_product_id,i.sku,i.quantity,i.quantity,i.requirement,i.product_snapshot,jsonb_strip_nulls(jsonb_build_object('qty_per_carton',i.product_snapshot->'cartonQty','carton_cbm',i.product_snapshot->'carton_cbm')),array_position(selected_item_ids,i.id)
     FROM public.romiku_website_inquiry_items i WHERE i.id = ANY(selected_item_ids);
   RETURN new_id;
 END;
@@ -876,7 +880,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION "public"."romiku_submit_website_inquiry"("payload" "jsonb") RETURNS TABLE("id" "uuid", "document_number" "text")
+CREATE OR REPLACE FUNCTION "public"."romiku_submit_website_inquiry"("payload" "jsonb") RETURNS TABLE("id" "uuid", "document_number" "text", "replay" boolean, "submitted_at" timestamptz, "normalizedSubmission" jsonb)
     LANGUAGE "plpgsql"
     SET "search_path" TO ''
     AS $$
@@ -886,11 +890,35 @@ DECLARE
   item_quantity numeric;
   inquiry_id uuid;
   inquiry_number text;
+  submission_uuid uuid;
+  existing public.romiku_website_inquiries;
 BEGIN
   -- SECURITY INVOKER: only service_role receives EXECUTE. Validate here too,
   -- so direct server RPC callers cannot bypass the HTTP boundary's checks.
   IF payload IS NULL OR jsonb_typeof(payload) <> 'object' THEN
     RAISE EXCEPTION 'Invalid inquiry payload' USING ERRCODE = '22023';
+  END IF;
+  IF payload ? 'submissionId' THEN
+    IF jsonb_typeof(payload->'submissionId') IS DISTINCT FROM 'string'
+      OR (payload->>'submissionId') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      RAISE EXCEPTION 'Invalid submission ID' USING ERRCODE = '22023';
+    END IF;
+    submission_uuid := (payload->>'submissionId')::uuid;
+    -- Serialize identical submissions before checking, including concurrent requests.
+    -- The unique constraint is the final integrity guard; READ COMMITTED sees commits
+    -- after waiting. A failed transaction releases this transaction-scoped lock.
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+      RAISE EXCEPTION 'Intake requires READ COMMITTED; retry transaction' USING ERRCODE = '40001';
+    END IF;
+    PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(submission_uuid::text, 6100619));
+    SELECT h.* INTO existing FROM public.romiku_website_inquiries h WHERE h.submission_id=submission_uuid;
+    IF FOUND THEN
+      RETURN QUERY SELECT existing.id,existing.document_number,true,existing.submitted_at,existing.raw_payload;
+      RETURN;
+    END IF;
+  END IF;
+  IF payload ? 'brand' AND (jsonb_typeof(payload->'brand') IS DISTINCT FROM 'string' OR length(payload->>'brand')>200) THEN
+    RAISE EXCEPTION 'Invalid brand' USING ERRCODE = '22023';
   END IF;
   FOREACH field_name IN ARRAY ARRAY['customerName','email','country','message'] LOOP
     IF jsonb_typeof(payload->field_name) IS DISTINCT FROM 'string'
@@ -924,19 +952,43 @@ BEGIN
        OR length(item->>'requirement') > 10000 THEN
       RAISE EXCEPTION 'Invalid inquiry item' USING ERRCODE = '22023';
     END IF;
+    IF submission_uuid IS NOT NULL THEN
+      IF jsonb_typeof(item->'productName') IS DISTINCT FROM 'string' OR (item->>'productName') !~ '[^[:space:]]' OR length(item->>'productName')>500
+         OR jsonb_typeof(item->'image') IS DISTINCT FROM 'string' OR length(item->>'image')>2048
+         OR (item->>'image'<>'' AND (item->>'image') !~ '^https://romiku\.com/images/products-local/[^?#]+$')
+         OR jsonb_typeof(item->'specification') IS DISTINCT FROM 'string' OR length(item->>'specification')>10000 THEN
+        RAISE EXCEPTION 'Invalid normalized product snapshot' USING ERRCODE = '22023';
+      END IF;
+      IF item ? 'unit' AND (jsonb_typeof(item->'unit') IS DISTINCT FROM 'string' OR length(item->>'unit')>100) THEN
+        RAISE EXCEPTION 'Invalid item unit' USING ERRCODE = '22023';
+      END IF;
+      FOREACH field_name IN ARRAY ARRAY['cartonQty','cartonCbm'] LOOP
+        IF item ? field_name AND item->field_name <> 'null'::jsonb THEN
+          IF jsonb_typeof(item->field_name) IS DISTINCT FROM 'number' THEN
+            RAISE EXCEPTION 'Invalid packing snapshot' USING ERRCODE = '22023';
+          END IF;
+          IF (item->>field_name)::numeric<0 OR (item->>field_name)::numeric>(CASE field_name WHEN 'cartonQty' THEN 100000000 ELSE 1000000 END) THEN
+            RAISE EXCEPTION 'Invalid packing snapshot' USING ERRCODE = '22023';
+          END IF;
+        END IF;
+      END LOOP;
+    END IF;
     item_quantity := (item->>'quantity')::numeric;
     IF item_quantity <= 0 OR item_quantity >= 100000000000000 OR round(item_quantity,4) <> item_quantity THEN
       RAISE EXCEPTION 'Invalid item quantity' USING ERRCODE = '22023';
     END IF;
   END LOOP;
 
-  INSERT INTO public.romiku_website_inquiries(customer_name,company,email,whatsapp,country,message,raw_payload,owner_id)
-  VALUES(payload->>'customerName',payload->>'company',payload->>'email',nullif(btrim(payload->>'whatsapp', E' \t\n\r'),''),payload->>'country',payload->>'message',payload,NULL)
+  INSERT INTO public.romiku_website_inquiries(submission_id,source,brand,customer_name,company,email,whatsapp,country,message,raw_payload,owner_id)
+  VALUES(submission_uuid,'website',payload->>'brand',payload->>'customerName',payload->>'company',payload->>'email',nullif(btrim(payload->>'whatsapp', E' \t\n\r'),''),payload->>'country',payload->>'message',payload,NULL)
   RETURNING romiku_website_inquiries.id,romiku_website_inquiries.document_number INTO inquiry_id,inquiry_number;
-  INSERT INTO public.romiku_website_inquiry_items(inquiry_id,sku,quantity,requirement,owner_id)
-  SELECT inquiry_id,value->>'sku',(value->>'quantity')::numeric,value->>'requirement',NULL
-  FROM jsonb_array_elements(payload->'items');
-  RETURN QUERY SELECT inquiry_id,inquiry_number;
+  INSERT INTO public.romiku_website_inquiry_items(inquiry_id,sku,quantity,requirement,product_snapshot,owner_id,position)
+  SELECT inquiry_id,value->>'sku',(value->>'quantity')::numeric,value->>'requirement',
+    CASE WHEN submission_uuid IS NULL THEN '{}'::jsonb ELSE jsonb_strip_nulls(jsonb_build_object(
+      'name',value->>'productName','image_url',value->>'image','specification',value->>'specification',
+      'unit',value->>'unit','cartonQty',value->'cartonQty','carton_cbm',value->'cartonCbm')) END,NULL,ordinality
+  FROM jsonb_array_elements(payload->'items') WITH ORDINALITY;
+  RETURN QUERY SELECT h.id,h.document_number,false,h.submitted_at,h.raw_payload FROM public.romiku_website_inquiries h WHERE h.id=inquiry_id;
 END;
 $$;
 

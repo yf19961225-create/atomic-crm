@@ -4,9 +4,18 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/website-inquiries.ts": { "maxDuration": 30 }
+    "api/website-inquiries.ts": {
+      "maxDuration": 30
+    },
+    "api/website-inquiry-xlsx.ts": {
+      "maxDuration": 60,
+      "includeFiles": "src/assets/inquiry-templates/*.xlsx"
+    }
   },
   "rewrites": [
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api(?:/|$)).*)",
+      "destination": "/index.html"
+    }
   ]
 }

@@ -1,5 +1,6 @@
 import type { DataProvider, Identifier, RaRecord } from "ra-core";
-import type { Values } from "../outbound/WorkflowFields";
+// Keep snapshot helpers usable by server-side XLSX without importing React UI.
+type Values = Record<string, unknown>;
 import { quoteItemWrite, quoteTotals } from "../quotes/quoteWorkflow";
 
 export type CommercialDocumentKind = "quote" | "pi" | "order";

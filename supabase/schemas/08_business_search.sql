@@ -316,8 +316,8 @@ alter table public.romiku_outbound_companies
 create index romiku_outbound_companies_business_search_idx on public.romiku_outbound_companies using gin (business_search_text extensions.gin_trgm_ops);
 
 alter table public.romiku_website_inquiries
-  add column business_search_fields jsonb generated always as (public.romiku_search_fields(jsonb_object(array['document_number',document_number,'customer_name',customer_name,'company',company,'email',email,'whatsapp',whatsapp,'country',country,'message',message,'status',status,'processing_notes',processing_notes])||jsonb_object(array['submitted_at',public.romiku_search_date(submitted_at)]))) stored,
-  add column business_search_text text generated always as (public.romiku_search_text(jsonb_object(array['document_number',document_number,'customer_name',customer_name,'company',company,'email',email,'whatsapp',whatsapp,'country',country,'message',message,'status',status,'processing_notes',processing_notes])||jsonb_object(array['submitted_at',public.romiku_search_date(submitted_at)]))) stored;
+  add column business_search_fields jsonb generated always as (public.romiku_search_fields(jsonb_object(array['document_number',document_number,'customer_name',customer_name,'brand',brand,'company',company,'email',email,'whatsapp',whatsapp,'country',country,'message',message,'status',status,'processing_notes',processing_notes])||jsonb_object(array['submitted_at',public.romiku_search_date(submitted_at)]))) stored,
+  add column business_search_text text generated always as (public.romiku_search_text(jsonb_object(array['document_number',document_number,'customer_name',customer_name,'brand',brand,'company',company,'email',email,'whatsapp',whatsapp,'country',country,'message',message,'status',status,'processing_notes',processing_notes])||jsonb_object(array['submitted_at',public.romiku_search_date(submitted_at)]))) stored;
 create index romiku_website_inquiries_business_search_idx on public.romiku_website_inquiries using gin (business_search_text extensions.gin_trgm_ops);
 
 alter table public.romiku_quotes

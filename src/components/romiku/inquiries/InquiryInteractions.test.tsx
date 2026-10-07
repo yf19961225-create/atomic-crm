@@ -26,11 +26,15 @@ const inquiry = {
   status_changed_at: new Date(Date.now() - 3 * 86400000).toISOString(),
   raw_payload: { original: true },
 };
-async function setup(path = "/website-inquiries") {
+async function setup(
+  path = "/website-inquiries",
+  items: Array<{ id: string; [key: string]: unknown }> = [],
+) {
   const provider = fakeRestDataProvider({
     sales: [],
+    romiku_quotes: [],
     romiku_website_inquiries: [inquiry],
-    romiku_website_inquiry_items: [],
+    romiku_website_inquiry_items: items,
     romiku_website_inquiry_followups: [],
     romiku_outbound_companies: [],
     romiku_formal_customers: [],
@@ -240,4 +244,49 @@ it("updates a pristine detail form after stale cached data refetches without dis
   await expect
     .element(screen.getByLabelText("状态", { exact: true }))
     .toHaveValue("quoted");
+});
+
+it("renders saved legacy localized product snapshots safely in original submission order", async () => {
+  const { screen } = await setup("/website-inquiries?record=i1", [
+    {
+      id: "a",
+      inquiry_id: "i1",
+      position: 2,
+      sku: "SECOND",
+      quantity: 600,
+      product_snapshot: {
+        name: "Canonical Gel",
+        image_url: "",
+        specification: "15ml",
+      },
+    },
+    {
+      id: "z",
+      inquiry_id: "i1",
+      position: 1,
+      sku: "FIRST",
+      quantity: 120,
+      product_snapshot: {
+        name: { en: "Saved Legacy Lamp", zh: "旧灯" },
+        parameters: [{ label: { en: "Power" }, value: { en: "48W" } }],
+      },
+    },
+  ]);
+  await screen.getByRole("tab", { name: "原始提交", exact: true }).click();
+  await expect
+    .element(
+      screen.getByRole("cell", { name: "Saved Legacy Lamp", exact: true }),
+    )
+    .toBeVisible();
+  await expect
+    .element(screen.getByRole("cell", { name: "Power: 48W", exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByRole("cell", { name: "Canonical Gel", exact: true }))
+    .toBeVisible();
+  expect(
+    Array.from(document.querySelectorAll('[role="dialog"] tbody tr')).map(
+      (row) => row.querySelector("td")?.textContent,
+    ),
+  ).toEqual(["FIRST", "SECOND"]);
 });

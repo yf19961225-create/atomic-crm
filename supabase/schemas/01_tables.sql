@@ -319,6 +319,9 @@ create table public.romiku_customer_contacts (
 );
 
 create table public.romiku_website_inquiries (
+    submission_id uuid unique,
+    source text not null default 'website' check (source = 'website'),
+    brand text,
     id uuid primary key default gen_random_uuid(),
     document_number text not null unique,
     submitted_at timestamptz not null default now(),
@@ -343,6 +346,7 @@ create table public.romiku_website_inquiries (
 );
 
 create table public.romiku_website_inquiry_items (
+    position integer not null default 0 check(position>=0),
     id uuid primary key default gen_random_uuid(),
     inquiry_id uuid not null references public.romiku_website_inquiries(id),
     sku text not null,
@@ -410,6 +414,7 @@ create table public.romiku_quotes (
 );
 
 create table public.romiku_quote_items (
+    requested_quantity_snapshot numeric(18,4) check (requested_quantity_snapshot > 0),
     id uuid primary key default gen_random_uuid(),
     quote_id uuid not null references public.romiku_quotes(id),
     source_website_inquiry_item_id uuid references public.romiku_website_inquiry_items(id),

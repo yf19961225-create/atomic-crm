@@ -1,0 +1,10 @@
+{
+  "name": "romiku-controlled-website-qa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs && node tests/run-php.mjs",
+    "test:browser": "node --test tests/*.test.mjs",
+    "test:php": "node tests/run-php.mjs"
+  }
+}

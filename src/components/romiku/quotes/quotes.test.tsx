@@ -33,6 +33,7 @@ const setup = async (
   options: {
     quote?: Record<string, unknown>;
     items?: Record<string, unknown>[];
+    inquiryItems?: Record<string, unknown>[];
   } = {},
 ) => {
   await page.viewport(1440, 1000);
@@ -65,7 +66,7 @@ const setup = async (
         raw_payload: { original: true },
       },
     ],
-    romiku_website_inquiry_items: [
+    romiku_website_inquiry_items: options.inquiryItems ?? [
       {
         id: "i1",
         inquiry_id: "in",
@@ -93,7 +94,7 @@ const setup = async (
 
 it("opens inquiry selection without creating a Quote, then confirms only the selected originals", async () => {
   const { screen } = await setup("/website-inquiries?record=in");
-  await screen.getByRole("link", { name: "新建报价单" }).click();
+  await screen.getByRole("link", { name: "创建报价单" }).click();
   await expect
     .element(screen.getByRole("heading", { name: "确认询盘产品项" }))
     .toBeVisible();
@@ -413,4 +414,67 @@ it("stages edits until Save, restores them on Cancel, and guards leaving with ch
       .counterparty_snapshot,
   ).toEqual({ name: "Ana" });
   confirm.mockRestore();
+});
+
+it("confirms Inquiry items in saved position order rather than UUID order", async () => {
+  const { screen } = await setup("/quotes/new?source=inquiry&sourceId=in", {
+    inquiryItems: [
+      { id: "a", inquiry_id: "in", position: 2, sku: "SECOND", quantity: 600 },
+      { id: "z", inquiry_id: "in", position: 1, sku: "FIRST", quantity: 120 },
+    ],
+  });
+  await expect
+    .element(screen.getByRole("heading", { name: "确认询盘产品项" }))
+    .toBeVisible();
+  expect(
+    Array.from(document.querySelectorAll('input[type="checkbox"]')).map(
+      (input) => input.getAttribute("aria-label"),
+    ),
+  ).toEqual(["包含 FIRST", "包含 SECOND"]);
+  await screen.getByRole("button", { name: "确认并创建报价单" }).click();
+  await expect
+    .poll(() => rpc.mock.calls)
+    .toContainEqual([
+      "romiku_quote_from_inquiry",
+      { inquiry_id: "in", selected_item_ids: ["z", "a"] },
+    ]);
+});
+
+it("exports an edited website Quote contact without changing its company or source Inquiry", async () => {
+  const { normalizeQuoteExportModel } = await import("./quoteExportModel");
+  const { screen, provider } = await setup("/quotes/q", {
+    quote: {
+      counterparty_snapshot: {
+        name: "Ana",
+        contact_name: "Ana",
+        company: "ABC Nails",
+        email: "ana@example.test",
+      },
+    },
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "采购方与详情" }).click();
+  await screen.getByLabelText("采购方名称", { exact: true }).fill("Bob");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .poll(
+      async () =>
+        (await provider.getOne("romiku_quotes", { id: "q" })).data
+          .counterparty_snapshot.name,
+    )
+    .toBe("Bob");
+  const saved = (await provider.getOne("romiku_quotes", { id: "q" })).data;
+  expect(normalizeQuoteExportModel(saved, []).buyer.company_name).toBe(
+    "ABC Nails\nBob",
+  );
+  expect(saved.counterparty_snapshot).toMatchObject({
+    name: "Bob",
+    contact_name: "Bob",
+    company: "ABC Nails",
+    email: "ana@example.test",
+  });
+  expect(
+    (await provider.getOne("romiku_website_inquiries", { id: "in" })).data
+      .customer_name,
+  ).toBe("Ana");
 });

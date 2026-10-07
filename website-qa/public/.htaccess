@@ -1,0 +1,6 @@
+Options -Indexes
+DirectoryIndex index.php
+AddType text/javascript .mjs
+<FilesMatch "\.(?:json|xlsx|lock|log)$">
+  Require all denied
+</FilesMatch>

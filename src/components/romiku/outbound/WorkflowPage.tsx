@@ -1,3 +1,4 @@
+import { InquiryQuoteLinks } from "../inquiries/InquiryQuoteLinks";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { statusOptions } from "../shared/workflowStatus";
@@ -680,9 +681,12 @@ function RecordEditor({
           <Link
             to={`/quotes/new?source=${config.kind}&sourceId=${encodeURIComponent(record.id)}`}
           >
-            新建报价单
+            {config.kind === "inquiry" ? "创建报价单" : "新建报价单"}
           </Link>
         </Button>
+      )}
+      {record && config.kind === "inquiry" && (
+        <InquiryQuoteLinks inquiryId={String(record.id)} />
       )}
       {record && config.kind === "outbound" && (
         <RecordDelete

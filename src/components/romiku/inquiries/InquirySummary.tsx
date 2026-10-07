@@ -12,6 +12,7 @@ export function InquirySummary({ record }: { record: RaRecord }) {
         "document_number",
         "customer_name",
         "company",
+        "brand",
         "country",
         "email",
         "whatsapp",

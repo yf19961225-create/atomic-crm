@@ -108,6 +108,7 @@ export const inquiryFieldLabel = (value: string) =>
     document_number: "询盘编号",
     customer_name: "客户名称",
     company: "公司名称",
+    brand: "品牌",
     email: "电子邮箱",
     whatsapp: "WhatsApp",
     country: "国家／地区",

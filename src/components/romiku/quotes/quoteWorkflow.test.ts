@@ -191,3 +191,40 @@ describe("Quote snapshot boundaries", () => {
     ).toEqual({ subtotal: 2.02, total: 2.02 });
   });
 });
+
+it("keeps unrelated contact snapshots unchanged when saving headers", () => {
+  const buyer = {
+    name: "ABC Nails",
+    company: "ABC Nails",
+    contact_name: "Anna",
+  };
+  const previous = {
+    source_website_inquiry_id: "inquiry",
+    counterparty_snapshot: buyer,
+  };
+  expect(
+    quoteHeaderWrite({ counterparty_snapshot: buyer }, previous)
+      .counterparty_snapshot,
+  ).toEqual(buyer);
+  const edited = { ...buyer, name: "Edited buyer" };
+  expect(
+    quoteHeaderWrite({ counterparty_snapshot: edited }).counterparty_snapshot,
+  ).toEqual(edited);
+  const sourceBuyer = {
+    name: "Anna",
+    contact_name: "Anna",
+    company: "ABC Nails",
+  };
+  const source = {
+    source_website_inquiry_id: "inquiry",
+    counterparty_snapshot: sourceBuyer,
+  };
+  const values = { counterparty_snapshot: { ...sourceBuyer, name: "Bob" } };
+  expect(quoteHeaderWrite(values, source).counterparty_snapshot).toMatchObject({
+    name: "Bob",
+    contact_name: "Bob",
+    company: "ABC Nails",
+  });
+  expect(sourceBuyer.contact_name).toBe("Anna");
+  expect(values.counterparty_snapshot.contact_name).toBe("Anna");
+});

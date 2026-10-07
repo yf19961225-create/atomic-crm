@@ -8,6 +8,8 @@ const nonempty = (max: number) =>
     .max(max)
     .refine((value) => value.trim().length > 0);
 const submissionSchema = z.object({
+  submissionId: z.uuid(),
+  brand: z.string().max(200).optional(),
   customerName: nonempty(200),
   email: z
     .string()
@@ -21,6 +23,21 @@ const submissionSchema = z.object({
     .array(
       z.object({
         sku: nonempty(200),
+        productName: nonempty(500),
+        image: z
+          .string()
+          .max(2048)
+          .refine(
+            (value) =>
+              value === "" ||
+              /^https:\/\/romiku\.com\/images\/products-local\/[^?#]+$/.test(
+                value,
+              ),
+          ),
+        specification: z.string().max(10_000),
+        unit: z.string().max(100).optional(),
+        cartonQty: z.number().nonnegative().max(100_000_000).nullish(),
+        cartonCbm: z.number().nonnegative().max(1_000_000).nullish(),
         quantity: z
           .number()
           .positive()
@@ -32,9 +49,16 @@ const submissionSchema = z.object({
     .min(1)
     .max(100),
 });
-type Submission = z.infer<typeof submissionSchema>;
 const receiptSchema = z
-  .array(z.object({ id: z.uuid(), document_number: z.string().min(1) }))
+  .array(
+    z.object({
+      id: z.uuid(),
+      document_number: z.string().min(1),
+      replay: z.boolean(),
+      submitted_at: z.string().min(1),
+      normalizedSubmission: submissionSchema,
+    }),
+  )
   .length(1);
 const maxBodyBytes = 1_048_576;
 
@@ -72,66 +96,6 @@ async function readBody(request: Request) {
     chunks.push(value);
   }
   return Buffer.concat(chunks).toString("utf8");
-}
-
-async function enrichItems(
-  inquiryId: string,
-  items: Submission["items"],
-  restUrl: string,
-  headers: Record<string, string>,
-) {
-  // Existing public Sanity catalog; no private token or second product master.
-  // A single budget covers lookup and updates. All originals are already saved.
-  const signal = AbortSignal.timeout(2_000);
-  const skus = [...new Set(items.map((item) => item.sku))];
-  const params = new URLSearchParams({
-    query:
-      '*[_type == "product" && sku in $skus && !(_id in path("drafts.**"))]{_id,sku,name,images[]{url},parameters[]{label,value},category->{_id,title},moqQuantity,moqUnit,packaging,cartonQty,powerSupply,isPublished,colors}',
-    $skus: JSON.stringify(skus),
-  });
-  const response = await fetch(
-    `https://gxuvcyaa.api.sanity.io/v2025-07-05/data/query/production?${params}`,
-    { signal },
-  );
-  if (!response.ok) throw new Error("enrichment_failed");
-  const { result } = (await response.json()) as {
-    result?: Array<Record<string, unknown>>;
-  };
-  if (!Array.isArray(result)) throw new Error("enrichment_failed");
-  // Bound concurrency to avoid a large item list flooding Supabase.
-  for (let start = 0; start < skus.length; start += 5) {
-    await Promise.all(
-      skus.slice(start, start + 5).map(async (sku) => {
-        const product = result.find(
-          (record) => record?.sku === sku && typeof record._id === "string",
-        );
-        const filters = new URLSearchParams({
-          inquiry_id: `eq.${inquiryId}`,
-          // Quote/escape PostgREST filter values so literal commas/quotes in SKUs
-          // cannot alter which rows get enrichment metadata.
-          sku: `eq.${JSON.stringify(sku)}`,
-        });
-        const updated = await fetch(
-          `${restUrl}/romiku_website_inquiry_items?${filters}`,
-          {
-            method: "PATCH",
-            headers,
-            signal,
-            body: JSON.stringify(
-              product
-                ? {
-                    sanity_product_id: product._id,
-                    product_snapshot: product,
-                    match_status: "matched",
-                  }
-                : { match_status: "not_found" },
-            ),
-          },
-        );
-        if (!updated.ok) throw new Error("enrichment_failed");
-      }),
-    );
-  }
 }
 
 export default {
@@ -179,8 +143,8 @@ export default {
           method: "POST",
           headers,
           signal: AbortSignal.timeout(10_000),
-          // Preserve unknown business fields; never append HTTP headers or secrets.
-          body: JSON.stringify({ payload: rawPayload }),
+          // Only normalized business fields cross the persistence boundary.
+          body: JSON.stringify({ payload: validated.data }),
         },
       );
       if (!result.ok) return reject(503, "intake_unavailable");
@@ -188,14 +152,12 @@ export default {
     } catch {
       return reject(503, "intake_unavailable");
     }
-    try {
-      await enrichItems(receipt.id, validated.data.items, restUrl, headers);
-    } catch {
-      console.warn("website_inquiry_enrichment_failed");
-    }
     return Response.json(
       { success: true, ...receipt },
-      { status: 201, headers: { "Cache-Control": "no-store" } },
+      {
+        status: receipt.replay ? 200 : 201,
+        headers: { "Cache-Control": "no-store" },
+      },
     );
   },
 };

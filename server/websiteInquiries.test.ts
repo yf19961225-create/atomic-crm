@@ -2,19 +2,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import endpoint from "../api/website-inquiries";
 
 const payload = {
+  submissionId: "3b8b98ae-7d89-461c-bf5f-9a43ef4a598b",
+  brand: "Original brand",
   customerName: " Original buyer ",
   email: "buyer@example.test",
   whatsapp: "+57 123",
   country: "Colombia",
   message: "Original request",
   items: [
-    { sku: "SUNS15", quantity: 20, requirement: "White packaging" },
-    { sku: "UNKNOWN", quantity: 1.25, requirement: "" },
+    {
+      sku: "SUNS15",
+      productName: "Lamp",
+      image: "https://romiku.com/images/products-local/lamp.jpg",
+      specification: "48W",
+      unit: "pcs",
+      cartonQty: 32,
+      cartonCbm: 0.125,
+      quantity: 20,
+      requirement: "White packaging",
+    },
+    {
+      sku: "UNKNOWN",
+      productName: "Unlisted",
+      image: "",
+      specification: "",
+      quantity: 1.25,
+      requirement: "",
+    },
   ],
 };
 const saved = {
   id: "10000000-0000-4000-8000-000000000001",
   document_number: "WI-000001",
+  replay: false,
+  submitted_at: "2026-10-06T10:00:00Z",
+  normalizedSubmission: payload,
 };
 const fetchMock = vi.fn<typeof fetch>();
 let warn: ReturnType<typeof vi.spyOn>;
@@ -118,7 +140,24 @@ describe("website intake HTTP boundary", () => {
     null,
     [],
     {},
+    { ...payload, submissionId: undefined },
+    { ...payload, submissionId: "not-a-uuid" },
+    { ...payload, brand: 100 },
     { ...payload, customerName: " " },
+    { ...payload, items: [{ ...payload.items[0], productName: "" }] },
+    {
+      ...payload,
+      items: [{ ...payload.items[0], image: "data:image/png;base64,AA" }],
+    },
+    {
+      ...payload,
+      items: [
+        { ...payload.items[0], image: "https://untrusted.example/image.jpg" },
+      ],
+    },
+    { ...payload, items: [{ ...payload.items[0], specification: undefined }] },
+    { ...payload, items: [{ ...payload.items[0], cartonQty: -1 }] },
+    { ...payload, items: [{ ...payload.items[0], cartonCbm: "1.25" }] },
     { ...payload, email: "invalid" },
     { ...payload, whatsapp: 573001234567 },
     { ...payload, country: 3 },
@@ -162,7 +201,9 @@ describe("website intake HTTP boundary", () => {
       expect(new Headers(options?.headers).get("authorization")).toBe(
         "Bearer test-service-role",
       );
-      expect(JSON.parse(options?.body as string)).toEqual({ payload: body });
+      expect(JSON.parse(options?.body as string)).toEqual({
+        payload: { ...payload, ...(company === undefined ? {} : { company }) },
+      });
       expect(JSON.stringify(options?.body)).not.toContain("test-secret");
     },
   );
@@ -198,48 +239,29 @@ describe("website intake HTTP boundary", () => {
     },
   );
 
-  it("persists before bounded best-effort Sanity lookup; enrichment failure still succeeds", async () => {
-    fetchMock.mockImplementation(async (url) => {
-      if (String(url).includes("/rpc/")) return Response.json([saved]);
-      throw new Error("Sanity unavailable");
-    });
-    const response = await endpoint.fetch(request());
-    expect(response.status).toBe(201);
-    expect(String(fetchMock.mock.calls[0][0])).toContain("/rpc/");
-    const lookup = fetchMock.mock.calls.find(([url]) =>
-      String(url).includes("api.sanity.io"),
-    );
-    expect(lookup).toBeDefined();
-    expect(lookup?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  it("does not look up live Sanity or modify saved snapshots after persistence", async () => {
+    expect((await endpoint.fetch(request())).status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("enriches only item metadata, never original SKU, quantity or requirement", async () => {
-    fetchMock.mockImplementation(async (url) => {
-      if (String(url).includes("/rpc/")) return Response.json([saved]);
-      if (String(url).includes("api.sanity.io"))
-        return Response.json({
-          result: [{ _id: "sanity-one", sku: "SUNS15", name: { en: "Lamp" } }],
-        });
-      return new Response(null, { status: 204 });
-    });
-    expect((await endpoint.fetch(request())).status).toBe(201);
-    const patches = fetchMock.mock.calls.filter(
-      ([, options]) => options?.method === "PATCH",
+  it("replay returns the original saved submission and date, never an altered retry", async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json([{ ...saved, replay: true }]),
     );
-    expect(patches).toHaveLength(2);
-    expect(String(patches[0][0])).toContain(`inquiry_id=eq.${saved.id}`);
-    expect(JSON.parse(patches[0][1]?.body as string)).toEqual({
-      sanity_product_id: "sanity-one",
-      product_snapshot: {
-        _id: "sanity-one",
-        sku: "SUNS15",
-        name: { en: "Lamp" },
-      },
-      match_status: "matched",
+    const response = await endpoint.fetch(
+      request({
+        ...payload,
+        company: "Changed retry",
+        items: [{ ...payload.items[0], quantity: 999 }],
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      ...saved,
+      replay: true,
     });
-    expect(JSON.parse(patches[1][1]?.body as string)).toEqual({
-      match_status: "not_found",
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -257,3 +279,16 @@ it.each([undefined, null, "", "   ", " +57 300 123 4567 "])(
     });
   },
 );
+
+it("accepts unknown packing values as null while retaining the normalized original", async () => {
+  const body = {
+    ...payload,
+    items: [{ ...payload.items[0], cartonQty: null, cartonCbm: null }],
+  };
+  fetchMock.mockResolvedValueOnce(
+    Response.json([{ ...saved, normalizedSubmission: body }]),
+  );
+  const response = await endpoint.fetch(request(body));
+  expect(response.status).toBe(201);
+  expect((await response.json()).normalizedSubmission).toEqual(body);
+});

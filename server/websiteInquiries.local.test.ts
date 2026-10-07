@@ -30,7 +30,7 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
       return result.json();
     };
     const body = {
-      customerName: "Task9 local API fixture",
+      customerName: `Task9 local API fixture ${fixture}`,
       email: "task9@example.test",
       whatsapp: "+57 123",
       country: "Colombia",
@@ -38,13 +38,21 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
       items: [
         {
           sku: "TASK9-UNKNOWN",
+          productName: "Saved product",
+          image: "",
+          specification: "",
           quantity: 20,
           requirement: "Keep original",
-          custom: { source: true },
         },
-        { sku: "TASK9-UNKNOWN", quantity: 1.25, requirement: "" },
+        {
+          sku: "TASK9-UNKNOWN",
+          productName: "Saved product",
+          image: "",
+          specification: "",
+          quantity: 1.25,
+          requirement: "",
+        },
       ],
-      task9Fixture: fixture,
     };
     const before = await Promise.all(
       [
@@ -72,6 +80,7 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
       for (const withCompany of [false, true]) {
         const payload = {
           ...body,
+          submissionId: randomUUID(),
           ...(withCompany ? { company: "Optional Company" } : {}),
         };
         const response = await endpoint.fetch(
@@ -96,7 +105,7 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
           raw_payload: payload,
           owner_id: null,
           created_by: null,
-          status: "new",
+          status: "pending_screening",
           company: withCompany ? "Optional Company" : null,
         });
         const items = await read(
@@ -105,12 +114,22 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
         expect(items).toHaveLength(2);
         expect(items[0]).toMatchObject({
           sku: "TASK9-UNKNOWN",
+          product_snapshot: {
+            name: "Saved product",
+            image_url: "",
+            specification: "",
+          },
           quantity: 20,
           requirement: "Keep original",
           match_status: "unresolved",
         });
         expect(items[1]).toMatchObject({
           sku: "TASK9-UNKNOWN",
+          product_snapshot: {
+            name: "Saved product",
+            image_url: "",
+            specification: "",
+          },
           quantity: 1.25,
           requirement: "",
         });
@@ -148,8 +167,9 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
         ],
         {
           input: `BEGIN; SET LOCAL session_replication_role=replica;
-        DELETE FROM public.romiku_website_inquiry_items WHERE inquiry_id IN (SELECT id FROM public.romiku_website_inquiries WHERE raw_payload->>'task9Fixture'='${fixture}');
-        DELETE FROM public.romiku_website_inquiries WHERE raw_payload->>'task9Fixture'='${fixture}'; COMMIT;`,
+        DELETE FROM public.romiku_status_history WHERE resource_type='website_inquiry' AND resource_id IN (SELECT id FROM public.romiku_website_inquiries WHERE customer_name='Task9 local API fixture ${fixture}');
+        DELETE FROM public.romiku_website_inquiry_items WHERE inquiry_id IN (SELECT id FROM public.romiku_website_inquiries WHERE customer_name='Task9 local API fixture ${fixture}');
+        DELETE FROM public.romiku_website_inquiries WHERE customer_name='Task9 local API fixture ${fixture}'; COMMIT;`,
           stdio: ["pipe", "ignore", "pipe"],
         },
       );

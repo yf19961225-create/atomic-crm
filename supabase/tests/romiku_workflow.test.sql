@@ -16,11 +16,11 @@ insert into ids(kind) values('order'),('quote'),('pi'),('production'),('packing'
 insert into romiku_formal_customers(id,name) select id,'Workflow Customer' from ids where kind='customer';
 insert into romiku_orders(id,formal_customer_id,freight,currency) select id,(select id from ids where kind='customer'),10000,'USD' from ids where kind='order';
 insert into romiku_orders(id) select id from ids where kind='order2';
-insert into romiku_quotes(id) select id from ids where kind='quote';
+insert into romiku_website_inquiries(id,customer_name,email) select id,'Workflow Inquiry','workflow@example.test' from ids where kind='website_inquiry';
+insert into romiku_quotes(id,source_website_inquiry_id) select id,(select id from ids where kind='website_inquiry') from ids where kind='quote';
 insert into romiku_pis(id) select id from ids where kind='pi';
 insert into romiku_packing_lists(id) select id from ids where kind='packing';
 insert into romiku_outbound_companies(id,name) select id,'Workflow Outbound' from ids where kind='outbound';
-insert into romiku_website_inquiries(id,customer_name,email) select id,'Workflow Inquiry','workflow@example.test' from ids where kind='website_inquiry';
 select is((select status from romiku_quotes where id=(select id from ids where kind='quote')),'pending_quote','new quote default');
 select is((select status from romiku_packing_lists where id=(select id from ids where kind='packing')),'draft','new packing default');
 select is((select status from romiku_website_inquiries where id=(select id from ids where kind='website_inquiry')),'pending_screening','new inquiry default');
@@ -85,7 +85,6 @@ select is(romiku_batch_delete('pi',array[(select id from ids where kind='pi')])-
 insert into romiku_production_followups(production_order_id,method,summary) select id,'email','history' from ids where kind='production';
 select is(jsonb_array_length(romiku_delete_preflight('production',array[(select id from ids where kind='production'),(select id from ids where kind='production2')])->'blocked'),1,'mixed production classified');
 select is(jsonb_array_length(romiku_batch_delete('packing',array[(select id from ids where kind='packing')])->'succeeded'),1,'independent packing controlled delete');
-update romiku_quotes set source_website_inquiry_id=(select id from ids where kind='website_inquiry') where id=(select id from ids where kind='quote');
 select is(jsonb_array_length(romiku_delete_preflight('website_inquiry',array[(select id from ids where kind='website_inquiry')])->'blocked'),1,'Inquiry commercial source blocked');
 select is(romiku_delete_record('website_inquiry',(select id from ids where kind='website_inquiry'))->>'code','HAS_DOWNSTREAM','Inquiry actual delete blocked');
 update romiku_quotes set outbound_company_id=(select id from ids where kind='outbound') where id=(select id from ids where kind='quote');

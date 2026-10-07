@@ -13,7 +13,16 @@ import {
   type RowStyle,
 } from "../orders/orderXlsxRenderer";
 
-const PRODUCT_START = 8;
+export type QuoteRenderOptions = {
+  prepareImage?: (
+    url: string,
+    row: number,
+  ) => Promise<PreparedProductImage | undefined>;
+  /** Inquiry keeps its fixed ROMIKU supplier block verbatim. */
+  preserveTemplateSeller?: boolean;
+};
+
+const PRODUCT_START = 9;
 const TEMPLATE_PRODUCT_ROWS = 4;
 
 export type QuoteTemplateLayout = {
@@ -61,14 +70,20 @@ const styleForProductRow = (
 export async function renderQuoteXlsx(
   model: QuoteExportModel,
   template: ArrayBuffer,
+  options: QuoteRenderOptions = {},
 ): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(template);
   const sheet = workbook.worksheets[0];
+  const columns = model.templateKind === "website" ? 9 : 8;
   const styles = {
-    first: captureStyle(sheet, PRODUCT_START),
-    middle: captureStyle(sheet, PRODUCT_START + 1),
-    last: captureStyle(sheet, PRODUCT_START + TEMPLATE_PRODUCT_ROWS - 1),
+    first: captureStyle(sheet, PRODUCT_START, columns),
+    middle: captureStyle(sheet, PRODUCT_START + 1, columns),
+    last: captureStyle(
+      sheet,
+      PRODUCT_START + TEMPLATE_PRODUCT_ROWS - 1,
+      columns,
+    ),
   };
   const layout = buildQuoteTemplateLayout(model.items.length);
 
@@ -84,16 +99,27 @@ export async function renderQuoteXlsx(
     Math.max(PRODUCT_START + TEMPLATE_PRODUCT_ROWS, layout.lastProductRow),
   );
   sheet.name = model.worksheetName;
-  sheet.getCell("H1").value =
+  sheet.getCell(1, columns).value =
     `${model.document.number}\n${formatDate(model.document.date)}`;
+  if (!options.preserveTemplateSeller)
+    [
+      model.seller.company_name,
+      model.seller.address,
+      model.seller.tel_whatsapp,
+      model.seller.website,
+      model.seller.email,
+    ].forEach((value, index) => {
+      sheet.getCell(3 + index, 3).value = value;
+    });
+
   [
-    model.seller.company_name,
-    model.seller.address,
-    model.seller.tel_whatsapp,
-    model.seller.website,
-    model.seller.email,
+    model.buyer.company_name,
+    model.buyer.address,
+    model.buyer.tel_whatsapp,
+    model.buyer.website,
+    model.buyer.email,
   ].forEach((value, index) => {
-    sheet.getCell(2 + index, 3).value = value;
+    sheet.getCell(3 + index, 6).value = value || null;
   });
 
   model.items.forEach((item, index) => {
@@ -102,31 +128,36 @@ export async function renderQuoteXlsx(
       sheet,
       row,
       styleForProductRow(index, model.items.length, styles),
+      columns,
     );
     sheet.getCell(row, 1).value = item.position;
     sheet.getCell(row, 2).value = item.sku;
     sheet.getCell(row, 3).value = item.name;
     sheet.getCell(row, 5).value = item.specification;
-    sheet.getCell(row, 6).value = item.qtyPerCarton;
-    sheet.getCell(row, 7).value = item.unitPrice;
-    sheet.getCell(row, 8).value = item.cartonCbm;
-    sheet.getCell(row, 7).numFmt = moneyFormat(model.currency);
-    sheet.getCell(row, 8).numFmt = "0.000";
+    if (columns === 9) sheet.getCell(row, 6).value = item.requestedQuantity;
+    sheet.getCell(row, columns - 2).value = item.qtyPerCarton;
+    sheet.getCell(row, columns - 1).value = item.unitPrice;
+    sheet.getCell(row, columns).value = item.cartonCbm;
+    sheet.getCell(row, columns - 1).numFmt = moneyFormat(model.currency);
+    sheet.getCell(row, columns).numFmt = "0.000";
   });
   const productImages = (
     await Promise.all(
       model.items.map((item, index) =>
-        prepareProductImage(item.imageUrl, layout.productStart + index),
+        (options.prepareImage || prepareProductImage)(
+          item.imageUrl,
+          layout.productStart + index,
+        ),
       ),
     )
   ).filter((image): image is PreparedProductImage => Boolean(image));
 
-  sheet.pageSetup.printArea = `A1:H${layout.lastProductRow}`;
+  sheet.pageSetup.printArea = `A1:${columns === 9 ? "I" : "H"}${layout.lastProductRow}`;
   return preserveTemplatePackage(
     template,
     await workbook.xlsx.writeBuffer(),
     productImages,
     model.worksheetName,
-    7,
+    8,
   );
 }

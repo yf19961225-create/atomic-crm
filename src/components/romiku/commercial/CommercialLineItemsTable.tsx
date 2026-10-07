@@ -1,3 +1,4 @@
+import { RequestedQuantity } from "../quotes/RequestedQuantity";
 import {
   useMemo,
   useRef,
@@ -47,6 +48,7 @@ export function CommercialLineItemsTable({
   onItemsChange,
   quoteFxEnabled = false,
   quoteFxRate,
+  websiteSourceQuote = false,
 }: {
   kind: CommercialDocumentKind;
   documentId: string;
@@ -59,6 +61,7 @@ export function CommercialLineItemsTable({
   onItemsChange?: (items: CommercialItem[]) => void;
   quoteFxEnabled?: boolean;
   quoteFxRate?: unknown;
+  websiteSourceQuote?: boolean;
 }) {
   const compactQuote = kind === "quote";
   const quoteFxActive = compactQuote && quoteFxEnabled;
@@ -501,6 +504,10 @@ export function CommercialLineItemsTable({
                             )}
                           </td>
                           <td>
+                            <RequestedQuantity
+                              websiteSource={compactQuote && websiteSourceQuote}
+                              value={item.requested_quantity_snapshot}
+                            />
                             <div className="flex items-start gap-1">
                               <input
                                 ref={(element) => {

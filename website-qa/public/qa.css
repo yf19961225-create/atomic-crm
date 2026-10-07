@@ -1,0 +1,90 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #252525;
+  background: #f7f5f1;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 28px;
+  background: white;
+  border: 1px solid #ddd9d3;
+  border-radius: 12px;
+}
+.eyebrow {
+  letter-spacing: 0.15em;
+  font-size: 12px;
+  color: #902229;
+}
+h1 {
+  font-size: 34px;
+}
+fieldset {
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 8px;
+}
+label {
+  display: block;
+  margin: 12px 0;
+}
+input,
+textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  font: inherit;
+}
+textarea {
+  min-height: 80px;
+}
+button {
+  padding: 10px 16px;
+  margin: 10px 8px 10px 0;
+  border: 1px solid #902229;
+  border-radius: 5px;
+  background: white;
+  color: #902229;
+  cursor: pointer;
+}
+button[type="submit"] {
+  background: #902229;
+  color: white;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.product {
+  padding: 12px 0;
+  border-top: 1px solid #ddd;
+}
+.muted {
+  color: #666;
+  font-size: 14px;
+}
+#status:not(:empty) {
+  padding: 16px;
+  background: #f4e9d6;
+}
+@media (min-width: 700px) {
+  .product {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+}
+@media (max-width: 600px) {
+  main {
+    margin: 0;
+    padding: 20px;
+    border-radius: 0;
+  }
+}
