@@ -1,0 +1,145 @@
+4317eb4b9f09b55da696e6bb5ac5952b6fad9e29 docs: plan Product Library V2
+beb84b16d4db524f41e24427191af0a93290688e feat: add read-only Sanity catalog source
+826fe81c1775f158fb8403e7255015b6b17315f7 test: correct catalog cursor assertion
+9cd1183b215c402f60327101b03304bd8cc7f249 feat: add batched product procurement overlay
+aa93278c648cbcb712710ceecd463e9b1a98e046 test: cover catalog cursor traversal
+15a391d7e6536f398d42c4bb1982368474479668 feat: add Sanity catalog product library
+4b55982cd52db48e39af1234a732bff605f55ba1 feat: show procurement overlay in catalog
+1c3504daa58c08c4ceaa798cb52ecf203a1afc3b feat: add Sanity product drawer
+25021b5ceb710b3b4425e1bb5a7586e01e89930a feat: proxy catalog reads through Vercel
+74bf6ab002d081340ab9bde5fbe9cf32b73bf06d fix: bundle catalog query in Vercel function
+2472771d3f13d0763438cff175c43900dc319531 fix: paginate product catalog and handle missing images
+db9f4c188e07592b9a997d7d4644c0f55a65d47e fix: resolve catalog images from website data
+c8dfc15b25e73b19a1b6426c9a478c6fc77f083c fix: harden product catalog image loading
+67ae56565013f9652dcfa19f78489905188a38b2 chore: trigger product library preview
+01e0a220f32c623ba142a37d0aefd9ef73034ff1 fix: unify catalog product images
+87cad68a5d6a81a4b95ed0c4b9f905168ab80049 feat: add nullable payment receipt metadata
+05ce01c50631f959b9800f0fa092e7b9f8dcf0fc feat: add shared commercial item model
+df74c19ce92c48775e17c34e48a082ec47c53ad7 feat: add commercial product selection table
+da1310ed0c443eece71991822f1d1daf1da28cde feat: use shared line items in quotes
+2a14137700ab5612d56914589a41f9446049e3d1 test: cover shared quote line items
+d2aedb8c4fa0905fe30161781a74caf4118fd045 feat: use shared line items in documents
+385cccde72bc1877790744c61424d66d04ea332f fix: harden commercial line item editing
+927e9b0983175dd9c1f026344b70ee55b6ad53f5 feat: streamline commercial line item entry
+63f2c608c77b95a84cd86b7904cc26ac369af1b6 feat: add commercial draft rows
+234e37fa539e76eb504b5921fb2a64c60e2ca836 feat: stage commercial document edits
+5485943a3197f04dfd6934048e73e56c26ad1f91 feat: add commercial document header summary
+7f5f8c29f49be8d9be243e466623b33303d8b9f4 feat: surface commercial financial summary
+6f379fd9e959b6c208a210d31e7a94f4596797ef feat: show commercial deposit balance
+5af0828a3de547e1c1f6006cd56b94275a1cfbfa feat: place order payments on first page
+7c06744899b60a414a2763429dbc390435e21fdf feat: scope commercial specification snapshots
+731ea6a29a519b2e266b79dd6f1aae6ba0518ed9 feat: keep commercial entry fields on first page
+97f5c40a7a2f73249317dbe74b5ea434542d175c fix: isolate commercial edit session effects
+5cc7968de78cfbb29a3769e1d0c98c480c22e232 feat: streamline commercial document entry
+8c69ff76bc0ae40e7efd8fbc71f9096fa88fcf37 fix: refine commercial keyboard entry
+5a533b0631decd0d256f8bf0af8cd16b54aa4a59 feat: localize commercial document snapshots
+83cf23006c17fcad32e5194737345fa5f6fde94d fix: import quote machine power supply
+fd53ed8b8821c46788aa26eaf324a06858d6de0a fix: trace quote machine specifications
+6220f737d0269be1e9c834278ff502f305c9c204 fix: simplify quote machine specifications
+e3a6427912bd7794bf61f2ade76c3792051fa15d feat: add commercial daily document numbers
+4967b55d1b12096a9e7705dcab2c6ba813777e23 feat: select formal customers for commercial documents
+415d4db20425d4ed700b85533cb8a11aca61c2dc refactor: remove fixed customer list from quote editor
+b3835d3a2b2fec1853a2185ece229b68bece0f42 fix: finalize commercial document workflows
+2efa8436c1830720d427ec6564804cb2081170aa fix: align commercial document schema and editing
+ba4154114a04da82a5e084756f021b10d641bfc8 fix: register supplier creation route
+b0754f927775659271b9b05834e0b9b4277d49df fix: preserve catalog snapshot on product selection
+d4ac18d5a6ceafa23a2bcf1812e8ad2564d10c82 fix: display linked supplier names
+61258766a8b4aa29f128f11981c6eb33ee6cae6e fix: preserve payment totals while editing orders
+2af3adce346c30b78d9ba89d38875299cf2e3f73 docs: plan preview commercial operations UX
+005fe0311dcb2ab81f824162ea98721604afded2 feat: streamline commercial operations
+936807597f21518323c4ba415cd1b30592a5dcaf fix: retain product catalog accessibility
+e4f6d2c8ff52309783189ff9124b143ca1d6de38 fix: complete preview packing workflow
+70b2b180a8b0a0e7ddeb92d7fb2d1a9d7c987949 fix: append formal customer search pages
+0b608f697fbdb0329a739810ada6760ef38e0cea test: align compact product catalog coverage
+05332e830bfeef7c3e0903dd295197fdfe0fa009 docs: specify preview operations UI
+9cb62b2a5a875d6f9e0327fdcf3447a661c69700 docs: refine preview operations safeguards
+eb3002f414e29300ab46b4a8d770ff7f024eb418 docs: plan preview operations UI
+c1ce40cff091c46afdb7d40e1c1ec38072b04819 fix: guard CRM numeric inputs from wheel changes
+3901ff4e89f08ec10e09afcb6141b0e73c0310c0 fix: align packing calculation columns
+906343a5ab11338af8afed3f14e55e17c8343da3 feat: create one production per selected batch
+3bf0e60410767a67168b2a730ea7d88f008be163 feat: show calendar events in a visual grid
+189cda04a83022a7b0837d615daac0db23d41509 fix: align compact product library columns
+2d39ea2a35a2db02fbdea93d72154d400b5f96bd test: type packing fixture explicitly
+7590b92ed38415e82342cf64c2ad9bb544bd67bb test: update packing grid browser coverage
+c64013a875c2e8b0f8c89d396dc8bd5abbcb5662 fix: refine preview operations UI
+248a986b49faffa88ecb8c3437d615fd222dbc81 fix: improve packing production and list editing UX
+ac805c365b1bf67cee175e9ddc350d2cb7aa977d fix: align fulfillment tables and persist procurement edits
+c7ebc5e1c04f84b33de083145d4b5f3dc3134b63 fix: clarify production totals and supplier edit flow
+db01afd072c5c58af60cb7bd7e701c811495a8c2 fix: normalize outbound website urls
+89d10101becbd3ffcf8af0d8e622ac3ccf84884a docs: specify fixed order export template
+4f368c3fc60ad647c6469bc7c9f4cdb468ae93cd feat: export orders from fixed snapshots
+334faf9d69cb0e9c6e9b90fa96aee98966a9cf2e fix: export order snapshot images
+f91844f4255eb90e294af289a19f8a87576f72a3 fix: preserve bilingual order PDF text
+8b2e30566ea3f53b87b4a3047e588ad97a05b19e fix: restrict order export snapshot trigger
+c6c0fa6cfe021a677783c4a1f515286684c21109 fix: preserve fixed order xlsx layout
+bbb40d372cfafb8369e36780c19f3137cd7ab044 fix: preserve order xlsx template package
+556725523f71b7c4d64b97813cb7f8f192822510 fix: restore order template terms and print setup
+c2ab5959b18e32c77d42009c92d3e2cb1b85f775 fix: keep order export to fixed template rows
+e462c431b17fb5f6bd0e3c62e012c6a2818c5dbd fix: contain order export product images
+8a07cfb623049e88ed192029595c747d1b90049c test: cover order xlsx template preservation
+8d3b2756cff99b9d1bf2b1fede8ac33d99d25476 fix: preserve order export image aspect ratio
+154365b4b7a20b1099929e276948f8d1f6f17003 fix: insert order images with package drawings
+741e77c0dc36e2cdc7efc0bfdffb03c8f4ae83ed test: keep export image metadata test out of api routes
+245d23e2792322c3d9aa25765147a259d2dabdff fix: self-heal stale daily document counters
+2b98f04a173fd4f1c8845edebd3bef84d4cfe46c chore: update fixed order export template
+bb726bb978d96c89f50b477d4e9608e09da98165 chore: adopt latest fixed order template
+36e5129eb32e85feaaa19ab4334dd71ab455b411 fix: align order number and requirements export
+1045f0fe314ea763c41a55f781cc44717ffbb4c1 feat: render order PDF from saved snapshots
+3effb027c9492e982121bf135c0fde15ecd40b2a feat: add preview order XLSX PDF conversion
+45ba42e43cd3b986066b2ae616d35c72a6dfcdae fix: keep Vercel Preview output directory at project scope
+85d0ab0a4405b2d467701649e22054b24941e3c2 fix: keep Vercel function limits at project scope
+80825ae5d0493d9ced9340172fda2a94038f53c8 fix: use current Vercel services configuration
+d7eeb46e767cc55d4292bd83c1326bfb56f84a8a fix: use supported Vercel container service config
+9f6a31de5ae8c005a912fda2e7868b7442cc82fe fix: restore order xlsx export fidelity
+f1ee109c05b946fe5a81b94346a0b628ace75a01 chore: pause order pdf export
+f60d9496be83a6e30aca56357fdfb2345b2b397c docs: add PI XLSX export design
+b612f01201e8aec2b8e977f25c330171beca1111 docs: plan PI xlsx export
+e5458c0d36714dd2c82ef03961e0dd5277b3d0f2 feat: allocate PI numbers by prefix
+4193e9c17558f6bf11c0e17d589a315b1d866b35 feat: initialize PI export snapshots
+4aa24d7074f35c08ab1ecab6cf1c7d0492df36db feat: export PI xlsx from saved snapshots
+e6bd02b78d24ac435524196852cd4dc13c8f1f42 feat: export Quote xlsx from saved snapshots
+9eca02bfdbe8d3966fcec90661ae1edbe30c105a fix: preserve decimal Quote CBM input
+1fb42b45d602f808b5d864592f8b6ac6096ef13a feat: persist Quote FX pricing
+5df383300b06877468bef4fcc18b0ef7fbcb6938 feat: add Quote FX pricing controls
+4a500b47eb263b8b49936a0f418a79e0abb64293 fix: retain Quote FX source prices
+8a18564b00e050b0f83007628cb277c121b31269 test: cover Quote FX export boundaries
+b4f58578ccd6fee5e2669580afb86594cc2c4ca0 fix: preserve Quote FX rate precision
+36bf3aad7e75f1fc1e33c4181b6e5e14f0d40a32 docs: specify packing list xlsx export
+734ce6272eea943bc660831da146c2fc55a126a1 docs: plan packing list xlsx export
+f4cbcf8eb285df124f7f45c08fdcde9ec0a404e0 feat: snapshot packing export parties
+a34632e1c0eeaba7adcd8144d0a36ca887d7e8ed feat: add packing export details
+33ba03e402a56a96bae68aa84b25d0b2b9731314 feat: render packing list xlsx
+9da83909d1f2afc6c686bb10af5bb804cff43a4a feat: export packing list xlsx
+3e6ebb289f9d6b77f47e3518dece6b15bec33c6f fix: format packing dimensions as numbers
+8172c16c9084792b1aa67f4119d9aa1a6b4542da feat: support independent packing lists
+688621bd61fa6e5df6a4951a765c0008bc27f3bb feat: auto-import order packing items
+9adeb52aa083f8e437ea842f1b9bde8eab3a4ced fix: initialize packing defaults and numeric drafts
+e6bd2e0c649be0ace6e07683a045262e3d3e9178 feat: stage packing item removals
+bfb1528f89c1693b7ce8c6f72316caca38f6250b feat: unify controlled document deletion and manual task removal
+ba4510bd998bd73dfb1f20d100ea243e3beff244 feat: add indexed business search and controlled production deletion
+f62e446cf5307706be762963cb4406ef56ebc5a0 fix: calculate Packing quantities and align template columns
+77fe0d268e9c83f12c044df58493bd0f3e9352bc fix: contain Packing table horizontal scrolling
+f07f52a6503634cef67b040a7ee55c80fd3b786a feat: add Production marking snapshots and template XLSX export
+b1c9df2044ccc3564b1e1286984308d143cc17f0 test: preserve Production requirements template styles
+ff6a0089214086ee3494461d6e2a8a54e8508c1c fix: use updated Production requirements template font
+76dbba3a3903f190c32275f943d1628755780032 feat: inherit production instructions from saved Order defaults
+d0f03589bf422336991ebe09247444bd96366181 feat: add customer business history and confirmed source-chain archiving
+715cea47272f9713e9bdd1601691170de8e4c97d feat: edit Production as an atomic Order-owned workspace
+7fefa5cec6e944f7ac3224116a622aed103313b6 fix: enforce production allocation limits and simplify shared instructions
+38670b04407e55debead8223ab1cc2359e2eae66 fix: refresh production status after allocation changes
+233caa12291f4141ace28a6ab0ef10b6ca4fa647 fix: verify saved Order requirements before Production sync
+c176233c68fdde48d4787e5e7e7fbb77d0bae6b7 Add field-level production labels and export effective item labels
+03f5f18d843f227fe95e60e9bc44a2b631bc5b91 Add saved Production barcodes and adopt final XLSX template
+d6e45733988a5a98b70e5fdb92f48c2ad0b995c7 feat: safely cascade draft production when deleting orders and add batch preflight
+00168a0ca5d52ec585563fd71fb21003cdd2acdb Unify business list workflows and preserve voided payment history
+ba397a2b909a9a7d41a64805f4a30a9982bf3912 fix(crm): allow guarded deletion of unconverted inquiries
+fc5537dd69fa5c928eb4b14cb7887d452b97348e fix(crm): refine Quote statuses and Inquiry contact workflow
+4b9260438a177d5a6d1079631137ef1f5fe14be5 fix(crm): fit Inquiry headers and actions at desktop widths
+94da58bc86e25229824c31b3b3ddfc6062a4982b feat(crm): record transactional workflow status history
+1eb1bd45e206db771dddc5061cada3017a881625 fix(crm): refresh pristine workflow forms after status updates
+6cd81576a779a025a77e2a17ef048bac5517913b docs: record status history Preview verification and remaining checks
+4501c5ba3db39229974ed615970a6ae2764f0329 docs: complete status history Preview browser acceptance
+a3ae722feae7690c2e992dd35dbceae9d33741a9 feat: finalize Preview website inquiry to quote snapshots and templates
+693a4b11941763c9911d12fe287e6ec824f4aafa fix: diagnose inquiry persistence failures without sensitive logs
+e3ae2cc35ebf3da6ab13223a1ca14525d68fca37 fix: classify inquiry transport failures safely
+9ce0b424ecea286da340a8324b565a64f5d82acc fix: resolve inquiry attachment dependencies in Node ESM

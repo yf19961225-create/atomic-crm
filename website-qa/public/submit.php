@@ -17,7 +17,7 @@ try{$input=json_decode($raw,true,32);if(!is_array($input))throw new InvalidArgum
         fn($normalized)=>json_decode(qa_http($config,'/api/website-inquiries',$normalized),true,512,JSON_THROW_ON_ERROR),
         fn($receipt)=>qa_http($config,'/api/website-inquiry-xlsx',['id'=>$receipt['id'],'submissionId'=>$receipt['normalizedSubmission']['submissionId']],true),
         fn($kind,$mail)=>qa_dispatch($config,$kind,$mail));
-    $result['notificationMode']=$config['mode'];$result['message']=$result['success']?($config['mode']==='capture'?'QA inquiry saved. Internal and customer notifications captured; no email was sent.':'QA inquiry saved. Internal mail sent to ROMIKU; customer notification captured.'):$result['message'];
+    $result['notificationMode']=$config['mode'];$result['message']=$result['success']?($config['mode']==='capture'?'QA inquiry saved. Internal and customer notifications captured; no email was sent.':($config['mode']==='controlled-test'?'QA inquiry saved. Both test notifications accepted by the mail transport; inbox receipt must be verified.':'QA inquiry saved. Internal mail sent to ROMIKU; customer notification captured.')):$result['message'];
     qa_respond($result['success']?200:503,$result);
 }catch(InvalidArgumentException $e){qa_respond(422,['success'=>false,'crmSaved'=>false,'code'=>'VALIDATION_ERROR','message'=>'Check the inquiry fields and product SKUs. Your draft is retained.']);}
 catch(Throwable $e){qa_respond(503,['success'=>false,'crmSaved'=>false,'message'=>'The inquiry could not be confirmed. Your draft and submission ID are retained; retry this same submission.']);}

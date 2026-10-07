@@ -35,73 +35,83 @@ it.each([
   },
 );
 
-it("renders saved PI data, non-30% split, CNY formats and product package drawings", async () => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 120;
-  canvas.height = 60;
-  canvas.getContext("2d")!.fillRect(0, 0, 120, 60);
-  const model = normalizePiExportModel(
-    {
-      document_number: "PI260930001",
-      document_date: "2026-09-30",
-      currency: "CNY",
-      total: 100,
-      freight: 25,
-      deposit_percent: 40,
-      counterparty_snapshot: {
-        name: "Saved buyer",
-        shipping_address: "Buyer address",
+it.each([1, 5, 20])(
+  "renders %i saved PI products, split, CNY formats and drawings",
+  async (count) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 120;
+    canvas.height = 60;
+    canvas.getContext("2d")!.fillRect(0, 0, 120, 60);
+    const model = normalizePiExportModel(
+      {
+        document_number: "PI260930001",
+        document_date: "2026-09-30",
+        currency: "CNY",
+        total: 100,
+        freight: 25,
+        deposit_percent: 40,
+        counterparty_snapshot: {
+          name: "Saved buyer",
+          shipping_address: "Buyer address",
+        },
+        terms_snapshot: {
+          pi_export: { seller: { company_name: "Saved seller" } },
+        },
+        bank_snapshot: { bank_name: "Saved bank" },
       },
-      terms_snapshot: {
-        pi_export: { seller: { company_name: "Saved seller" } },
-      },
-      bank_snapshot: { bank_name: "Saved bank" },
-    },
-    [item(1, canvas.toDataURL("image/png")), item(2)],
-  );
-  const template = await fetch(templateUrl).then((response) =>
-    response.arrayBuffer(),
-  );
-  const output = await renderPiXlsx(model, template);
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(output);
-  const sheet = workbook.getWorksheet("ROMIKU PI")!;
-  const layout = buildPiTemplateLayout(2, true, true);
-  const merges = Object.values(sheet.model.merges);
-  const packageContents = await JSZip.loadAsync(output);
-  const drawing = await packageContents
-    .file("xl/drawings/drawing1.xml")!
-    .async("string");
-  const workbookXml = await packageContents
-    .file("xl/workbook.xml")!
-    .async("string");
+      Array.from({ length: count }, (_, index) =>
+        item(
+          index + 1,
+          index === 0 ? canvas.toDataURL("image/png") : undefined,
+        ),
+      ),
+    );
+    const template = await fetch(templateUrl).then((response) =>
+      response.arrayBuffer(),
+    );
+    const output = await renderPiXlsx(model, template);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(output);
+    const sheet = workbook.getWorksheet("ROMIKU PI")!;
+    const layout = buildPiTemplateLayout(count, true, true);
+    const merges = Object.values(sheet.model.merges);
+    const packageContents = await JSZip.loadAsync(output);
+    const drawing = await packageContents
+      .file("xl/drawings/drawing1.xml")!
+      .async("string");
+    const workbookXml = await packageContents
+      .file("xl/workbook.xml")!
+      .async("string");
 
-  expect(sheet.getCell("J1").text).toContain("PI260930001\n2026.9.30");
-  expect(sheet.getCell("C3").text).toBe("Saved seller");
-  expect(sheet.getCell("H3").text).toBe("Saved buyer");
-  expect(sheet.getCell("B9").text).toBe("SKU-1");
-  expect(sheet.getCell("J9").numFmt).toBe("¥#,##0.00;[Red]-¥#,##0.00");
-  expect(sheet.getCell(`A${layout.depositRow}`).text).toContain("40%");
-  expect(sheet.getCell(`J${layout.depositRow}`).value).toBe(40);
-  expect(sheet.getCell(`A${layout.balanceRow}`).text).toContain("60%");
-  expect(sheet.getCell(`J${layout.balanceRow}`).value).toBe(60);
-  expect(sheet.getCell(`C${layout.bankRows[2]}`).text).toBe("Saved bank");
-  expect(merges).toContain(`A${layout.summaryStart}:E${layout.summaryStart}`);
-  expect(merges).toContain(`G${layout.summaryStart}:I${layout.summaryStart}`);
-  expect(merges).toContain(`A${layout.termsTitleRow}:J${layout.termsTitleRow}`);
-  expect(merges).toContain(
-    `A${layout.bankingTitleRow}:J${layout.bankingTitleRow}`,
-  );
-  expect(workbookXml).toContain(`$A1:$J${layout.lastRow}`);
-  expect(drawing).toContain("Product image 1");
-  expect(drawing.match(/<xdr:from><xdr:col>3<\/xdr:col>/g)).toHaveLength(1);
-  expect(
-    Object.keys(packageContents.files).filter(
-      (path) =>
-        path.startsWith("xl/media/") && !packageContents.files[path].dir,
-    ),
-  ).toHaveLength(2);
-});
+    expect(sheet.getCell("J1").text).toContain("PI260930001\n2026.9.30");
+    expect(sheet.getCell("C3").text).toBe("Saved seller");
+    expect(sheet.getCell("H3").text).toBe("Saved buyer");
+    expect(sheet.getCell("B9").text).toBe("SKU-1");
+    expect(sheet.getCell("J9").numFmt).toBe("¥#,##0.00;[Red]-¥#,##0.00");
+    expect(sheet.getCell(`A${layout.depositRow}`).text).toContain("40%");
+    expect(sheet.getCell(`J${layout.depositRow}`).value).toBe(40);
+    expect(sheet.getCell(`A${layout.balanceRow}`).text).toContain("60%");
+    expect(sheet.getCell(`J${layout.balanceRow}`).value).toBe(60);
+    expect(sheet.getCell(`C${layout.bankRows[2]}`).text).toBe("Saved bank");
+    expect(merges).toContain(`A${layout.summaryStart}:E${layout.summaryStart}`);
+    expect(merges).toContain(`G${layout.summaryStart}:I${layout.summaryStart}`);
+    expect(merges).toContain(
+      `A${layout.termsTitleRow}:J${layout.termsTitleRow}`,
+    );
+    expect(merges).toContain(
+      `A${layout.bankingTitleRow}:J${layout.bankingTitleRow}`,
+    );
+    expect(workbookXml).toContain(`$A1:$J${layout.lastRow}`);
+    expect(drawing).toContain("Product image 1");
+    expect(drawing.match(/<xdr:from><xdr:col>3<\/xdr:col>/g)).toHaveLength(1);
+    expect(
+      Object.keys(packageContents.files).filter(
+        (path) =>
+          path.startsWith("xl/media/") && !packageContents.files[path].dir,
+      ),
+    ).toHaveLength(2);
+  },
+);
 
 it("removes whole Terms and Banking regions without deleting saved data", async () => {
   const model = normalizePiExportModel(

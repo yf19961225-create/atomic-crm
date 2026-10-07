@@ -1,3 +1,4 @@
+import { serverSupabaseTarget } from "../supabase/functions/_shared/deploymentTarget.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -9,7 +10,6 @@ import {
 import { readServerImageDimensions } from "./order-export-image.js";
 import type { PreparedProductImage } from "../src/components/romiku/orders/orderXlsxRenderer.js";
 
-const previewUrl = "https://ciwaibtotispazfviims.supabase.co";
 const schema = z.object({ id: z.uuid(), submissionId: z.uuid() });
 const reject = (status: number, error: string) =>
   Response.json(
@@ -87,11 +87,8 @@ export default {
     if (request.method !== "POST") return reject(405, "method_not_allowed");
     const secret = process.env.WEBSITE_INQUIRY_SECRET,
       service = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (
-      !secret ||
-      !service ||
-      process.env.SUPABASE_URL?.replace(/\/$/, "") !== previewUrl
-    )
+    const supabaseUrl = serverSupabaseTarget((key) => process.env[key]);
+    if (!secret || !service || !supabaseUrl)
       return reject(503, "attachment_unavailable");
     const received = request.headers.get("X-ROMIKU-Website-Secret");
     if (
@@ -128,7 +125,7 @@ export default {
           "id,document_number,submitted_at,customer_name,company,brand,email,whatsapp,country",
       });
       const response = await fetch(
-        `${previewUrl}/rest/v1/romiku_website_inquiries?${filter}`,
+        `${supabaseUrl}/rest/v1/romiku_website_inquiries?${filter}`,
         { headers, signal: AbortSignal.timeout(8000) },
       );
       if (!response.ok) return reject(503, "attachment_unavailable");
@@ -137,7 +134,7 @@ export default {
         return reject(404, "not_found");
       const inquiry = records[0];
       const itemsResponse = await fetch(
-        `${previewUrl}/rest/v1/romiku_website_inquiry_items?${new URLSearchParams({ inquiry_id: `eq.${body.data.id}`, select: "id,sku,quantity,requirement,product_snapshot,position", order: "position.asc,id.asc", limit: "101" })}`,
+        `${supabaseUrl}/rest/v1/romiku_website_inquiry_items?${new URLSearchParams({ inquiry_id: `eq.${body.data.id}`, select: "id,sku,quantity,requirement,product_snapshot,position", order: "position.asc,id.asc", limit: "101" })}`,
         { headers, signal: AbortSignal.timeout(8000) },
       );
       if (!itemsResponse.ok) return reject(503, "attachment_unavailable");

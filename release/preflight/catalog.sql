@@ -1,0 +1,8 @@
+SELECT jsonb_build_object(
+ 'columns',(SELECT coalesce(jsonb_object_agg(table_name||'.'||column_name,jsonb_build_object('type',udt_name,'nullable',is_nullable,'default',column_default)),'{}') FROM information_schema.columns WHERE table_schema='public' AND table_name LIKE 'romiku_%'),
+ 'relations',(SELECT coalesce(jsonb_object_agg(c.relname,jsonb_build_object('kind',c.relkind,'rls',c.relrowsecurity)),'{}') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname LIKE 'romiku_%' AND c.relkind IN ('r','v','m','p')),
+ 'functions',(SELECT coalesce(jsonb_object_agg(p.proname||'('||pg_get_function_identity_arguments(p.oid)||')',jsonb_build_object('result',pg_get_function_result(p.oid),'security_definer',p.prosecdef,'config',p.proconfig,'definition_md5',md5(pg_get_functiondef(p.oid)))),'{}') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'romiku_%' AND p.prokind='f'),
+ 'foreign_keys',(SELECT coalesce(jsonb_object_agg(c.conname,jsonb_build_object('table',c.conrelid::regclass::text,'definition',pg_get_constraintdef(c.oid))),'{}') FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND t.relname LIKE 'romiku_%' AND c.contype='f'),
+ 'views',(SELECT coalesce(jsonb_object_agg(viewname,md5(definition)),'{}') FROM pg_views WHERE schemaname='public' AND viewname LIKE 'romiku_%'),
+ 'policies',(SELECT coalesce(jsonb_object_agg(tablename||'.'||policyname,jsonb_build_object('roles',roles,'cmd',cmd,'qual',qual,'with_check',with_check)),'{}') FROM pg_policies WHERE schemaname='public' AND tablename LIKE 'romiku_%')
+);

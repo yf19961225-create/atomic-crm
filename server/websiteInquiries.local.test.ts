@@ -62,6 +62,7 @@ it.skipIf(process.env.ROMIKU_TEST_LOCAL_DB !== "1")(
       ].map((table) => read(`${table}?select=id`)),
     );
     vi.stubEnv("WEBSITE_INQUIRY_SECRET", "local-test-only");
+    vi.stubEnv("VERCEL_ENV", "development");
     vi.stubEnv("SUPABASE_URL", url.origin);
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", local.SERVICE_ROLE_KEY);
     vi.spyOn(console, "warn").mockImplementation(() => {});

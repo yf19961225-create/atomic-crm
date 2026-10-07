@@ -5,6 +5,8 @@ for (const name of [
   "validation.php",
   "pipeline.php",
   "runtime.php",
+  "mail.php",
+  "smtp-reuse.php",
   "concurrency.php",
   "http.php",
 ]) {
@@ -19,10 +21,10 @@ for (const name of [
         "--network",
         "none",
         "-v",
-        `${root}:/qa:ro`,
+        `${root}/..:/project:ro`,
         "php:8.3-cli",
         "php",
-        `/qa/tests/${name}`,
+        `/project/website-qa/tests/${name}`,
       ]
     : [`${root}/tests/${name}`];
   const result = spawnSync(command, args, { stdio: "inherit" });

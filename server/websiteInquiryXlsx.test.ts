@@ -21,6 +21,7 @@ const request = (body: unknown = { id, submissionId }, secret = "qa-secret") =>
     body: JSON.stringify(body),
   });
 beforeEach(() => {
+  vi.stubEnv("VERCEL_ENV", "preview");
   vi.stubEnv("WEBSITE_INQUIRY_SECRET", "qa-secret");
   vi.stubEnv("SUPABASE_URL", "https://ciwaibtotispazfviims.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "qa-role");

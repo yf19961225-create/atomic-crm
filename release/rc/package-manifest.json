@@ -1,0 +1,9 @@
+{
+  "artifact": "romiku-production-rc.zip",
+  "sha256": "e8a32cb8afee914b83b087d598e9d044842f4f082c33bd468d7c6aa082385acf",
+  "status": "prepared locally, not uploaded or installed",
+  "production_baseline": "e4615195329b6da6d0bd4c2039c01199ecbde2bc",
+  "preview_baseline": "9ce0b424ecea286da340a8324b565a64f5d82acc",
+  "production_deployment_rollback": "dpl_NUWQSgpYFz4eddFfHq5C2VtsJVZA",
+  "remote_backups": "not taken; require separate rollout authorization"
+}

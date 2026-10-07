@@ -1,0 +1,17 @@
+--- app.js
++++ app.js
+@@ -4193,0 +4194 @@
++      brand: String(formData.get("brand") || "").trim(),
+@@ -4251,8 +4252,4 @@
+-  const response = await fetch("./api/submit-rfq.php", {
+-    method: "POST",
+-    headers: { "Content-Type": "application/json" },
+-    body: JSON.stringify(payload),
+-  });
+-  const result = await response.json().catch(() => ({}));
+-
+-  if (!response.ok || !result.ok) {
++  const { submitProductionInquiry } = await import("./romiku-inquiry-submission.mjs");
++  const result = await submitProductionInquiry(payload);
++
++  if (!result.ok) {

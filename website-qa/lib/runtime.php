@@ -28,15 +28,17 @@ function qa_config(): array {
     $catalog=realpath(getenv('ROMIKU_QA_CATALOG_PATH')?:'');
     if(!$catalog || !is_file($catalog))throw new RuntimeException('Static catalogue unavailable');
     $mode=getenv('ROMIKU_QA_MAIL_MODE')?:'capture';
-    if(!in_array($mode,['capture','internal-only'],true))throw new RuntimeException('Invalid QA mail mode');
+    if(!in_array($mode,['capture','internal-only','controlled-test'],true))throw new RuntimeException('Invalid QA mail mode');
     $mailer=null;
-    if($mode==='internal-only'){
+    if($mode!=='capture'){
         $file=realpath(getenv('ROMIKU_QA_MAILER_FILE')?:'');
         if(!$file || !str_starts_with($file,$directory.DIRECTORY_SEPARATOR) || !is_file($file))throw new RuntimeException('Private mailer unavailable');
         $mailer=require $file;
         if(!is_callable($mailer))throw new RuntimeException('Private mailer unavailable');
     }
-    return ['directory'=>$directory,'endpoint'=>$endpoint,'secret'=>$secret,'vercelBypassSecret'=>$bypass,'catalog'=>$catalog,'mode'=>$mode,'mailer'=>$mailer];
+    $test=['recipients'=>['internal'=>getenv('ROMIKU_QA_INTERNAL_RECIPIENT')?:'','customer'=>getenv('ROMIKU_QA_CUSTOMER_RECIPIENT')?:''],'testSubmissionId'=>getenv('ROMIKU_QA_TEST_SUBMISSION_ID')?:'','testExpiresAt'=>(int)(getenv('ROMIKU_QA_TEST_EXPIRES_AT')?:0)];
+    if($mode==='controlled-test')qa_test_targets($test);
+    return $test+['directory'=>$directory,'endpoint'=>$endpoint,'secret'=>$secret,'vercelBypassSecret'=>$bypass,'catalog'=>$catalog,'mode'=>$mode,'mailer'=>$mailer];
 }
 function qa_gate(): void {
     header('Cache-Control: no-store');header('X-Robots-Tag: noindex, nofollow');header('X-Content-Type-Options: nosniff');header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://romiku.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
@@ -70,20 +72,37 @@ function qa_capture(string $directory,string $kind,array $mail,string $delivery=
     qa_atomic($path,json_encode($mail,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 }
 
+function qa_test_targets(array $config): void {
+    qa_uuid($config['testSubmissionId']??'');
+    if(($config['testExpiresAt']??0)<=time())throw new RuntimeException('Real mail QA window expired');
+    foreach(['internal','customer']as$kind){
+        $address=$config['recipients'][$kind]??'';
+        if(!is_string($address) || preg_match('/[\r\n]/',$address) || !filter_var($address,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Test recipient unavailable');
+    }
+}
 function qa_dispatch(array $config,string $kind,array $mail): void {
-    if($config['mode']==='capture' || $kind==='customer'){qa_capture($config['directory'],$kind,$mail);return;}
-    if($config['mode']!=='internal-only' || $kind!=='internal' || !is_callable($config['mailer']))throw new RuntimeException('Mail mode unavailable');
-    $path=$config['directory'].'/'.qa_uuid($mail['submissionId']).'.internal.delivery.json';
+    if(!in_array($kind,['internal','customer'],true))throw new RuntimeException('Invalid notification');
+    if($config['mode']==='capture' || ($config['mode']==='internal-only' && $kind==='customer')){qa_capture($config['directory'],$kind,$mail);return;}
+    $controlled=$config['mode']==='controlled-test';
+    if($controlled){
+        qa_test_targets($config);
+        if(($mail['submissionId']??'')!==$config['testSubmissionId'])throw new RuntimeException('Submission not approved for real mail');
+        $mail['recipient']=$config['recipients'][$kind];
+    }elseif($config['mode']==='internal-only' && $kind==='internal'){$mail['recipient']='info@romiku.com';}
+    else throw new RuntimeException('Mail mode unavailable');
+    if(!is_callable($config['mailer']))throw new RuntimeException('Private mailer unavailable');
+    if($kind==='customer' && ($mail['attachment']!==null || $mail['attachmentName']!==null))throw new RuntimeException('Customer attachment forbidden');
+    $mail['messageId']='qa-'.qa_uuid($mail['submissionId']).'-'.$kind.'@romiku.com';
+    $path=$config['directory'].'/'.$mail['submissionId'].'.'.$kind.'.delivery.json';
     $delivery=is_file($path)?json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR):['state'=>'unsent'];
     if($delivery['state']==='attempting')throw new RuntimeException('Mail acceptance uncertain; operator reconciliation required');
+    if(!in_array($delivery['state'],['unsent','accepted'],true))throw new RuntimeException('Invalid delivery journal');
     if($delivery['state']!=='accepted'){
-        $mail['recipient']='info@romiku.com';
-        $mail['messageId']='qa-'.$mail['submissionId'].'-internal@romiku.com';
-        qa_atomic($path,json_encode(['state'=>'attempting'],JSON_THROW_ON_ERROR));
-        // Contract: true = SMTP accepted; false = definitely NOT accepted; throw = unknown.
+        qa_atomic($path,json_encode(['state'=>'attempting','recipient'=>$mail['recipient'],'messageId'=>$mail['messageId']],JSON_THROW_ON_ERROR));
+        // Contract: true = transport accepted; false = definitely NOT accepted; throw = unknown.
         $accepted=($config['mailer'])($mail);
-        if($accepted!==true){qa_atomic($path,json_encode(['state'=>'unsent'],JSON_THROW_ON_ERROR));throw new RuntimeException('Internal mail not accepted');}
-        qa_atomic($path,json_encode(['state'=>'accepted'],JSON_THROW_ON_ERROR));
+        if($accepted!==true){qa_atomic($path,json_encode(['state'=>'unsent'],JSON_THROW_ON_ERROR));throw new RuntimeException('Mail not accepted');}
+        qa_atomic($path,json_encode(['state'=>'accepted','recipient'=>$mail['recipient'],'messageId'=>$mail['messageId']],JSON_THROW_ON_ERROR));
     }
-    qa_capture($config['directory'],$kind,$mail,'internal mail accepted by configured transport');
+    qa_capture($config['directory'],$kind,$mail,'mail accepted by configured transport; inbox receipt not yet verified');
 }

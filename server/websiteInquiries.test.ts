@@ -55,8 +55,9 @@ function request(
 }
 
 beforeEach(() => {
+  vi.stubEnv("VERCEL_ENV", "preview");
   vi.stubEnv("WEBSITE_INQUIRY_SECRET", "test-secret");
-  vi.stubEnv("SUPABASE_URL", "https://db.example.test");
+  vi.stubEnv("SUPABASE_URL", "https://ciwaibtotispazfviims.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role");
   vi.stubGlobal("fetch", fetchMock);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -195,7 +196,7 @@ describe("website intake HTTP boundary", () => {
       expect(await response.json()).toEqual({ success: true, ...saved });
       const [url, options] = fetchMock.mock.calls[0];
       expect(url).toBe(
-        "https://db.example.test/rest/v1/rpc/romiku_submit_website_inquiry",
+        "https://ciwaibtotispazfviims.supabase.co/rest/v1/rpc/romiku_submit_website_inquiry",
       );
       expect(options?.method).toBe("POST");
       expect(new Headers(options?.headers).get("authorization")).toBe(

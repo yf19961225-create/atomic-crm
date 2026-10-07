@@ -29,7 +29,7 @@ const item = (position: number, imageUrl = "") => ({
   },
 });
 
-it.each([1, 4, 20])(
+it.each([1, 4, 5, 20])(
   "renders %i dynamic Packing rows and relocates totals",
   async (count) => {
     const template = await fetch(templateUrl).then((response) =>

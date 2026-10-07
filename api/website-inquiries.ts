@@ -1,3 +1,4 @@
+import { serverSupabaseTarget } from "../supabase/functions/_shared/deploymentTarget.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
@@ -103,7 +104,7 @@ export default {
     if (request.method !== "POST")
       return reject(405, "method_not_allowed", { Allow: "POST" });
     const secret = process.env.WEBSITE_INQUIRY_SECRET;
-    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseUrl = serverSupabaseTarget((key) => process.env[key]);
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!secret || !supabaseUrl || !serviceRole)
       return reject(503, "intake_unavailable");

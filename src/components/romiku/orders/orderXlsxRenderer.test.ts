@@ -218,7 +218,7 @@ it("preserves image aspect ratio when bitmap decoding is unavailable", async () 
   }
 });
 
-it.each([1, 2, 8, 30])(
+it.each([1, 2, 5, 8, 20, 30])(
   "rebuilds template merges and semantic rows for %i product rows",
   async (count) => {
     const imageCanvas = document.createElement("canvas");

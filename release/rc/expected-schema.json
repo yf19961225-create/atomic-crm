@@ -1,0 +1,5971 @@
+{
+  "views": {
+    "romiku_calendar": "0b64faacf56fe5e5731b060ad11412bc",
+    "romiku_pi_totals": "ba7ecd1d144a05b80046f4596fd4e2de",
+    "romiku_workbench": "b6dc0ac2f21028e62c2f27f1c75f9979",
+    "romiku_order_totals": "8a75b4c5e45e65edab1a2cf01358d140",
+    "romiku_quote_totals": "ab07e3f261c7be40a95d577bb353437d",
+    "romiku_packing_totals": "67c6c6a836bb5370b6d83c03b2e52b02",
+    "romiku_outbound_summary": "4ff4e4f2e142b0352a160c82620686c9",
+    "romiku_workflow_records": "20a545db6a47ce11a4c0e1154af1dc12",
+    "romiku_order_item_remaining": "4d96fb52a74343a4e9e37db2d1239acd",
+    "romiku_current_reference_cost": "b7e67add536356cc1e6b6d7ab9a11452",
+    "romiku_customer_document_rows": "7c34893e4805721116c319983953f8d6",
+    "romiku_status_history_display": "895aa506b5fdbb7a6a9012a798fb3298",
+    "romiku_formal_customer_directory": "261b0494cedbe4c4a65237c679a6a10b",
+    "romiku_customer_document_membership": "b5e874e81844385a0c17433df1d2cfaa"
+  },
+  "columns": {
+    "romiku_pis.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_orders.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_pis.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_pis.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.status": {
+      "type": "text",
+      "default": "'draft'::text",
+      "nullable": "NO"
+    },
+    "romiku_calendar.id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_pis.freight": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_orders.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_items.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_pi_totals.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.currency": {
+      "type": "text",
+      "default": "'USD'::text",
+      "nullable": "NO"
+    },
+    "romiku_pis.discount": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_pis.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quotes.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_workbench.id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.status": {
+      "type": "text",
+      "default": "'draft'::text",
+      "nullable": "NO"
+    },
+    "romiku_payments.kind": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quotes.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.status": {
+      "type": "text",
+      "default": "'pending_quote'::text",
+      "nullable": "NO"
+    },
+    "romiku_calendar.title": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_orders.freight": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_payments.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.proof": {
+      "type": "jsonb",
+      "default": "'[]'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_items.pi_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_pis.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_pis.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pis.price_term": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_pis.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_items.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_quotes.freight": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_source_urls.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_calendar.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_calendar.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_order_items.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_order_totals.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.currency": {
+      "type": "text",
+      "default": "'USD'::text",
+      "nullable": "NO"
+    },
+    "romiku_orders.discount": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_orders.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_payments.amount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_payments.status": {
+      "type": "text",
+      "default": "'active'::text",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.amount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.total": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.currency": {
+      "type": "text",
+      "default": "'USD'::text",
+      "nullable": "NO"
+    },
+    "romiku_quotes.discount": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_quotes.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_source_urls.url": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_suppliers.grade": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workbench.title": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.voided_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.voided_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_packing_lists.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_pi_totals.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.region": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.status": {
+      "type": "text",
+      "default": "'active'::text",
+      "nullable": "NO"
+    },
+    "romiku_workbench.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workbench.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_calendar.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_orders.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_orders.price_term": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_orders.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_items.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_packing_totals.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_payments.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pi_items.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pi_items.position": {
+      "type": "int4",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_pi_totals.freight": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.bank_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_pis.document_date": {
+      "type": "date",
+      "default": "CURRENT_DATE",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_quotes.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quotes.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quotes.fx_enabled": {
+      "type": "bool",
+      "default": "false",
+      "nullable": "NO"
+    },
+    "romiku_quotes.price_term": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quotes.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_source_urls.label": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_source_urls.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.address": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_calendar.source_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.pi_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.title": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_numbering_rules.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_order_items.amount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.total": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.co_owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.void_reason": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.voided_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.voided_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.currency": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.discount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.subtotal": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.balance_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.deposit_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.other_expenses": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_pis.terms_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.amount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.total": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.valid_until": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_workbench.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_calendar.event_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.source_pi_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_payments.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_payments.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_payments.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pi_items.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pi_items.unit_price": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pis.deposit_percent": {
+      "type": "numeric",
+      "default": "30",
+      "nullable": "NO"
+    },
+    "romiku_pis.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_pis.shipment_method": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.source_quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_items.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.usd_cny_rate": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workbench.source_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workflow_records.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_order_items.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_order_items.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_order_items.position": {
+      "type": "int4",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_order_items.quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_order_totals.freight": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.bank_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_orders.document_date": {
+      "type": "date",
+      "default": "CURRENT_DATE",
+      "nullable": "NO"
+    },
+    "romiku_outbound_contacts.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.remark": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.status": {
+      "type": "text",
+      "default": "'draft'::text",
+      "nullable": "NO"
+    },
+    "romiku_packing_totals.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.received_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_payments.void_reason": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_items.requirement": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.created_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.price_term": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.updated_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.updated_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_production_items.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_orders.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_items.position": {
+      "type": "int4",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quote_items.quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.freight": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.bank_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_quotes.document_date": {
+      "type": "date",
+      "default": "CURRENT_DATE",
+      "nullable": "NO"
+    },
+    "romiku_source_urls.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.categories": {
+      "type": "_text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_suppliers.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_workbench.event_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workbench.is_overdue": {
+      "type": "bool",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_calendar.source_table": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.priority": {
+      "type": "text",
+      "default": "'normal'::text",
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.currency": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.discount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.subtotal": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.balance_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.deposit_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.other_expenses": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_orders.terms_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_outbound_companies.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_summary.city": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.cartons": {
+      "type": "int4",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_packing_totals.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.document_language": {
+      "type": "text",
+      "default": "'zh'::text",
+      "nullable": "NO"
+    },
+    "romiku_pis.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_product_extensions.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_product_suppliers.moq": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.currency": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.discount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.subtotal": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.balance_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.deposit_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.other_expenses": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_quotes.terms_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workflow_records.kind": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.role": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_numbering_rules.prefix": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_order_items.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_order_items.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_order_items.unit_price": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_order_items.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_order_items.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_orders.deposit_percent": {
+      "type": "numeric",
+      "default": "30",
+      "nullable": "NO"
+    },
+    "romiku_orders.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_orders.shipment_method": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.source_quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.voided_by_label": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_outbound_contacts.role": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.grade": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_items.quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_packing_items.width_cm": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_packing_lists.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_pi_items.customer_code": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_extensions.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_orders.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_items.unit_price": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.version": {
+      "type": "int4",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quotes.deposit_percent": {
+      "type": "numeric",
+      "default": "30",
+      "nullable": "NO"
+    },
+    "romiku_quotes.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quotes.shipment_method": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_source_urls.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_source_urls.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_source_urls.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_source_urls.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.role": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workbench.source_table": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workflow_records.label": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.email": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.phone": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.title": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.status": {
+      "type": "text",
+      "default": "'active'::text",
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.recurrence": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.requirement": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.created_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.price_term": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.updated_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.updated_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.city": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_outbound_contacts.email": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.phone": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.title": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.height_cm": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.length_cm": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.total_cbm": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.bank_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.document_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_barcodes.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_followups.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.requirement": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.created_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.price_term": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.updated_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.updated_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_source_urls.source_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_status_history.metadata": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.email": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.phone": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.title": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.brand": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.email": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_workflow_records.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.wechat": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.country": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.co_owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.supplier_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_numbering_rules.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.co_owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.document_language": {
+      "type": "text",
+      "default": "'zh'::text",
+      "nullable": "NO"
+    },
+    "romiku_orders.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_companies.grade": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.wechat": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.address": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.country": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.website": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_items.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_packing_lists.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.packing_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_packing_lists.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.total_cbm": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.payment_account": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.voided_by_label": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.balance_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.deposit_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.other_expenses": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.terms_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.active": {
+      "type": "bool",
+      "default": "true",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.status": {
+      "type": "text",
+      "default": "'pending_send'::text",
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.valid_until": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.document_language": {
+      "type": "text",
+      "default": "'zh'::text",
+      "nullable": "NO"
+    },
+    "romiku_quotes.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_status_history.to_status": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.wechat": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.source": {
+      "type": "text",
+      "default": "'website'::text",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiries.status": {
+      "type": "text",
+      "default": "'pending_screening'::text",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_current_reference_cost.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.completed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.customer_code": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.source_pi_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.actual_delivery_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.source_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.status": {
+      "type": "text",
+      "default": "'to_develop'::text",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.method": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_outbound_summary.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.batch_label": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.created_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.packing_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.updated_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.updated_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_items.packing_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.product_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_pi_totals.deposit_percent": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.shipment_method": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.source_quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.counterparty_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_production_items.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_items.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_items.position": {
+      "type": "int4",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_production_items.quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quote_items.customer_code": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quote_versions.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quote_versions.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quotes.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history.changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_status_history.changed_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_status_history_display.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.company": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.country": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.message": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_items.sku": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.whatsapp": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.logistics": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_numbering_rules.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_numbering_rules.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_numbering_rules.min_digits": {
+      "type": "int4",
+      "default": "6",
+      "nullable": "NO"
+    },
+    "romiku_numbering_rules.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_numbering_rules.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_order_totals.bank_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.document_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.address": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.country": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.website": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.whatsapp": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.summary": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_packing_totals.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.batch_label": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_payments.payment_reference": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_items.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.width_cm": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_barcodes.source": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_followups.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_orders.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_orders.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.bank_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.document_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history.from_status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history.resource_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.whatsapp": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_suppliers.shipping_address": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.whatsapp": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.cost": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.is_active": {
+      "type": "bool",
+      "default": "true",
+      "nullable": "NO"
+    },
+    "romiku_formal_customers.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_formal_customers.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_formal_customers.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_order_totals.balance_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.deposit_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.other_expenses": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.terms_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.expected_delivery_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.source_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.is_active": {
+      "type": "bool",
+      "default": "true",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.brand_name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.created_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.updated_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.updated_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.shipping_mark": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.status_changed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_product_extensions.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.height_cm": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.lead_days": {
+      "type": "int4",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.length_cm": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.preferred": {
+      "type": "bool",
+      "default": "false",
+      "nullable": "NO"
+    },
+    "romiku_production_followups.method": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_items.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_items.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_items.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_items.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.balance_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.deposit_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.other_expenses": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.terms_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.is_active": {
+      "type": "bool",
+      "default": "true",
+      "nullable": "NO"
+    },
+    "romiku_suppliers.default_lead_days": {
+      "type": "int4",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.department": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.is_primary": {
+      "type": "bool",
+      "default": "false",
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.total": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.packing_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_order_items.product_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_order_totals.deposit_percent": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.received_amount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.shipment_method": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.source_quote_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.counterparty_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_orders.purchase_order_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_contacts.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.department": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.is_primary": {
+      "type": "bool",
+      "default": "false",
+      "nullable": "NO"
+    },
+    "romiku_outbound_contacts.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_contacts.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.social_urls": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.qty_per_carton": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.buyer_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_packing_totals.shipping_mark": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.total_cartons": {
+      "type": "int8",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_product_suppliers.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_product_suppliers.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_followups.summary": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_orders.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_orders.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_quote_items.packing_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.product_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.deposit_percent": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.shipment_method": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quotes.counterparty_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_status_history.change_source": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_status_history.resource_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.department": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.is_primary": {
+      "type": "bool",
+      "default": "false",
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiries.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiries.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.id": {
+      "type": "uuid",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.social_urls": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_customer_document_rows.status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.requirements": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_numbering_rules.document_kind": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_order_item_remaining.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.source_pi_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.expected_deposit": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.remaining_amount": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.brand_name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_companies.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_companies.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.social_urls": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.contact_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_packing_items.packing_list_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_packing_items.total_weight_kg": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_packing_lists.seller_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_items.source_quote_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pis.source_website_inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.cost": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_product_extensions.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_product_extensions.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_extensions.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_product_extensions.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.supplier_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_followups.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_orders.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_orders.co_owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_orders.supplier_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.items_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quotes.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_supplier_contacts.social_urls": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_supplier_contacts.supplier_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiries.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.raw_payload": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_formal_customer_directory.city": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.deposit_remaining": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.status_changed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.social_urls": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.attachments": {
+      "type": "jsonb",
+      "default": "'[]'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_outbound_summary.customer_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.carton_weight_kg": {
+      "type": "numeric",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.product_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_packing_totals.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.total_weight_kg": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_barcodes.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_quote_totals.status_changed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.submitted_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_items.position": {
+      "type": "int4",
+      "default": "0",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_current_reference_cost.currency": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.owner_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.currency": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.brand": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.email": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.phone": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.actual_delivery_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.contacted_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_packing_items.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_pi_items.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_pi_totals.counterparty_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_followups.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_followups.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_followups.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_followups.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_production_items.barcode_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_orders.anomaly_flags": {
+      "type": "_text",
+      "default": "'{}'::text[]",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.anomaly_notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_source_urls.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_status_history_display.metadata": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.customer_name": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiries.submission_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.marking_profile": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_manual_tasks.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_manual_tasks.production_order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.source_quote_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.source_website_inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.customer_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.follow_up_count": {
+      "type": "int8",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.last_contact_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_totals.status_changed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.qty_per_carton": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.reference_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_followups.attachments": {
+      "type": "jsonb",
+      "default": "'[]'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.factory_due_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_versions.document_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quotes.source_website_inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.to_status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.method": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_items.inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.created_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.updated_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.updated_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.contact": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.country": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.expected_delivery_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.currency": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_procurement_cost_history.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_extensions.internal_notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_followups.contacted_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_items.marking_override": {
+      "type": "jsonb",
+      "default": "'{\"mode\": \"inherit\"}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_production_items.product_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_quote_items.source_cny_unit_price": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.changed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.changed_by": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.created_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_followups.summary": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.requirement": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.source_file": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.source_note": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.source_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.archived_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_document_daily_counters.last_value": {
+      "type": "int4",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_formal_customer_directory.whatsapp": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_items.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.counterparty_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.purchase_order_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.next_follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.status_changed_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.source_order_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.carton_weight_kg": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_barcodes.barcode_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_items.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_order_counters.order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_orders.marking_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_quote_items.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.counterparty_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.from_status": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.resource_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.processing_notes": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.owner_id": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_items.match_status": {
+      "type": "text",
+      "default": "'unresolved'::text",
+      "nullable": "NO"
+    },
+    "romiku_customer_document_rows.order_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customer_directory.logistics": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_orders.production_defaults_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_pi_totals.source_website_inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_procurement_cost_history.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_procurement_cost_history.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_items.packaging_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_production_items.production_note_zh": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_orders.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_production_orders.supplier_snapshot": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.next_follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_customer_document_rows.document_date": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.resource_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.packed_quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.next_follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.status_changed_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_outbound_followups.next_follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.registration_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_items.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_packing_lists.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.source_file": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.source_note": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.source_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_product_extensions.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_items.production_order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_order_counters.last_value": {
+      "type": "int4",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_status_history_display.change_source": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.resource_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.formal_customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.created_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_followups.created_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_followups.updated_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_followups.updated_by": {
+      "type": "uuid",
+      "default": "auth.uid()",
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.effective_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_document_daily_counters.business_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_document_daily_counters.document_kind": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_document_daily_counters.number_prefix": {
+      "type": "text",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_formal_customer_directory.search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.ordered_quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_items.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_items.source_order_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiries.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.attachments": {
+      "type": "jsonb",
+      "default": "'[]'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_customer_contacts.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_membership.record_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_rows.document_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_totals.source_website_inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.registration_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_outbound_summary.business_intelligence": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_summary.purchasing_categories": {
+      "type": "_text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_product_suppliers.supplier_item_number": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_followups.next_follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_orders.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_totals.source_website_inquiry_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_status_history_display.changed_by_name": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.contacted_at": {
+      "type": "timestamptz",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.product_snapshot": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_formal_customers.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.remaining_quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.effective_date": {
+      "type": "date",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_items.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.requested_quantity_snapshot": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_items.sanity_product_id": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_contacts.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_membership.customer_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.production_quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.business_intelligence": {
+      "type": "jsonb",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    "romiku_outbound_companies.purchasing_categories": {
+      "type": "_text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_contacts.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_barcodes.source_order_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_production_followups.production_order_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_production_orders.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiries.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_order_item_remaining.unallocated_quantity": {
+      "type": "numeric",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_companies.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_outbound_followups.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_current_reference_cost.product_supplier_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_customer_document_membership.resource_type": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_quote_items.source_website_inquiry_item_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_items.business_search_text": {
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_formal_customers.source_outbound_company_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_website_inquiry_followups.next_follow_up_at": {
+      "type": "timestamptz",
+      "default": null,
+      "nullable": "YES"
+    },
+    "romiku_procurement_cost_history.product_supplier_id": {
+      "type": "uuid",
+      "default": null,
+      "nullable": "NO"
+    },
+    "romiku_website_inquiry_items.business_search_fields": {
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    }
+  },
+  "policies": {
+    "romiku_pis.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_pis.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_pis.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_orders.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_quotes.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_orders.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_orders.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_payments.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_pi_items.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_quotes.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_quotes.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_suppliers.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_payments.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_payments.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_payments.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_pi_items.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_pi_items.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_pi_items.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_order_items.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_quote_items.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_source_urls.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_suppliers.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_suppliers.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_suppliers.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_manual_tasks.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_order_items.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_order_items.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_order_items.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_packing_items.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_packing_lists.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_quote_items.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_quote_items.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_quote_items.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_source_urls.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_source_urls.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_source_urls.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_manual_tasks.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_manual_tasks.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_manual_tasks.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_quote_versions.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_numbering_rules.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_packing_items.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_packing_items.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_packing_items.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_packing_lists.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_packing_lists.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_formal_customers.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_numbering_rules.romiku_write": {
+      "cmd": "ALL",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_items.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_quote_versions.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_customer_contacts.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_outbound_contacts.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_product_suppliers.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_production_orders.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_supplier_contacts.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_website_inquiries.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_formal_customers.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_formal_customers.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_formal_customers.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_companies.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_outbound_followups.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_product_extensions.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_production_items.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_production_items.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_items.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_customer_contacts.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_customer_contacts.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_customer_contacts.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_contacts.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_outbound_contacts.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_contacts.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_product_suppliers.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_product_suppliers.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_product_suppliers.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_orders.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_orders.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_supplier_contacts.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_supplier_contacts.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_supplier_contacts.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_website_inquiries.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_website_inquiries.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_companies.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_outbound_companies.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_companies.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_followups.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_outbound_followups.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_outbound_followups.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_product_extensions.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_product_extensions.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_product_extensions.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_barcodes.barcode_read": {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() IS NOT NULL)",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_production_followups.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_website_inquiry_items.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_production_followups.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_production_followups.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_followups.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_production_barcodes.barcode_reserve": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    "romiku_website_inquiry_items.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_website_inquiry_items.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_procurement_cost_history.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_website_inquiry_followups.romiku_read": {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_procurement_cost_history.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_website_inquiry_followups.romiku_delete": {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": null
+    },
+    "romiku_website_inquiry_followups.romiku_insert": {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_website_inquiry_followups.romiku_update": {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": ["authenticated"],
+      "with_check": "true"
+    },
+    "romiku_status_history.read_visible_status_history": {
+      "cmd": "SELECT",
+      "qual": "((auth.uid() IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM romiku_workflow_records r\n  WHERE ((r.kind = romiku_status_history.resource_type) AND (r.id = romiku_status_history.resource_id)))))",
+      "roles": ["authenticated"],
+      "with_check": null
+    }
+  },
+  "functions": {
+    "romiku_audit()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "3ba0ea8d39cb431157a9b083e2e37bc1",
+      "security_definer": false
+    },
+    "romiku_assign_number()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "bdd503bb33816e8b143fc71c9de96cd8",
+      "security_definer": true
+    },
+    "romiku_preserve_history()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "e6ba7f2523b6fbba554efe1ffa35b233",
+      "security_definer": false
+    },
+    "romiku_preserve_inquiry()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "ae0022107a35dd511c6da2f04b6e4dad",
+      "security_definer": false
+    },
+    "romiku_status_timestamp()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "b7de453754da567b57f2349b95af96d5",
+      "security_definer": true
+    },
+    "romiku_check_order_quantity()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "93746625c95f21af4ecfc42d79214886",
+      "security_definer": false
+    },
+    "romiku_lock_document_parent()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "f65d1dd988e4d4b8587faf3dd296685b",
+      "security_definer": false
+    },
+    "romiku_record_status_history()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "c5a2acff24b0cd895742e55251d3fdee",
+      "security_definer": true
+    },
+    "romiku_search_date(value date)": {
+      "config": ["search_path=\"\""],
+      "result": "text",
+      "definition_md5": "64f75b7c91df2455993657db3997b24e",
+      "security_definer": false
+    },
+    "romiku_valid_ean13(value text)": {
+      "config": ["search_path=\"\""],
+      "result": "boolean",
+      "definition_md5": "91842b274cc72e34b44e41daad85c578",
+      "security_definer": false
+    },
+    "romiku_check_packing_quantity()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "921ba0e9e7c75575cbd67c1500bc6f20",
+      "security_definer": false
+    },
+    "romiku_preserve_cost_identity()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "062fca7d376f586e78289d0f8c0998c8",
+      "security_definer": false
+    },
+    "romiku_search_text(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "text",
+      "definition_md5": "b37f19eaa5db44778ac28ebb05a07b15",
+      "security_definer": false
+    },
+    "romiku_guard_financial_history()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "2599f6a15f4ee2cc58450265251c7e58",
+      "security_definer": false
+    },
+    "romiku_search_join(value text[])": {
+      "config": ["search_path=\"\""],
+      "result": "text",
+      "definition_md5": "8e9ed2e6ade3d2661460f2dec627bebe",
+      "security_definer": false
+    },
+    "romiku_archive_orders(ids uuid[])": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "16a82ad1a2cf510d12a44a62a9f51133",
+      "security_definer": false
+    },
+    "romiku_assign_production_number()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "d7592503096f6e19a330bc88bc199666",
+      "security_definer": true
+    },
+    "romiku_search_fields(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "4fa455bd412d6f317743c0302239e5b0",
+      "security_definer": false
+    },
+    "romiku_normalize_workflow_status()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "f81e14026e58b83785acaba157a6f359",
+      "security_definer": false
+    },
+    "romiku_preserve_payment_currency()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "c6deed7147b8f384e2a41105bbbb89f4",
+      "security_definer": false
+    },
+    "romiku_production_capacity_guard()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "d123e694cf87b3fc3d62c4a79c0bbc9d",
+      "security_definer": true
+    },
+    "romiku_quote_inquiry_source_guard()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "42b4c35f860b6b1434f838a4aafc28b8",
+      "security_definer": false
+    },
+    "romiku_batch_delete_orders(ids uuid[])": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "9654911019db2773afe396edd6ae4830",
+      "security_definer": true
+    },
+    "romiku_initialize_order_instructions()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "221b6027a9b12a27a845a72ee3d8e226",
+      "security_definer": false
+    },
+    "romiku_order_export_snapshot_default()": {
+      "config": null,
+      "result": "trigger",
+      "definition_md5": "d7bf350527ed789fed792a0e701cd773",
+      "security_definer": false
+    },
+    "romiku_production_item_barcode_guard()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "edf29c224a76993148f6ef9a1b94544e",
+      "security_definer": false
+    },
+    "romiku_quote_export_snapshot_default()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "caabca472da81fab414d85afd51571e4",
+      "security_definer": false
+    },
+    "romiku_valid_item_marking(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "boolean",
+      "definition_md5": "683b6473d44a2c9e1cd9c2524d72d542",
+      "security_definer": false
+    },
+    "romiku_quote_requested_quantity_guard()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "5c34205e3a010239eacf4e1fa6425e7c",
+      "security_definer": false
+    },
+    "romiku_order_production_capacity_guard()": {
+      "config": ["search_path=\"\""],
+      "result": "trigger",
+      "definition_md5": "de089362cff5873a5bd1df3d2ba96abf",
+      "security_definer": true
+    },
+    "romiku_marking_search_fields(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "22fffb82bcdcfab4d30932147393118b",
+      "security_definer": false
+    },
+    "romiku_order_delete_preflight(ids uuid[])": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "56ffb1a546b7a0f2dd31892dbfdd1502",
+      "security_definer": true
+    },
+    "romiku_batch_delete(kind text, ids uuid[])": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "226ea5855a7761f4936f3d5ae5334a21",
+      "security_definer": true
+    },
+    "romiku_customer_archive_plan(order_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "d595f2a73c9595f85dbbe8fd2da8f81f",
+      "security_definer": false
+    },
+    "romiku_inquiry_dependencies(record_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "ac2e8a0747545fb9e26aa377bd8469c8",
+      "security_definer": false
+    },
+    "romiku_publish_quote_version(quote_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "uuid",
+      "definition_md5": "06c3b533b390e0613cd3da0c6a8b94a9",
+      "security_definer": false
+    },
+    "romiku_submit_website_inquiry(payload jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "TABLE(id uuid, document_number text, replay boolean, submitted_at timestamp with time zone, \"normalizedSubmission\" jsonb)",
+      "definition_md5": "da095c3e915944edd4504fd3147f569c",
+      "security_definer": false
+    },
+    "romiku_valid_instruction_labels(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "boolean",
+      "definition_md5": "b8029fdf1758c39d5734166e1ea9d528",
+      "security_definer": false
+    },
+    "romiku_valid_item_marking_fields(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "boolean",
+      "definition_md5": "6b62bca8d903c4db698d17e51ef7dc8f",
+      "security_definer": false
+    },
+    "romiku_void_order(order_id uuid, reason text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "55dbf882679e6e1f855e6f2b76d5f3ff",
+      "security_definer": true
+    },
+    "romiku_delete_preflight(kind text, ids uuid[])": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "11b8a84ca847bcb73e1f71682ef43282",
+      "security_definer": true
+    },
+    "romiku_delete_order_controlled(order_uuid uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "7222a73c06cbfee7687dbf1e6e0b7b42",
+      "security_definer": true
+    },
+    "romiku_delete_record(kind text, record_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "c84daadc4b86c39e958f42fb21327535",
+      "security_definer": true
+    },
+    "romiku_has_production_instructions(value jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "boolean",
+      "definition_md5": "3d2ed32c99287132fab2960a27b63bbb",
+      "security_definer": false
+    },
+    "romiku_lock_production_capacity(parent_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "void",
+      "definition_md5": "6f7415463d16865f58e5afb48b7490bd",
+      "security_definer": true
+    },
+    "romiku_order_delete_eligibility(order_uuid uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "af1e6e45b2421f34f4e0d85bc950db7f",
+      "security_definer": true
+    },
+    "romiku_void_payment(payment_id uuid, reason text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "39c09d190af7d4fff4f5af02faae1298",
+      "security_definer": true
+    },
+    "romiku_search_date(value timestamp with time zone)": {
+      "config": ["search_path=\"\""],
+      "result": "text",
+      "definition_md5": "1c1b2f85f771ee7118c8cf95116dcceb",
+      "security_definer": false
+    },
+    "romiku_production_allocations(source_order_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "TABLE(id uuid, order_id uuid, sku text, quantity numeric, product_snapshot jsonb, packing_snapshot jsonb, ordered_quantity numeric, production_quantity numeric, unallocated_quantity numeric, allocations jsonb)",
+      "definition_md5": "a99cb1bc9aab4759868cb7119c4cb4ea",
+      "security_definer": false
+    },
+    "romiku_reload_production_defaults(production_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "86960d2102cb49ad23db36eee348574c",
+      "security_definer": false
+    },
+    "romiku_next_daily_document_number(kind text, prefix text)": {
+      "config": ["search_path=\"\""],
+      "result": "text",
+      "definition_md5": "030b09d5341f37b27820985530d0718b",
+      "security_definer": true
+    },
+    "romiku_search_snapshot(value jsonb, prefix text, kind text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "83a80d8674b4e1e84b2366d5f20e33af",
+      "security_definer": false
+    },
+    "romiku_batch_status(kind text, ids uuid[], target_status text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "60460ba6c9f0df2a00c092117f20b30b",
+      "security_definer": false
+    },
+    "romiku_quote_from_inquiry(inquiry_id uuid, selected_item_ids uuid[])": {
+      "config": ["search_path=\"\""],
+      "result": "uuid",
+      "definition_md5": "2dbff8f89b46879a1dc46a5392298dc8",
+      "security_definer": false
+    },
+    "romiku_search_matches(fields jsonb, q text, pattern text, phone text)": {
+      "config": ["search_path=\"\""],
+      "result": "TABLE(rank integer, matched_fields text[])",
+      "definition_md5": "48f48f4ced0c3c7fb88f7054a148ffd0",
+      "security_definer": false
+    },
+    "romiku_convert_document(source_kind text, source_id uuid, target_kind text)": {
+      "config": ["search_path=\"\""],
+      "result": "uuid",
+      "definition_md5": "a0d51df4554f81dd53edc63d71f11373",
+      "security_definer": false
+    },
+    "romiku_sync_order_production_defaults(source_order_id uuid, expected jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "a7ab336678557e76a7b564812717176e",
+      "security_definer": false
+    },
+    "romiku_business_search_hits(query text, resource_types text[], filters jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "TABLE(resource_type text, id uuid, title text, subtitle text, created_at timestamp with time zone, rank integer, matched_fields text[])",
+      "definition_md5": "cbeedbef44b8bfe358f3f202fe96f6c5",
+      "security_definer": false
+    },
+    "romiku_update_item_marking(production_id uuid, item_ids uuid[], action text, payload jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "integer",
+      "definition_md5": "ac12183dd47ff08021c9aa22a498ce6a",
+      "security_definer": false
+    },
+    "romiku_production_barcode(source_item_id uuid, generate_number boolean, production_item_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "9f5985e4e81c991d47f50c08e9637b99",
+      "security_definer": false
+    },
+    "romiku_customer_business_history(customer_id uuid, \"limit\" integer, \"offset\" integer, query text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "5c2a566ce90c8441fd10ca4cbe2cd5a0",
+      "security_definer": false
+    },
+    "romiku_build_instruction_snapshot(profile jsonb, requirements text, source_kind text, source_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "f927ac1a94bea7c2aba6a542c54a2d16",
+      "security_definer": false
+    },
+    "romiku_global_search(query text, resource_types text[], \"limit\" integer, \"offset\" integer, filters jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "a5a1988d0d15759e9229dacb2881eee3",
+      "security_definer": false
+    },
+    "romiku_customer_documents(customer_id uuid, resource_type text, \"limit\" integer, \"offset\" integer, query text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "15ae5a9258b3cc25db4bdb95de01fbc0",
+      "security_definer": false
+    },
+    "romiku_save_production_workspace(production_id uuid, source_order_id uuid, header jsonb, items jsonb, expected jsonb)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "8483522037a46946ebf7ad82a7851d49",
+      "security_definer": false
+    },
+    "romiku_confirm_customer_archive(order_id uuid, customer_id uuid, include_history boolean, expected_token text, new_customer_name text)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "3d2034f49243482545a6a580fc8fd8d1",
+      "security_definer": false
+    },
+    "romiku_get_status_history(resource_type text, resource_id uuid, page_size integer, before_changed_at timestamp with time zone, before_id uuid)": {
+      "config": ["search_path=\"\""],
+      "result": "jsonb",
+      "definition_md5": "960e268b8ea7d86dcbb3f4722d5a1aa8",
+      "security_definer": false
+    }
+  },
+  "relations": {
+    "romiku_pis": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_orders": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_quotes": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_calendar": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_payments": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_pi_items": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_pi_totals": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_suppliers": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_workbench": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_order_items": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_quote_items": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_source_urls": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_manual_tasks": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_order_totals": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_quote_totals": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_packing_items": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_packing_lists": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_packing_totals": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_quote_versions": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_status_history": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_numbering_rules": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_formal_customers": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_outbound_summary": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_production_items": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_workflow_records": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_customer_contacts": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_outbound_contacts": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_product_suppliers": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_production_orders": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_supplier_contacts": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_website_inquiries": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_outbound_companies": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_outbound_followups": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_product_extensions": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_production_barcodes": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_order_item_remaining": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_production_followups": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_website_inquiry_items": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_current_reference_cost": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_customer_document_rows": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_status_history_display": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_document_daily_counters": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_procurement_cost_history": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_formal_customer_directory": {
+      "rls": false,
+      "kind": "v"
+    },
+    "romiku_production_order_counters": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_website_inquiry_followups": {
+      "rls": true,
+      "kind": "r"
+    },
+    "romiku_customer_document_membership": {
+      "rls": false,
+      "kind": "v"
+    }
+  },
+  "foreign_keys": {
+    "romiku_pis_owner_id_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_pi_items_pi_id_fkey": {
+      "table": "romiku_pi_items",
+      "definition": "FOREIGN KEY (pi_id) REFERENCES romiku_pis(id)"
+    },
+    "romiku_pis_created_by_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_pis_updated_by_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_owner_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quotes_owner_id_fkey": {
+      "table": "romiku_quotes",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_voided_by_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (voided_by) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_created_by_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_updated_by_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_payments_order_id_fkey": {
+      "table": "romiku_payments",
+      "definition": "FOREIGN KEY (order_id) REFERENCES romiku_orders(id)"
+    },
+    "romiku_payments_owner_id_fkey": {
+      "table": "romiku_payments",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_pi_items_owner_id_fkey": {
+      "table": "romiku_pi_items",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quotes_created_by_fkey": {
+      "table": "romiku_quotes",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_quotes_updated_by_fkey": {
+      "table": "romiku_quotes",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_pi_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (pi_id) REFERENCES romiku_pis(id)"
+    },
+    "romiku_orders_co_owner_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (co_owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_payments_voided_by_fkey": {
+      "table": "romiku_payments",
+      "definition": "FOREIGN KEY (voided_by) REFERENCES auth.users(id)"
+    },
+    "romiku_suppliers_owner_id_fkey": {
+      "table": "romiku_suppliers",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_source_pi_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (source_pi_id) REFERENCES romiku_pis(id)"
+    },
+    "romiku_payments_created_by_fkey": {
+      "table": "romiku_payments",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_payments_updated_by_fkey": {
+      "table": "romiku_payments",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_pi_items_created_by_fkey": {
+      "table": "romiku_pi_items",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_pi_items_updated_by_fkey": {
+      "table": "romiku_pi_items",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_pis_source_quote_id_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (source_quote_id) REFERENCES romiku_quotes(id)"
+    },
+    "romiku_order_items_order_id_fkey": {
+      "table": "romiku_order_items",
+      "definition": "FOREIGN KEY (order_id) REFERENCES romiku_orders(id)"
+    },
+    "romiku_order_items_owner_id_fkey": {
+      "table": "romiku_order_items",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quote_items_owner_id_fkey": {
+      "table": "romiku_quote_items",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quote_items_quote_id_fkey": {
+      "table": "romiku_quote_items",
+      "definition": "FOREIGN KEY (quote_id) REFERENCES romiku_quotes(id)"
+    },
+    "romiku_source_urls_owner_id_fkey": {
+      "table": "romiku_source_urls",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_suppliers_created_by_fkey": {
+      "table": "romiku_suppliers",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_suppliers_updated_by_fkey": {
+      "table": "romiku_suppliers",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_order_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (order_id) REFERENCES romiku_orders(id)"
+    },
+    "romiku_manual_tasks_owner_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_quote_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (quote_id) REFERENCES romiku_quotes(id)"
+    },
+    "romiku_order_items_created_by_fkey": {
+      "table": "romiku_order_items",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_order_items_updated_by_fkey": {
+      "table": "romiku_order_items",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_source_quote_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (source_quote_id) REFERENCES romiku_quotes(id)"
+    },
+    "romiku_packing_items_owner_id_fkey": {
+      "table": "romiku_packing_items",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_packing_lists_order_id_fkey": {
+      "table": "romiku_packing_lists",
+      "definition": "FOREIGN KEY (order_id) REFERENCES romiku_orders(id)"
+    },
+    "romiku_packing_lists_owner_id_fkey": {
+      "table": "romiku_packing_lists",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_pis_formal_customer_id_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (formal_customer_id) REFERENCES romiku_formal_customers(id)"
+    },
+    "romiku_quote_items_created_by_fkey": {
+      "table": "romiku_quote_items",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_quote_items_updated_by_fkey": {
+      "table": "romiku_quote_items",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_source_urls_created_by_fkey": {
+      "table": "romiku_source_urls",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_source_urls_updated_by_fkey": {
+      "table": "romiku_source_urls",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_created_by_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_updated_by_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_pis_outbound_company_id_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_quote_versions_owner_id_fkey": {
+      "table": "romiku_quote_versions",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quote_versions_quote_id_fkey": {
+      "table": "romiku_quote_versions",
+      "definition": "FOREIGN KEY (quote_id) REFERENCES romiku_quotes(id)"
+    },
+    "romiku_manual_tasks_co_owner_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (co_owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_supplier_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (supplier_id) REFERENCES romiku_suppliers(id)"
+    },
+    "romiku_numbering_rules_owner_id_fkey": {
+      "table": "romiku_numbering_rules",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_packing_items_created_by_fkey": {
+      "table": "romiku_packing_items",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_packing_items_updated_by_fkey": {
+      "table": "romiku_packing_items",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_packing_lists_created_by_fkey": {
+      "table": "romiku_packing_lists",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_packing_lists_updated_by_fkey": {
+      "table": "romiku_packing_lists",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_formal_customers_owner_id_fkey": {
+      "table": "romiku_formal_customers",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_formal_customer_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (formal_customer_id) REFERENCES romiku_formal_customers(id)"
+    },
+    "romiku_production_items_owner_id_fkey": {
+      "table": "romiku_production_items",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quote_versions_created_by_fkey": {
+      "table": "romiku_quote_versions",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_quote_versions_updated_by_fkey": {
+      "table": "romiku_quote_versions",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_quotes_formal_customer_id_fkey": {
+      "table": "romiku_quotes",
+      "definition": "FOREIGN KEY (formal_customer_id) REFERENCES romiku_formal_customers(id)"
+    },
+    "romiku_customer_contacts_owner_id_fkey": {
+      "table": "romiku_customer_contacts",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_numbering_rules_created_by_fkey": {
+      "table": "romiku_numbering_rules",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_numbering_rules_updated_by_fkey": {
+      "table": "romiku_numbering_rules",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_orders_outbound_company_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_outbound_contacts_owner_id_fkey": {
+      "table": "romiku_outbound_contacts",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_product_suppliers_owner_id_fkey": {
+      "table": "romiku_product_suppliers",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_production_orders_order_id_fkey": {
+      "table": "romiku_production_orders",
+      "definition": "FOREIGN KEY (order_id) REFERENCES romiku_orders(id)"
+    },
+    "romiku_production_orders_owner_id_fkey": {
+      "table": "romiku_production_orders",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_quotes_outbound_company_id_fkey": {
+      "table": "romiku_quotes",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_supplier_contacts_owner_id_fkey": {
+      "table": "romiku_supplier_contacts",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_website_inquiries_owner_id_fkey": {
+      "table": "romiku_website_inquiries",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_formal_customers_created_by_fkey": {
+      "table": "romiku_formal_customers",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_formal_customers_updated_by_fkey": {
+      "table": "romiku_formal_customers",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_companies_owner_id_fkey": {
+      "table": "romiku_outbound_companies",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_followups_owner_id_fkey": {
+      "table": "romiku_outbound_followups",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_product_extensions_owner_id_fkey": {
+      "table": "romiku_product_extensions",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_production_items_created_by_fkey": {
+      "table": "romiku_production_items",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_production_items_updated_by_fkey": {
+      "table": "romiku_production_items",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_customer_contacts_created_by_fkey": {
+      "table": "romiku_customer_contacts",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_customer_contacts_updated_by_fkey": {
+      "table": "romiku_customer_contacts",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_contacts_created_by_fkey": {
+      "table": "romiku_outbound_contacts",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_contacts_updated_by_fkey": {
+      "table": "romiku_outbound_contacts",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_product_suppliers_created_by_fkey": {
+      "table": "romiku_product_suppliers",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_product_suppliers_updated_by_fkey": {
+      "table": "romiku_product_suppliers",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_production_orders_created_by_fkey": {
+      "table": "romiku_production_orders",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_production_orders_updated_by_fkey": {
+      "table": "romiku_production_orders",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_supplier_contacts_created_by_fkey": {
+      "table": "romiku_supplier_contacts",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_supplier_contacts_updated_by_fkey": {
+      "table": "romiku_supplier_contacts",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_website_inquiries_created_by_fkey": {
+      "table": "romiku_website_inquiries",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_website_inquiries_updated_by_fkey": {
+      "table": "romiku_website_inquiries",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_order_items_source_pi_item_id_fkey": {
+      "table": "romiku_order_items",
+      "definition": "FOREIGN KEY (source_pi_item_id) REFERENCES romiku_pi_items(id)"
+    },
+    "romiku_outbound_companies_created_by_fkey": {
+      "table": "romiku_outbound_companies",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_companies_updated_by_fkey": {
+      "table": "romiku_outbound_companies",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_followups_created_by_fkey": {
+      "table": "romiku_outbound_followups",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_followups_updated_by_fkey": {
+      "table": "romiku_outbound_followups",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_packing_items_packing_list_id_fkey": {
+      "table": "romiku_packing_items",
+      "definition": "FOREIGN KEY (packing_list_id) REFERENCES romiku_packing_lists(id)"
+    },
+    "romiku_pi_items_source_quote_item_id_fkey": {
+      "table": "romiku_pi_items",
+      "definition": "FOREIGN KEY (source_quote_item_id) REFERENCES romiku_quote_items(id)"
+    },
+    "romiku_pis_source_website_inquiry_id_fkey": {
+      "table": "romiku_pis",
+      "definition": "FOREIGN KEY (source_website_inquiry_id) REFERENCES romiku_website_inquiries(id)"
+    },
+    "romiku_product_extensions_created_by_fkey": {
+      "table": "romiku_product_extensions",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_product_extensions_updated_by_fkey": {
+      "table": "romiku_product_extensions",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_product_suppliers_supplier_id_fkey": {
+      "table": "romiku_product_suppliers",
+      "definition": "FOREIGN KEY (supplier_id) REFERENCES romiku_suppliers(id)"
+    },
+    "romiku_production_followups_owner_id_fkey": {
+      "table": "romiku_production_followups",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_production_orders_co_owner_id_fkey": {
+      "table": "romiku_production_orders",
+      "definition": "FOREIGN KEY (co_owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_production_orders_supplier_id_fkey": {
+      "table": "romiku_production_orders",
+      "definition": "FOREIGN KEY (supplier_id) REFERENCES romiku_suppliers(id)"
+    },
+    "romiku_supplier_contacts_supplier_id_fkey": {
+      "table": "romiku_supplier_contacts",
+      "definition": "FOREIGN KEY (supplier_id) REFERENCES romiku_suppliers(id)"
+    },
+    "romiku_website_inquiry_items_owner_id_fkey": {
+      "table": "romiku_website_inquiry_items",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_manual_tasks_formal_customer_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (formal_customer_id) REFERENCES romiku_formal_customers(id)"
+    },
+    "romiku_production_followups_created_by_fkey": {
+      "table": "romiku_production_followups",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_production_followups_updated_by_fkey": {
+      "table": "romiku_production_followups",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_source_urls_outbound_company_id_fkey": {
+      "table": "romiku_source_urls",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_manual_tasks_outbound_company_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_manual_tasks_production_order_id_fkey": {
+      "table": "romiku_manual_tasks",
+      "definition": "FOREIGN KEY (production_order_id) REFERENCES romiku_production_orders(id)"
+    },
+    "romiku_order_items_source_quote_item_id_fkey": {
+      "table": "romiku_order_items",
+      "definition": "FOREIGN KEY (source_quote_item_id) REFERENCES romiku_quote_items(id)"
+    },
+    "romiku_orders_source_website_inquiry_id_fkey": {
+      "table": "romiku_orders",
+      "definition": "FOREIGN KEY (source_website_inquiry_id) REFERENCES romiku_website_inquiries(id)"
+    },
+    "romiku_quotes_source_website_inquiry_id_fkey": {
+      "table": "romiku_quotes",
+      "definition": "FOREIGN KEY (source_website_inquiry_id) REFERENCES romiku_website_inquiries(id)"
+    },
+    "romiku_website_inquiry_items_created_by_fkey": {
+      "table": "romiku_website_inquiry_items",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_website_inquiry_items_inquiry_id_fkey": {
+      "table": "romiku_website_inquiry_items",
+      "definition": "FOREIGN KEY (inquiry_id) REFERENCES romiku_website_inquiries(id)"
+    },
+    "romiku_website_inquiry_items_updated_by_fkey": {
+      "table": "romiku_website_inquiry_items",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_procurement_cost_history_owner_id_fkey": {
+      "table": "romiku_procurement_cost_history",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_website_inquiry_followups_owner_id_fkey": {
+      "table": "romiku_website_inquiry_followups",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id)"
+    },
+    "romiku_procurement_cost_history_created_by_fkey": {
+      "table": "romiku_procurement_cost_history",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_procurement_cost_history_updated_by_fkey": {
+      "table": "romiku_procurement_cost_history",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_customer_contacts_formal_customer_id_fkey": {
+      "table": "romiku_customer_contacts",
+      "definition": "FOREIGN KEY (formal_customer_id) REFERENCES romiku_formal_customers(id)"
+    },
+    "romiku_website_inquiries_formal_customer_id_fkey": {
+      "table": "romiku_website_inquiries",
+      "definition": "FOREIGN KEY (formal_customer_id) REFERENCES romiku_formal_customers(id)"
+    },
+    "romiku_website_inquiry_followups_created_by_fkey": {
+      "table": "romiku_website_inquiry_followups",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id)"
+    },
+    "romiku_website_inquiry_followups_inquiry_id_fkey": {
+      "table": "romiku_website_inquiry_followups",
+      "definition": "FOREIGN KEY (inquiry_id) REFERENCES romiku_website_inquiries(id)"
+    },
+    "romiku_website_inquiry_followups_updated_by_fkey": {
+      "table": "romiku_website_inquiry_followups",
+      "definition": "FOREIGN KEY (updated_by) REFERENCES auth.users(id)"
+    },
+    "romiku_outbound_contacts_outbound_company_id_fkey": {
+      "table": "romiku_outbound_contacts",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_website_inquiries_outbound_company_id_fkey": {
+      "table": "romiku_website_inquiries",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_outbound_followups_outbound_company_id_fkey": {
+      "table": "romiku_outbound_followups",
+      "definition": "FOREIGN KEY (outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_packing_items_packing_list_id_order_id_fkey": {
+      "table": "romiku_packing_items",
+      "definition": "FOREIGN KEY (packing_list_id, order_id) REFERENCES romiku_packing_lists(id, order_id)"
+    },
+    "romiku_production_barcodes_source_order_item_id_fkey": {
+      "table": "romiku_production_barcodes",
+      "definition": "FOREIGN KEY (source_order_item_id) REFERENCES romiku_order_items(id) ON DELETE SET NULL"
+    },
+    "romiku_production_followups_production_order_id_fkey": {
+      "table": "romiku_production_followups",
+      "definition": "FOREIGN KEY (production_order_id) REFERENCES romiku_production_orders(id)"
+    },
+    "romiku_quote_items_source_website_inquiry_item_id_fkey": {
+      "table": "romiku_quote_items",
+      "definition": "FOREIGN KEY (source_website_inquiry_item_id) REFERENCES romiku_website_inquiry_items(id)"
+    },
+    "romiku_formal_customers_source_outbound_company_id_fkey": {
+      "table": "romiku_formal_customers",
+      "definition": "FOREIGN KEY (source_outbound_company_id) REFERENCES romiku_outbound_companies(id)"
+    },
+    "romiku_packing_items_source_order_item_id_order_id_fkey": {
+      "table": "romiku_packing_items",
+      "definition": "FOREIGN KEY (source_order_item_id, order_id) REFERENCES romiku_order_items(id, order_id)"
+    },
+    "romiku_procurement_cost_history_product_supplier_id_fkey": {
+      "table": "romiku_procurement_cost_history",
+      "definition": "FOREIGN KEY (product_supplier_id) REFERENCES romiku_product_suppliers(id)"
+    },
+    "romiku_production_items_production_order_id_order_id_fkey": {
+      "table": "romiku_production_items",
+      "definition": "FOREIGN KEY (production_order_id, order_id) REFERENCES romiku_production_orders(id, order_id)"
+    },
+    "romiku_production_items_source_order_item_id_order_id_fkey": {
+      "table": "romiku_production_items",
+      "definition": "FOREIGN KEY (source_order_item_id, order_id) REFERENCES romiku_order_items(id, order_id)"
+    },
+    "romiku_outbound_followups_contact_id_outbound_company_id_fkey": {
+      "table": "romiku_outbound_followups",
+      "definition": "FOREIGN KEY (contact_id, outbound_company_id) REFERENCES romiku_outbound_contacts(id, outbound_company_id)"
+    }
+  }
+}

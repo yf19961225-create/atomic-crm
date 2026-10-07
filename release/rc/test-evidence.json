@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-07",
+  "logs": {
+    "rc-pgtap-all.log": "5c181e7f1a774bd998cb36aed6f043fd430b611e25ae778b268cd38f98e2a667",
+    "rc-vitest-final.log": "5a618c46a938f0fd543620e23dbcbdcd5844405810b35a3cb8d822ca64ff4e7f",
+    "rc-php-final.log": "f2c1f0f48f934a6654fb6491edf7f5fdd2fb8c102e52cc71d51113bd9d17a553",
+    "rc-production-php.log": "28da633649dc1c923557a07ad6e6411ffc394210c32eb5b3dcbe8f94cca8e8c1",
+    "rc-production-node.log": "448c17ce9025f3a6aa10ff45c85f831130b0e816a6ad884cd140709b57dde21e",
+    "rc-preflight-test.log": "33060fd73862c5e1af97335504d5b45211fce6d229657f556d8deceeadc52ce4",
+    "rc-typecheck-final.log": "f8ad30d514dc3ea4a344fd8edf3ec21ce0f32fbe24372f67ba0af1653633c53c",
+    "rc-lint-final.log": "8893c91069bcf8c6db6773f4ce108324aebfebe4b49c5626e0d6496d43f67625",
+    "rc-build.log": "152e73201a1453a2ac439082e002a2f4c7b92dbe8a366f16835266150b12608d"
+  },
+  "vitest": {
+    "passed": 1053,
+    "skipped": 3,
+    "files_passed": 149,
+    "files_skipped": 2
+  },
+  "pgtap": {
+    "passed": 987,
+    "plans": 19
+  },
+  "browser_scope": "Preview baseline read-only smoke; mutations covered locally; new RC not deployed",
+  "php_qa": 125,
+  "node_qa": 5,
+  "production_php": 7,
+  "production_node": 2,
+  "preflight_python": 3
+}
