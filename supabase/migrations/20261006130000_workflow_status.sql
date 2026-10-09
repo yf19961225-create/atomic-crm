@@ -5,10 +5,67 @@ do $$ begin
  or exists(select 1 from public.romiku_website_inquiries where status not in ('new','pending_screening','pending_contact','pending_quote','quoted','following_up','customer_no_reply','won','invalid')) then
  raise exception 'Unmapped historical status: migration requires a fresh audit'; end if;
 end $$;
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_quotes in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_quotes'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_quotes disable trigger romiku_audit;
 update public.romiku_quotes set status='pending_quote' where status='draft';
+  alter table public.romiku_quotes enable trigger romiku_audit;
+end
+$audit_backfill$;
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_production_orders in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_production_orders'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_production_orders disable trigger romiku_audit;
 update public.romiku_production_orders set status=case status when 'pending' then 'pending_send' when 'in_production' then 'scheduled' end where status in ('pending','in_production');
+  alter table public.romiku_production_orders enable trigger romiku_audit;
+end
+$audit_backfill$;
 alter table public.romiku_website_inquiries drop constraint romiku_website_inquiries_status_check;
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_website_inquiries in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_website_inquiries'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_website_inquiries disable trigger romiku_audit;
 update public.romiku_website_inquiries set status='pending_screening' where status='new';
+  alter table public.romiku_website_inquiries enable trigger romiku_audit;
+end
+$audit_backfill$;
 alter table public.romiku_quotes alter column status set default 'pending_quote', add constraint romiku_quotes_status_check check(status in ('pending_quote','sent','won'));
 alter table public.romiku_pis add constraint romiku_pis_status_check check(status in ('draft','sent','confirmed','cancelled'));
 alter table public.romiku_production_orders alter column status set default 'pending_send', add constraint romiku_production_orders_status_check check(status in ('pending_send','scheduled','received','cancelled'));

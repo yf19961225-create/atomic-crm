@@ -1,0 +1,78 @@
+ROMIKU Production 上线阻塞修复与隔离演练报告 — 2026-10-09
+
+结论
+数据库修复和真实备份完整演练通过。旧正式前端与升级后状态模型不完全兼容，因此不批准“先升级数据库、继续使用旧前端写入”的上线方式。
+当前为有条件准入：必须另行确认维护窗口、覆盖旧浏览器/API 客户端的停写门禁、数据库与新前端协同切换及成对回退方案，然后再单独授权 Production migration。本报告不是执行授权。
+原冻结 RC 8096a101ec99bcd1123a24bb462128d8018f0465 保留；新候选由本报告所在新 commit 标识。
+
+一、Storage Policy 阻塞
+失败文件：20261003150000_production_marking_snapshot.sql（第17份）。
+先前隔离副本没有载入 Production 已存在的 supautils，因此普通 PostgreSQL 以非 owner 执行 CREATE POLICY 得到 42501。
+只读 Production 审计确认 current_user/session_user=postgres，postgres 非 superuser；storage.objects/buckets owner=supabase_storage_admin；postgres 没有该 owner 的 USAGE/SET ROLE，但实际 session_preload_libraries=supautils，supautils.policy_grants 明确包含 postgres 对 storage.objects 的 Policy 管理能力。
+官方支持使用 storage.objects 的 RLS policies；supautils 文档明确提供 policy_grants 非 owner Policy 管理机制。
+修复只发生在隔离恢复环境：加载捕获的实际配置，匹配完整角色继承；仍使用 nonsuperuser postgres 执行全部 migration。第17份成功，无 owner 变更，无新增 Production 业务权限，无 Production Policy 操作。
+第17份的 Storage Policy SQL 未改；该文件的 hash 变化来自 Production Item position 回填的审计保护。
+未来执行前：只读复核 runner 身份、Storage owner、supautils 已载入及 allowlist。若不匹配立即停止。当前不需要单独拆分 Policy 操作；不得跳过 Policy 后补写 ledger。若托管环境能力发生变化，应先通过 Supabase 官方渠道恢复/确认现有能力，再重新演练完整第17份，不使用 ALTER OWNER 或 superuser 授权绕过。
+
+二、历史审计字段
+原第6份 UPDATE terms_snapshot 触发 romiku_audit()；migration 没有 JWT，auth.uid()=NULL，导致2张历史 Order.updated_by 清空、updated_at 改写。
+已在真实恢复数据中复现失败，再验证修复。
+检查32份顶层 DML/DO：共有六份文件需要同类保护，分别为6、12、17、18、26、30，共9个 UPDATE 回填语句。具体旧/新 hash 见 migration-hash-delta.json。
+每个回填在原子 DO 内锁表，确认 romiku_audit 正常启用，只临时暂停该审计触发器，执行原回填，再恢复触发器。其他业务触发器、约束、RLS 不被统一关闭；没有新增永久 bypass 参数或修改正常审计函数。
+锁保持到迁移事务结束，阻止并发写入落在审计暂停区间；任何错误回滚数据和触发器状态。
+其余回填：第9份只调整编号 counter；第27/31份 DO 修改视图；第31份新增状态历史基线。未发现其他直接覆盖旧业务审计字段的顶层回填。函数定义中的运行时更新仍保留原有审计语义。
+新生产要求只从历史 Order 自有 snapshot/notes 初始化，不读取当前 Customer profile。
+
+三、真实备份与完整32份演练
+原始私有 archive SHA256：cfa2afa199619eabb77c9ce063e4113654c17091d261d1d423c5e86f9272819c。
+使用原始备份重新恢复，未从先前16份中间状态继续。75张被源端指纹覆盖的表全部匹配；schema、ACL、角色属性、完整membership、13个sequence状态和extension版本一致。
+最终无fixture副本：32/32成功，26 -> 58 ledger；原26条名称保留，新增32条 statements 与执行副本完全一致。
+第12/13份只在经AST校验的执行副本移除外层 BEGIN/COMMIT，正文与ledger始终同一事务。
+另在独立测试副本对32份逐一制造 ledger INSERT 冲突：32/32完整回滚，比较业务数据、schema、触发器、索引、全部约束、权限、Storage policies和sequence。
+六份审计保护均有独立fixture回归；包含源Production备份中没有记录的Packing/Production/Inquiry场景。
+迁移顺序与32个完整文件hash见 migration-SHA256SUMS.txt。
+
+四、历史数据完整性
+29张原业务表，共22行；全部ID集合与行数不变。
+Formal Customer 1；Quote 3/Items 6；PI 2/Items 2；Order 2/Items 5；Manual Task 1。
+Production/Packing/Payment/Website Inquiry/Outbound 均为0；不能把fixture测试声称为这些资源已有历史数据的迁移证明。
+88个原created_by/updated_by/created_at/updated_at字段全部保持。所有原单据编号、金额、明细、商业snapshot和关系字段保持，非预期差异0。
+明确预期变化：2张Order的terms_snapshot仅追加order_export默认对象；3张Quote从draft映射pending_quote。新字段：2份Order production_defaults_snapshot具备legacy_order来源及初始化元数据；新增7条状态历史基线。
+原9个业务视图的原列数据在扣除上述预期变化后完全一致。
+143个业务FK检查无orphan；无invalid index、无unvalidated constraint、无遗留disabled audit trigger。
+目标RC的columns/relations/functions/views/FK/policies比对无drift。反解析比较统一search_path，避免public限定名导致伪差异。
+最终无fixture演练的原sequence状态差异0。
+Storage原对象数0；新增私有marking bucket及受控policy符合migration，原owner仍supabase_storage_admin。没有真实对象可验证字节级恢复，未来有文件时必须额外导出文件与checksum，pg_dump不包含对象内容。
+
+五、旧正式前端兼容性
+只读确认正式deployment：dpl_NUWQSgpYFz4eddFfHq5C2VtsJVZA；SHA e4615195329b6da6d0bd4c2039c01199ecbde2bc。
+用该版本源码执行label/validator，并在升级后的隔离副本以authenticated身份提交对应旧payload，全部回滚。
+六类主要读取查询正常；旧Quote draft筛选无法命中已映射pending_quote；新状态在旧label函数显示原始英文；旧Quote validator拒绝pending_quote。
+Quote draft/sent写入分别归一化pending_quote/quoted，但accepted/declined/expired/cancelled被23514拒绝。
+Production pending/in_production归一化pending_send/scheduled；completed拒绝，received/cancelled可接受。
+Inquiry new归一化pending_screening；pending/processed拒绝，following_up/invalid可接受。
+Inquiry->Quote RPC uuid/uuid[]接口仍存在；这不能证明整个旧UI兼容。
+旧Production仍按supplier组织创建并逐条写入，也不符合新统一工作台workflow。不能依靠基础SELECT成功判断旧前端可继续营业。
+范围说明：这是实际旧源码函数与authenticated数据库合同验证，不是旧正式网页的写入E2E；没有向Production提交测试。
+
+六、验证汇总
+前端：149文件通过/2跳过；1053测试通过/3跳过，含五类XLSX既有回归。五类模板/renderer均无改动。
+pgTAP：987通过。854项在有真实恢复数据的测试副本运行；旧core的133项依赖空业务表，在独立副本的回滚fixture清理中通过，不作为真实数据演练证据。
+SQL guard：7项通过；ledger失败原子性32项通过；审计回填6项通过。
+typecheck/lint/build通过；只有既有ESLint配置及bundle/browserslist提示。
+私有原始日志只保存在本机；validation-summary.json记录hash，不入库客户数据、auth数据或备份archive。
+
+七、最小安全切换与rollback checkpoint（仅计划，未执行）
+CP0：单独授权并验证维护窗口停写。必须覆盖已打开旧页面、PWA缓存、后台/API/service-role写入口；仅发布维护页面或通知用户不够。强制停写门禁的具体实现和解锁规则需单独审查并演练，当前尚未安装。
+CP1：停写后重新做只读target/ledger/schema/status/runtime检查，并取得新的完整一致性备份和Storage清单。今天备份不能替代未来切换时点备份。确认原26 ledger基线未变化；如变化，停止并重新演练。
+CP2：单独授权后按固定32份hash执行；每份SQL+ledger原子事务，设置有限lock/statement timeout。任一异常停止，不补ledger、不放宽权限、不恢复旧客户端写入。
+CP3：58 ledger及完整数据/审计/关系/权限核验通过后，才进入另行授权的新CRM Production deploy。新前端Ready、target/env核验、强制刷新旧客户端后，按明确规则解除停写。网站入口切换仍属于后续独立授权；不双写旧新CRM。
+若CP2失败：失败那份自动回滚，但前面已提交的迁移仍存在。保持停写；可在独立批准的修复后继续，或执行已批准的整体恢复，禁止把应用回滚误认为数据库回滚。
+整体回退：使用CP1完整备份恢复数据库到26 ledger状态，核验原数据、ACL、roles、sequence、Storage引用，再配合旧deployment恢复，最后解锁。不要执行未经演练的反向DDL或手动删除ledger。
+托管Production上的完整恢复权限、恢复目标/方式及RTO尚未实操认证；本次证明的是隔离恢复可行性。该操作卡必须在正式执行前确定平台支持的恢复途径/必要支持服务。Free计划无现成PITR保障。
+若已解除停写并有新业务写入：不能直接覆盖旧备份，先冻结并保全切换后的增量，制定人工对账/重放方案；不能承诺无损一键回退。
+
+八、剩余风险与准入
+数据库技术演练PASS，Storage与历史审计阻塞已修复；旧前端不兼容得到实际确认，采用协同切换方案处理，不新增兼容状态。
+剩余上线条件：明确并验证强制停写门禁、维护窗口和新前端发布协同；确认托管Production恢复权限/方法与RTO；使用执行时点新备份；再次核验Production仅26 ledger且无新未知状态。满足后才能申请Production migration授权。
+本轮只在隔离数据库写入；Production仅做只读metadata查询。Production migration/数据/schema/权限/env写入均为0，无Vercel部署，无Namecheap/SMTP/网站切换，无旧CRM或Sanity写入。

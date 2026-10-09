@@ -1,6 +1,6 @@
 # Migration inventory — not an execution list
 
-Production status for every row: unknown until ledger audit. Current HEAD requires all 32 as a tested prefix; none is approved to skip. Dependencies are conservative release ordering, not a proof of minimal SQL dependencies. Preview evidence comes from retained local apply records; rows without such evidence require a live ledger read after separate authorization.
+Production read-only ledger audit on 2026-10-09 confirmed 26 existing entries and all 32 candidates below missing. The replacement candidate changes only historical backfill audit protection in rows 6, 12, 17, 18, 26 and 30; see ../rehearsal/migration-hash-delta.json and migration-SHA256SUMS.txt. All 32 passed on a freshly restored actual Production backup, ledger 26 → 58. Production migrations remain unexecuted. Current HEAD requires all 32 as a tested prefix; none is approved to skip. Dependencies are conservative release ordering, not a proof of minimal SQL dependencies. Preview evidence comes from retained local apply records; rows without such evidence require a live ledger read after separate authorization.
 
 | Order | Migration | Introduced | Preview evidence | Dependencies |
 |---|---|---|---|---|

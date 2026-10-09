@@ -1,0 +1,104 @@
+{
+  "old_production_sha": "e4615195329b6da6d0bd4c2039c01199ecbde2bc",
+  "scope": "authenticated SQL payload contracts and static shipped frontend source; not browser E2E",
+  "status_writes": {
+    "Quote": [
+      {
+        "submitted": "draft",
+        "result": "ACCEPTED",
+        "stored": "pending_quote"
+      },
+      {
+        "submitted": "sent",
+        "result": "ACCEPTED",
+        "stored": "quoted"
+      },
+      {
+        "submitted": "accepted",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      },
+      {
+        "submitted": "declined",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      },
+      {
+        "submitted": "expired",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      },
+      {
+        "submitted": "cancelled",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      }
+    ],
+    "Production": [
+      {
+        "submitted": "pending",
+        "result": "ACCEPTED",
+        "stored": "pending_send"
+      },
+      {
+        "submitted": "in_production",
+        "result": "ACCEPTED",
+        "stored": "scheduled"
+      },
+      {
+        "submitted": "completed",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      },
+      {
+        "submitted": "received",
+        "result": "ACCEPTED",
+        "stored": "received"
+      },
+      {
+        "submitted": "cancelled",
+        "result": "ACCEPTED",
+        "stored": "cancelled"
+      }
+    ],
+    "Inquiry": [
+      {
+        "submitted": "new",
+        "result": "ACCEPTED",
+        "stored": "pending_screening"
+      },
+      {
+        "submitted": "pending",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      },
+      {
+        "submitted": "following_up",
+        "result": "ACCEPTED",
+        "stored": "following_up"
+      },
+      {
+        "submitted": "processed",
+        "result": "REJECTED",
+        "sqlstate": "23514"
+      },
+      {
+        "submitted": "invalid",
+        "result": "ACCEPTED",
+        "stored": "invalid"
+      }
+    ]
+  },
+  "reads": {
+    "romiku_quote_totals": "PASS",
+    "romiku_pi_totals": "PASS",
+    "romiku_order_totals": "PASS",
+    "romiku_production_orders": "PASS",
+    "romiku_website_inquiries": "PASS",
+    "romiku_packing_totals": "PASS"
+  },
+  "quote_legacy_draft_filter_count": 0,
+  "quote_new_pending_count": 4,
+  "quote_from_inquiry_signature_preserved": true,
+  "compatible_for_live_writes": false
+}

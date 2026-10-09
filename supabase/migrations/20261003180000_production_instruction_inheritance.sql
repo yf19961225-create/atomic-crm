@@ -30,11 +30,30 @@ $$;
 alter table public.romiku_orders add column production_defaults_snapshot jsonb;
 alter table public.romiku_production_items add column marking_override jsonb not null default '{"mode":"inherit"}'
  check (public.romiku_valid_item_marking(marking_override));
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_orders in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_orders'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_orders disable trigger romiku_audit;
 -- Never join current customer master data when initializing historical Orders.
 update public.romiku_orders o set production_defaults_snapshot=public.romiku_build_instruction_snapshot(
  coalesce(o.counterparty_snapshot->'marking_snapshot','{}'),
  concat_ws(E'\n',nullif(o.terms_snapshot->>'production_requirements',''),nullif(o.counterparty_snapshot#>>'{marking_snapshot,production_requirements}',''),nullif(o.notes,'')),
  'legacy_order',o.id);
+  alter table public.romiku_orders enable trigger romiku_audit;
+end
+$audit_backfill$;
 alter table public.romiku_orders alter column production_defaults_snapshot set not null;
 alter table public.romiku_orders add constraint romiku_order_instructions_shape check (
  coalesce(jsonb_typeof(production_defaults_snapshot)='object'

@@ -1,3 +1,19 @@
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_orders in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_orders'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_orders disable trigger romiku_audit;
 -- Order export details are a document snapshot.  No new master table or
 -- column is needed: terms_snapshot already belongs to the Order.
 update public.romiku_orders
@@ -24,6 +40,9 @@ set terms_snapshot = coalesce(terms_snapshot, '{}'::jsonb) || jsonb_build_object
   )
 )
 where not (coalesce(terms_snapshot, '{}'::jsonb) ? 'order_export');
+  alter table public.romiku_orders enable trigger romiku_audit;
+end
+$audit_backfill$;
 
 create or replace function public.romiku_order_export_snapshot_default()
 returns trigger language plpgsql as $$

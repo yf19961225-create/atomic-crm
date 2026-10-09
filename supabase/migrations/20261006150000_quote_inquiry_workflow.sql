@@ -5,7 +5,26 @@ do $$ begin
  raise exception 'Unmapped historical Quote status: audit required'; end if;
 end $$;
 alter table public.romiku_quotes drop constraint romiku_quotes_status_check;
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_quotes in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_quotes'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_quotes disable trigger romiku_audit;
 update public.romiku_quotes set status=case status when 'draft' then 'pending_quote' when 'sent' then 'quoted' end where status in ('draft','sent');
+  alter table public.romiku_quotes enable trigger romiku_audit;
+end
+$audit_backfill$;
 alter table public.romiku_quotes alter column status set default 'pending_quote', add constraint romiku_quotes_status_check check(status in ('pending_quote','quoted','following_up','customer_no_reply','won','invalid'));
 create or replace function public.romiku_normalize_workflow_status() returns trigger language plpgsql set search_path='' as $$ begin
  if tg_table_name='romiku_quotes' and new.status='draft' then new.status:='pending_quote';

@@ -1,0 +1,21 @@
+"""Stable local database state for rollback regression checks (no remote connection)."""
+import hashlib,json
+from types import SimpleNamespace
+from psycopg import sql
+checks=SimpleNamespace(CATALOG={'columns': "SELECT coalesce(jsonb_object_agg(table_name||'.'||column_name,jsonb_build_object('type',udt_name,'nullable',is_nullable,'default',column_default)),'{}') FROM information_schema.columns WHERE table_schema='public' AND table_name LIKE 'romiku_%'", 'relations': "SELECT coalesce(jsonb_object_agg(c.relname,jsonb_build_object('kind',c.relkind,'rls',c.relrowsecurity)),'{}') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname LIKE 'romiku_%' AND c.relkind IN ('r','v','m','p')", 'functions': "SELECT coalesce(jsonb_object_agg(p.proname||'('||pg_get_function_identity_arguments(p.oid)||')',jsonb_build_object('result',pg_get_function_result(p.oid),'security_definer',p.prosecdef,'config',p.proconfig,'definition_md5',md5(pg_get_functiondef(p.oid)))),'{}') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'romiku_%' AND p.prokind='f'", 'foreign_keys': "SELECT coalesce(jsonb_object_agg(c.conname,jsonb_build_object('table',c.conrelid::regclass::text,'definition',pg_get_constraintdef(c.oid))),'{}') FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND t.relname LIKE 'romiku_%' AND c.contype='f'", 'views': "SELECT coalesce(jsonb_object_agg(viewname,md5(definition)),'{}') FROM pg_views WHERE schemaname='public' AND viewname LIKE 'romiku_%'", 'policies': "SELECT coalesce(jsonb_object_agg(tablename||'.'||policyname,jsonb_build_object('roles',roles,'cmd',cmd,'qual',qual,'with_check',with_check)),'{}') FROM pg_policies WHERE schemaname='public' AND tablename LIKE 'romiku_%'"}, SUPPLEMENT={'triggers': "SELECT jsonb_build_object('table',t.relname,'name',g.tgname,'enabled',g.tgenabled,'definition',pg_get_triggerdef(g.oid)) FROM pg_trigger g JOIN pg_class t ON t.oid=g.tgrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND t.relname LIKE 'romiku_%' AND NOT g.tgisinternal ORDER BY t.relname,g.tgname", 'grants': "SELECT table_name,grantee,privilege_type FROM information_schema.table_privileges WHERE table_schema='public' AND table_name LIKE 'romiku_%' AND grantee IN ('anon','authenticated','service_role') ORDER BY 1,2,3"})
+
+def fingerprints(conn):
+    result={}
+    for schema,table in conn.execute("SELECT schemaname,tablename FROM pg_tables WHERE schemaname IN ('public','auth','storage','supabase_migrations') ORDER BY 1,2"):
+        rows=[row[0] for row in conn.execute(sql.SQL('SELECT to_jsonb(t)::text FROM {} t ORDER BY to_jsonb(t)::text').format(sql.Identifier(schema,table)))]
+        result[schema+'.'+table]={'count':len(rows),'sha256':hashlib.sha256(json.dumps(rows).encode()).hexdigest()}
+    return result
+
+def sequences(conn):
+    result={}
+    for schema,name in conn.execute("SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='S' AND n.nspname NOT IN ('pg_catalog','information_schema') ORDER BY 1,2"):
+        result[schema+'.'+name]=conn.execute(sql.SQL('SELECT last_value,is_called FROM {}').format(sql.Identifier(schema,name))).fetchone()
+    return result
+
+# Include every index and non-FK constraint in atomic rollback comparisons.
+checks.SUPPLEMENT.update({'indexes': "SELECT jsonb_build_object('table',t.relname,'name',i.relname,'definition',pg_get_indexdef(i.oid),'valid',x.indisvalid,'ready',x.indisready,'unique',x.indisunique) FROM pg_index x JOIN pg_class i ON i.oid=x.indexrelid JOIN pg_class t ON t.oid=x.indrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND t.relname LIKE 'romiku_%' ORDER BY t.relname,i.relname", 'constraints': "SELECT jsonb_build_object('table',t.relname,'name',c.conname,'type',c.contype,'validated',c.convalidated,'deferrable',c.condeferrable,'definition',pg_get_constraintdef(c.oid)) FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND t.relname LIKE 'romiku_%' ORDER BY t.relname,c.conname"})

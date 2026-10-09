@@ -1,0 +1,871 @@
+{
+  "tables": {
+    "romiku_customer_contacts": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_formal_customers": {
+      "before": 1,
+      "after": 1,
+      "ids_equal": true
+    },
+    "romiku_manual_tasks": {
+      "before": 1,
+      "after": 1,
+      "ids_equal": true
+    },
+    "romiku_numbering_rules": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_order_items": {
+      "before": 5,
+      "after": 5,
+      "ids_equal": true
+    },
+    "romiku_orders": {
+      "before": 2,
+      "after": 2,
+      "ids_equal": true
+    },
+    "romiku_outbound_companies": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_outbound_contacts": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_outbound_followups": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_packing_items": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_packing_lists": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_payments": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_pi_items": {
+      "before": 2,
+      "after": 2,
+      "ids_equal": true
+    },
+    "romiku_pis": {
+      "before": 2,
+      "after": 2,
+      "ids_equal": true
+    },
+    "romiku_procurement_cost_history": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_product_extensions": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_product_suppliers": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_production_followups": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_production_items": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_production_orders": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_quote_items": {
+      "before": 6,
+      "after": 6,
+      "ids_equal": true
+    },
+    "romiku_quote_versions": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_quotes": {
+      "before": 3,
+      "after": 3,
+      "ids_equal": true
+    },
+    "romiku_source_urls": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_supplier_contacts": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_suppliers": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_website_inquiries": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_website_inquiry_followups": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    },
+    "romiku_website_inquiry_items": {
+      "before": 0,
+      "after": 0,
+      "ids_equal": true
+    }
+  },
+  "expected_changes": [
+    {
+      "table": "romiku_orders",
+      "field": "terms_snapshot"
+    },
+    {
+      "table": "romiku_orders",
+      "field": "terms_snapshot"
+    },
+    {
+      "table": "romiku_quotes",
+      "field": "status"
+    },
+    {
+      "table": "romiku_quotes",
+      "field": "status"
+    },
+    {
+      "table": "romiku_quotes",
+      "field": "status"
+    }
+  ],
+  "unexpected_changes": [],
+  "audit_fields_checked": 88,
+  "views": {
+    "romiku_calendar": {
+      "before": 1,
+      "after": 1,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_pi_totals": {
+      "before": 2,
+      "after": 2,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_workbench": {
+      "before": 2,
+      "after": 2,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_order_totals": {
+      "before": 2,
+      "after": 2,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_quote_totals": {
+      "before": 3,
+      "after": 3,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_packing_totals": {
+      "before": 0,
+      "after": 0,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_outbound_summary": {
+      "before": 0,
+      "after": 0,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_order_item_remaining": {
+      "before": 5,
+      "after": 5,
+      "equal_except_expected_backfills": true
+    },
+    "romiku_current_reference_cost": {
+      "before": 0,
+      "after": 0,
+      "equal_except_expected_backfills": true
+    }
+  },
+  "fk_checks": [
+    {
+      "constraint": "romiku_customer_contacts_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_customer_contacts_formal_customer_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_customer_contacts_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_customer_contacts_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_formal_customers_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_formal_customers_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_formal_customers_source_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_formal_customers_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_co_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_formal_customer_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_pi_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_production_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_quote_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_supplier_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_manual_tasks_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_numbering_rules_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_numbering_rules_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_numbering_rules_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_order_items_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_order_items_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_order_items_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_order_items_source_pi_item_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_order_items_source_quote_item_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_order_items_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_co_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_formal_customer_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_source_pi_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_source_quote_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_source_website_inquiry_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_orders_voided_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_companies_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_companies_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_companies_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_contacts_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_contacts_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_contacts_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_contacts_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_followups_contact_id_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_followups_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_followups_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_followups_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_outbound_followups_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_items_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_items_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_items_packing_list_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_items_packing_list_id_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_items_source_order_item_id_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_items_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_lists_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_lists_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_lists_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_packing_lists_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_payments_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_payments_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_payments_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_payments_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_payments_voided_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pi_items_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pi_items_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pi_items_pi_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pi_items_source_quote_item_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pi_items_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_formal_customer_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_source_quote_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_source_website_inquiry_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_pis_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_procurement_cost_history_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_procurement_cost_history_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_procurement_cost_history_product_supplier_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_procurement_cost_history_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_extensions_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_extensions_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_extensions_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_suppliers_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_suppliers_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_suppliers_supplier_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_product_suppliers_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_barcodes_source_order_item_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_followups_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_followups_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_followups_production_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_followups_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_items_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_items_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_items_production_order_id_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_items_source_order_item_id_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_items_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_orders_co_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_orders_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_orders_order_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_orders_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_orders_supplier_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_production_orders_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_items_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_items_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_items_quote_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_items_source_website_inquiry_item_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_items_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_versions_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_versions_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_versions_quote_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quote_versions_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quotes_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quotes_formal_customer_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quotes_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quotes_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quotes_source_website_inquiry_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_quotes_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_source_urls_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_source_urls_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_source_urls_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_source_urls_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_supplier_contacts_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_supplier_contacts_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_supplier_contacts_supplier_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_supplier_contacts_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_suppliers_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_suppliers_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_suppliers_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiries_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiries_formal_customer_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiries_outbound_company_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiries_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiries_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_followups_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_followups_inquiry_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_followups_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_followups_updated_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_items_created_by_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_items_inquiry_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_items_owner_id_fkey",
+      "orphans": 0
+    },
+    {
+      "constraint": "romiku_website_inquiry_items_updated_by_fkey",
+      "orphans": 0
+    }
+  ],
+  "invalid_indexes": 0,
+  "unvalidated_constraints": 0,
+  "disabled_audit_triggers": 0,
+  "schema_diff": {
+    "views": {
+      "missing": [],
+      "changed": [],
+      "extra": []
+    },
+    "columns": {
+      "missing": [],
+      "changed": [],
+      "extra": []
+    },
+    "policies": {
+      "missing": [],
+      "changed": [],
+      "extra": []
+    },
+    "functions": {
+      "missing": [],
+      "changed": [],
+      "extra": []
+    },
+    "relations": {
+      "missing": [],
+      "changed": [],
+      "extra": []
+    },
+    "foreign_keys": {
+      "missing": [],
+      "changed": [],
+      "extra": []
+    }
+  },
+  "ledger_count": 58,
+  "candidate_ledger_body_matches": {
+    "20260920110000_commercial_line_items_v2.sql": true,
+    "20260920120000_document_language.sql": true,
+    "20260921090000_commercial_document_numbering.sql": true,
+    "20260921093000_formal_customer_directory.sql": true,
+    "20260921100000_production_supplier_optional.sql": true,
+    "20260923153000_order_export_snapshot.sql": true,
+    "20260925090000_repair_daily_document_number_allocator.sql": true,
+    "20260928150000_order_document_number_od.sql": true,
+    "20260930120000_pi_number_prefix.sql": true,
+    "20260930130000_quote_export_snapshot.sql": true,
+    "20260930143000_quote_fx_pricing.sql": true,
+    "20261002100000_packing_export_snapshot.sql": true,
+    "20261002143000_packing_independent_creation.sql": true,
+    "20261002160000_controlled_record_delete.sql": true,
+    "20261003100000_production_controlled_delete.sql": true,
+    "20261003110000_business_search.sql": true,
+    "20261003150000_production_marking_snapshot.sql": true,
+    "20261003180000_production_instruction_inheritance.sql": true,
+    "20261004160000_customer_business_history.sql": true,
+    "20261004190000_production_workbench.sql": true,
+    "20261004220000_production_allocation_guard.sql": true,
+    "20261005100000_production_sync_verification.sql": true,
+    "20261005120000_production_item_small_labels.sql": true,
+    "20261005150000_production_barcodes.sql": true,
+    "20261006100000_order_cascade_delete.sql": true,
+    "20261006130000_workflow_status.sql": true,
+    "20261006131000_financial_workflow.sql": true,
+    "20261006132000_bulk_workflow.sql": true,
+    "20261006133000_controlled_inquiry_delete.sql": true,
+    "20261006150000_quote_inquiry_workflow.sql": true,
+    "20261006170000_status_history.sql": true,
+    "20261006190000_inquiry_quote_snapshots.sql": true
+  },
+  "source_ledger_preserved": true,
+  "storage_objects": 0,
+  "storage_owner": "supabase_storage_admin",
+  "status_history_baselines": 7,
+  "new_order_defaults_valid": 2,
+  "sequence_differences": [],
+  "data_integrity_pass": true
+}

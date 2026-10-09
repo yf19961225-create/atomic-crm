@@ -1,0 +1,146 @@
+{
+  "status": "RESTORE_DATA_AND_ROMIKU_SCHEMA_VERIFIED_WITH_DOCUMENTED_ROLE_LIMITS",
+  "scope": "actual Production backup restored locally",
+  "role_passwords_restored": false,
+  "local_operational_role_setting_exclusions": [
+    {
+      "role": "authenticator",
+      "setting": "session_preload_libraries"
+    },
+    {
+      "role": "supabase_admin",
+      "setting": "log_statement"
+    },
+    {
+      "role": "supabase_auth_admin",
+      "setting": "log_statement"
+    },
+    {
+      "role": "supabase_storage_admin",
+      "setting": "log_statement"
+    }
+  ],
+  "sequence_state_restored_from_manifest": [],
+  "table_fingerprints": {
+    "total": 75,
+    "mismatches": [],
+    "extra": []
+  },
+  "catalog_diff": {
+    "columns": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "relations": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "functions": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "foreign_keys": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "views": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "policies": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    }
+  },
+  "supplement_diff": {
+    "indexes": {
+      "missing": 0,
+      "extra": 0
+    },
+    "constraints": {
+      "missing": 0,
+      "extra": 0
+    },
+    "triggers": {
+      "missing": 0,
+      "extra": 0
+    },
+    "grants": {
+      "missing": 0,
+      "extra": 0
+    },
+    "functions": {
+      "missing": 0,
+      "extra": 0
+    },
+    "fks": {
+      "missing": 0,
+      "extra": 0
+    }
+  },
+  "ledger_equal": true,
+  "sequence_equal": true,
+  "extension_versions_equal": true,
+  "role_attribute_mismatches": [],
+  "membership_edges_equal": true,
+  "full_memberships_equal": true,
+  "preconditions": {
+    "statuses": {
+      "romiku_formal_customers": [["active", 1]],
+      "romiku_orders": [["draft", 2]],
+      "romiku_outbound_companies": [],
+      "romiku_pis": [["draft", 2]],
+      "romiku_production_orders": [],
+      "romiku_quotes": [["draft", 3]],
+      "romiku_suppliers": [],
+      "romiku_website_inquiries": []
+    },
+    "json_shapes": {
+      "romiku_customer_contacts.social_urls": [],
+      "romiku_formal_customers.logistics": [["object", 1]],
+      "romiku_formal_customers.requirements": [["object", 1]],
+      "romiku_manual_tasks.recurrence": [[null, 1]],
+      "romiku_order_items.product_snapshot": [["object", 5]],
+      "romiku_order_items.packing_snapshot": [["object", 5]],
+      "romiku_orders.counterparty_snapshot": [["object", 2]],
+      "romiku_orders.bank_snapshot": [["object", 2]],
+      "romiku_orders.terms_snapshot": [["object", 2]],
+      "romiku_outbound_companies.social_urls": [],
+      "romiku_outbound_companies.business_intelligence": [],
+      "romiku_outbound_contacts.social_urls": [],
+      "romiku_outbound_followups.attachments": [],
+      "romiku_packing_items.product_snapshot": [],
+      "romiku_payments.proof": [],
+      "romiku_pi_items.product_snapshot": [["object", 2]],
+      "romiku_pi_items.packing_snapshot": [["object", 2]],
+      "romiku_pis.counterparty_snapshot": [["object", 2]],
+      "romiku_pis.bank_snapshot": [["object", 2]],
+      "romiku_pis.terms_snapshot": [["object", 2]],
+      "romiku_procurement_cost_history.source_file": [],
+      "romiku_production_followups.attachments": [],
+      "romiku_production_items.product_snapshot": [],
+      "romiku_production_items.packaging_snapshot": [],
+      "romiku_production_orders.supplier_snapshot": [],
+      "romiku_quote_items.product_snapshot": [["object", 6]],
+      "romiku_quote_items.packing_snapshot": [["object", 6]],
+      "romiku_quote_versions.document_snapshot": [],
+      "romiku_quote_versions.items_snapshot": [],
+      "romiku_quotes.counterparty_snapshot": [["object", 3]],
+      "romiku_quotes.bank_snapshot": [["object", 3]],
+      "romiku_quotes.terms_snapshot": [["object", 3]],
+      "romiku_supplier_contacts.social_urls": [],
+      "romiku_website_inquiries.raw_payload": [],
+      "romiku_website_inquiry_followups.attachments": [],
+      "romiku_website_inquiry_items.product_snapshot": []
+    },
+    "storage_buckets": [["attachments", true]],
+    "storage_object_count": 0,
+    "pg_trgm_available": true
+  }
+}

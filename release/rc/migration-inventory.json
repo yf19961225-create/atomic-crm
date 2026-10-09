@@ -13,7 +13,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260920120000_document_language.sql",
@@ -26,7 +27,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260921090000_commercial_document_numbering.sql",
@@ -39,7 +41,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260921093000_formal_customer_directory.sql",
@@ -52,7 +55,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260921100000_production_supplier_optional.sql",
@@ -65,13 +69,14 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260923153000_order_export_snapshot.sql",
     "version": "20260923153000",
     "introduced_commit": "4f368c3fc60ad647c6469bc7c9f4cdb468ae93cd",
-    "sha256": "f18ff2816a44b4d1f4f1a3bbe734ea929fe97f379d4c2ce97877d0a640f7a3f9",
+    "sha256": "689e1d70abdc5c8201cb3d20299fc7fe4c262d9a5165b2332f7cfcaf420b9b07",
     "dependency_migrations": [
       "20260920110000_commercial_line_items_v2.sql",
       "20260920120000_document_language.sql"
@@ -81,7 +86,9 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "candidate_change": "audit_preservation_20261009",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260925090000_repair_daily_document_number_allocator.sql",
@@ -96,7 +103,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260928150000_order_document_number_od.sql",
@@ -111,7 +119,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260930120000_pi_number_prefix.sql",
@@ -126,7 +135,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260930130000_quote_export_snapshot.sql",
@@ -139,7 +149,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20260930143000_quote_fx_pricing.sql",
@@ -152,20 +163,23 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261002100000_packing_export_snapshot.sql",
     "version": "20261002100000",
     "introduced_commit": "f4cbcf8eb285df124f7f45c08fdcde9ec0a404e0",
-    "sha256": "6b89870a803423cfdb523c20471fd964268b6367b63321264a5a096eb3ed152b",
+    "sha256": "e93e06dc743f103a504757e2ef63490ec1e615bb0e0aed8498fba67d02df90dd",
     "dependency_migrations": ["20260920110000_commercial_line_items_v2.sql"],
     "tested_prefix_predecessor": "20260930143000_quote_fx_pricing.sql",
     "preview_applied": "requires ledger confirmation",
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "candidate_change": "audit_preservation_20261009",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261002143000_packing_independent_creation.sql",
@@ -178,7 +192,8 @@
     "preview_evidence": null,
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261002160000_controlled_record_delete.sql",
@@ -193,7 +208,8 @@
     "preview_evidence": "romiku-delete-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261003100000_production_controlled_delete.sql",
@@ -206,7 +222,8 @@
     "preview_evidence": "romiku-business-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261003110000_business_search.sql",
@@ -222,13 +239,14 @@
     "preview_evidence": "romiku-business-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261003150000_production_marking_snapshot.sql",
     "version": "20261003150000",
     "introduced_commit": "f07f52a6503634cef67b040a7ee55c80fd3b786a",
-    "sha256": "84dc55e55caaa2a3dfee8fe51a6701c7679f7e33e168ddc39dee36dc074bc946",
+    "sha256": "dbce33535821ecaca07f4fa217ffb71879fd7080c10512b7142409738797678f",
     "dependency_migrations": [
       "20260921100000_production_supplier_optional.sql"
     ],
@@ -237,20 +255,24 @@
     "preview_evidence": "romiku-production-xlsx-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "candidate_change": "audit_preservation_20261009",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261003180000_production_instruction_inheritance.sql",
     "version": "20261003180000",
     "introduced_commit": "76dbba3a3903f190c32275f943d1628755780032",
-    "sha256": "dfeadd7b5f995a7b2b893866bf77fce3aae5e1354051d996e3a256a5191a46a7",
+    "sha256": "1c66fa2e65d0829c7cbe174b7d3f79dde0901ff915e8355775f6b2f1ce1ec9e8",
     "dependency_migrations": ["20261003150000_production_marking_snapshot.sql"],
     "tested_prefix_predecessor": "20261003150000_production_marking_snapshot.sql",
     "preview_applied": "recorded applied",
     "preview_evidence": "romiku-instructions-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "candidate_change": "audit_preservation_20261009",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261004160000_customer_business_history.sql",
@@ -266,7 +288,8 @@
     "preview_evidence": "romiku-customer360-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261004190000_production_workbench.sql",
@@ -281,7 +304,8 @@
     "preview_evidence": "romiku-workbench-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261004220000_production_allocation_guard.sql",
@@ -294,7 +318,8 @@
     "preview_evidence": "romiku-allocation-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261005100000_production_sync_verification.sql",
@@ -310,7 +335,8 @@
     "preview_evidence": "romiku-sync-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261005120000_production_item_small_labels.sql",
@@ -326,7 +352,8 @@
     "preview_evidence": "romiku-item-label-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261005150000_production_barcodes.sql",
@@ -341,7 +368,8 @@
     "preview_evidence": "romiku-barcode-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006100000_order_cascade_delete.sql",
@@ -357,13 +385,14 @@
     "preview_evidence": "romiku-order-delete-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006130000_workflow_status.sql",
     "version": "20261006130000",
     "introduced_commit": "00168a0ca5d52ec585563fd71fb21003cdd2acdb",
-    "sha256": "615a925729af74bee3d9d26e950229300e4528d8b5df14a5d0067bdbb5a4bc65",
+    "sha256": "0314b5f9252b80457a3918665c8ca836e66a440322a503cc2ff2c9a2e011a938",
     "dependency_migrations": [
       "20261006100000_order_cascade_delete.sql",
       "20261004160000_customer_business_history.sql"
@@ -373,7 +402,9 @@
     "preview_evidence": "romiku-workflow-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "candidate_change": "audit_preservation_20261009",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006131000_financial_workflow.sql",
@@ -386,7 +417,8 @@
     "preview_evidence": "romiku-workflow-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006132000_bulk_workflow.sql",
@@ -402,7 +434,8 @@
     "preview_evidence": "romiku-workflow-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006133000_controlled_inquiry_delete.sql",
@@ -418,13 +451,14 @@
     "preview_evidence": "romiku-inquiry-delete-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006150000_quote_inquiry_workflow.sql",
     "version": "20261006150000",
     "introduced_commit": "fc5537dd69fa5c928eb4b14cb7887d452b97348e",
-    "sha256": "8bacd356e3179d8b29d9204c0a2bb3ab9141a6ee02adc43c9f6e061c6dad44fd",
+    "sha256": "282f93f72d37e8df390d1e9169ec7116eeed6ceb7ee139e6c826d02f1713391d",
     "dependency_migrations": [
       "20261006130000_workflow_status.sql",
       "20261006133000_controlled_inquiry_delete.sql"
@@ -434,7 +468,9 @@
     "preview_evidence": "romiku-quote-inquiry-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "candidate_change": "audit_preservation_20261009",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006170000_status_history.sql",
@@ -451,7 +487,8 @@
     "preview_evidence": "romiku-status-history-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   },
   {
     "filename": "20261006190000_inquiry_quote_snapshots.sql",
@@ -472,6 +509,7 @@
     "preview_evidence": "romiku-inquiry-final-preview-result.json",
     "required_for_current_head": true,
     "safe_to_skip": false,
-    "production_status": "unknown until ledger audit"
+    "production_status": "missing: read-only Production ledger 2026-10-09 (26 entries)",
+    "isolated_real_backup_rehearsal": "PASS 2026-10-09; source ledger 26 -> 58"
   }
 ]

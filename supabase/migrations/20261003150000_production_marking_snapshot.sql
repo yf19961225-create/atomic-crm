@@ -2,9 +2,28 @@
 alter table public.romiku_formal_customers add column marking_profile jsonb not null default '{}' check (jsonb_typeof(marking_profile)='object');
 alter table public.romiku_production_orders add column marking_snapshot jsonb not null default '{}' check (jsonb_typeof(marking_snapshot)='object');
 alter table public.romiku_production_items add column position integer not null default 0 check (position >= 0);
+
+-- Release backfill: preserve historical attribution and timestamps. Only the
+-- audit trigger is suspended; constraints and other business triggers remain.
+-- The lock excludes concurrent writers until the migration transaction ends.
+-- Any failure rolls back both this data change and the trigger state.
+do $audit_backfill$
+begin
+  lock table public.romiku_production_items in share row exclusive mode;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'public.romiku_production_items'::regclass
+      and tgname = 'romiku_audit' and tgenabled = 'O' and not tgisinternal
+  ) then
+    raise exception 'Expected enabled audit trigger before release backfill';
+  end if;
+  alter table public.romiku_production_items disable trigger romiku_audit;
 with positions as (
  select id,row_number() over(partition by production_order_id order by created_at,id) as position from public.romiku_production_items
 ) update public.romiku_production_items i set position=p.position from positions p where p.id=i.id;
+  alter table public.romiku_production_items enable trigger romiku_audit;
+end
+$audit_backfill$;
 
 CREATE OR REPLACE FUNCTION "public"."romiku_marking_search_fields"("value" "jsonb") RETURNS "jsonb"
     LANGUAGE "sql" IMMUTABLE PARALLEL SAFE

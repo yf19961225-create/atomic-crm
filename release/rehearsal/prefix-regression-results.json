@@ -1,0 +1,175 @@
+{
+  "atomicity": [
+    {
+      "order": 1,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 2,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 3,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 4,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 5,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 6,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 7,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 8,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 9,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 10,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 11,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 12,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 13,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 14,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 15,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 16,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 17,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 18,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 19,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 20,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 21,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 22,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 23,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 24,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 25,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 26,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 27,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 28,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 29,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 30,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 31,
+      "ledger_failure_rolls_back_whole_migration": true
+    },
+    {
+      "order": 32,
+      "ledger_failure_rolls_back_whole_migration": true
+    }
+  ],
+  "audit_backfills": [
+    {
+      "order": 6,
+      "audit_preserved": true,
+      "runtime_audit_restored": true,
+      "runtime_tables_tested": ["romiku_orders"]
+    },
+    {
+      "order": 12,
+      "audit_preserved": true,
+      "runtime_audit_restored": true,
+      "runtime_tables_tested": ["romiku_packing_lists"]
+    },
+    {
+      "order": 17,
+      "audit_preserved": true,
+      "runtime_audit_restored": true,
+      "runtime_tables_tested": ["romiku_production_items"]
+    },
+    {
+      "order": 18,
+      "audit_preserved": true,
+      "runtime_audit_restored": true,
+      "runtime_tables_tested": ["romiku_orders"]
+    },
+    {
+      "order": 26,
+      "audit_preserved": true,
+      "runtime_audit_restored": true,
+      "runtime_tables_tested": [
+        "romiku_quotes",
+        "romiku_production_orders",
+        "romiku_website_inquiries"
+      ]
+    },
+    {
+      "order": 30,
+      "audit_preserved": true,
+      "runtime_audit_restored": true,
+      "runtime_tables_tested": ["romiku_quotes"]
+    }
+  ],
+  "ledger": 58
+}

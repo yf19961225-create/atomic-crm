@@ -1,0 +1,47 @@
+{
+  "supersedes_rc": "8096a101ec99bcd1123a24bb462128d8018f0465",
+  "changes": [
+    {
+      "order": 6,
+      "filename": "20260923153000_order_export_snapshot.sql",
+      "frozen_sha256": "f18ff2816a44b4d1f4f1a3bbe734ea929fe97f379d4c2ce97877d0a640f7a3f9",
+      "candidate_sha256": "689e1d70abdc5c8201cb3d20299fc7fe4c262d9a5165b2332f7cfcaf420b9b07",
+      "reason": "Preserve existing audit fields during historical backfill; atomic narrow audit-trigger suspension."
+    },
+    {
+      "order": 12,
+      "filename": "20261002100000_packing_export_snapshot.sql",
+      "frozen_sha256": "6b89870a803423cfdb523c20471fd964268b6367b63321264a5a096eb3ed152b",
+      "candidate_sha256": "e93e06dc743f103a504757e2ef63490ec1e615bb0e0aed8498fba67d02df90dd",
+      "reason": "Preserve existing audit fields during historical backfill; atomic narrow audit-trigger suspension."
+    },
+    {
+      "order": 17,
+      "filename": "20261003150000_production_marking_snapshot.sql",
+      "frozen_sha256": "84dc55e55caaa2a3dfee8fe51a6701c7679f7e33e168ddc39dee36dc074bc946",
+      "candidate_sha256": "dbce33535821ecaca07f4fa217ffb71879fd7080c10512b7142409738797678f",
+      "reason": "Preserve existing audit fields during historical backfill; atomic narrow audit-trigger suspension."
+    },
+    {
+      "order": 18,
+      "filename": "20261003180000_production_instruction_inheritance.sql",
+      "frozen_sha256": "dfeadd7b5f995a7b2b893866bf77fce3aae5e1354051d996e3a256a5191a46a7",
+      "candidate_sha256": "1c66fa2e65d0829c7cbe174b7d3f79dde0901ff915e8355775f6b2f1ce1ec9e8",
+      "reason": "Preserve existing audit fields during historical backfill; atomic narrow audit-trigger suspension."
+    },
+    {
+      "order": 26,
+      "filename": "20261006130000_workflow_status.sql",
+      "frozen_sha256": "615a925729af74bee3d9d26e950229300e4528d8b5df14a5d0067bdbb5a4bc65",
+      "candidate_sha256": "0314b5f9252b80457a3918665c8ca836e66a440322a503cc2ff2c9a2e011a938",
+      "reason": "Preserve existing audit fields during historical backfill; atomic narrow audit-trigger suspension."
+    },
+    {
+      "order": 30,
+      "filename": "20261006150000_quote_inquiry_workflow.sql",
+      "frozen_sha256": "8bacd356e3179d8b29d9204c0a2bb3ab9141a6ee02adc43c9f6e061c6dad44fd",
+      "candidate_sha256": "282f93f72d37e8df390d1e9169ec7116eeed6ceb7ee139e6c826d02f1713391d",
+      "reason": "Preserve existing audit fields during historical backfill; atomic narrow audit-trigger suspension."
+    }
+  ]
+}
