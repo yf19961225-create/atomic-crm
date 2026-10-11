@@ -4,16 +4,16 @@ The client build and `/version.json` use the same Git SHA (`VERCEL_GIT_COMMIT_SH
 
 Visible clients check every 60 seconds, on focus/visibility and after reconnecting. The global banner is the single update entry point, including waiting workers and chunk-load errors. Nothing reloads automatically. Explicit refresh checks draft protection before and after asynchronous worker update/activation, then reloads after controller change. Authentication and preferences are retained.
 
-Business draft signals feed a shared registry. Document edit sessions retain their independent drafts; native create sessions conservatively block until completed/closed. React Hook Form controls contribute dirty/submitting state. Saving or cancelling the active session makes refreshing possible again.
+Business draft signals feed a registry keyed by independent editor IDs. Each editor compares only its editable fields with a normalized saved/initial baseline; opening a Create/Edit page, hydration, validation issues and submitting alone are clean. Exact revert clears dirty, successful save adopts the saved baseline, and closing/unmounting removes only that editor. Refetch preserves actual drafts. React Hook Form contributes isDirty, not isSubmitting. A collapsed editor that retains user input stays protected. No page reloads silently; once every source is clean, the banner permits explicit refresh.
 
 Inquiry rows/count remain in the existing active server query. The last refresh label advances only for non-manual query success events, not restored or optimistic cache. A separate one-row/count query detects new arrivals hidden by pagination/filtering. A failed refresh retains prior rows/count and timestamp. `查看最新` returns page one, clears text search, and preserves a status filter matching the latest inquiry. No automatic navigation occurs.
 
 ## Cross-deployment acceptance
 
 1. Deploy A to the existing Preview branch alias; confirm `meta[name=crm-build]` and `/version.json` match A.
-2. Leave an ordinary tab with an unsaved Quote draft and a standalone Preview PWA open.
+2. Leave an ordinary clean tab, untouched Quote/Production/Packing Create pages, separate real unsaved Quote/Production/Packing drafts, and a standalone Preview PWA open.
 3. Deploy B to the same branch (a documentation-only commit is sufficient: build SHA and generated SW change).
-4. Wait for visible polling or focus. Both A surfaces must announce an update; Quote input remains intact and cannot refresh while dirty.
+4. Wait for visible polling or focus. Clean and untouched Create pages must allow refresh without an unsaved warning. All three dirty documents must retain their inputs and refuse refresh; opening Edit alone must remain clean.
 5. Inspect the waiting worker without forcing activation. Cancel/save the Quote, explicitly refresh, and verify HTML build B without clearing storage.
 6. Verify Inquiry success/failure/recovery, old tab, fresh session and PWA reopen. Record actual evidence outside Git. A test that only mocks two versions is not cross-deployment acceptance.
 
