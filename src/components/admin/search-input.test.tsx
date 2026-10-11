@@ -36,6 +36,6 @@ it("stages legacy list search until Enter or button and clears immediately", asy
   await expect
     .element(screen.getByTestId("committed"))
     .toHaveTextContent("SUN5");
-  await screen.getByRole("button", { name: "ra.action.clear_search" }).click();
+  await screen.getByRole("button", { name: "清空" }).click();
   await expect.element(screen.getByTestId("committed")).toBeEmptyDOMElement();
 });

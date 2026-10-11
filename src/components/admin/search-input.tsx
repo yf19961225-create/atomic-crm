@@ -86,11 +86,9 @@ export const SearchInput = (inProps: SearchInputProps) => {
           variant="outline"
           size="sm"
           onClick={handleClear}
-          aria-label={translate("ra.action.clear_search", {
-            _: "Clear search",
-          })}
+          aria-label="清空"
         >
-          {translate("ra.action.clear_search", { _: "清空" })}
+          清空
         </Button>
       )}
     </div>
