@@ -11,6 +11,7 @@ const same = (left: unknown, right: unknown) =>
 export function useDocumentEditSession(
   record: RaRecord,
   persistedItems: CommercialItem[] | undefined,
+  options?: { readyForEdit: boolean },
 ) {
   const [editing, setEditing] = useState(false);
   const [savedValues, setSavedValues] = useState<Values>(() => copy(record));
@@ -32,11 +33,23 @@ export function useDocumentEditSession(
     setItems(nextItems);
   }, [editing, persistedItems, record]);
 
+  const readyForEdit = options?.readyForEdit;
   const start = useCallback(() => {
-    setValues(copy(savedValues));
-    setItems(copy(savedItems));
+    if (editing) return;
+    // Quote opts into a query readiness gate. Seed both the saved baseline and
+    // draft from the current complete response, not an effect-lagging copy.
+    if (readyForEdit !== undefined) {
+      if (!readyForEdit || persistedItems === undefined) return;
+      setSavedValues(copy(record));
+      setSavedItems(copy(persistedItems));
+      setValues(copy(record));
+      setItems(copy(persistedItems));
+    } else {
+      setValues(copy(savedValues));
+      setItems(copy(savedItems));
+    }
     setEditing(true);
-  }, [savedItems, savedValues]);
+  }, [editing, readyForEdit, persistedItems, record, savedItems, savedValues]);
   const cancel = useCallback(() => {
     setValues(copy(savedValues));
     setItems(copy(savedItems));

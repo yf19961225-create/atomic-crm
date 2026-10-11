@@ -288,11 +288,20 @@ export function QuoteList() {
 }
 export function QuoteDetail() {
   const { id = "" } = useParams();
-  const { data, isPending, error, refetch } = useGetOne("romiku_quotes", {
-    id,
-  });
-  if (isPending) return <p>正在加载报价单…</p>;
-  if (error || !data)
+  const { data, isPending, isSuccess, isFetching, error, refetch } = useGetOne(
+    "romiku_quotes",
+    {
+      id,
+    },
+  );
+  if (isPending)
+    return (
+      <div>
+        <p>正在加载报价单数据…</p>
+        <Button disabled>编辑</Button>
+      </div>
+    );
+  if (!data)
     return (
       <p role="alert">
         无法加载此报价单。{" "}
@@ -301,7 +310,15 @@ export function QuoteDetail() {
         </Link>
       </p>
     );
-  return <QuoteEditor key={id} record={data} onSaved={refetch} />;
+  return (
+    <QuoteEditor
+      key={id}
+      record={data}
+      onSaved={refetch}
+      headerReady={isSuccess && !isFetching && !error}
+      headerError={!!error}
+    />
+  );
 }
 const buyerFields: Field[] = [
   { key: "counterparty_snapshot.name", label: "采购方名称", required: true },
@@ -339,9 +356,13 @@ const termsFields: Field[] = [
 function QuoteEditor({
   record,
   onSaved,
+  headerReady,
+  headerError,
 }: {
   record: RaRecord;
   onSaved: () => Promise<unknown>;
+  headerReady: boolean;
+  headerError: boolean;
 }) {
   const provider = useDataProvider();
   const cache = useQueryClient();
@@ -352,7 +373,15 @@ function QuoteEditor({
     queryKey: ["quote-items", record.id],
     queryFn: () => readCommercialItems(provider, "quote", String(record.id)),
   });
-  const session = useDocumentEditSession(record, items.data);
+  const quoteReadyForEdit =
+    headerReady &&
+    items.isSuccess &&
+    !items.isFetching &&
+    !items.isPlaceholderData &&
+    Array.isArray(items.data);
+  const session = useDocumentEditSession(record, items.data, {
+    readyForEdit: quoteReadyForEdit,
+  });
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const repriceQuoteItems = (rate: number) =>
     session.items.map((item) => {
@@ -465,7 +494,14 @@ function QuoteEditor({
               </Button>
             </div>
           ) : (
-            <Button type="button" onClick={session.start}>
+            <Button
+              type="button"
+              onClick={session.start}
+              disabled={!quoteReadyForEdit}
+              aria-describedby={
+                !quoteReadyForEdit ? "quote-edit-readiness" : undefined
+              }
+            >
               编辑
             </Button>
           )}
@@ -479,6 +515,12 @@ function QuoteEditor({
         </div>
       </div>
 
+      {!session.editing && !quoteReadyForEdit && (
+        <p id="quote-edit-readiness" className="text-muted-foreground text-sm">
+          报价单产品数据加载完成后可编辑
+        </p>
+      )}
+      {headerError && <p role="alert">报价单数据加载失败，请刷新后重试。</p>}
       <SourceLinks record={record} detail />
       <div className="flex flex-wrap gap-3">
         <DocumentConversion source="quote" sourceId={String(record.id)} />
@@ -516,7 +558,7 @@ function QuoteEditor({
       />
       {items.error ? (
         <p role="alert">
-          无法加载报价单产品项或合计。{" "}
+          报价单产品数据加载失败，请刷新后重试。{" "}
           <Button variant="outline" onClick={() => items.refetch()}>
             重试
           </Button>
@@ -530,6 +572,9 @@ function QuoteEditor({
           values={session.values}
           onChange={session.setValues}
         />
+      )}
+      {quoteReadyForEdit && items.data?.length === 0 && !session.editing && (
+        <p>此报价单暂无产品项，可编辑后添加。</p>
       )}
       <Tabs defaultValue="items" className="space-y-4">
         <TabsList>
