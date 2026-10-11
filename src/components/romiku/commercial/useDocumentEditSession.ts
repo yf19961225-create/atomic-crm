@@ -1,3 +1,4 @@
+import { normalizeSpecificationDisplay } from "../quotes/normalizeSpecificationDisplay";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -59,11 +60,21 @@ const header = (value: Values) =>
     ],
     numbers,
   );
-const lines = (items: CommercialItem[]) =>
+const lines = (items: CommercialItem[], normalizeQuoteSpecification = false) =>
   JSON.stringify(
     items.map((item) =>
       editableSignature(
-        item,
+        normalizeQuoteSpecification
+          ? {
+              ...item,
+              product_snapshot: {
+                ...item.product_snapshot,
+                specification: normalizeSpecificationDisplay(
+                  item.product_snapshot?.specification,
+                ),
+              },
+            }
+          : item,
         [
           "sku",
           "sanity_product_id",
@@ -86,7 +97,7 @@ const lines = (items: CommercialItem[]) =>
 export function useDocumentEditSession(
   record: RaRecord,
   persistedItems: CommercialItem[] | undefined,
-  options?: { readyForEdit: boolean },
+  options?: { readyForEdit: boolean; normalizeQuoteSpecification?: boolean },
 ) {
   const [editing, setEditing] = useState(false);
   const [savedValues, setSavedValues] = useState<Values>(() => copy(record));
@@ -140,12 +151,21 @@ export function useDocumentEditSession(
     },
     [],
   );
+  const normalizeQuoteSpecification = options?.normalizeQuoteSpecification;
   const dirty = useMemo(
     () =>
       editing &&
       (header(values) !== header(savedValues) ||
-        lines(items) !== lines(savedItems)),
-    [editing, items, savedItems, savedValues, values],
+        lines(items, normalizeQuoteSpecification) !==
+          lines(savedItems, normalizeQuoteSpecification)),
+    [
+      editing,
+      items,
+      savedItems,
+      savedValues,
+      values,
+      normalizeQuoteSpecification,
+    ],
   );
   return {
     editing,

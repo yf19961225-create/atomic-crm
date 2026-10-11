@@ -381,6 +381,7 @@ function QuoteEditor({
     Array.isArray(items.data);
   const session = useDocumentEditSession(record, items.data, {
     readyForEdit: quoteReadyForEdit,
+    normalizeQuoteSpecification: true,
   });
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const repriceQuoteItems = (rate: number) =>

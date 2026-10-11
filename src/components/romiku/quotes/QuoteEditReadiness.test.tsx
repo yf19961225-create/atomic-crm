@@ -6,6 +6,7 @@ import fakeRestDataProvider from "ra-data-fakerest";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { QuoteDetail } from "./QuotePages";
+import { useHasAppDraft } from "../updates/drafts";
 import { useDocumentEditSession } from "../commercial/useDocumentEditSession";
 
 vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
@@ -34,7 +35,15 @@ function deferred() {
   });
   return { promise, resolve };
 }
-async function setup(source: boolean, empty = false, cached = false) {
+function DraftState() {
+  return <output aria-label="draft state">{String(useHasAppDraft())}</output>;
+}
+async function setup(
+  source: boolean,
+  empty = false,
+  cached = false,
+  legacy = false,
+) {
   const gate = deferred();
   let blocked = true;
   let failure = false;
@@ -49,7 +58,19 @@ async function setup(source: boolean, empty = false, cached = false) {
         ...(source ? { source_website_inquiry_id: "in" } : {}),
       },
     ],
-    romiku_quote_items: empty ? [] : [item],
+    romiku_quote_items: empty
+      ? []
+      : [
+          {
+            ...item,
+            product_snapshot: {
+              ...item.product_snapshot,
+              specification: legacy
+                ? "Specifications: 48W 24LEDS"
+                : item.product_snapshot.specification,
+            },
+          },
+        ],
     romiku_website_inquiries: [{ id: "in", document_number: "WI-QA" }],
     romiku_formal_customer_directory: [],
     sales: [],
@@ -73,6 +94,7 @@ async function setup(source: boolean, empty = false, cached = false) {
   const screen = await render(
     <MemoryRouter initialEntries={["/quotes/q"]}>
       <CoreAdminContext dataProvider={provider} queryClient={cache}>
+        <DraftState />
         <Routes>
           <Route path="/quotes/:id" element={<QuoteDetail />} />
         </Routes>
@@ -258,4 +280,25 @@ it("header refetch and cached header errors block entry without discarding an ac
   await expect
     .element(screen.getByRole("button", { name: "编辑", exact: true }))
     .toBeDisabled();
+});
+
+it("legacy Quote specification display revert is clean without rewriting its saved snapshot", async () => {
+  const { screen, release, provider } = await setup(true, false, false, true);
+  release();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await expect
+    .element(screen.getByLabelText("draft state"))
+    .toHaveTextContent("false");
+  await screen.getByLabelText("描述与规格").fill("Edited");
+  await expect
+    .element(screen.getByLabelText("draft state"))
+    .toHaveTextContent("true");
+  await screen.getByLabelText("描述与规格").fill("48W 24LEDS");
+  await expect
+    .element(screen.getByLabelText("draft state"))
+    .toHaveTextContent("false");
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data
+      .product_snapshot.specification,
+  ).toBe("Specifications: 48W 24LEDS");
 });
