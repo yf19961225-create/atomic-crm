@@ -79,6 +79,10 @@ it("selects only the current page and clears on page, status and search changes"
   await screen.getByRole("searchbox").fill("needle");
   await expect
     .element(screen.getByRole("button", { name: "批量删除", exact: true }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect
+    .element(screen.getByRole("button", { name: "批量删除", exact: true }))
     .not.toBeInTheDocument();
 });
 it("preflights once, cancels without delete, and blocked single has only Close", async () => {
@@ -254,6 +258,7 @@ it("preserves search and status after deleting the current search results", asyn
     .getByRole("combobox", { name: "状态", exact: true })
     .selectOptions("confirmed");
   await screen.getByRole("searchbox").fill("QA");
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
   await expect.element(screen.getByText("第 1 页 · 共 1 条")).toBeVisible();
   await screen.getByRole("checkbox", { name: "全选当前页" }).click();
   await screen.getByRole("button", { name: "批量删除", exact: true }).click();

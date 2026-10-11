@@ -7,7 +7,7 @@ import { statusOptions } from "../shared/workflowStatus";
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { savedBuyerName } from "./productionWorkspace";
 import { RecordDelete } from "../shared/RecordDelete";
-import { useModuleSearch } from "../search/useBusinessSearch";
+import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
@@ -64,10 +64,11 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const config = fulfillmentConfig[kind],
     [params] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
   const [status, setStatus] = useState("");
   const orderId = params.get("order");
-  const searchResult = useModuleSearch(kind, config.resource, search, page, {
+  const searchResult = useModuleSearch(kind, config.resource, committedSearch, page, {
     ...(orderId ? { order_id: orderId } : {}),
     ...(status ? { status } : {}),
   });
@@ -81,11 +82,12 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
         ...(status ? { status } : {}),
       },
     },
-    { enabled: !search.trim() },
+    { enabled: !committedSearch },
   );
-  const query = searchResult.active
+  const rawQuery = searchResult.active
     ? { ...searchResult, total: searchResult.group?.total_count }
     : ordinary;
+  const query = { ...rawQuery, data: useRetainedRows(rawQuery.data) };
   const parentIds = [
     ...new Set((query.data || []).map((r) => r.order_id).filter(Boolean)),
   ];
@@ -101,7 +103,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   );
   const selection = usePageSelection(
     query.data || [],
-    JSON.stringify([kind, page, search, status, orderId]),
+    JSON.stringify([kind, page, committedSearch, status, orderId]),
     page,
     query.total,
     query.isPending || !!query.error,
@@ -121,11 +123,19 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
       </div>
       <SearchInput
         label={`搜索${config.plural}`}
-        value={search}
-        onChange={(next) => {
-          setSearch(next);
+        value={searchInput}
+        onChange={setSearchInput}
+        onSubmit={(next) => {
+          if (next === committedSearch && page === 1) void query.refetch();
+          setCommittedSearch(next);
           setPage(1);
         }}
+        onClear={() => {
+          setSearchInput("");
+          setCommittedSearch("");
+          setPage(1);
+        }}
+        busy={query.isFetching}
       />
       <label>
         状态{" "}
@@ -163,10 +173,14 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           </Link>
         </p>
       )}
-      {query.isPending && <p>正在加载{config.plural}…</p>}
+      {query.isPending && !query.data.length && (
+        <p>正在加载{config.plural}…</p>
+      )}
+      {query.isFetching && !!query.data.length && <p role="status">搜索中…</p>}
       {query.error && (
         <p role="alert">
-          无法加载记录。 <Button onClick={() => query.refetch()}>重试</Button>
+          {committedSearch ? "搜索失败。" : "无法加载记录。"}{" "}
+          <Button onClick={() => query.refetch()}>重试</Button>
         </p>
       )}
       <div className="overflow-auto rounded border">

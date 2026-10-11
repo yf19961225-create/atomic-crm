@@ -4,7 +4,7 @@ import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { RecordDelete } from "../shared/RecordDelete";
-import { useModuleSearch } from "../search/useBusinessSearch";
+import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
@@ -95,11 +95,12 @@ function SourceLinks({
 export function QuoteList() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
   const searchResult = useModuleSearch(
     "quote",
     "romiku_quote_totals",
-    search,
+    committedSearch,
     page,
     status ? { status } : {},
   );
@@ -112,22 +113,25 @@ export function QuoteList() {
         ...(status ? { status } : {}),
       },
     },
-    { enabled: !search.trim() },
+    { enabled: !committedSearch },
   );
-  const data = searchResult.active
-    ? (searchResult.data ?? [])
-    : (ordinary.data ?? []);
+  const data = useRetainedRows(
+    searchResult.active ? searchResult.data : ordinary.data,
+  );
   const total = searchResult.active
     ? searchResult.group?.total_count
     : ordinary.total;
   const isPending = searchResult.active
     ? searchResult.isPending
     : ordinary.isPending;
+  const isFetching = searchResult.active
+    ? searchResult.isFetching
+    : ordinary.isFetching;
   const error = searchResult.active ? searchResult.error : ordinary.error;
   const refetch = searchResult.active ? searchResult.refetch : ordinary.refetch;
   const selection = usePageSelection(
     data,
-    JSON.stringify([page, search, status]),
+    JSON.stringify([page, committedSearch, status]),
     page,
     total,
     isPending || !!error,
@@ -147,11 +151,19 @@ export function QuoteList() {
       <div className="flex flex-wrap gap-4">
         <SearchInput
           label={"搜索报价单"}
-          value={search}
-          onChange={(next) => {
-            setSearch(next);
+          value={searchInput}
+          onChange={setSearchInput}
+          onSubmit={(next) => {
+            if (next === committedSearch && page === 1) void refetch();
+            setCommittedSearch(next);
             setPage(1);
           }}
+          onClear={() => {
+            setSearchInput("");
+            setCommittedSearch("");
+            setPage(1);
+          }}
+          busy={isFetching}
         />
         <label>
           状态{" "}
@@ -178,10 +190,11 @@ export function QuoteList() {
         onDone={selection.clear}
         disabled={isPending || !!error}
       />
-      {isPending && <p>正在加载报价单…</p>}
+      {isPending && !data.length && <p>正在加载报价单…</p>}
+      {isFetching && !!data.length && <p role="status">搜索中…</p>}
       {error && (
         <div role="alert">
-          无法加载报价单。{" "}
+          {committedSearch ? "搜索失败。" : "无法加载报价单。"}{" "}
           <Button variant="outline" onClick={() => refetch()}>
             重试
           </Button>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
 import {
@@ -27,10 +27,11 @@ export function useModuleSearch(
   filters: SearchFilters = {},
   options: { refetchOnWindowFocus?: boolean | "always" } = {},
 ) {
-  const query = useDebouncedSearch(value);
+  const query = value.trim();
   const provider = useDataProvider();
   const result = useQuery({
     ...options,
+    placeholderData: keepPreviousData,
     queryKey: [
       "romiku-search",
       type,
@@ -64,12 +65,17 @@ export function useModuleSearch(
       return { data, group };
     },
   });
-  const ready = !!query && value.trim() === query;
   return {
     ...result,
-    isPending: !!value.trim() && !ready ? true : result.isPending,
-    active: !!value.trim(),
-    data: ready ? (result.data?.data as RaRecord[] | undefined) : undefined,
-    group: ready ? (result.data?.group as SearchGroup | undefined) : undefined,
+    active: !!query,
+    data: result.data?.data as RaRecord[] | undefined,
+    group: result.data?.group as SearchGroup | undefined,
   };
+}
+
+/** Keep the last visible rows while a different query loads or fails. */
+export function useRetainedRows<T>(current: T[] | undefined): T[] {
+  const last = useRef<T[]>([]);
+  if (current !== undefined) last.current = current;
+  return current ?? last.current;
 }

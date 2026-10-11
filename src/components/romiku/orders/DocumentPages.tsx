@@ -7,7 +7,7 @@ import { statusOptions, statusLabel } from "../shared/workflowStatus";
 import { OrderProductionPanel } from "../production/OrderProductionPanel";
 import { OrderCustomerArchive } from "../customers/OrderCustomerArchive";
 import { RecordDelete } from "../shared/RecordDelete";
-import { useModuleSearch } from "../search/useBusinessSearch";
+import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -96,13 +96,14 @@ function DocumentSources({ record }: { record: RaRecord }) {
 export function DocumentList({ kind }: { kind: DocumentKind }) {
   const config = documentConfig[kind];
   const [page, setPage] = useState(1),
-    [search, setSearch] = useState(""),
+    [searchInput, setSearchInput] = useState(""),
+    [committedSearch, setCommittedSearch] = useState(""),
     [status, setStatus] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const searchResult = useModuleSearch(
     kind,
     config.totals,
-    search,
+    committedSearch,
     page,
     status ? { status } : {},
   );
@@ -118,22 +119,25 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           : {}),
       },
     },
-    { enabled: !search.trim() },
+    { enabled: !committedSearch },
   );
-  const data = searchResult.active
-    ? (searchResult.data ?? [])
-    : (ordinary.data ?? []);
+  const data = useRetainedRows(
+    searchResult.active ? searchResult.data : ordinary.data,
+  );
   const total = searchResult.active
     ? searchResult.group?.total_count
     : ordinary.total;
   const isPending = searchResult.active
     ? searchResult.isPending
     : ordinary.isPending;
+  const isFetching = searchResult.active
+    ? searchResult.isFetching
+    : ordinary.isFetching;
   const error = searchResult.active ? searchResult.error : ordinary.error;
   const refetch = searchResult.active ? searchResult.refetch : ordinary.refetch;
   const selection = usePageSelection(
     data,
-    JSON.stringify([kind, page, search, status, showArchived]),
+    JSON.stringify([kind, page, committedSearch, status, showArchived]),
     page,
     total,
     isPending || !!error,
@@ -166,11 +170,19 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
       <div className="flex gap-4">
         <SearchInput
           label={`搜索${config.plural}`}
-          value={search}
-          onChange={(next) => {
-            setSearch(next);
+          value={searchInput}
+          onChange={setSearchInput}
+          onSubmit={(next) => {
+            if (next === committedSearch && page === 1) void refetch();
+            setCommittedSearch(next);
             setPage(1);
           }}
+          onClear={() => {
+            setSearchInput("");
+            setCommittedSearch("");
+            setPage(1);
+          }}
+          busy={isFetching}
         />
         <label>
           状态{" "}
@@ -199,10 +211,11 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         onDone={selection.clear}
         disabled={isPending || !!error}
       />
-      {isPending && <p>正在加载{config.plural}…</p>}
+      {isPending && !data.length && <p>正在加载{config.plural}…</p>}
+      {isFetching && !!data.length && <p role="status">搜索中…</p>}
       {error && (
         <p role="alert">
-          无法加载{config.plural}。{" "}
+          {committedSearch ? "搜索失败。" : `无法加载${config.plural}。`}{" "}
           <Button onClick={() => refetch()}>重试</Button>
         </p>
       )}
