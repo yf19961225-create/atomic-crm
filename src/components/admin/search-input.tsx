@@ -1,9 +1,7 @@
-import { useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useTranslate } from "ra-core";
-import { useWatch, useFormContext } from "react-hook-form";
-import { Search, X } from "lucide-react";
+import { useController, useFormContext } from "react-hook-form";
 import type { TextInputProps } from "@/components/admin/text-input";
-import { TextInput } from "@/components/admin/text-input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,16 +30,18 @@ import { cn } from "@/lib/utils";
  * );
  */
 export const SearchInput = (inProps: SearchInputProps) => {
-  const { label, className, disableClearable, source = "q", ...rest } = inProps;
+  const { label, className, disableClearable, source = "q" } = inProps;
 
   const translate = useTranslate();
-  const { setValue } = useFormContext();
-  const fieldValue = useWatch({ name: source });
-  const hasValue = fieldValue && fieldValue !== "";
-
-  const handleClear = useCallback(() => {
+  const { control, setValue } = useFormContext();
+  const { field } = useController({ name: source, control });
+  const [draft, setDraft] = useState(String(field.value ?? ""));
+  useEffect(() => setDraft(String(field.value ?? "")), [field.value]);
+  const submit = () => setValue(source, draft.trim(), { shouldDirty: true });
+  const handleClear = () => {
+    setDraft("");
     setValue(source, "", { shouldDirty: true });
-  }, [setValue, source]);
+  };
 
   if (label) {
     throw new Error(
@@ -49,32 +49,48 @@ export const SearchInput = (inProps: SearchInputProps) => {
     );
   }
 
-  const showClearButton = !disableClearable && hasValue;
+  const showClearButton = !disableClearable;
 
   return (
-    <div className="flex flex-grow relative mt-auto">
-      <TextInput
-        source={source}
-        label={false}
-        helperText={false}
+    <div className="flex flex-grow items-center gap-2 mt-auto">
+      <input
+        type="search"
+        aria-label={translate("ra.action.search")}
+        name={field.name}
+        ref={field.ref}
+        onBlur={field.onBlur}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (
+            event.key !== "Enter" ||
+            event.nativeEvent.isComposing ||
+            event.keyCode === 229
+          )
+            return;
+          event.preventDefault();
+          submit();
+        }}
         placeholder={translate("ra.action.search")}
-        className={cn("flex-grow", className)}
-        inputClassName={cn("pr-8", showClearButton ? "pr-16" : "pr-8")}
-        {...rest}
+        className={cn(
+          "min-w-0 flex-grow rounded border bg-background p-2",
+          className,
+        )}
       />
-      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <Button type="button" onClick={submit}>
+        {translate("ra.action.search")}
+      </Button>
       {showClearButton && (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={handleClear}
-          className="absolute right-8 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full p-0 text-muted-foreground"
           aria-label={translate("ra.action.clear_search", {
             _: "Clear search",
           })}
         >
-          <X className="h-3 w-3" />
+          {translate("ra.action.clear_search", { _: "清空" })}
         </Button>
       )}
     </div>

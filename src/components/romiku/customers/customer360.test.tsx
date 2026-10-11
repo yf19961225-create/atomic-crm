@@ -91,6 +91,7 @@ it("groups Orders without per-Order requests and paginates server-side", async (
     expect.objectContaining({ customer_id: "a", offset: 10 }),
   );
   await screen.getByRole("searchbox").fill("SUN5");
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
   await expect
     .poll(() =>
       rpc.mock.calls.some(

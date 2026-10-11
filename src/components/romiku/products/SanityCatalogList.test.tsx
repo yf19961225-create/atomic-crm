@@ -292,7 +292,11 @@ describe("SanityCatalogList", () => {
 
     const screen = await render(<SanityCatalogList />);
 
-    await screen.getByRole("textbox", { name: "搜索产品" }).fill("001");
+    const input = screen.getByRole("searchbox", { name: "搜索产品" });
+    for (const value of ["0", "00", "001"]) await input.fill(value);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(getPage).toHaveBeenCalledTimes(1);
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .poll(() => getPage.mock.calls.at(-1)?.[0])
       .toEqual({
@@ -304,6 +308,46 @@ describe("SanityCatalogList", () => {
       .toBeVisible();
   });
 
+  it("keeps previous rows through a pending and failed search, then clears to the default list", async () => {
+    let rejectSearch: ((reason: Error) => void) | undefined;
+    const first = product({ id: "first", sku: "OLD" });
+    getPage.mockImplementation(({ search }: { search: string }) =>
+      search === "new"
+        ? new Promise((_, reject) => {
+            rejectSearch = reject;
+          })
+        : Promise.resolve({ products: [first] }),
+    );
+    const screen = await render(<SanityCatalogList />);
+    await expect
+      .element(screen.getByRole("cell", { name: "OLD" }))
+      .toBeVisible();
+    await screen.getByRole("searchbox", { name: "搜索产品" }).fill("new");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
+    await expect
+      .element(screen.getByRole("cell", { name: "OLD" }))
+      .toBeVisible();
+    await expect.element(screen.getByRole("status")).toBeVisible();
+    rejectSearch?.(new Error("offline"));
+    await expect
+      .element(screen.getByRole("alert"))
+      .toHaveTextContent("搜索失败");
+    await expect
+      .element(screen.getByRole("cell", { name: "OLD" }))
+      .toBeVisible();
+    await screen.getByRole("button", { name: "清空" }).click();
+    await expect
+      .element(screen.getByRole("searchbox", { name: "搜索产品" }))
+      .toHaveValue("");
+    await expect
+      .element(screen.getByRole("cell", { name: "OLD" }))
+      .toBeVisible();
+    expect(getPage.mock.calls.at(-1)?.[0]).toEqual({
+      search: "",
+      includeUnpublished: false,
+    });
+  });
+
   it("replaces the catalog result when the server-side search changes", async () => {
     getPage.mockResolvedValue({
       products: [product({ sku: "005", skuSort: "005" })],
@@ -311,7 +355,9 @@ describe("SanityCatalogList", () => {
 
     const screen = await render(<SanityCatalogList />);
 
-    await screen.getByRole("textbox", { name: "搜索产品" }).fill("005");
+    await screen.getByRole("searchbox", { name: "搜索产品" }).fill("005");
+    expect(getPage).toHaveBeenCalledTimes(1);
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .poll(() => getPage.mock.calls.at(-1)?.[0])
       .toEqual({ search: "005", includeUnpublished: false });

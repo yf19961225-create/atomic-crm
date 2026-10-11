@@ -264,13 +264,43 @@ export const AutocompleteInput = (
                     requestAnimationFrame(() => {
                       listRef.current?.scrollTo(0, 0);
                     });
-                    // We don't want the ChoicesContext to filter the choices if the input
-                    // is not from a reference as it would also filter out the selected values
-                    if (isFromReference) {
-                      setFilters(filterToQuery(filter));
-                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      !isFromReference ||
+                      event.key !== "Enter" ||
+                      event.nativeEvent.isComposing ||
+                      event.keyCode === 229
+                    )
+                      return;
+                    event.preventDefault();
+                    setFilters(filterToQuery(filterValue.trim()));
                   }}
                 />
+                {isFromReference && (
+                  <div className="flex gap-2 border-b p-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() =>
+                        setFilters(filterToQuery(filterValue.trim()))
+                      }
+                    >
+                      搜索
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setFilterValue("");
+                        setFilters(filterToQuery(""));
+                      }}
+                    >
+                      清空
+                    </Button>
+                  </div>
+                )}
                 <CommandList ref={listRef}>
                   <CommandEmpty>未找到匹配项。</CommandEmpty>
                   <CommandGroup>

@@ -1,7 +1,7 @@
 import { statusLabel } from "../shared/workflowStatus";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
 import {
@@ -14,7 +14,6 @@ import {
   type SearchItem,
 } from "./search";
 import { SearchInput } from "./SearchInput";
-import { useDebouncedSearch } from "./useBusinessSearch";
 
 function GroupResults({ group, query }: { group: SearchGroup; query: string }) {
   const [items, setItems] = useState<SearchItem[]>(group.items);
@@ -110,10 +109,11 @@ function GroupResults({ group, query }: { group: SearchGroup; query: string }) {
 export function GlobalSearch() {
   const [params, setParams] = useSearchParams();
   const [value, setValue] = useState(params.get("q") || "");
-  const query = useDebouncedSearch(value);
+  const [query, setQuery] = useState(params.get("q")?.trim() || "");
   const result = useQuery({
     queryKey: ["romiku-search", "global", query],
     enabled: !!query,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       searchBusinessRecords(getSupabaseClient().rpc.bind(getSupabaseClient()), {
         query,
@@ -123,39 +123,59 @@ export function GlobalSearch() {
         filters: {},
       }),
   });
+  const lastResult = useRef<{
+    query: string;
+    data: NonNullable<typeof result.data>;
+    updatedAt: number;
+  } | null>(null);
+  if (query && result.data && !result.isPlaceholderData && !result.error) {
+    lastResult.current = {
+      query,
+      data: result.data,
+      updatedAt: result.dataUpdatedAt,
+    };
+  }
+  const shown = query ? lastResult.current : null;
   return (
     <section className="space-y-4">
       <h1 className="text-3xl font-semibold">全局搜索</h1>
       <SearchInput
         value={value}
-        onChange={(next) => {
-          setValue(next);
+        onChange={setValue}
+        onSubmit={(next) => {
+          setQuery(next);
           setParams(next ? { q: next } : {}, { replace: true });
         }}
+        onClear={() => {
+          setValue("");
+          setQuery("");
+          lastResult.current = null;
+          setParams({}, { replace: true });
+        }}
+        busy={result.isFetching}
       />
-      {!value.trim() && (
+      {!query && (
         <p className="text-muted-foreground">
-          输入编号、客户、联系人、产品或电话开始搜索。
+          输入编号、客户、联系人、产品或电话，按 Enter 或点击搜索。
         </p>
       )}
-      {value.trim() && value.trim() !== query && <p>正在搜索…</p>}
-      {query && result.isPending && <p>正在搜索…</p>}
+      {query && result.isFetching && <p role="status">正在搜索…</p>}
       {query && result.error && (
         <p role="alert">
           {result.error.message}{" "}
           <Button onClick={() => void result.refetch()}>重试</Button>
         </p>
       )}
-      {query && value.trim() === query && result.data && (
+      {shown && (
         <div className="grid gap-4 lg:grid-cols-2">
           {searchTypes.map((type) => {
-            const group = result.data.groups.find(
+            const group = shown.data.groups.find(
               (entry) => entry.resource_type === type,
             );
             return group ? (
               <GroupResults
-                key={`${query}:${type}:${result.dataUpdatedAt}`}
-                query={query}
+                key={`${shown.query}:${type}:${shown.updatedAt}`}
+                query={shown.query}
                 group={group}
               />
             ) : null;

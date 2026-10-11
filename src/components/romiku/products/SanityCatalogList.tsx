@@ -11,6 +11,7 @@ import {
 import { createSupabaseProcurementOverlayClient } from "./supabaseProcurementOverlayClient";
 import { SanityProductDrawer } from "./SanityProductDrawer";
 import { loadWebsiteProductImages } from "./websiteProductImages";
+import { SearchInput } from "../search/SearchInput";
 
 export const catalogColumns = [
   { key: "image", label: "图片", width: "6%" },
@@ -30,7 +31,9 @@ export const SanityCatalogList = () => {
   );
   const [loading, setLoading] = useState(true),
     [error, setError] = useState(false),
-    [search, setSearch] = useState("");
+    [searchInput, setSearchInput] = useState(""),
+    [committedSearch, setCommittedSearch] = useState(""),
+    [refreshVersion, setRefreshVersion] = useState(0);
   const [selectedProduct, setSelectedProduct] =
     useState<SanityCatalogProduct | null>(null);
   const [images, setImages] = useState<Map<string, string>>(new Map()),
@@ -41,10 +44,9 @@ export const SanityCatalogList = () => {
     setLoading(true);
     setError(false);
     createSanityCatalogSource()
-      .getPage({ search, includeUnpublished: false })
+      .getPage({ search: committedSearch, includeUnpublished: false })
       .then(async (page) => {
         if (cancelled) return;
-        setProducts(page.products);
         const [nextImages, nextOverlay] = await Promise.all([
           loadWebsiteProductImages(page.products).catch(
             () => new Map<string, string>(),
@@ -55,6 +57,7 @@ export const SanityCatalogList = () => {
           ).catch(() => unavailableOverlay(page.products)),
         ]);
         if (!cancelled) {
+          setProducts(page.products);
           setImages(nextImages);
           setFailedImages(new Set());
           setOverlay(nextOverlay);
@@ -70,7 +73,7 @@ export const SanityCatalogList = () => {
     return () => {
       cancelled = true;
     };
-  }, [search]);
+  }, [committedSearch, refreshVersion]);
   useEffect(() => {
     if (!imagePreview) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -91,22 +94,41 @@ export const SanityCatalogList = () => {
       return updated;
     });
   };
-  if (error) return <p role="alert">产品目录暂时无法加载。</p>;
-  if (loading) return <p>正在加载产品目录…</p>;
   const display = (
     item: ProductOverlay | undefined,
     value: string | number | undefined,
   ) => (item?.unavailable ? "暂时无法加载" : (value ?? "—"));
   return (
     <div className="w-full min-w-0 overflow-x-auto">
-      <label className="mb-3 block">
-        搜索产品{" "}
-        <input
-          aria-label="搜索产品"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-      </label>
+      <SearchInput
+        label="搜索产品"
+        value={searchInput}
+        onChange={setSearchInput}
+        onSubmit={(value) => {
+          setCommittedSearch(value);
+          setRefreshVersion((current) => current + 1);
+        }}
+        onClear={() => {
+          setSearchInput("");
+          setCommittedSearch("");
+          setRefreshVersion((current) => current + 1);
+        }}
+        busy={loading}
+      />
+      {loading && <p role="status">正在加载产品目录…</p>}
+      {error && (
+        <p role="alert">
+          {products.length
+            ? "产品目录搜索失败，当前显示上次结果。"
+            : "产品目录暂时无法加载。"}{" "}
+          <button
+            type="button"
+            onClick={() => setRefreshVersion((current) => current + 1)}
+          >
+            重试
+          </button>
+        </p>
+      )}
       <table className="w-full min-w-0 table-fixed text-sm">
         <caption className="sr-only">产品目录中的产品</caption>
         <colgroup>
@@ -211,7 +233,7 @@ export const SanityCatalogList = () => {
           })}
         </tbody>
       </table>
-      {!products.length && <p>没有找到匹配产品。</p>}
+      {!products.length && !loading && !error && <p>没有找到匹配产品。</p>}
       <SanityProductDrawer
         product={selectedProduct}
         resolvedImageUrl={

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
@@ -9,15 +9,6 @@ import {
   type SearchGroup,
   type SearchType,
 } from "./search";
-
-export function useDebouncedSearch(value: string) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), 300);
-    return () => window.clearTimeout(timer);
-  }, [value]);
-  return debounced.trim();
-}
 
 export function useModuleSearch(
   type: SearchType,

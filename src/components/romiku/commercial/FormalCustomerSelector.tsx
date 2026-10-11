@@ -18,29 +18,24 @@ export function FormalCustomerSelector({
   const [open, setOpen] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [committedQuery, setCommittedQuery] = useState("");
   const [page, setPage] = useState(1);
   const [activeIndex, setActiveIndex] = useState(0);
   const [customers, setCustomers] = useState<RaRecord[]>([]);
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedQuery(query.trim());
-      setPage(1);
-      setActiveIndex(0);
-    }, 200);
-    return () => window.clearTimeout(timer);
-  }, [query]);
+  const submitSearch = () => {
+    setCommittedQuery(query.trim());
+    setPage(1);
+    setActiveIndex(0);
+    setOpen(true);
+  };
   const directory = useGetList("romiku_formal_customer_directory", {
     pagination: { page, perPage: PAGE_SIZE },
     sort: { field: "name", order: "ASC" },
     filter: {
       ...(showInactive ? {} : { status: "active" }),
-      ...(debouncedQuery ? { "search_text@ilike": `%${debouncedQuery}%` } : {}),
+      ...(committedQuery ? { "search_text@ilike": `%${committedQuery}%` } : {}),
     },
   });
-  useEffect(() => {
-    setCustomers([]);
-  }, [debouncedQuery, showInactive]);
   useEffect(() => {
     if (!directory.data) return;
     setCustomers((current) => {
@@ -99,12 +94,41 @@ export function FormalCustomerSelector({
           } else if (event.key === "ArrowUp") {
             event.preventDefault();
             setActiveIndex((i) => Math.max(i - 1, 0));
-          } else if (event.key === "Enter" && open) {
+          } else if (
+            event.key === "Enter" &&
+            !event.nativeEvent.isComposing &&
+            event.keyCode !== 229 &&
+            query.trim() !== committedQuery
+          ) {
+            event.preventDefault();
+            submitSearch();
+          } else if (
+            event.key === "Enter" &&
+            open &&
+            !event.nativeEvent.isComposing &&
+            event.keyCode !== 229
+          ) {
             event.preventDefault();
             select(options[activeIndex]);
           } else if (event.key === "Escape") setOpen(false);
         }}
       />
+      <div className="flex gap-2">
+        <button type="button" onClick={submitSearch}>
+          搜索
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setQuery("");
+            setCommittedQuery("");
+            setPage(1);
+            setActiveIndex(0);
+          }}
+        >
+          清空
+        </button>
+      </div>
       {open && (
         <div
           id={listboxId}

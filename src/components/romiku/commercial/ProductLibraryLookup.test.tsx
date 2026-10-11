@@ -349,6 +349,7 @@ describe("Product Library item snapshots", () => {
       />,
     );
     await screen.getByLabelText("搜索 SKU 或产品", { exact: true }).fill("SUN");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .element(screen.getByText("SUN5", { exact: true }))
       .toBeVisible();
@@ -447,6 +448,7 @@ describe("Product Library item snapshots", () => {
     );
     const input = screen.getByLabelText("搜索 SKU 或产品", { exact: true });
     await input.fill("SUN");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .element(screen.getByText("SUN-12", { exact: true }))
       .toBeVisible();
@@ -508,6 +510,7 @@ describe("Product Library item snapshots", () => {
     await screen
       .getByLabelText("搜索 SKU 或产品", { exact: true })
       .fill("2000");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .element(screen.getByText("2000PLUS", { exact: true }))
       .toBeVisible();

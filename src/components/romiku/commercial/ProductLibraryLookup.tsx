@@ -258,7 +258,6 @@ export function ProductLibraryLookup({
         value={search}
         onChange={(event) => {
           setSearch(event.target.value);
-          setQuery(event.target.value);
         }}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" && products.length) {
@@ -267,6 +266,15 @@ export function ProductLibraryLookup({
           } else if (event.key === "ArrowUp" && products.length) {
             event.preventDefault();
             setActiveIndex((index) => Math.max(index - 1, 0));
+          } else if (
+            event.key === "Enter" &&
+            (event.nativeEvent.isComposing || event.keyCode === 229)
+          ) {
+            return;
+          } else if (event.key === "Enter" && search.trim() !== query) {
+            event.preventDefault();
+            setQuery(search.trim());
+            setActiveIndex(-1);
           } else if (event.key === "Enter" && activeIndex >= 0) {
             event.preventDefault();
             void select(products[activeIndex]);
@@ -282,6 +290,30 @@ export function ProductLibraryLookup({
         }}
         placeholder="SKU / 产品名称"
       />
+      <div className="flex gap-2 text-sm">
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setQuery(search.trim());
+            setActiveIndex(-1);
+          }}
+        >
+          搜索
+        </button>
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setSearch("");
+            setQuery("");
+            setProducts([]);
+            setActiveIndex(-1);
+          }}
+        >
+          清空
+        </button>
+      </div>
       {(loading || products.length > 0) && (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded border bg-background shadow">
           {loading && <li className="p-2">正在搜索产品…</li>}

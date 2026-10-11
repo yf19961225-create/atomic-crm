@@ -304,6 +304,11 @@ const lifeCycleCallbacks: ResourceCallbacks[] = [
     },
   },
   {
+    resource: "romiku_suppliers",
+    beforeGetList: async (params) =>
+      applyFullTextSearch(["name", "region"])(params),
+  },
+  {
     resource: "contacts",
     beforeGetList: async (params) => {
       return applyFullTextSearch([

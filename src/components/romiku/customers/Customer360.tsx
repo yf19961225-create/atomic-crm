@@ -1,10 +1,10 @@
 import { useSearchParams } from "react-router";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useGetOne, type RaRecord } from "ra-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useDebouncedSearch } from "../search/useBusinessSearch";
+import { SearchInput } from "../search/SearchInput";
 import { searchLabels } from "../search/search";
 import {
   CustomerBusinessHistory,
@@ -30,10 +30,9 @@ export function Customer360({
       params.get("customerTab") === "客户资料" ? "客户资料" : "业务记录",
     ),
     [search, setSearch] = useState(""),
+    [query, setQuery] = useState(""),
     [page, setPage] = useState(0),
     [kind, setKind] = useState<BusinessKind | "all">("all");
-  const query = useDebouncedSearch(search),
-    ready = search.trim() === query;
   const directory = useGetOne("romiku_formal_customer_directory", {
     id: record.id,
   });
@@ -48,6 +47,7 @@ export function Customer360({
         query,
       }),
     enabled: tab === "业务记录",
+    placeholderData: keepPreviousData,
   });
   const documents = useQuery({
     queryKey: ["customer360-documents", record.id, kind, page, query],
@@ -60,7 +60,16 @@ export function Customer360({
         query,
       }),
     enabled: tab === "全部单据",
+    placeholderData: keepPreviousData,
   });
+  const lastHistory = useRef<HistoryResponse | null>(null);
+  const lastDocuments = useRef<DocumentsResponse | null>(null);
+  if (history.data && !history.isPlaceholderData)
+    lastHistory.current = history.data;
+  if (documents.data && !documents.isPlaceholderData)
+    lastDocuments.current = documents.data;
+  const shownHistory = history.data ?? lastHistory.current;
+  const shownDocuments = documents.data ?? lastDocuments.current;
   const active = tab === "全部单据" ? documents : history;
   const summaryQuery = useQuery({
     queryKey: ["customer360-history", record.id, 0, ""],
@@ -131,16 +140,20 @@ export function Customer360({
         </TabsList>
         {tab !== "客户资料" && (
           <div className="my-4 space-y-3">
-            <input
-              type="search"
-              className="w-full rounded border p-2"
-              aria-label="搜索这个客户的单号、SKU、产品"
-              placeholder="搜索这个客户的单号、SKU、产品、规格…"
+            <SearchInput
+              label="搜索这个客户的单号、SKU、产品"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onChange={setSearch}
+              onSubmit={(next) => {
+                setQuery(next);
                 setPage(0);
               }}
+              onClear={() => {
+                setSearch("");
+                setQuery("");
+                setPage(0);
+              }}
+              busy={active.isFetching}
             />
             {tab === "全部单据" && (
               <label>
@@ -169,7 +182,7 @@ export function Customer360({
               来源链按真实关联展示；无客户关联的独立 Packing
               暂不纳入，不按名称推断。
             </p>
-            {(active.isPending || !ready) && <p>正在加载业务记录…</p>}
+            {active.isFetching && <p role="status">正在加载业务记录…</p>}
             {active.error && (
               <p role="alert">
                 {active.error.message}{" "}
@@ -181,14 +194,12 @@ export function Customer360({
           </div>
         )}
         <TabsContent value="业务记录">
-          {ready && history.data && (
-            <CustomerBusinessHistory orders={history.data.orders} />
+          {shownHistory && (
+            <CustomerBusinessHistory orders={shownHistory.orders} />
           )}
         </TabsContent>
         <TabsContent value="全部单据">
-          {ready && documents.data && (
-            <CustomerDocuments items={documents.data.items} />
-          )}
+          {shownDocuments && <CustomerDocuments items={shownDocuments.items} />}
         </TabsContent>
         <TabsContent
           value="客户资料"
@@ -202,19 +213,21 @@ export function Customer360({
           <div className="mt-4 flex items-center gap-3">
             <Button
               variant="outline"
-              disabled={page === 0 || active.isFetching || !ready}
+              disabled={page === 0 || active.isFetching}
               onClick={() => setPage(page - 1)}
             >
               上一页
             </Button>
             <span>
               第 {page + 1} 页 · 共{" "}
-              {ready ? active.data?.total_count || 0 : "…"}{" "}
+              {(tab === "全部单据"
+                ? shownDocuments?.total_count
+                : shownHistory?.total_count) || 0}{" "}
               {tab === "业务记录" ? "张订单" : "张单据"}
             </span>
             <Button
               variant="outline"
-              disabled={!active.data?.has_more || active.isFetching || !ready}
+              disabled={!active.data?.has_more || active.isFetching}
               onClick={() => setPage(page + 1)}
             >
               下一页

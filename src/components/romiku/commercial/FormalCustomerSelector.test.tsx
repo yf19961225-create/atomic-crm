@@ -71,7 +71,18 @@ it("uses one keyboard-searchable combobox with an explicit unlinked option", asy
   await expect
     .element(screen.getByRole("option", { name: /Global Beauty/ }))
     .toBeVisible();
-  await userEvent.keyboard("{ArrowDown}{Enter}");
+  await userEvent.keyboard("{Enter}");
+  expect(onSelect).not.toHaveBeenCalled();
+  await screen.getByRole("button", { name: "清空" }).click();
+  await expect
+    .element(screen.getByRole("option", { name: /Global Beauty/ }))
+    .toBeVisible();
+  await input.click();
+  await userEvent.keyboard("{ArrowDown}");
+  await expect
+    .element(screen.getByRole("option", { name: /Global Beauty/ }))
+    .toHaveAttribute("aria-selected", "true");
+  await userEvent.keyboard("{Enter}");
   expect(onSelect).toHaveBeenLastCalledWith({
     formalCustomerId: "formal-2",
     snapshot: {

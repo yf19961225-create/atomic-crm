@@ -4,6 +4,7 @@ import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
 import { MemoryRouter, Routes } from "react-router";
 import { page } from "vitest/browser";
+import { userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";
 import "@/index.css";
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
@@ -141,6 +142,7 @@ it("writes the selected SUN5 Quote machine specification into the item snapshot 
     .getByLabelText("搜索 SKU 或产品", { exact: true })
     .all()[0];
   await sku.fill("SUN");
+  await userEvent.keyboard("{Enter}");
   await expect.element(screen.getByText("SUN5", { exact: true })).toBeVisible();
   await screen.getByText("SUN5", { exact: true }).click();
   await expect

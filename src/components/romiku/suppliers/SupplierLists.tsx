@@ -3,6 +3,7 @@ import { CreateButton } from "@/components/admin/create-button";
 import { DataTable } from "@/components/admin/data-table";
 import { EditButton } from "@/components/admin/edit-button";
 import { List } from "@/components/admin/list";
+import { SearchInput } from "@/components/admin/search-input";
 import { Button } from "@/components/ui/button";
 import { supplierStatusLabel } from "../commercialLabels";
 
@@ -20,6 +21,7 @@ export const SupplierList = () => (
     resource="romiku_suppliers"
     title="供应商"
     sort={{ field: "name", order: "ASC" }}
+    filters={[<SearchInput source="q" alwaysOn key="supplier-search" />]}
     actions={<SupplierActions />}
   >
     <DataTable bulkActionButtons={false}>

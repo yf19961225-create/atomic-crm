@@ -100,6 +100,9 @@ it("does not append old group pages after a new query", async () => {
     .toBeVisible();
   await screen.getByRole("button", { name: "加载更多" }).click();
   await screen.getByRole("searchbox", { name: "搜索业务记录" }).fill("second");
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  expect(rpc).toHaveBeenCalledTimes(2);
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
   await expect
     .element(screen.getByRole("link", { name: "second-0" }))
     .toBeVisible();
@@ -107,6 +110,40 @@ it("does not append old group pages after a new query", async () => {
   await expect
     .element(screen.getByRole("link", { name: "first-5" }))
     .not.toBeInTheDocument();
+});
+
+it("keeps old groups visible while the next committed query is pending", async () => {
+  let finish: ((value: unknown) => void) | undefined;
+  rpc.mockImplementation(async (_name, args) =>
+    args.query === "second"
+      ? await new Promise((resolve) => {
+          finish = resolve;
+        })
+      : { data: { groups: groups(args.query) }, error: null },
+  );
+  const screen = await render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={["/search?q=first"]}>
+        <Routes>
+          <Route path="/search" element={<GlobalSearch />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await expect
+    .element(screen.getByRole("link", { name: "first-0" }))
+    .toBeVisible();
+  await screen.getByRole("searchbox").fill("second");
+  expect(rpc).toHaveBeenCalledTimes(1);
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect
+    .element(screen.getByRole("link", { name: "first-0" }))
+    .toBeVisible();
+  await expect.element(screen.getByRole("status")).toBeVisible();
+  finish?.({ data: { groups: groups("second") }, error: null });
+  await expect
+    .element(screen.getByRole("link", { name: "second-0" }))
+    .toBeVisible();
 });
 
 it("replaces cached group items and count after search invalidation", async () => {
