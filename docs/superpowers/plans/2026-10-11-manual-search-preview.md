@@ -4,7 +4,7 @@
 
 **Goal:** Make every active remote text search in ROMIKU CRM 2.0 run only on explicit Enter or 搜索, then accept the exact commit on Preview.
 
-**Architecture:** A reusable manual search control owns input, submit, clear, and IME handling; each list owns its committed query and pagination. Existing query keys and data providers continue to fetch, with prior visible rows retained through transitions. Server-backed selectors get explicit submission; local selectors keep local filtering.
+**Architecture:** The existing shared ROMIKU `SearchInput` gains submit, clear, and IME handling; each list owns its committed query and pagination. Existing query keys and data providers continue to fetch, with prior visible rows retained through transitions. Server-backed selectors get explicit submission; local selectors keep local filtering.
 
 **Tech Stack:** React 19, TypeScript, ra-core, TanStack Query, Vitest browser, Vercel Preview.
 
@@ -30,9 +30,9 @@
 
 ### Task 1: Shared manual search state and control
 
-**Files:** Create `src/components/romiku/search/ManualSearchInput.tsx`; test `src/components/romiku/search/ManualSearchInput.test.tsx`.
+**Files:** Modify `src/components/romiku/search/SearchInput.tsx`; test `src/components/romiku/search/SearchInput.test.tsx`.
 
-**Interfaces:** `ManualSearchInput({label,value,onChange,onSubmit,onClear,busy})` owns only control events. Parent owns committed text and page. Enter ignores `nativeEvent.isComposing` and keyCode 229.
+**Interfaces:** `SearchInput({label,value,onChange,onSubmit,onClear,busy})` owns only control events. Parent owns committed text and page. Enter ignores `nativeEvent.isComposing` and keyCode 229.
 
 - [ ] Write browser tests for typing without submit, Enter, button, clear, edit during busy, and IME Enter.
 - [ ] Run focused test and confirm expected failures.
