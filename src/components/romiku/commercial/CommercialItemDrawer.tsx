@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { normalizeSpecificationDisplay } from "../quotes/normalizeSpecificationDisplay";
 import type { CommercialItem } from "./commercialLineItems";
 
@@ -12,6 +13,7 @@ export function CommercialItemDrawer({
   onClose: () => void;
   onSave: (item: CommercialItem) => void;
 }) {
+  useAppDraft(!!item);
   if (!item) return null;
   const product = (item.product_snapshot ?? {}) as Record<string, unknown>;
   const packing = (item.packing_snapshot ?? {}) as Record<string, unknown>;

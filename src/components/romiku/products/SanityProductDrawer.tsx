@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +99,13 @@ export const SanityProductDrawer = ({
   const [supplierDirty, setSupplierDirty] = useState(false);
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
+  const [costDirty, setCostDirty] = useState(false);
+  useAppDraft(
+    open &&
+      (supplierDirty ||
+        costDirty ||
+        notes !== (extension?.internal_notes ?? "")),
+  );
   const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
   const imageFailed = failedImageKey === imageKey;
 
@@ -197,6 +205,7 @@ export const SanityProductDrawer = ({
         source_type: String(form.get("source_type") ?? "manual"),
       });
       await loadInternal();
+      setCostDirty(false);
       setMessage("参考成本已保存。");
       event.currentTarget.reset();
     } catch {
@@ -461,7 +470,12 @@ export const SanityProductDrawer = ({
             ) : (
               <p>—</p>
             )}
-            <form onSubmit={submitCost} className="space-y-2">
+            <form
+              onInput={() => setCostDirty(true)}
+              onReset={() => setCostDirty(false)}
+              onSubmit={submitCost}
+              className="space-y-2"
+            >
               <p>
                 {selectedSupplier
                   ? `当前供应商：${selectedSupplier.supplier_name ?? selectedSupplier.supplier_id}`

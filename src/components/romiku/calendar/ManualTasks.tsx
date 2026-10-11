@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { userDisplayName } from "@/lib/userDisplayName";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
@@ -168,6 +169,9 @@ function TaskEditor({
     queryFn: () => readRelated(provider, resource!, {}),
     enabled: !!resource,
   });
+  const signature = JSON.stringify([values, relation, sourceId]);
+  const [savedSignature, setSavedSignature] = useState(signature);
+  useAppDraft(busy || signature !== savedSignature);
   const set = (key: string, value: unknown) =>
     setValues((v) => ({ ...v, [key]: value }));
   const submit = async (e: React.FormEvent) => {
@@ -193,6 +197,7 @@ function TaskEditor({
             "romiku_manual_tasks",
           ].includes(String(q.queryKey[0])),
       });
+      setSavedSignature(signature);
       if (!record)
         navigate(`/calendar/tasks/${encodeURIComponent(result.data.id)}`);
       else setMessage("任务已保存。");

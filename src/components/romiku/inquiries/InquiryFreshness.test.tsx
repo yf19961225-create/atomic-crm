@@ -33,9 +33,10 @@ async function setup() {
     romiku_website_inquiries: [row(1), row(2), row(3)],
   });
   const requests = vi.spyOn(provider, "getList");
+  const cache = new QueryClient();
   const screen = await render(
     <MemoryRouter>
-      <CoreAdminContext dataProvider={provider} queryClient={new QueryClient()}>
+      <CoreAdminContext dataProvider={provider} queryClient={cache}>
         <InquiryPage />
       </CoreAdminContext>
     </MemoryRouter>,
@@ -43,7 +44,7 @@ async function setup() {
   await expect
     .element(screen.getByText("第 1 页 · 共 3 条记录", { exact: true }))
     .toBeVisible();
-  return { screen, provider, requests, visibility };
+  return { screen, provider, requests, visibility, cache };
 }
 it("refreshes rows and total together within 30 seconds without opening a detail", async () => {
   const { screen, provider } = await setup();
@@ -152,4 +153,95 @@ it("refreshes server search and its count while retaining search and status", as
       offset: 0,
     }),
   );
+});
+it("retains rows/count and last successful time on failure, then recovers", async () => {
+  const { screen, requests } = await setup();
+  await expect.element(screen.getByText(/最后刷新：\d/)).toBeVisible();
+  const last = document.querySelector("time")?.getAttribute("datetime");
+  const original = requests.getMockImplementation()!;
+  requests.mockImplementation((resource, params) =>
+    resource === "romiku_website_inquiries"
+      ? Promise.reject(new Error("offline"))
+      : original(resource, params),
+  );
+  await screen.getByRole("button", { name: "刷新", exact: true }).click();
+  await expect
+    .element(screen.getByText("刷新失败，当前显示上次成功的数据。"))
+    .toBeVisible();
+  expect(document.querySelector("time")?.getAttribute("datetime")).toBe(last);
+  await expect
+    .element(screen.getByText("第 1 页 · 共 3 条记录", { exact: true }))
+    .toBeVisible();
+  requests.mockImplementation(original);
+  await screen.getByRole("button", { name: "重试", exact: true }).click();
+  await expect
+    .element(screen.getByText("刷新失败，当前显示上次成功的数据。"))
+    .not.toBeInTheDocument();
+  await expect
+    .poll(() => document.querySelector("time")?.getAttribute("datetime"))
+    .not.toBe(last);
+});
+it("alerts about a new inquiry hidden by a status filter without changing the filter", async () => {
+  const { screen, provider } = await setup();
+  await screen.getByRole("combobox", { name: "筛选状态" }).selectOptions("won");
+  await provider.create("romiku_website_inquiries", { data: row(4) });
+  await vi.advanceTimersByTimeAsync(30000);
+  await expect.element(screen.getByText("有 1 条新询盘")).toBeVisible();
+  await expect
+    .element(screen.getByRole("combobox", { name: "筛选状态" }))
+    .toHaveValue("won");
+  await screen.getByRole("button", { name: "查看最新" }).click();
+  await expect
+    .element(screen.getByText("第 1 页 · 共 4 条记录", { exact: true }))
+    .toBeVisible();
+});
+
+it("detects arrivals on page two without moving the page until requested", async () => {
+  const { screen, provider } = await setup();
+  await screen
+    .getByRole("combobox", { name: "筛选状态" })
+    .selectOptions("pending_screening");
+  for (let n = 4; n <= 27; n++)
+    await provider.create("romiku_website_inquiries", {
+      data: {
+        ...row(n),
+        submitted_at: new Date(Date.UTC(2026, 9, 11, 0, n)).toISOString(),
+      },
+    });
+  await screen.getByRole("button", { name: "刷新", exact: true }).click();
+  await expect
+    .element(screen.getByText("第 1 页 · 共 27 条记录", { exact: true }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: "下一页", exact: true }).click();
+  await expect
+    .element(screen.getByText("第 2 页 · 共 27 条记录", { exact: true }))
+    .toBeVisible();
+  await provider.create("romiku_website_inquiries", {
+    data: { ...row(28), submitted_at: "2026-10-12T00:00:00Z" },
+  });
+  await vi.advanceTimersByTimeAsync(30000);
+  await expect.element(screen.getByText("有 1 条新询盘")).toBeVisible();
+  await expect
+    .element(screen.getByText("第 2 页 · 共 28 条记录", { exact: true }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: "查看最新" }).click();
+  await expect
+    .element(screen.getByText("第 1 页 · 共 28 条记录", { exact: true }))
+    .toBeVisible();
+  expect(document.querySelector("tbody tr")?.textContent).toContain("WI-28");
+  await expect
+    .element(screen.getByRole("combobox", { name: "筛选状态" }))
+    .toHaveValue("pending_screening");
+});
+
+it("does not advance last refresh for local cache writes", async () => {
+  const { screen, cache } = await setup();
+  await expect.element(screen.getByText(/最后刷新：\d/)).toBeVisible();
+  const last = document.querySelector("time")?.getAttribute("datetime");
+  cache.setQueriesData(
+    { predicate: (q) => q.queryKey[0] === "romiku_website_inquiries" },
+    (old) => old,
+    { updatedAt: Date.now() + 60000 },
+  );
+  expect(document.querySelector("time")?.getAttribute("datetime")).toBe(last);
 });

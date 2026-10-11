@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useEffect, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
@@ -117,6 +118,7 @@ export function PackingItemsGrid({
         packingQuantity(item) > 0 &&
         number(item.quantity) !== packingQuantity(item),
     );
+  useAppDraft(dirty || saving);
   const change = (row: number, key: string, value: string) =>
     setDraft((current) =>
       current.map((item, index) =>

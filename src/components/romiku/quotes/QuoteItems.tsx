@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,7 @@ function ItemEditor({
   );
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
+  useAppDraft(busy || !item || JSON.stringify(values) !== JSON.stringify(item));
   const mutate = async (remove = false) => {
     setBusy(true);
     setFailure("");

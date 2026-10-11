@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useGetOne, type RaRecord } from "ra-core";
@@ -12,6 +13,7 @@ import { OrderSelect } from "./fulfillmentShared";
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { savedBuyerName } from "./productionWorkspace";
 export function ProductionCreate() {
+  useAppDraft(true);
   const [params] = useSearchParams(),
     lockedOrder = params.get("order");
   const [orderId, setOrderId] = useState(lockedOrder || ""),

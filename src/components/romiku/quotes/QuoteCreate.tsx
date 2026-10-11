@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { orderInquiryItems } from "../inquiries/inquirySavedItems";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -18,6 +19,7 @@ import { FormalCustomerSelector } from "../commercial/FormalCustomerSelector";
 export function QuoteCreate() {
   const [params] = useSearchParams();
   const initialSource = params.get("source");
+  useAppDraft(true);
   const [source, setSource] = useState<QuoteSource>(
     initialSource === "inquiry" ||
       initialSource === "outbound" ||

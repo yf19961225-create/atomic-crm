@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
@@ -383,6 +384,7 @@ function FulfillmentEditor({
     { id: record.order_id },
     { enabled: kind === "production" },
   );
+  useAppDraft(busy || JSON.stringify(values) !== JSON.stringify(record));
   const fields = kind === "production" ? productionFields : packingFields;
   async function save(event: React.FormEvent) {
     event.preventDefault();

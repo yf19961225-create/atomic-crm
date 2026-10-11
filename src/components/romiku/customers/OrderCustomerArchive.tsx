@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useGetOne, type RaRecord } from "ra-core";
@@ -18,6 +19,7 @@ export function OrderCustomerArchive({ record }: { record: RaRecord }) {
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState(""),
     [success, setSuccess] = useState<string | null>(null);
+  useAppDraft(open && !success);
   const selectedCustomer = useGetOne(
     "romiku_formal_customers",
     { id: customerId || "" },

@@ -1,3 +1,4 @@
+import { useAppDraft } from "@/components/romiku/updates/drafts";
 import { SaveIcon } from "lucide-react";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useTranslate } from "ra-core";
@@ -30,6 +31,12 @@ export function TagForm({
   const [newTagColor, setNewTagColor] = useState(colors[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useAppDraft(
+    open &&
+      (isSubmitting ||
+        newTagName !== (tag?.name ?? "") ||
+        newTagColor !== (tag?.color ?? colors[0])),
+  );
   const handleNewTagNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setNewTagName(event.target.value);
   };

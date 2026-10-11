@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import {
   useDataProvider,
@@ -79,10 +80,12 @@ export function RelatedRecords({
     error,
   } = useRelated(resource, parentKey, parentId);
   const [values, setValues] = useState<Values>(defaults);
+  const [savedValues, setSavedValues] = useState<Values>(defaults);
   const [editing, setEditing] = useState<RaRecord>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const [needsSync, setNeedsSync] = useState(false);
+  useAppDraft(busy || JSON.stringify(values) !== JSON.stringify(savedValues));
   const resetValues = () =>
     followupKind ? { ...defaults, contacted_at: localDateTime() } : defaults;
   const reload = async () => {
@@ -127,7 +130,11 @@ export function RelatedRecords({
         });
       else await provider.create(resource, { data: payload });
       setEditing(undefined);
-      setValues(resetValues());
+      {
+        const next = resetValues();
+        setValues(next);
+        setSavedValues(next);
+      }
       // A retry after a schedule failure must not insert a duplicate follow-up.
       if (followupKind) {
         try {
@@ -247,7 +254,11 @@ export function RelatedRecords({
               variant="outline"
               onClick={() => {
                 setEditing(undefined);
-                setValues(resetValues());
+                {
+                  const next = resetValues();
+                  setValues(next);
+                  setSavedValues(next);
+                }
               }}
             >
               取消编辑

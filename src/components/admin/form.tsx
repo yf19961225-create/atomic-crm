@@ -1,3 +1,4 @@
+import { useAppDraft } from "@/components/romiku/updates/drafts";
 import * as React from "react";
 import type { MouseEventHandler } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
@@ -95,6 +96,8 @@ function FormLabel({
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
+  const { isDirty, isSubmitting } = useFormState();
+  useAppDraft(isDirty || isSubmitting);
   const { error, formItemId, formDescriptionId, formMessageId } =
     useFormField();
 

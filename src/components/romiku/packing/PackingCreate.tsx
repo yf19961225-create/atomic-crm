@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useDataProvider } from "ra-core";
@@ -11,6 +12,7 @@ export function PackingCreate() {
   const provider = useDataProvider(),
     navigate = useNavigate(),
     [params] = useSearchParams();
+  useAppDraft(true);
   const [orderId, setOrderId] = useState(params.get("order") || ""),
     [creationMode, setCreationMode] = useState<"order" | "independent">(
       "order",

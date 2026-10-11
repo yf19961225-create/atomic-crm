@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
@@ -85,6 +86,7 @@ export function useDocumentEditSession(
 
 /** Native page-unload guard plus a reusable decision for in-app back links. */
 export function useUnsavedDocumentGuard(dirty: boolean) {
+  useAppDraft(dirty);
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!dirty) return;

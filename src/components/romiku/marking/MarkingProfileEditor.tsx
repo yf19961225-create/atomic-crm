@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import { useDataProvider, useRefresh, type RaRecord } from "ra-core";
 import { useQueryClient } from "@tanstack/react-query";
@@ -71,6 +72,7 @@ function MarkingProfileEditorForm({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [failure, setFailure] = useState("");
+  useAppDraft(busy || JSON.stringify(profile) !== JSON.stringify(savedProfile));
   const update = (key: (typeof markingKeys)[number], patch: Partial<Mark>) =>
     setProfile((current) => ({
       ...current,

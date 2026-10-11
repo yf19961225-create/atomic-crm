@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import type { RaRecord } from "ra-core";
 import { useQueryClient } from "@tanstack/react-query";
@@ -63,6 +64,7 @@ export function ProductionItemMarking({
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
   const cache = useQueryClient();
+  useAppDraft(!!editing || !!bulk || busy);
   async function save(action: "set" | "add" | "reset") {
     setBusy(true);
     setError("");

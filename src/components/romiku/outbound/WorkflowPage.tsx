@@ -1,4 +1,5 @@
-import { useInquiryListRefresh } from "../inquiries/useInquiryListRefresh";
+import { useAppDraft } from "../updates/drafts";
+import { useInquiryFreshness } from "../inquiries/useInquiryFreshness";
 import { CustomerActions } from "../customers/CustomerActions";
 import { userDisplayName } from "@/lib/userDisplayName";
 import { InquiryQuoteLinks } from "../inquiries/InquiryQuoteLinks";
@@ -190,7 +191,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
     {
       enabled: config.kind === "customer" || !search.trim(),
       ...(config.kind === "inquiry"
-        ? { refetchOnWindowFocus: "always" as const }
+        ? { refetchOnWindowFocus: "always" as const, retry: false }
         : {}),
     },
   );
@@ -214,10 +215,41 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
     isPending,
     error,
     refetch,
+    dataUpdatedAt,
+    isFetchedAfterMount,
+    isFetching,
   } = searched.active
     ? { ...searched, total: searched.group?.total_count }
     : ordinary;
-  useInquiryListRefresh(config.kind === "inquiry", refetch);
+  const freshness = useInquiryFreshness(
+    config.kind === "inquiry",
+    { refetch, dataUpdatedAt, isFetchedAfterMount, isFetching, error },
+    page > 1 || !!status || !!search.trim(),
+    page === 1 ? String(data[0]?.id || "") : "",
+    (key) => {
+      if (searched.active)
+        return (
+          key[0] === "romiku-search" &&
+          key[1] === kind &&
+          key[2] === search.trim() &&
+          key[3] === page &&
+          key[4] === status
+        );
+      const args = key[2] as
+        | {
+            pagination?: { page: number; perPage: number };
+            filter?: Record<string, string>;
+          }
+        | undefined;
+      return (
+        key[0] === resource &&
+        key[1] === "getList" &&
+        args?.pagination?.page === page &&
+        args.pagination.perPage === 25 &&
+        (args.filter?.status || "") === status
+      );
+    },
+  );
   const selection = usePageSelection(
     data,
     JSON.stringify([kind, page, search, status]),
@@ -256,9 +288,41 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
       </p>
       <div className="flex flex-wrap gap-3">
         {config.kind === "inquiry" && (
-          <Button variant="outline" onClick={() => void refetch()}>
-            刷新
-          </Button>
+          <>
+            <span className="self-center text-sm text-muted-foreground">
+              最后刷新：
+              {freshness.lastSuccess ? (
+                <time dateTime={new Date(freshness.lastSuccess).toISOString()}>
+                  {new Date(freshness.lastSuccess).toLocaleTimeString("zh-CN", {
+                    hour12: false,
+                  })}
+                </time>
+              ) : (
+                "等待首次成功刷新"
+              )}
+              {isFetching ? " · 正在刷新…" : ""}
+            </span>
+            <Button variant="outline" onClick={() => void freshness.refresh()}>
+              刷新
+            </Button>
+            {freshness.newCount > 0 && (
+              <span role="status">
+                有 {freshness.newCount} 条新询盘{" "}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPage(1);
+                    if (status !== freshness.latestStatus) setStatus("");
+                    setSearch("");
+                    void freshness.refresh();
+                  }}
+                >
+                  查看最新
+                </Button>
+                <small>查看最新询盘（仅清除遮挡新记录的筛选）</small>
+              </span>
+            )}
+          </>
         )}
         <label>
           搜索{" "}
@@ -309,7 +373,9 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
       {isPending && <p>正在加载记录…</p>}
       {error && (
         <div role="alert">
-          无法加载记录。{" "}
+          {config.kind === "inquiry" && freshness.lastSuccess
+            ? "刷新失败，当前显示上次成功的数据。"
+            : "无法加载记录。"}{" "}
           <Button variant="outline" onClick={() => refetch()}>
             重试
           </Button>
@@ -663,6 +729,7 @@ function RecordEditor({
       : { status: config.statuses[0] },
   );
   const [dirty, setDirty] = useState(false);
+  useAppDraft(dirty);
   useEffect(() => {
     if (record && !dirty)
       setValues({

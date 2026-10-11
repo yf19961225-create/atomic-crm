@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
@@ -319,6 +320,7 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
   const config = documentConfig[kind],
     provider = useDataProvider(),
     navigate = useNavigate();
+  useAppDraft(true);
   const [values, setValues] = useState<Values>({ name: "" }),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");

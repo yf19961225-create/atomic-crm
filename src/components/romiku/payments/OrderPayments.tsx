@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { LifecycleDialog } from "../shared/LifecycleDialog";
 import {
   DropdownMenu,
@@ -221,6 +222,7 @@ function PaymentForm({
   onCancel: () => void;
 }) {
   const provider = useDataProvider();
+  useAppDraft(true);
   const [values, setValues] = useState<Values>(
     payment || {
       kind: "deposit",

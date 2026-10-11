@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { useEffect, type RefObject } from "react";
 import { useBlocker, useCanBlock } from "ra-core";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ export function ProductionNavigationGuard({
   committed: RefObject<boolean>;
 }) {
   const canBlock = useCanBlock();
+  useAppDraft(active || busy);
   useEffect(() => {
     if (!active) return;
     const unload = (event: BeforeUnloadEvent) => {

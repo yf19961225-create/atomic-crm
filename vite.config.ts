@@ -1,6 +1,12 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+const buildSha =
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+if (!/^[a-f0-9]{40}$/i.test(buildSha))
+  throw new Error("Git build SHA required");
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -13,6 +19,25 @@ export default defineConfig({
     host: true,
   },
   plugins: [
+    {
+      name: "app-build-version",
+      transformIndexHtml() {
+        return [
+          {
+            tag: "meta",
+            attrs: { name: "crm-build", content: buildSha },
+            injectTo: "head",
+          },
+        ];
+      },
+      generateBundle() {
+        this.emitFile({
+          type: "asset",
+          fileName: "version.json",
+          source: JSON.stringify({ build: buildSha }),
+        });
+      },
+    },
     react(),
     tailwindcss(),
     visualizer({
@@ -28,16 +53,24 @@ export default defineConfig({
       },
     }),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
+      injectRegister: false,
       workbox: {
+        clientsClaim: true,
+        skipWaiting: false,
+        navigateFallbackDenylist: [/^\/version\.json$/, /^\/api\//],
+        runtimeCaching: [
+          { urlPattern: /\/version\.json$/, handler: "NetworkOnly" },
+        ],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
       },
       manifest: false, // Use existing manifest.json from public/
     }),
   ],
-  define:
-    process.env.NODE_ENV === "production" && process.env.VITE_SUPABASE_URL
+  define: {
+    "import.meta.env.VITE_APP_BUILD_SHA": JSON.stringify(buildSha),
+    ...(process.env.NODE_ENV === "production" && process.env.VITE_SUPABASE_URL
       ? {
           "import.meta.env.VITE_IS_DEMO": JSON.stringify(
             process.env.VITE_IS_DEMO,
@@ -55,7 +88,8 @@ export default defineConfig({
             process.env.VITE_ATTACHMENTS_BUCKET,
           ),
         }
-      : undefined,
+      : {}),
+  },
   base: "./",
   esbuild: {
     keepNames: true,

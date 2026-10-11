@@ -1,3 +1,4 @@
+import { useAppDraft } from "../updates/drafts";
 import { ProductionItemMarking } from "../marking/ProductionItemMarking";
 import { recordValue } from "../marking/markingProfile";
 import { useState } from "react";
@@ -184,6 +185,7 @@ function ItemEditor({
   onCancel: () => void;
 }) {
   const provider = useDataProvider();
+  useAppDraft(true);
   const [sourceId, setSourceId] = useState(
     String(previous?.source_order_item_id || ""),
   );
