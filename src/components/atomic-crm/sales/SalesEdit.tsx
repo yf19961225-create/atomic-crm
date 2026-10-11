@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import { useMutation } from "@tanstack/react-query";
 import {
   useDataProvider,
@@ -93,7 +94,7 @@ const SaleEditTitle = () => {
   return (
     <h2 className="text-lg font-semibold mb-4">
       {translate("resources.sales.edit.title", {
-        name: `${record.first_name} ${record.last_name}`,
+        name: userDisplayName(record),
       })}
     </h2>
   );

@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import type { Identifier } from "ra-core";
 import { useGetManyAggregate } from "ra-core";
 
@@ -13,8 +14,8 @@ export const useGetSalesName = (
   );
 
   return data && data[0]
-    ? `${data[0].first_name} ${data[0].last_name}`
+    ? userDisplayName(data[0])
     : error
-      ? "??"
+      ? userDisplayName()
       : "";
 };

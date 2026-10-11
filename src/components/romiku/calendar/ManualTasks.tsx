@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
@@ -287,7 +288,7 @@ function TaskEditor({
             <option value="">未分配</option>
             {owners.map((o) => (
               <option key={o.id} value={o.user_id}>
-                {o.first_name} {o.last_name}
+                {userDisplayName(o)}
               </option>
             ))}
           </select>

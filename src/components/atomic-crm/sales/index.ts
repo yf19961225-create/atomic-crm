@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import type { Sale } from "../types";
 import { SalesCreate } from "./SalesCreate";
 import { SalesEdit } from "./SalesEdit";
@@ -7,6 +8,5 @@ export default {
   list: SalesList,
   create: SalesCreate,
   edit: SalesEdit,
-  recordRepresentation: (record: Sale) =>
-    `${record.first_name} ${record.last_name}`,
+  recordRepresentation: (record: Sale) => userDisplayName(record),
 };

@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import {
   useCanAccess,
   useGetIdentity,
@@ -13,8 +14,7 @@ import type { Sale } from "../types";
 
 const MAX_DISPLAYED_SALES = 10;
 
-const saleOptionRenderer = (choice: Sale) =>
-  `${choice.first_name} ${choice.last_name}`;
+const saleOptionRenderer = (choice: Sale) => userDisplayName(choice);
 
 export const AccountManagerInput = ({
   source = "sales_id",

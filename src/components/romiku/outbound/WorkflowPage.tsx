@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import { InquiryQuoteLinks } from "../inquiries/InquiryQuoteLinks";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { InlineStatusSelect } from "../shared/InlineStatusSelect";
@@ -473,9 +474,11 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   className={config.kind === "inquiry" ? "truncate p-3" : "p-3"}
                 >
                   {record.owner_id
-                    ? owners.data?.find(
-                        (owner) => owner.user_id === record.owner_id,
-                      )?.first_name || "已分配"
+                    ? userDisplayName(
+                        owners.data?.find(
+                          (owner) => owner.user_id === record.owner_id,
+                        ),
+                      )
                     : "未分配"}
                 </td>
                 {config.kind !== "customer" && (

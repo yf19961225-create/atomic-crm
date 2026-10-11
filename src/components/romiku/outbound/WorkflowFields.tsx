@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import { useDataProvider } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
 import type { RaRecord } from "ra-core";
@@ -73,10 +74,7 @@ function ReferenceSelect({
   });
   const choices = data.map((row: RaRecord) => ({
     id: String(field.reference === "sales" ? row.user_id : row.id),
-    label:
-      field.reference === "sales"
-        ? `${row.first_name} ${row.last_name}`
-        : row.name,
+    label: field.reference === "sales" ? userDisplayName(row) : row.name,
   }));
   return (
     <>
@@ -89,7 +87,9 @@ function ReferenceSelect({
       >
         <option value="">未分配／不关联</option>
         {value && !choices.some((choice) => choice.id === value) && (
-          <option value={value}>{value}</option>
+          <option value={value}>
+            {field.reference === "sales" ? userDisplayName() : value}
+          </option>
         )}
         {choices.map((choice) => (
           <option key={choice.id} value={choice.id}>

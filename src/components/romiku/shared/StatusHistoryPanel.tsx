@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
@@ -86,7 +87,7 @@ export function StatusHistoryPanel({
                 <div className="text-muted-foreground">
                   <span>
                     {entry.changed_by
-                      ? entry.changed_by_name || "已登录用户"
+                      ? userDisplayName({ display_name: entry.changed_by_name })
                       : "系统"}
                   </span>{" "}
                   ·{" "}

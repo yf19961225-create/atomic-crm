@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import { useState } from "react";
 import { useDataProvider, useGetIdentity } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +11,9 @@ export function useOwners() {
     queryKey: ["romiku-owners"],
     queryFn: () => readRelated(provider, "sales", {}),
   });
-  const owners = query.data || [];
+  const owners = [...(query.data || [])].sort((a, b) =>
+    userDisplayName(a).localeCompare(userDisplayName(b), "zh-CN"),
+  );
   // Atomic identity.id is the numeric sales record, while ROMIKU owner_id is auth.users UUID.
   const mine = owners.find((owner) => String(owner.id) === String(identity?.id))
     ?.user_id as string | undefined;
@@ -48,7 +51,7 @@ export function OwnerFilter({
           <option value="">全部负责人</option>
           {state.owners.map((o) => (
             <option key={o.id} value={o.user_id}>
-              {o.first_name} {o.last_name}
+              {userDisplayName(o)}
             </option>
           ))}
         </select>

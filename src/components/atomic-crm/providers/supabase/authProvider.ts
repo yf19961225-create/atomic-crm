@@ -1,3 +1,4 @@
+import { userDisplayName } from "@/lib/userDisplayName";
 import type { AuthProvider } from "ra-core";
 import { supabaseAuthProvider } from "ra-supabase-core";
 
@@ -7,7 +8,7 @@ import { getSupabaseClient } from "./supabase";
 const getBaseAuthProvider = () =>
   supabaseAuthProvider(getSupabaseClient(), {
     getIdentity: async () => {
-      const sale = await getSale();
+      const sale = await getSale(true);
 
       if (sale == null) {
         throw new Error();
@@ -15,7 +16,7 @@ const getBaseAuthProvider = () =>
 
       return {
         id: sale.id,
-        fullName: `${sale.first_name} ${sale.last_name}`,
+        fullName: userDisplayName(sale),
         avatar: sale.avatar?.src,
       };
     },
@@ -52,10 +53,10 @@ export async function getIsInitialized() {
   return isInitialized;
 }
 
-const getSale = async () => {
+const getSale = async (refreshProfile = false) => {
   const storage = getLocalStorage();
   const cachedValue = storage?.getItem(CURRENT_SALE_CACHE_KEY);
-  if (cachedValue != null) {
+  if (!refreshProfile && cachedValue != null) {
     return JSON.parse(cachedValue);
   }
 

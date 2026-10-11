@@ -134,7 +134,7 @@ it("uses resource-specific labels and generic readable fallback when actor canno
     .element(s.getByText("待制作 → 已发送", { exact: true }))
     .toBeVisible();
   await expect
-    .element(s.getByText("已登录用户", { exact: true }))
+    .element(s.getByText("未设置姓名", { exact: true }))
     .toBeVisible();
 });
 it("refreshes open history after a single status mutation and resets displayed duration", async () => {
