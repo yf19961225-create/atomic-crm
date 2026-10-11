@@ -146,24 +146,12 @@ it.each(Object.keys(tables) as WorkflowResource[])(
       error: null,
     });
     await screen
-      .getByRole(
-        kind === "website_inquiry" || kind === "outbound"
-          ? "textbox"
-          : "searchbox",
-        {
-          name:
-            kind === "website_inquiry" || kind === "outbound"
-              ? "搜索"
-              : undefined,
-        },
-      )
+      .getByRole("searchbox")
       .fill("needle");
-    if (kind !== "website_inquiry" && kind !== "outbound") {
-      await expect
-        .element(screen.getByRole("button", { name: "取消选择" }))
-        .toBeVisible();
-      await screen.getByRole("button", { name: "搜索", exact: true }).click();
-    }
+    await expect
+      .element(screen.getByRole("button", { name: "取消选择" }))
+      .toBeVisible();
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .element(screen.getByRole("button", { name: "取消选择" }))
       .not.toBeInTheDocument();

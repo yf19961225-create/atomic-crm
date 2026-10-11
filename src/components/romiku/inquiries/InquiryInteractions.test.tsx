@@ -9,9 +9,6 @@ import { InquiryPage } from "./InquiryPage";
 import { statusOptions } from "../shared/workflowStatus";
 import "@/index.css";
 
-vi.mock("../search/useBusinessSearch", () => ({
-  useModuleSearch: () => ({ active: false }),
-}));
 const inquiry = {
   id: "i1",
   document_number: "WI-001",

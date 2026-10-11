@@ -103,6 +103,7 @@ it("preserves status filters during refresh and offers manual refresh", async ()
 });
 it("refreshes server search and its count while retaining search and status", async () => {
   const { screen, provider } = await setup();
+  rpc.mockClear();
   let ids = ["3", "2", "1"];
   rpc.mockImplementation(async () => ({
     data: {
@@ -129,21 +130,27 @@ it("refreshes server search and its count while retaining search and status", as
     .getByRole("combobox", { name: "筛选状态" })
     .selectOptions("pending_screening");
   await screen
-    .getByRole("textbox", { name: "搜索", exact: true })
+    .getByRole("searchbox", { name: "搜索", exact: true })
     .fill("Buyer");
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  expect(rpc).not.toHaveBeenCalled();
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
   await expect.poll(() => rpc.mock.calls.length).toBeGreaterThan(0);
   await expect
     .element(screen.getByText("第 1 页 · 共 3 条记录", { exact: true }))
     .toBeVisible();
   await provider.create("romiku_website_inquiries", { data: row(4) });
   ids = ["4", "3", "2", "1"];
+  await screen
+    .getByRole("searchbox", { name: "搜索", exact: true })
+    .fill("Buyer 4");
   await vi.advanceTimersByTimeAsync(30000);
   await expect
     .element(screen.getByText("第 1 页 · 共 4 条记录", { exact: true }))
     .toBeVisible();
   await expect
-    .element(screen.getByRole("textbox", { name: "搜索", exact: true }))
-    .toHaveValue("Buyer");
+    .element(screen.getByRole("searchbox", { name: "搜索", exact: true }))
+    .toHaveValue("Buyer 4");
   expect(document.querySelector("tbody tr")?.textContent).toContain("WI-4");
   expect(rpc).toHaveBeenLastCalledWith(
     "romiku_global_search",

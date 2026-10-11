@@ -9,7 +9,8 @@ import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { statusOptions } from "../shared/workflowStatus";
 import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
-import { useModuleSearch } from "../search/useBusinessSearch";
+import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
+import { SearchInput } from "../search/SearchInput";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -175,7 +176,8 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
   const selected = params.get("record");
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
   const resource = workflowResources[config.kind];
   const nameKey = config.kind === "inquiry" ? "customer_name" : "name";
   const ordinary = useGetList(
@@ -188,11 +190,13 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
       },
       filter: {
         ...(status ? { status } : {}),
-        ...(search ? { [`${nameKey}@ilike`]: `%${search}%` } : {}),
+        ...(config.kind === "customer" && committedSearch
+          ? { [`${nameKey}@ilike`]: `%${committedSearch}%` }
+          : {}),
       },
     },
     {
-      enabled: config.kind === "customer" || !search.trim(),
+      enabled: config.kind === "customer" || !committedSearch,
       ...(config.kind === "inquiry"
         ? { refetchOnWindowFocus: "always" as const, retry: false }
         : {}),
@@ -207,13 +211,16 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
   const searched = useModuleSearch(
     kind,
     resource,
-    config.kind === "customer" ? "" : search,
+    config.kind === "customer" ? "" : committedSearch,
     page,
     status ? { status } : {},
     config.kind === "inquiry" ? { refetchOnWindowFocus: "always" } : {},
   );
+  const activeQuery = searched.active
+    ? { ...searched, total: searched.group?.total_count }
+    : ordinary;
+  const data = useRetainedRows(activeQuery.data);
   const {
-    data = [],
     total,
     isPending,
     error,
@@ -221,20 +228,18 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
     dataUpdatedAt,
     isFetchedAfterMount,
     isFetching,
-  } = searched.active
-    ? { ...searched, total: searched.group?.total_count }
-    : ordinary;
+  } = activeQuery;
   const freshness = useInquiryFreshness(
     config.kind === "inquiry",
     { refetch, dataUpdatedAt, isFetchedAfterMount, isFetching, error },
-    page > 1 || !!status || !!search.trim(),
+    page > 1 || !!status || !!committedSearch,
     page === 1 ? String(data[0]?.id || "") : "",
     (key) => {
       if (searched.active)
         return (
           key[0] === "romiku-search" &&
           key[1] === kind &&
-          key[2] === search.trim() &&
+          key[2] === committedSearch &&
           key[3] === page &&
           key[4] === status
         );
@@ -255,7 +260,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
   );
   const selection = usePageSelection(
     data,
-    JSON.stringify([kind, page, search, status]),
+    JSON.stringify([kind, page, committedSearch, status]),
     page,
     total,
     isPending || !!error,
@@ -316,7 +321,8 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   onClick={() => {
                     setPage(1);
                     if (status !== freshness.latestStatus) setStatus("");
-                    setSearch("");
+                    setSearchInput("");
+                    setCommittedSearch("");
                     void freshness.refresh();
                   }}
                 >
@@ -327,18 +333,22 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
             )}
           </>
         )}
-        <label>
-          搜索{" "}
-          <input
-            aria-label="搜索"
-            className="rounded border p-2"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-          />
-        </label>
+        <SearchInput
+          label="搜索"
+          value={searchInput}
+          onChange={setSearchInput}
+          onSubmit={(next) => {
+            if (next === committedSearch && page === 1) void refetch();
+            setCommittedSearch(next);
+            setPage(1);
+          }}
+          onClear={() => {
+            setSearchInput("");
+            setCommittedSearch("");
+            setPage(1);
+          }}
+          busy={isFetching}
+        />
         <label>
           筛选状态{" "}
           <select
@@ -373,10 +383,13 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           disabled={isPending || !!error}
         />
       )}
-      {isPending && <p>正在加载记录…</p>}
+      {isPending && !data.length && <p>正在加载记录…</p>}
+      {isFetching && !!data.length && <p role="status">搜索中…</p>}
       {error && (
         <div role="alert">
-          {config.kind === "inquiry" && freshness.lastSuccess
+          {committedSearch
+            ? "搜索失败，当前显示上次成功的数据。"
+            : config.kind === "inquiry" && freshness.lastSuccess
             ? "刷新失败，当前显示上次成功的数据。"
             : "无法加载记录。"}{" "}
           <Button variant="outline" onClick={() => refetch()}>

@@ -60,11 +60,15 @@ it("selects only the current page, clears selection on scope changes, and resolv
     .element(screen.getByText("Buyer 25", { exact: true }))
     .toBeVisible();
   await screen.getByRole("checkbox", { name: "全选当前页" }).click();
-  await screen.getByRole("textbox", { name: "搜索" }).fill("Buyer");
+  await screen.getByRole("searchbox", { name: "搜索" }).fill("Buyer");
+  await expect
+    .element(screen.getByRole("button", { name: "批量删除" }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: "搜索", exact: true }).click();
   await expect
     .element(screen.getByRole("button", { name: "批量删除" }))
     .not.toBeInTheDocument();
-  await screen.getByRole("textbox", { name: "搜索" }).fill("");
+  await screen.getByRole("button", { name: "清空", exact: true }).click();
   await screen.getByRole("button", { name: "客户操作 Buyer 25" }).click();
   await expect
     .element(screen.getByRole("menuitem", { name: "查看", exact: true }))
