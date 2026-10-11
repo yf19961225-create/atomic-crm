@@ -1,11 +1,14 @@
+import { normalizeSpecificationDisplay } from "../quotes/normalizeSpecificationDisplay";
 import type { CommercialItem } from "./commercialLineItems";
 
 export function CommercialItemDrawer({
   item,
+  quote = false,
   onClose,
   onSave,
 }: {
   item: CommercialItem | null;
+  quote?: boolean;
   onClose: () => void;
   onSave: (item: CommercialItem) => void;
 }) {
@@ -56,7 +59,11 @@ export function CommercialItemDrawer({
           <textarea
             name="specification"
             className="ml-2 w-full rounded border p-1"
-            defaultValue={String(product.specification ?? "")}
+            defaultValue={
+              quote
+                ? normalizeSpecificationDisplay(product.specification)
+                : String(product.specification ?? "")
+            }
           />
         </label>
         <label className="block">

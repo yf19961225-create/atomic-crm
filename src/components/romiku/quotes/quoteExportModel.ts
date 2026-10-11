@@ -1,3 +1,4 @@
+import { normalizeSpecificationDisplay } from "./normalizeSpecificationDisplay.js";
 import { cartonCbmFromPacking } from "../commercial/commercialLineItems.js";
 import type { ContactSnapshot } from "../orders/orderExportSnapshot.js";
 import { quoteExportSnapshot } from "./quoteExportSnapshot.js";
@@ -77,7 +78,7 @@ export function normalizeQuoteExportModel(
         sku: String(item.sku || ""),
         name: String(product.name || ""),
         imageUrl: String(product.image_url || ""),
-        specification: String(
+        specification: normalizeSpecificationDisplay(
           product.specification || packing.description || "",
         ),
         qtyPerCarton: numberOrNull(packing.qty_per_carton),

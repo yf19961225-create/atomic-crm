@@ -1,3 +1,4 @@
+import { normalizeSpecificationDisplay } from "../quotes/normalizeSpecificationDisplay";
 import { RequestedQuantity } from "../quotes/RequestedQuantity";
 import {
   useMemo,
@@ -74,6 +75,9 @@ export function CommercialLineItemsTable({
   // Keep a Quote CBM as the user's raw decimal text until blur. Converting on
   // every keystroke turns the valid intermediate value "0." into "0" and
   // makes decimals such as 0.08 impossible to type reliably.
+  const [quoteSpecificationDrafts, setQuoteSpecificationDrafts] = useState<
+    Record<string, string>
+  >({});
   const [quoteCbmDrafts, setQuoteCbmDrafts] = useState<Record<string, string>>(
     {},
   );
@@ -656,9 +660,23 @@ export function CommercialLineItemsTable({
                               <textarea
                                 aria-label="描述与规格"
                                 className="min-h-8 w-40 resize-y rounded border p-1"
-                                value={String(product.specification ?? "")}
+                                value={
+                                  compactQuote
+                                    ? (quoteSpecificationDrafts[
+                                        String(item.id)
+                                      ] ??
+                                      normalizeSpecificationDisplay(
+                                        product.specification,
+                                      ))
+                                    : String(product.specification ?? "")
+                                }
                                 disabled={!editable}
                                 onChange={(event) => {
+                                  if (compactQuote)
+                                    setQuoteSpecificationDrafts((drafts) => ({
+                                      ...drafts,
+                                      [String(item.id)]: event.target.value,
+                                    }));
                                   if (onItemsChange)
                                     void save(item, {
                                       product_snapshot: {
@@ -668,6 +686,12 @@ export function CommercialLineItemsTable({
                                     });
                                 }}
                                 onBlur={(event) => {
+                                  if (compactQuote)
+                                    setQuoteSpecificationDrafts((drafts) => {
+                                      const next = { ...drafts };
+                                      delete next[String(item.id)];
+                                      return next;
+                                    });
                                   if (!onItemsChange)
                                     void save(item, {
                                       product_snapshot: {
@@ -1055,6 +1079,7 @@ export function CommercialLineItemsTable({
         新增产品行
       </Button>
       <CommercialItemDrawer
+        quote={compactQuote}
         item={drawer}
         onClose={() => setDrawer(null)}
         onSave={(next) => {

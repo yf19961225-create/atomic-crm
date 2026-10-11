@@ -744,7 +744,15 @@ BEGIN
     jsonb_build_object('name',source.customer_name,'contact_name',source.customer_name,'company',source.company,'brand',source.brand,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
   RETURNING id INTO new_id;
   INSERT INTO public.romiku_quote_items(quote_id,source_website_inquiry_item_id,sanity_product_id,sku,quantity,requested_quantity_snapshot,requirement,product_snapshot,packing_snapshot,position)
-  SELECT new_id,i.id,i.sanity_product_id,i.sku,i.quantity,i.quantity,i.requirement,i.product_snapshot,jsonb_strip_nulls(jsonb_build_object('qty_per_carton',i.product_snapshot->'cartonQty','carton_cbm',i.product_snapshot->'carton_cbm')),array_position(selected_item_ids,i.id)
+  SELECT new_id,i.id,i.sanity_product_id,i.sku,i.quantity,i.quantity,i.requirement,
+    CASE WHEN jsonb_typeof(i.product_snapshot->'specification') = 'string' THEN
+      jsonb_set(i.product_snapshot, '{specification}', to_jsonb(
+        regexp_replace(regexp_replace(i.product_snapshot->>'specification',
+          '^[[:space:]]*(specifications?|specs)[[:space:]]*:[[:space:]]*', '', 'i'),
+          '^[[:space:]]+|[[:space:]]+$', '', 'g')
+      ))
+    ELSE i.product_snapshot END,
+    jsonb_strip_nulls(jsonb_build_object('qty_per_carton',i.product_snapshot->'cartonQty','carton_cbm',i.product_snapshot->'carton_cbm')),array_position(selected_item_ids,i.id)
     FROM public.romiku_website_inquiry_items i WHERE i.id = ANY(selected_item_ids);
   RETURN new_id;
 END;

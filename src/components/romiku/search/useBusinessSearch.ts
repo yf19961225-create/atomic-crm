@@ -25,10 +25,12 @@ export function useModuleSearch(
   value: string,
   page: number,
   filters: SearchFilters = {},
+  options: { refetchOnWindowFocus?: boolean | "always" } = {},
 ) {
   const query = useDebouncedSearch(value);
   const provider = useDataProvider();
   const result = useQuery({
+    ...options,
     queryKey: [
       "romiku-search",
       type,

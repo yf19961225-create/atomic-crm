@@ -105,3 +105,26 @@ it("uses explicit website provenance and each saved requested quantity, not curr
     ] as never).templateKind,
   ).toBe("direct");
 });
+
+it.each([
+  ["Specifications: 48W\n24LEDS", "48W\n24LEDS"],
+  [" specification : 5MM ", "5MM"],
+  ["Specs: Rechargeable", "Rechargeable"],
+  ["48W 24LEDS", "48W 24LEDS"],
+  ["Special Specifications: ABC", "Special Specifications: ABC"],
+  ["Product Specifications: ABC", "Product Specifications: ABC"],
+  [null, ""],
+  ["", ""],
+])(
+  "normalizes only a leading specification label in both Quote export models: %s",
+  (raw, expected) => {
+    const snapshot = { specification: raw };
+    for (const quote of [{}, { source_website_inquiry_id: "wi" }]) {
+      expect(
+        normalizeQuoteExportModel(quote, [{ product_snapshot: snapshot }])
+          .items[0].specification,
+      ).toBe(expected);
+    }
+    expect(snapshot.specification).toBe(raw);
+  },
+);

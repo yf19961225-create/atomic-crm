@@ -271,3 +271,49 @@ it.each([1, 5, 20])(
     }
   },
 );
+
+it.each(["direct", "website"] as const)(
+  "exports clean historical specification in the %s template without changing cell style",
+  async (kind) => {
+    const template = await fetch(
+      kind === "website" ? websiteTemplateUrl : templateUrl,
+    ).then((response) => response.arrayBuffer());
+    const saved = {
+      ...item(1),
+      product_snapshot: {
+        ...item(1).product_snapshot,
+        specification: "Specifications: 48W\n24LEDS",
+      },
+    };
+    const model = normalizeQuoteExportModel(
+      kind === "website" ? { source_website_inquiry_id: "wi" } : {},
+      [saved],
+    );
+    const baseline = new ExcelJS.Workbook();
+    await baseline.xlsx.load(
+      await renderQuoteXlsx(
+        {
+          ...model,
+          items: model.items.map((row) => ({
+            ...row,
+            specification: "Original",
+          })),
+        },
+        template,
+      ),
+    );
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await renderQuoteXlsx(model, template));
+    const sheet = workbook.getWorksheet("ROMIKU PI")!;
+    expect(sheet.getCell("E9").value).toBe("48W\n24LEDS");
+    expect(sheet.getCell("E9").style).toEqual(
+      baseline.getWorksheet("ROMIKU PI")!.getCell("E9").style,
+    );
+    expect(sheet.pageSetup).toEqual(
+      baseline.getWorksheet("ROMIKU PI")!.pageSetup,
+    );
+    expect(saved.product_snapshot.specification).toBe(
+      "Specifications: 48W\n24LEDS",
+    );
+  },
+);

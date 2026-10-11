@@ -1,3 +1,4 @@
+import { useInquiryListRefresh } from "../inquiries/useInquiryListRefresh";
 import { CustomerActions } from "../customers/CustomerActions";
 import { userDisplayName } from "@/lib/userDisplayName";
 import { InquiryQuoteLinks } from "../inquiries/InquiryQuoteLinks";
@@ -186,7 +187,12 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         ...(search ? { [`${nameKey}@ilike`]: `%${search}%` } : {}),
       },
     },
-    { enabled: config.kind === "customer" || !search.trim() },
+    {
+      enabled: config.kind === "customer" || !search.trim(),
+      ...(config.kind === "inquiry"
+        ? { refetchOnWindowFocus: "always" as const }
+        : {}),
+    },
   );
   const kind =
     config.kind === "inquiry"
@@ -200,6 +206,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
     config.kind === "customer" ? "" : search,
     page,
     status ? { status } : {},
+    config.kind === "inquiry" ? { refetchOnWindowFocus: "always" } : {},
   );
   const {
     data = [],
@@ -210,6 +217,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
   } = searched.active
     ? { ...searched, total: searched.group?.total_count }
     : ordinary;
+  useInquiryListRefresh(config.kind === "inquiry", refetch);
   const selection = usePageSelection(
     data,
     JSON.stringify([kind, page, search, status]),
@@ -247,6 +255,11 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         状态变更需手动操作。
       </p>
       <div className="flex flex-wrap gap-3">
+        {config.kind === "inquiry" && (
+          <Button variant="outline" onClick={() => void refetch()}>
+            刷新
+          </Button>
+        )}
         <label>
           搜索{" "}
           <input

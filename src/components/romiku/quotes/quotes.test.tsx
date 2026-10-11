@@ -478,3 +478,41 @@ it("exports an edited website Quote contact without changing its company or sour
       .customer_name,
   ).toBe("Ana");
 });
+
+it("shows a clean historical Quote specification without rewriting its saved snapshot", async () => {
+  const { screen, provider } = await setup("/quotes/q", {
+    items: [
+      {
+        ...defaultQuoteItems[0],
+        product_snapshot: {
+          name: "Lamp",
+          specification: "Specifications: 48W\n24LEDS",
+        },
+      },
+    ],
+  });
+  await expect
+    .element(screen.getByRole("textbox", { name: "描述与规格" }))
+    .toHaveValue("48W\n24LEDS");
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data
+      .product_snapshot.specification,
+  ).toBe("Specifications: 48W\n24LEDS");
+});
+
+it("allows spaces while typing a cleaned Quote specification in the edit session", async () => {
+  const { screen } = await setup("/quotes/q", {
+    items: [
+      {
+        ...defaultQuoteItems[0],
+        product_snapshot: { name: "Lamp", specification: "Specs: 48W" },
+      },
+    ],
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  const spec = screen.getByRole("textbox", { name: "描述与规格" });
+  await spec.fill("48W");
+  await spec.click();
+  await userEvent.keyboard("{End} 24LEDS");
+  await expect.element(spec).toHaveValue("48W 24LEDS");
+});
