@@ -14,7 +14,7 @@ Inquiry rows/count remain in the existing active server query. The last refresh 
 2. Leave an ordinary clean tab, untouched Quote/Production/Packing Create pages, separate real unsaved Quote/Production/Packing drafts, and a standalone Preview PWA open.
 3. Deploy B to the same branch (a documentation-only commit is sufficient: build SHA and generated SW change).
 4. Wait for visible polling or focus. Clean and untouched Create pages must allow refresh without an unsaved warning. All three dirty documents must retain their inputs and refuse refresh; opening Edit alone must remain clean.
-5. Inspect the waiting worker without forcing activation. Cancel/save the Quote, explicitly refresh, and verify HTML build B without clearing storage.
+5. Inspect the waiting worker without forcing activation. Restore edited fields to their exact visible original values, including a legacy Quote specification with a presentation prefix; the update banner must immediately allow refresh. Repeat an edit then Cancel. Explicitly refresh and verify HTML build B without clearing storage.
 6. Verify Inquiry success/failure/recovery, old tab, fresh session and PWA reopen. Record actual evidence outside Git. A test that only mocks two versions is not cross-deployment acceptance.
 
 ## Separate Production hotfix plan — requires user authorization
