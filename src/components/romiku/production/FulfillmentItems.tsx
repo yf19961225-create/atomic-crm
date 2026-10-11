@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   WorkflowFields,
+  valueAt,
   type Field,
   type Values,
 } from "../outbound/WorkflowFields";
@@ -171,6 +172,41 @@ export function FulfillmentItems({
     </div>
   );
 }
+function itemSnapshot(kind: FulfillmentKind, sourceId: string, values: Values) {
+  const numeric =
+    kind === "packing"
+      ? [
+          "quantity",
+          "cartons",
+          "qty_per_carton",
+          "length_cm",
+          "width_cm",
+          "height_cm",
+          "carton_weight_kg",
+        ]
+      : [
+          "quantity",
+          "packaging_snapshot.cartons",
+          "packaging_snapshot.qty_per_carton",
+        ];
+  const text = [
+    "product_snapshot.name",
+    "product_snapshot.image_url",
+    ...(kind === "packing"
+      ? ["product_snapshot.shipping_mark", "remark"]
+      : [
+          "product_snapshot.specification",
+          "production_note_zh",
+          "packaging_snapshot.notes",
+        ]),
+  ];
+  return JSON.stringify([
+    sourceId,
+    ...numeric.map((key) => Number(valueAt(values, key) || 0)),
+    ...text.map((key) => String(valueAt(values, key) ?? "")),
+  ]);
+}
+
 function ItemEditor({
   kind,
   parent,
@@ -185,7 +221,6 @@ function ItemEditor({
   onCancel: () => void;
 }) {
   const provider = useDataProvider();
-  useAppDraft(true);
   const [sourceId, setSourceId] = useState(
     String(previous?.source_order_item_id || ""),
   );
@@ -194,6 +229,10 @@ function ItemEditor({
     ),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
+  const [baseline, setBaseline] = useState(() =>
+    itemSnapshot(kind, sourceId, values),
+  );
+  useAppDraft(itemSnapshot(kind, sourceId, values) !== baseline);
   const sources = useQuery({
     queryKey: ["fulfillment-sources", parent.order_id],
     queryFn: () =>
@@ -222,6 +261,7 @@ function ItemEditor({
         await savePackingItem(provider, parent, sourceId, values, previous);
       else
         await saveProductionItem(provider, parent, sourceId, values, previous);
+      setBaseline(itemSnapshot(kind, sourceId, values));
       await remaining.refetch();
       await onSaved();
     } catch (cause) {

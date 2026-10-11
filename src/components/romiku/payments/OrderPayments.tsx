@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { LifecycleDialog } from "../shared/LifecycleDialog";
 import {
@@ -222,7 +223,6 @@ function PaymentForm({
   onCancel: () => void;
 }) {
   const provider = useDataProvider();
-  useAppDraft(true);
   const [values, setValues] = useState<Values>(
     payment || {
       kind: "deposit",
@@ -233,6 +233,20 @@ function PaymentForm({
       payment_reference: "",
     },
   );
+  const signature = editableSignature(
+    values,
+    [
+      "kind",
+      "amount",
+      "received_at",
+      "notes",
+      "payment_account",
+      "payment_reference",
+    ],
+    ["amount"],
+  );
+  const [baseline, setBaseline] = useState(signature);
+  useAppDraft(signature !== baseline);
   const [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
   async function save(event: React.FormEvent) {
@@ -251,6 +265,7 @@ function PaymentForm({
         await provider.create("romiku_payments", {
           data: { ...data, order_id: order.id },
         });
+      setBaseline(signature);
       await onSaved();
     } catch (cause) {
       setFailure(errorMessage(cause));

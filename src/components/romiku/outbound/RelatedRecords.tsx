@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import {
@@ -85,7 +86,16 @@ export function RelatedRecords({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const [needsSync, setNeedsSync] = useState(false);
-  useAppDraft(busy || JSON.stringify(values) !== JSON.stringify(savedValues));
+  useAppDraft(
+    editableSignature(
+      values,
+      fields.map((f) => f.key),
+    ) !==
+      editableSignature(
+        savedValues,
+        fields.map((f) => f.key),
+      ),
+  );
   const resetValues = () =>
     followupKind ? { ...defaults, contacted_at: localDateTime() } : defaults;
   const reload = async () => {

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext, type RaRecord } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
+import { hasAppDraft } from "../updates/drafts";
 import { PackingItemsGrid } from "./PackingItemsGrid";
 
 async function fixture(overrides: Record<string, unknown> = {}) {
@@ -135,6 +136,7 @@ it("recalculates all totals immediately and persists the calculated quantity aft
   await expect
     .element(screen.getByRole("button", { name: "保存", exact: true }))
     .toBeDisabled();
+  expect(hasAppDraft()).toBe(false);
   expect(
     (await provider.getOne("romiku_packing_items", { id: "line" })).data,
   ).toMatchObject({
@@ -174,12 +176,14 @@ it("keeps row deletion staged until Save and restores it with Cancel", async () 
   await screen.getByRole("button", { name: "更多操作 SUN5" }).click();
   await screen.getByRole("button", { name: "从此装箱单删除" }).click();
   await screen.getByRole("button", { name: "确认移除" }).click();
+  expect(hasAppDraft()).toBe(true);
   expect(
     (await provider.getOne("romiku_packing_items", { id: "line" })).data
       .quantity,
   ).toBe(1);
   await screen.getByRole("button", { name: "取消", exact: true }).click();
   await expect.element(screen.getByLabelText("cartons SUN5")).toHaveValue(1);
+  expect(hasAppDraft()).toBe(false);
 });
 
 it("lets the user save a legacy row whose stored quantity differs from its carton plan", async () => {

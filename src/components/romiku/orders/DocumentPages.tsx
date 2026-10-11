@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
@@ -320,7 +321,6 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
   const config = documentConfig[kind],
     provider = useDataProvider(),
     navigate = useNavigate();
-  useAppDraft(true);
   const [values, setValues] = useState<Values>({ name: "" }),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
@@ -328,6 +328,12 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
     formalCustomerId: string;
     snapshot: Record<string, unknown>;
   } | null>(null);
+  const signature = editableSignature({ name: values.name, customer }, [
+    "name",
+    "customer",
+  ]);
+  const [baseline, setBaseline] = useState(signature);
+  useAppDraft(signature !== baseline);
   async function create(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -339,6 +345,7 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
         String(values.name || ""),
         customer || undefined,
       );
+      setBaseline(signature);
       navigate(`${config.path}/${data.id}`);
     } catch (cause) {
       setFailure(errorMessage(cause));

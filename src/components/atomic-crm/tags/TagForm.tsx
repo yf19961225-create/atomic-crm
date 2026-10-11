@@ -1,6 +1,12 @@
 import { useAppDraft } from "@/components/romiku/updates/drafts";
 import { SaveIcon } from "lucide-react";
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { useTranslate } from "ra-core";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,24 +25,30 @@ type TagFormProps = {
   onSubmit(tag: Pick<Tag, "name" | "color">): Promise<void>;
 };
 
-export function TagForm({
-  open,
+export function TagForm(props: TagFormProps) {
+  return props.open ? <TagFormSession {...props} /> : null;
+}
+
+function TagFormSession({
   cancelLabel,
   tag,
   onCancel,
   onSubmit,
 }: TagFormProps) {
   const translate = useTranslate();
-  const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState(colors[0]);
+  const [newTagName, setNewTagName] = useState(tag?.name ?? "");
+  const [newTagColor, setNewTagColor] = useState(tag?.color ?? colors[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useAppDraft(
-    open &&
-      (isSubmitting ||
-        newTagName !== (tag?.name ?? "") ||
-        newTagColor !== (tag?.color ?? colors[0])),
-  );
+  const [baseline, setBaseline] = useState({
+    name: tag?.name?.trim() ?? "",
+    color: tag?.color ?? colors[0],
+  });
+  const dirty =
+    newTagName.trim() !== baseline.name || newTagColor !== baseline.color;
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  useAppDraft(dirty);
   const handleNewTagNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setNewTagName(event.target.value);
   };
@@ -46,21 +58,23 @@ export function TagForm({
     setIsSubmitting(true);
 
     try {
-      await onSubmit({ name: newTagName.trim(), color: newTagColor });
+      const submitted = { name: newTagName.trim(), color: newTagColor };
+      await onSubmit(submitted);
+      setBaseline(submitted);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (dirtyRef.current) return;
     setNewTagName(tag?.name ?? "");
     setNewTagColor(tag?.color ?? colors[0]);
-    setIsSubmitting(false);
-  }, [open, tag]);
+    setBaseline({
+      name: tag?.name?.trim() ?? "",
+      color: tag?.color ?? colors[0],
+    });
+  }, [tag?.name, tag?.color]);
 
   return (
     <form onSubmit={handleSubmit}>

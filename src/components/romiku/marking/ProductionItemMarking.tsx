@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import type { RaRecord } from "ra-core";
@@ -46,6 +47,22 @@ export function ItemMarkingResult({
     </div>
   );
 }
+const labelValues = (labels: InstructionLabel[]) =>
+  labels.map(({ id: _id, ...label }) => label);
+const labelSignature = (labels: InstructionLabel[]) =>
+  editableSignature({ labels: labelValues(labels) }, ["labels"]);
+const itemSignature = (
+  value: ReturnType<typeof normalizeItemMarkingOverride>,
+) =>
+  editableSignature({ ...value, labels: labelValues(value.labels) }, [
+    "mode",
+    "labels",
+    "front_mark",
+    "side_mark",
+    "labeling_requirements",
+    "notes",
+  ]);
+
 export function ProductionItemMarking({
   parent,
   items,
@@ -64,7 +81,12 @@ export function ProductionItemMarking({
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
   const cache = useQueryClient();
-  useAppDraft(!!editing || !!bulk || busy);
+  const [baseline, setBaseline] = useState(() => itemSignature(value));
+  const [labelBaseline, setLabelBaseline] = useState(() => labelSignature([]));
+  useAppDraft(
+    (!!editing && itemSignature(value) !== baseline) ||
+      (bulk === "add" && labelSignature(labels) !== labelBaseline),
+  );
   async function save(action: "set" | "add" | "reset") {
     setBusy(true);
     setError("");
@@ -89,6 +111,8 @@ export function ProductionItemMarking({
         action,
         action === "set" ? value : { labels },
       );
+      if (action === "set") setBaseline(itemSignature(value));
+      else setLabelBaseline(labelSignature(labels));
       await onChanged();
       await cache.invalidateQueries({ queryKey: ["romiku-search"] });
       setEditing(null);
@@ -139,6 +163,7 @@ export function ProductionItemMarking({
               onClick={() => {
                 setBulk("add");
                 setLabels([]);
+                setLabelBaseline(labelSignature([]));
                 setError("");
               }}
             >
@@ -174,6 +199,11 @@ export function ProductionItemMarking({
                     variant="ghost"
                     onClick={() => {
                       setEditing(item);
+                      setBaseline(
+                        itemSignature(
+                          normalizeItemMarkingOverride(item.marking_override),
+                        ),
+                      );
                       setValue(
                         normalizeItemMarkingOverride(item.marking_override),
                       );

@@ -92,6 +92,17 @@ export function packingComputedValues(item: Row) {
   };
 }
 
+// Only the controls the user can edit and row membership define unsaved work.
+function editableSnapshot(rows: Row[]) {
+  return JSON.stringify(
+    rows.map((row) => [
+      String(row.id),
+      ...editable.map((key) => number(row[key])),
+      String((row.product_snapshot as Row)?.unit ?? ""),
+    ]),
+  );
+}
+
 export function PackingItemsGrid({
   parent,
   items,
@@ -103,14 +114,20 @@ export function PackingItemsGrid({
 }) {
   const provider = useDataProvider();
   const [draft, setDraft] = useState<Row[]>(items.map((item) => ({ ...item })));
+  const [baseline, setBaseline] = useState(items);
+  const hasUnsavedChanges =
+    editableSnapshot(draft) !== editableSnapshot(baseline);
   const [saving, setSaving] = useState(false),
     [failure, setFailure] = useState(""),
     [menuId, setMenuId] = useState<string | null>(null),
     [pendingDelete, setPendingDelete] = useState<Row | null>(null);
   useEffect(() => {
-    setDraft(items.map((item) => ({ ...item })));
-  }, [items]);
-  const edited = JSON.stringify(draft) !== JSON.stringify(items);
+    if (!hasUnsavedChanges) {
+      setDraft(items.map((item) => ({ ...item })));
+      setBaseline(items);
+    }
+  }, [items, hasUnsavedChanges]);
+  const edited = hasUnsavedChanges;
   const dirty =
     edited ||
     draft.some(
@@ -118,7 +135,7 @@ export function PackingItemsGrid({
         packingQuantity(item) > 0 &&
         number(item.quantity) !== packingQuantity(item),
     );
-  useAppDraft(dirty || saving);
+  useAppDraft(hasUnsavedChanges);
   const change = (row: number, key: string, value: string) =>
     setDraft((current) =>
       current.map((item, index) =>
@@ -185,7 +202,10 @@ export function PackingItemsGrid({
             type="button"
             variant="outline"
             disabled={!edited || saving}
-            onClick={() => setDraft(items.map((item) => ({ ...item })))}
+            onClick={() => {
+              setDraft(items.map((item) => ({ ...item })));
+              setBaseline(items);
+            }}
           >
             取消
           </Button>
@@ -229,6 +249,7 @@ export function PackingItemsGrid({
                     previousData: item,
                   });
                 await onSaved();
+                setBaseline(draft);
               } catch (cause) {
                 setFailure(
                   cause instanceof Error

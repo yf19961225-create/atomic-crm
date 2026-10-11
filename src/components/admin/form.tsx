@@ -96,8 +96,8 @@ function FormLabel({
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { isDirty, isSubmitting } = useFormState();
-  useAppDraft(isDirty || isSubmitting);
+  const { isDirty } = useFormState();
+  useAppDraft(isDirty);
   const { error, formItemId, formDescriptionId, formMessageId } =
     useFormField();
 

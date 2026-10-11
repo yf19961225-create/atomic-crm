@@ -1,3 +1,4 @@
+import { productionDraftSnapshot } from "./productionDraftSnapshot";
 import {
   ProductionBarcode,
   BarcodePaste,
@@ -50,8 +51,10 @@ export function ProductionWorkbench({
   items,
   order,
   isNew = false,
+  selectionDirty = false,
   onCancel,
   onSaved,
+  onCommitted,
   onExport,
   exporting = false,
 }: {
@@ -59,8 +62,10 @@ export function ProductionWorkbench({
   items: RaRecord[];
   order: RaRecord;
   isNew?: boolean;
+  selectionDirty?: boolean;
   onCancel?: () => void;
   onSaved: () => Promise<unknown>;
+  onCommitted?: () => void;
   onExport?: () => void;
   exporting?: boolean;
 }) {
@@ -71,6 +76,9 @@ export function ProductionWorkbench({
     navigate = useNavigate();
   const [draft, setDraft] = useState(() => structuredClone(record)),
     [lines, setLines] = useState(() => structuredClone(items));
+  const [baseline, setBaseline] = useState(() =>
+    productionDraftSnapshot(record, items),
+  );
   const [base, setBase] = useState(() => workspaceExpected(record, items));
   const [editing, setEditing] = useState(isNew),
     [busy, setBusy] = useState(false),
@@ -93,14 +101,13 @@ export function ProductionWorkbench({
     disabled = busy || uploads > 0;
   const dirty =
     editing &&
-    (isNew ||
-      JSON.stringify(draft) !== JSON.stringify(record) ||
-      JSON.stringify(lines) !== JSON.stringify(items));
+    (selectionDirty || productionDraftSnapshot(draft, lines) !== baseline);
   function start() {
     committed.current = false;
     setDraft(structuredClone(record));
     setLines(structuredClone(items));
     setBase(workspaceExpected(record, items));
+    setBaseline(productionDraftSnapshot(record, items));
     setEditing(true);
     setEditingInstructions(false);
     setFailure("");
@@ -166,6 +173,8 @@ export function ProductionWorkbench({
         return;
       }
       committed.current = true;
+      setBaseline(productionDraftSnapshot(draft, lines));
+      onCommitted?.();
       setEditing(false);
       setEditingInstructions(false);
       setConfirmReload(false);
@@ -192,7 +201,7 @@ export function ProductionWorkbench({
     >
       <section className="space-y-5">
         <ProductionNavigationGuard
-          active={dirty || disabled}
+          active={dirty}
           busy={disabled}
           committed={committed}
         />

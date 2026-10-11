@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import { useDataProvider, useRefresh, type RaRecord } from "ra-core";
@@ -72,7 +73,24 @@ function MarkingProfileEditorForm({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [failure, setFailure] = useState("");
-  useAppDraft(busy || JSON.stringify(profile) !== JSON.stringify(savedProfile));
+  const signature = (value: typeof profile) =>
+    editableSignature(
+      {
+        ...value,
+        additional_labels: value.additional_labels.map(
+          ({ id: _id, ...label }) => label,
+        ),
+      },
+      [
+        "front_mark",
+        "side_mark",
+        "small_label",
+        "labeling_requirements",
+        "production_requirements",
+        ...(kind === "customer" ? [] : ["additional_labels", "notes"]),
+      ],
+    );
+  useAppDraft(signature(profile) !== signature(savedProfile));
   const update = (key: (typeof markingKeys)[number], patch: Partial<Mark>) =>
     setProfile((current) => ({
       ...current,

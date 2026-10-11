@@ -1,5 +1,5 @@
 import { useAppDraft } from "../updates/drafts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -80,7 +80,42 @@ const supplierFormFrom = (supplier: DrawerSupplier | null, supplierId = "") =>
       }
     : { ...emptySupplierForm(), supplier_id: supplierId };
 
-export const SanityProductDrawer = ({
+const supplierSnapshot = (form: ReturnType<typeof emptySupplierForm>) =>
+  JSON.stringify(
+    Object.entries(form).map(([key, value]) => [
+      key,
+      typeof value === "string" &&
+      !["supplier_id", "supplier_item_number"].includes(key)
+        ? Number(value) || null
+        : value,
+    ]),
+  );
+const hasInvalidNumericInput = (form: HTMLFormElement) =>
+  Array.from(form.elements).some(
+    (field) => field instanceof HTMLInputElement && field.validity.badInput,
+  );
+const costSnapshot = (form: HTMLFormElement) => {
+  const values = new FormData(form);
+  const cost = String(values.get("cost") ?? "");
+  return JSON.stringify([
+    cost.trim() === "" ? null : Number(cost),
+    String(values.get("currency") ?? "")
+      .trim()
+      .toUpperCase(),
+    String(values.get("effective_date") ?? ""),
+    String(values.get("source_type") ?? ""),
+    hasInvalidNumericInput(form),
+  ]);
+};
+const emptyCostSnapshot = JSON.stringify([null, "USD", "", "manual", false]);
+
+// A closed drawer owns no editor session, even when its parent stays mounted.
+export const SanityProductDrawer = (props: Props) =>
+  props.open && props.product ? (
+    <ProductDrawerSession key={props.product.id} {...props} />
+  ) : null;
+
+const ProductDrawerSession = ({
   product,
   resolvedImageUrl,
   open,
@@ -96,29 +131,50 @@ export const SanityProductDrawer = ({
   const [selectedSupplier, setSelectedSupplier] =
     useState<DrawerSupplier | null>(null);
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
-  const [supplierDirty, setSupplierDirty] = useState(false);
+  const [supplierBaseline, setSupplierBaseline] = useState(emptySupplierForm);
+  const [supplierInvalid, setSupplierInvalid] = useState(false);
+  const supplierDirty =
+    supplierInvalid ||
+    supplierSnapshot(supplierForm) !== supplierSnapshot(supplierBaseline);
+  const [notesBaseline, setNotesBaseline] = useState("");
+  const notesDirty = notes !== notesBaseline;
+  const currentDraft = useRef({
+    notesDirty,
+    supplierDirty,
+    supplierId: supplierForm.supplier_id,
+  });
+  currentDraft.current = {
+    notesDirty,
+    supplierDirty,
+    supplierId: supplierForm.supplier_id,
+  };
+  const hydrated = useRef(false);
+  const loadVersion = useRef(0);
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
   const [costDirty, setCostDirty] = useState(false);
-  useAppDraft(
-    open &&
-      (supplierDirty ||
-        costDirty ||
-        notes !== (extension?.internal_notes ?? "")),
-  );
+  useAppDraft(open && (supplierDirty || costDirty || notesDirty));
   const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
   const imageFailed = failedImageKey === imageKey;
 
   const loadInternal = useCallback(
     async (preferredSupplierId?: string) => {
       if (!product) return;
+      const version = ++loadVersion.current;
       const [nextExtension, nextSuppliers, options] = await Promise.all([
         client.getExtension(product),
         client.getSuppliers(product),
         client.getSupplierOptions(),
       ]);
+      if (version !== loadVersion.current) return;
       setExtension(nextExtension);
-      setNotes(nextExtension?.internal_notes ?? "");
+      if (!currentDraft.current.notesDirty) {
+        setNotes(nextExtension?.internal_notes ?? "");
+      }
+      if (!hydrated.current || !currentDraft.current.notesDirty) {
+        setNotesBaseline(nextExtension?.internal_notes ?? "");
+      }
+      hydrated.current = true;
       setSuppliers(nextSuppliers);
       setSupplierOptions(options);
       const activeSupplier =
@@ -127,22 +183,32 @@ export const SanityProductDrawer = ({
         ) ??
         nextSuppliers.find((supplier) => supplier.preferred) ??
         (nextSuppliers.length === 1 ? nextSuppliers[0] : null);
-      setSelectedSupplier(activeSupplier);
-      setSupplierForm(supplierFormFrom(activeSupplier));
-      setCosts(
-        await client.getCosts(nextSuppliers.map((supplier) => supplier.id)),
+      if (!currentDraft.current.supplierDirty) {
+        setSelectedSupplier(activeSupplier);
+        setSupplierForm(supplierFormFrom(activeSupplier));
+        setSupplierBaseline(supplierFormFrom(activeSupplier));
+      } else {
+        // Refresh persisted linkage without replacing an in-progress form.
+        const refreshedSupplier = nextSuppliers.find(
+          (supplier) =>
+            supplier.supplier_id === currentDraft.current.supplierId,
+        );
+        if (refreshedSupplier) setSelectedSupplier(refreshedSupplier);
+      }
+      const nextCosts = await client.getCosts(
+        nextSuppliers.map((supplier) => supplier.id),
       );
+      if (version === loadVersion.current) setCosts(nextCosts);
     },
     [client, product],
   );
 
   useEffect(() => {
     if (!open || !product) return;
-    setSelectedSupplier(null);
-    setSupplierForm(emptySupplierForm());
-    setSupplierDirty(false);
-    setMessage("");
     void loadInternal().catch(() => setMessage("内部采购资料暂时无法加载。"));
+    return () => {
+      loadVersion.current += 1;
+    };
   }, [open, product, loadInternal]);
 
   if (!product) return null;
@@ -157,6 +223,7 @@ export const SanityProductDrawer = ({
       await saveInternalNotes(client, product, extension?.id, notes, () =>
         refreshCurrent(),
       );
+      setNotesBaseline(notes);
       setMessage("备注已保存。");
     } catch {
       setMessage("备注保存失败。");
@@ -186,7 +253,7 @@ export const SanityProductDrawer = ({
         },
         () => refreshCurrent(supplierId),
       );
-      setSupplierDirty(false);
+      setSupplierBaseline(supplierForm);
       setMessage("采购信息已保存。");
     } catch {
       setMessage("供应商关联保存失败。");
@@ -195,7 +262,9 @@ export const SanityProductDrawer = ({
   const submitCost = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedSupplier) return setMessage("请先选择供应商关联。");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const submittedSnapshot = costSnapshot(formElement);
+    const form = new FormData(formElement);
     setMessage("");
     try {
       await addCostHistory(client, selectedSupplier.id, {
@@ -205,9 +274,11 @@ export const SanityProductDrawer = ({
         source_type: String(form.get("source_type") ?? "manual"),
       });
       await loadInternal();
-      setCostDirty(false);
+      if (costSnapshot(formElement) === submittedSnapshot) {
+        formElement.reset();
+        setCostDirty(false);
+      }
       setMessage("参考成本已保存。");
-      event.currentTarget.reset();
     } catch {
       setMessage("参考成本保存失败。");
     }
@@ -223,7 +294,6 @@ export const SanityProductDrawer = ({
           !window.confirm("有未保存的采购信息，是否放弃？")
         )
           return;
-        if (!nextOpen) setSupplierDirty(false);
         onOpenChange(nextOpen);
       }}
     >
@@ -326,9 +396,10 @@ export const SanityProductDrawer = ({
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        setSupplierInvalid(false);
                         setSelectedSupplier(supplier);
                         setSupplierForm(supplierFormFrom(supplier));
-                        setSupplierDirty(false);
+                        setSupplierBaseline(supplierFormFrom(supplier));
                       }}
                     >
                       编辑
@@ -339,7 +410,13 @@ export const SanityProductDrawer = ({
             ) : (
               <p>—</p>
             )}
-            <form onSubmit={submitSupplier} className="space-y-2">
+            <form
+              onInput={(event) =>
+                setSupplierInvalid(hasInvalidNumericInput(event.currentTarget))
+              }
+              onSubmit={submitSupplier}
+              className="space-y-2"
+            >
               <label className="block space-y-1">
                 <span>Supplier</span>
                 <select
@@ -347,6 +424,7 @@ export const SanityProductDrawer = ({
                   name="supplier_id"
                   value={supplierForm.supplier_id}
                   onChange={(event) => {
+                    setSupplierInvalid(false);
                     const nextSupplier = suppliers.find(
                       (supplier) => supplier.supplier_id === event.target.value,
                     );
@@ -357,7 +435,7 @@ export const SanityProductDrawer = ({
                         event.target.value,
                       ),
                     );
-                    setSupplierDirty(true);
+                    setSupplierBaseline(supplierFormFrom(nextSupplier ?? null));
                   }}
                 >
                   <option value="">选择供应商</option>
@@ -391,7 +469,6 @@ export const SanityProductDrawer = ({
                         ...current,
                         [name]: event.target.value,
                       }));
-                      setSupplierDirty(true);
                     }}
                   />
                 </label>
@@ -429,7 +506,6 @@ export const SanityProductDrawer = ({
                           ...current,
                           [name]: event.target.value,
                         }));
-                        setSupplierDirty(true);
                       }}
                     />
                   </label>
@@ -446,7 +522,6 @@ export const SanityProductDrawer = ({
                       ...current,
                       preferred: event.target.checked,
                     }));
-                    setSupplierDirty(true);
                   }}
                 />{" "}
                 Preferred Supplier
@@ -471,7 +546,11 @@ export const SanityProductDrawer = ({
               <p>—</p>
             )}
             <form
-              onInput={() => setCostDirty(true)}
+              onInput={(event) =>
+                setCostDirty(
+                  costSnapshot(event.currentTarget) !== emptyCostSnapshot,
+                )
+              }
               onReset={() => setCostDirty(false)}
               onSubmit={submitCost}
               className="space-y-2"

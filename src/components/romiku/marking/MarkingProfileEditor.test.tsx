@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { hasAppDraft } from "../updates/drafts";
+import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -78,4 +79,42 @@ it("saves customer text and mode as defaults without modifying existing Producti
     (await provider.getOne("romiku_production_orders", { id: "p" })).data
       .marking_snapshot.front_mark.text,
   ).toBe("Historical");
+});
+
+it("keeps clean saves clean while busy and tracks profile reverts and cancellation", async () => {
+  const record = {
+    id: "p",
+    marking_snapshot: { front_mark: { mode: "text", text: "Saved" } },
+  };
+  const provider = fakeRestDataProvider({ romiku_production_orders: [record] });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const update = vi.spyOn(provider, "update").mockImplementation(async () => {
+    await gate;
+    return { data: record };
+  });
+  const screen = await render(
+    <CoreAdminContext dataProvider={provider}>
+      <MarkingProfileEditor kind="production" record={record} />
+    </CoreAdminContext>,
+  );
+  await screen.getByText("唛头与标签", { exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("正唛文字").fill("Changed");
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("正唛文字").fill("Saved");
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "保存唛头与标签" }).click();
+  await expect.poll(() => update.mock.calls.length).toBe(1);
+  expect(hasAppDraft()).toBe(false);
+  release();
+  await expect
+    .element(screen.getByText("唛头与标签已保存。", { exact: true }))
+    .toBeVisible();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("正唛文字").fill("Changed");
+  await screen.getByRole("button", { name: "取消修改", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
 });

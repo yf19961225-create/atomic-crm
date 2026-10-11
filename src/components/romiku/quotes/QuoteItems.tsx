@@ -1,5 +1,6 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +42,7 @@ export function QuoteItems({
       </p>
       {items.map((item) => (
         <ItemEditor
-          key={`${item.id}:${item.updated_at || JSON.stringify(item)}`}
+          key={item.id}
           quoteId={quoteId}
           kind={kind}
           item={item}
@@ -91,7 +92,29 @@ function ItemEditor({
   );
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
-  useAppDraft(busy || !item || JSON.stringify(values) !== JSON.stringify(item));
+  const signature = editableSignature(
+    values,
+    fields.map((f) => f.key),
+    ["quantity", "unit_price", "moq"],
+  );
+  const [baseline, setBaseline] = useState(signature);
+  const dirty = signature !== baseline;
+  const incoming = useRef(item);
+  useEffect(() => {
+    if (incoming.current === item) return;
+    incoming.current = item;
+    if (item && !dirty) {
+      setValues(item);
+      setBaseline(
+        editableSignature(
+          item,
+          fields.map((f) => f.key),
+          ["quantity", "unit_price", "moq"],
+        ),
+      );
+    }
+  }, [item, dirty]);
+  useAppDraft(dirty);
   const mutate = async (remove = false) => {
     setBusy(true);
     setFailure("");
@@ -117,6 +140,7 @@ function ItemEditor({
             data: { ...data, [`${kind}_id`]: quoteId },
           });
       }
+      setBaseline(signature);
       await onChanged();
     } catch (cause) {
       setFailure(errorMessage(cause));

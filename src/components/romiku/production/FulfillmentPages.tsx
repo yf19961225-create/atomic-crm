@@ -1,3 +1,4 @@
+import { packingContactSnapshot } from "../packing/packingExportSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
 import { BulkActions } from "../shared/BulkActions";
@@ -8,7 +9,7 @@ import { savedBuyerName } from "./productionWorkspace";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -357,6 +358,26 @@ const packingFields: Field[] = [
   { key: "shipping_mark", label: "装箱单唛头" },
   { key: "notes", label: "装箱备注", type: "textarea" },
 ];
+function headerSnapshot(kind: FulfillmentKind, values: Values) {
+  const fields = kind === "production" ? productionFields : packingFields;
+  const contactKeys = [
+    "company_name",
+    "address",
+    "tel_whatsapp",
+    "website",
+    "email",
+  ];
+  return JSON.stringify([
+    ...fields.map(({ key }) => String(values[key] ?? "")),
+    ...(kind === "packing"
+      ? ["seller_snapshot", "buyer_snapshot"].map((party) => {
+          const contact = packingContactSnapshot(values[party]);
+          return contactKeys.map((key) => contact[key as keyof typeof contact]);
+        })
+      : []),
+  ]);
+}
+
 function FulfillmentEditor({
   kind,
   record,
@@ -374,6 +395,17 @@ function FulfillmentEditor({
     [exporting, setExporting] = useState(false),
     [failure, setFailure] = useState(""),
     [saved, setSaved] = useState(false);
+  const [baseline, setBaseline] = useState(() => headerSnapshot(kind, record));
+  const hasUnsavedChanges = headerSnapshot(kind, values) !== baseline;
+  const incoming = useRef(record);
+  useEffect(() => {
+    if (incoming.current === record) return;
+    incoming.current = record;
+    if (!hasUnsavedChanges) {
+      setValues(record);
+      setBaseline(headerSnapshot(kind, record));
+    }
+  }, [record, kind, hasUnsavedChanges]);
   const items = useQuery({
     queryKey: ["fulfillment-items", kind, record.id],
     queryFn: () =>
@@ -384,7 +416,7 @@ function FulfillmentEditor({
     { id: record.order_id },
     { enabled: kind === "production" },
   );
-  useAppDraft(busy || JSON.stringify(values) !== JSON.stringify(record));
+  useAppDraft(hasUnsavedChanges);
   const fields = kind === "production" ? productionFields : packingFields;
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -414,6 +446,7 @@ function FulfillmentEditor({
         previousData: record,
       });
       setValues(result.data);
+      setBaseline(headerSnapshot(kind, result.data));
       await onSaved();
       await cache.invalidateQueries();
       setSaved(true);

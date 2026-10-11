@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { orderInquiryItems } from "../inquiries/inquirySavedItems";
 import { useState } from "react";
@@ -19,7 +20,6 @@ import { FormalCustomerSelector } from "../commercial/FormalCustomerSelector";
 export function QuoteCreate() {
   const [params] = useSearchParams();
   const initialSource = params.get("source");
-  useAppDraft(true);
   const [source, setSource] = useState<QuoteSource>(
     initialSource === "inquiry" ||
       initialSource === "outbound" ||
@@ -35,6 +35,14 @@ export function QuoteCreate() {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
+  const signature = editableSignature({ source, sourceId, buyer, customer }, [
+    "source",
+    "sourceId",
+    "buyer",
+    "customer",
+  ]);
+  const [baseline, setBaseline] = useState(signature);
+  useAppDraft(signature !== baseline);
   const provider = useDataProvider();
   const navigate = useNavigate();
   const choices = useQuery({
@@ -60,6 +68,7 @@ export function QuoteCreate() {
         buyer,
         source === "direct" ? customer || undefined : undefined,
       );
+      setBaseline(signature);
       navigate(`/quotes/${result.data.id}`);
     } catch (cause) {
       setFailure(errorMessage(cause));
@@ -162,7 +171,10 @@ export function QuoteCreate() {
         <InquiryConfirmation
           key={sourceId}
           inquiryId={sourceId}
-          onCreated={(id) => navigate(`/quotes/${id}`)}
+          onCreated={(id) => {
+            setBaseline(signature);
+            navigate(`/quotes/${id}`);
+          }}
         />
       )}
     </section>
@@ -188,6 +200,7 @@ function InquiryConfirmation({
       ),
   });
   const [excluded, setExcluded] = useState<string[]>([]);
+  useAppDraft(excluded.length > 0);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const selected = (items.data || [])
@@ -197,9 +210,13 @@ function InquiryConfirmation({
     setBusy(true);
     setFailure("");
     try {
-      onCreated(
-        await quoteFromInquiry(getSupabaseClient(), inquiryId, selected),
+      const id = await quoteFromInquiry(
+        getSupabaseClient(),
+        inquiryId,
+        selected,
       );
+      setExcluded([]);
+      onCreated(id);
     } catch (cause) {
       setFailure(errorMessage(cause));
     } finally {

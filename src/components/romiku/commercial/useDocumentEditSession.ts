@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RaRecord } from "ra-core";
@@ -5,8 +6,81 @@ import type { Values } from "../outbound/WorkflowFields";
 import type { CommercialItem } from "./commercialLineItems";
 
 const copy = <T>(value: T): T => structuredClone(value);
-const same = (left: unknown, right: unknown) =>
-  JSON.stringify(left) === JSON.stringify(right);
+const numbers = [
+  "freight",
+  "discount",
+  "other_expenses",
+  "usd_cny_rate",
+  "deposit_percent",
+  "quantity",
+  "unit_price",
+  "source_cny_unit_price",
+  "position",
+  "moq",
+  "cartons",
+  "carton_qty",
+  "qty_per_carton",
+  "length_cm",
+  "width_cm",
+  "height_cm",
+  "carton_cbm",
+  "carton_weight_kg",
+];
+const header = (value: Values) =>
+  editableSignature(
+    value,
+    [
+      "status",
+      "counterparty_snapshot",
+      "formal_customer_id",
+      "bank_snapshot",
+      "terms_snapshot",
+      "currency",
+      "fx_enabled",
+      "usd_cny_rate",
+      "document_number",
+      "document_language",
+      "document_date",
+      "valid_until",
+      "follow_up_at",
+      "due_at",
+      "freight",
+      "discount",
+      "other_expenses",
+      "price_term",
+      "shipment_method",
+      "notes",
+      "deposit_percent",
+      "deposit_due_at",
+      "balance_due_at",
+      "expected_delivery_at",
+      "actual_delivery_at",
+      "purchase_order_number",
+    ],
+    numbers,
+  );
+const lines = (items: CommercialItem[]) =>
+  JSON.stringify(
+    items.map((item) =>
+      editableSignature(
+        item,
+        [
+          "sku",
+          "sanity_product_id",
+          "quantity",
+          "unit_price",
+          "source_cny_unit_price",
+          "product_snapshot",
+          "packing_snapshot",
+          "requirement",
+          "customer_code",
+          "notes",
+          "position",
+        ],
+        numbers,
+      ),
+    ),
+  );
 
 /** Shared client-side transaction for Quote, PI, and Order editors. */
 export function useDocumentEditSession(
@@ -67,7 +141,10 @@ export function useDocumentEditSession(
     [],
   );
   const dirty = useMemo(
-    () => editing && (!same(values, savedValues) || !same(items, savedItems)),
+    () =>
+      editing &&
+      (header(values) !== header(savedValues) ||
+        lines(items) !== lines(savedItems)),
     [editing, items, savedItems, savedValues, values],
   );
   return {

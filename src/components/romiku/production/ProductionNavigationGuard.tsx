@@ -12,9 +12,9 @@ export function ProductionNavigationGuard({
   committed: RefObject<boolean>;
 }) {
   const canBlock = useCanBlock();
-  useAppDraft(active || busy);
+  useAppDraft(active && !committed.current);
   useEffect(() => {
-    if (!active) return;
+    if (!active && !busy) return;
     const unload = (event: BeforeUnloadEvent) => {
       if (committed.current) return;
       event.preventDefault();
@@ -36,7 +36,7 @@ export function ProductionNavigationGuard({
     };
   }, [active, busy, canBlock, committed]);
   return canBlock ? (
-    <RouterGuard active={active} busy={busy} committed={committed} />
+    <RouterGuard active={active || busy} busy={busy} committed={committed} />
   ) : null;
 }
 function RouterGuard({

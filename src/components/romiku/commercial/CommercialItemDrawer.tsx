@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { normalizeSpecificationDisplay } from "../quotes/normalizeSpecificationDisplay";
 import type { CommercialItem } from "./commercialLineItems";
@@ -13,10 +15,47 @@ export function CommercialItemDrawer({
   onClose: () => void;
   onSave: (item: CommercialItem) => void;
 }) {
-  useAppDraft(!!item);
   if (!item) return null;
+  return (
+    <ItemDetails
+      key={item.id}
+      item={item}
+      quote={quote}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
+}
+function ItemDetails({
+  item,
+  quote,
+  onClose,
+  onSave,
+}: {
+  item: CommercialItem;
+  quote: boolean;
+  onClose: () => void;
+  onSave: (item: CommercialItem) => void;
+}) {
+  const [dirty, setDirty] = useState(false);
+  useAppDraft(dirty);
   const product = (item.product_snapshot ?? {}) as Record<string, unknown>;
   const packing = (item.packing_snapshot ?? {}) as Record<string, unknown>;
+  const keys = ["name", "specification", "packing", "requirement", "notes"];
+  const [baseline] = useState(() =>
+    editableSignature(
+      {
+        name: product.name,
+        specification: quote
+          ? normalizeSpecificationDisplay(product.specification)
+          : product.specification,
+        packing: packing.description,
+        requirement: item.requirement,
+        notes: item.notes,
+      },
+      keys,
+    ),
+  );
   return (
     <div
       role="dialog"
@@ -25,6 +64,14 @@ export function CommercialItemDrawer({
       onClick={onClose}
     >
       <form
+        onInput={(event) =>
+          setDirty(
+            editableSignature(
+              Object.fromEntries(new FormData(event.currentTarget)),
+              keys,
+            ) !== baseline,
+          )
+        }
         className="mx-auto max-w-xl space-y-3 rounded bg-background p-5"
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {

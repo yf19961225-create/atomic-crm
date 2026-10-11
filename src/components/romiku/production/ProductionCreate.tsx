@@ -13,9 +13,10 @@ import { OrderSelect } from "./fulfillmentShared";
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { savedBuyerName } from "./productionWorkspace";
 export function ProductionCreate() {
-  useAppDraft(true);
   const [params] = useSearchParams(),
     lockedOrder = params.get("order");
+  const [initialOrder] = useState(lockedOrder || "");
+  const [created, setCreated] = useState(false);
   const [orderId, setOrderId] = useState(lockedOrder || ""),
     [selection, setSelection] = useState<Record<string, string>>({}),
     [draft, setDraft] = useState<{
@@ -24,6 +25,12 @@ export function ProductionCreate() {
       order: RaRecord;
     } | null>(null),
     [failure, setFailure] = useState("");
+  const selectionDirty =
+    !created &&
+    (draft !== null ||
+      orderId !== initialOrder ||
+      Object.keys(selection).length > 0);
+  useAppDraft(selectionDirty);
   const order = useGetOne(
     "romiku_orders",
     { id: orderId },
@@ -95,8 +102,10 @@ export function ProductionCreate() {
         items={draft.items}
         order={draft.order}
         isNew
+        selectionDirty={selectionDirty}
         onCancel={() => setDraft(null)}
         onSaved={async () => {}}
+        onCommitted={() => setCreated(true)}
       />
     );
   return (

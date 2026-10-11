@@ -1,3 +1,6 @@
+import { ProductionWorkbench } from "./ProductionWorkbench";
+import { productionDraftSnapshot } from "./productionDraftSnapshot";
+import { hasAppDraft } from "../updates/drafts";
 import { QueryClient } from "@tanstack/react-query";
 import { OrderProductionPanel } from "./OrderProductionPanel";
 import { expect, it, vi } from "vitest";
@@ -581,4 +584,208 @@ it("removing an independent image label switches the field to none and remains s
     rpc.mock.calls.at(-1)?.[1].items[0].marking_override.field_overrides
       .small_label,
   ).toEqual({ mode: "none" });
+});
+
+it("keeps creation defaults clean and tracks selection reversibly across workflow stages", async () => {
+  const { screen } = await setup(true);
+  await expect
+    .element(screen.getByLabelText("选择 SUN5", { exact: true }))
+    .toBeVisible();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+});
+
+it("treats numeric and null-empty reverts as clean, and cancel clears real changes", async () => {
+  const { screen } = await setup();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("总数量 SUN5", { exact: true }).fill("11");
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("总数量 SUN5", { exact: true }).fill("10.0");
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("产品规格 G03", { exact: true }).fill("draft");
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("产品规格 G03", { exact: true }).fill("");
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("产品规格 SUN5", { exact: true }).fill("draft");
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+});
+
+it("keeps the editing baseline and local draft stable through a background refetch", async () => {
+  const { screen, provider, cache } = await setup();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  const previousData = (
+    await provider.getOne("romiku_production_items", { id: "l1" })
+  ).data;
+  await provider.update("romiku_production_items", {
+    id: "l1",
+    previousData,
+    data: {
+      updated_at: "later",
+      product_snapshot: { name: "Lamp", specification: "Server update" },
+    },
+  });
+  await cache.invalidateQueries();
+  await expect
+    .element(screen.getByLabelText("产品规格 SUN5", { exact: true }))
+    .toHaveValue("Original");
+  expect(hasAppDraft()).toBe(false);
+  await screen
+    .getByLabelText("产品规格 SUN5", { exact: true })
+    .fill("Local update");
+  await cache.invalidateQueries();
+  await expect
+    .element(screen.getByLabelText("产品规格 SUN5", { exact: true }))
+    .toHaveValue("Local update");
+  expect(hasAppDraft()).toBe(true);
+  await screen
+    .getByLabelText("产品规格 SUN5", { exact: true })
+    .fill("Original");
+  expect(hasAppDraft()).toBe(false);
+});
+
+it("does not register a fresh workbench or a clean save in flight as an unsaved change", async () => {
+  rpc.mockReset();
+  let complete!: (value: unknown) => void;
+  rpc.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+  );
+  readAllocations.mockResolvedValue([]);
+  const screen = await render(
+    <MemoryRouter>
+      <CoreAdminContext
+        dataProvider={fakeRestDataProvider({})}
+        queryClient={new QueryClient()}
+      >
+        <ProductionWorkbench
+          record={{ id: "new", status: "pending_send" }}
+          items={[]}
+          order={{ id: "o" }}
+          isNew
+          onSaved={async () => {}}
+        />
+      </CoreAdminContext>
+    </MemoryRouter>,
+  );
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(() => rpc.mock.calls.length).toBe(1);
+  expect(hasAppDraft()).toBe(false);
+  complete({ data: { ok: false, message: "Validation failed" }, error: null });
+  await expect
+    .element(screen.getByRole("alert"))
+    .toHaveTextContent("Validation failed");
+  expect(hasAppDraft()).toBe(false);
+});
+
+it("clears the parent creation registration immediately after commit, before refresh finishes", async () => {
+  const { screen, cache } = await setup(true);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  let refresh!: () => void;
+  vi.spyOn(cache, "invalidateQueries").mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        refresh = resolve;
+      }),
+  );
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(() => rpc.mock.calls.length).toBe(1);
+  await expect.poll(hasAppDraft).toBe(false);
+  refresh();
+});
+
+it("compares only editable production data and ignores metadata, generated IDs and equivalent values", () => {
+  const header = {
+    id: "p",
+    notes: null,
+    marking_snapshot: {
+      source: { kind: "order", copied_at: "old" },
+      additional_labels: [{ id: "old-label", text: "Keep", mode: "text" }],
+    },
+  };
+  const line = {
+    id: "temporary",
+    source_order_item_id: "s",
+    quantity: 10,
+    product_snapshot: {},
+    packaging_snapshot: { carton_qty: 2 },
+    marking_override: { mode: "inherit" },
+  };
+  const changedMetadata = {
+    ...header,
+    updated_at: "later",
+    notes: "",
+    marking_snapshot: {
+      ...header.marking_snapshot,
+      source: { kind: "order", copied_at: "later" },
+      additional_labels: [{ id: "new-label", text: "Keep", mode: "text" }],
+    },
+  };
+  const equivalentLine = {
+    ...line,
+    id: "persisted",
+    isNew: false,
+    updated_at: "later",
+    quantity: "10.00",
+    product_snapshot: { specification: null },
+    packaging_snapshot: { cartons: "2.0" },
+    marking_override: { field_overrides: { small_label: { mode: "inherit" } } },
+  };
+  expect(productionDraftSnapshot(header, [line])).toBe(
+    productionDraftSnapshot(changedMetadata, [equivalentLine]),
+  );
+  expect(
+    productionDraftSnapshot(header, [{ ...line, barcode_number: "0123" }]),
+  ).not.toBe(productionDraftSnapshot(header, [line]));
+});
+
+it("protects the selected creation draft when leaving the otherwise untouched workbench", async () => {
+  const { screen, router } = await setup(true, false, false, true);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  await router.navigate(-1);
+  await expect
+    .element(
+      screen.getByRole("alertdialog", { name: "尚有未保存的生产单修改" }),
+    )
+    .toBeVisible();
+  await screen.getByRole("button", { name: "继续编辑", exact: true }).click();
+  expect(hasAppDraft()).toBe(true);
+});
+
+it("retains creation draft registration if allocations refetch after entering the workbench", async () => {
+  const { screen, cache } = await setup(true);
+  await screen.getByLabelText("选择 SUN5", { exact: true }).click();
+  await screen
+    .getByRole("button", { name: "下一步：编辑整张生产单", exact: true })
+    .click();
+  readAllocations.mockResolvedValue([]);
+  await cache.invalidateQueries({ queryKey: ["production-allocations"] });
+  // Allow the query notification and Create's selection-pruning effect to settle.
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  await expect
+    .element(screen.getByLabelText("产品规格 SUN5", { exact: true }))
+    .toHaveValue("Original");
+  expect(hasAppDraft()).toBe(true);
 });

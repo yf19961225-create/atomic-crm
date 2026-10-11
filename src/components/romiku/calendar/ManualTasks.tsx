@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { userDisplayName } from "@/lib/userDisplayName";
 import { RecordDelete } from "../shared/RecordDelete";
@@ -169,9 +170,18 @@ function TaskEditor({
     queryFn: () => readRelated(provider, resource!, {}),
     enabled: !!resource,
   });
-  const signature = JSON.stringify([values, relation, sourceId]);
+  const signature = editableSignature({ ...values, relation, sourceId }, [
+    "title",
+    "priority",
+    "notes",
+    "due_at",
+    "owner_id",
+    "completed_at",
+    "relation",
+    "sourceId",
+  ]);
   const [savedSignature, setSavedSignature] = useState(signature);
-  useAppDraft(busy || signature !== savedSignature);
+  useAppDraft(signature !== savedSignature);
   const set = (key: string, value: unknown) =>
     setValues((v) => ({ ...v, [key]: value }));
   const submit = async (e: React.FormEvent) => {

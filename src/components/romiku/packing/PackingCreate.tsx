@@ -12,13 +12,16 @@ export function PackingCreate() {
   const provider = useDataProvider(),
     navigate = useNavigate(),
     [params] = useSearchParams();
-  useAppDraft(true);
   const [orderId, setOrderId] = useState(params.get("order") || ""),
     [creationMode, setCreationMode] = useState<"order" | "independent">(
       "order",
     ),
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
+  const [baseline, setBaseline] = useState(() => ({ orderId, creationMode }));
+  useAppDraft(
+    orderId !== baseline.orderId || creationMode !== baseline.creationMode,
+  );
   async function create(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -28,6 +31,7 @@ export function PackingCreate() {
       if (isOrderBacked && !orderId) throw new Error("请选择订单。");
       if (isOrderBacked) {
         const packing = await createOrderPackingList(provider, orderId);
+        setBaseline({ orderId, creationMode });
         navigate(`/packing-shipping/${packing.id}`);
       } else {
         const { data } = await provider.create("romiku_packing_lists", {
@@ -38,6 +42,7 @@ export function PackingCreate() {
             buyer_snapshot: {},
           },
         });
+        setBaseline({ orderId, creationMode });
         navigate(`/packing-shipping/${data.id}`);
       }
     } catch (cause) {

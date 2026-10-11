@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -19,7 +20,18 @@ export function OrderCustomerArchive({ record }: { record: RaRecord }) {
     [busy, setBusy] = useState(false),
     [failure, setFailure] = useState(""),
     [success, setSuccess] = useState<string | null>(null);
-  useAppDraft(open && !success);
+  const signature = (customer: string | null, archiveMode = mode) =>
+    editableSignature(
+      {
+        mode: archiveMode,
+        customerId: archiveMode === "existing" ? customer : null,
+        name: archiveMode === "new" ? name : "",
+        includeHistory,
+      },
+      ["mode", "customerId", "name", "includeHistory"],
+    );
+  const [baseline, setBaseline] = useState(() => signature(customerId));
+  useAppDraft(signature(customerId) !== baseline);
   const selectedCustomer = useGetOne(
     "romiku_formal_customers",
     { id: customerId || "" },
@@ -55,6 +67,7 @@ export function OrderCustomerArchive({ record }: { record: RaRecord }) {
           new_customer_name: mode === "new" ? name.trim() : null,
         },
       );
+      setBaseline(signature(result.customer_id, "existing"));
       setPlan(null);
       setCustomerId(result.customer_id);
       setMode("existing");

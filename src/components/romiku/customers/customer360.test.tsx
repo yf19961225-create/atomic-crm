@@ -1,3 +1,4 @@
+import { hasAppDraft } from "../updates/drafts";
 import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { MemoryRouter } from "react-router";
@@ -280,4 +281,36 @@ it("keeps unsaved customer profile input when switching history tabs", async () 
   await expect
     .element(screen.getByLabelText("Master name draft"))
     .toHaveValue("Unsaved change");
+});
+
+it("keeps opening and previewing archive defaults clean, and tracks reverted user choices", async () => {
+  rpc.mockResolvedValue({
+    data: { token: "token", documents: [] },
+    error: null,
+  });
+  const screen = await mount(
+    <OrderCustomerArchive record={{ id: "o", formal_customer_id: "a" }} />,
+  );
+  await screen.getByRole("button", { name: "客户归档", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen
+    .getByRole("button", { name: "预览归档范围", exact: true })
+    .click();
+  await expect
+    .element(screen.getByRole("region", { name: "确认客户归档" }))
+    .toBeVisible();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  await screen.getByLabelText("归档客户方式").selectOptions("new");
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("归档客户方式").selectOptions("existing");
+  expect(hasAppDraft()).toBe(false);
+  await screen
+    .getByRole("checkbox", { name: /将本订单明确关联的历史/ })
+    .click();
+  expect(hasAppDraft()).toBe(true);
+  await screen
+    .getByRole("checkbox", { name: /将本订单明确关联的历史/ })
+    .click();
+  expect(hasAppDraft()).toBe(false);
 });

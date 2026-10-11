@@ -1,3 +1,4 @@
+import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useInquiryFreshness } from "../inquiries/useInquiryFreshness";
 import { CustomerActions } from "../customers/CustomerActions";
@@ -10,7 +11,7 @@ import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { useModuleSearch } from "../search/useBusinessSearch";
 import { RecordDelete } from "../shared/RecordDelete";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   useDataProvider,
@@ -32,6 +33,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   WorkflowFields,
   labelFor,
+  valueAt,
+  setValue,
   type Field,
   type Values,
 } from "./WorkflowFields";
@@ -706,6 +709,44 @@ function WorkflowDrawer({
   );
   return config.renderDetail ? config.renderDetail(data, profile) : profile;
 }
+const editorValues = (
+  record: RaRecord | undefined,
+  config: WorkflowConfig,
+): Values =>
+  record
+    ? {
+        ...record,
+        purchasing_categories: record.purchasing_categories?.join(", "),
+      }
+    : { status: config.statuses[0] };
+const editorSignature = (values: Values, config: WorkflowConfig) => {
+  const fields = [
+    ...config.fields,
+    ...(config.extraTabs?.flatMap((tab) => tab.fields ?? []) ?? []),
+  ];
+  let comparable = values;
+  for (const field of fields) {
+    if (field.type === "checkbox")
+      comparable = setValue(
+        comparable,
+        field.key,
+        Boolean(valueAt(values, field.key)),
+      );
+  }
+  if (config.kind === "outbound")
+    comparable = {
+      ...comparable,
+      purchasing_categories: String(values.purchasing_categories ?? "")
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean),
+    };
+  return editableSignature(
+    comparable,
+    fields.map((field) => field.key),
+  );
+};
+
 function RecordEditor({
   config,
   record,
@@ -720,27 +761,25 @@ function RecordEditor({
   const provider = useDataProvider();
   const refresh = useRefresh();
   const cache = useQueryClient();
-  const [values, setValues] = useState<Values>(
-    record
-      ? {
-          ...record,
-          purchasing_categories: record.purchasing_categories?.join(", "),
-        }
-      : { status: config.statuses[0] },
+  const [values, setValues] = useState<Values>(() =>
+    editorValues(record, config),
   );
-  const [dirty, setDirty] = useState(false);
+  const [baseline, setBaseline] = useState<Values>(() =>
+    editorValues(record, config),
+  );
+  const dirty =
+    editorSignature(values, config) !== editorSignature(baseline, config);
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
   useAppDraft(dirty);
   useEffect(() => {
-    if (record && !dirty)
-      setValues({
-        ...record,
-        purchasing_categories: record.purchasing_categories?.join(", "),
-      });
-  }, [record, dirty]);
-  const editValues = (next: Values) => {
-    setDirty(true);
-    setValues(next);
-  };
+    if (record && !dirtyRef.current) {
+      const next = editorValues(record, config);
+      setValues(next);
+      setBaseline(next);
+    }
+  }, [record, config]);
+  const editValues = (next: Values) => setValues(next);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -768,7 +807,7 @@ function RecordEditor({
       );
       refresh();
       if (config.kind !== "customer") await cache.invalidateQueries();
-      setDirty(false);
+      setBaseline(values);
       setMessage("记录已保存。");
       if (!record) onCreated(String(result.data.id));
     } catch (cause) {

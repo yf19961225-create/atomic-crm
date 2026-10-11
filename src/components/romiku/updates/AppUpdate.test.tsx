@@ -142,6 +142,16 @@ it("protects the native customer archive form on an otherwise read-only Order", 
     )
     .toBeVisible();
   await screen.getByRole("button", { name: "客户归档", exact: true }).click();
+  // Collapsing preserves the actual choices, so their draft stays protected.
+  await expect
+    .element(
+      screen.getByText("发现新版本。当前有未保存内容，请保存或取消后再刷新。"),
+    )
+    .toBeVisible();
+  await screen.getByRole("button", { name: "客户归档", exact: true }).click();
+  await screen
+    .getByRole("combobox", { name: "归档客户方式" })
+    .selectOptions("existing");
   await expect
     .element(screen.getByRole("button", { name: "立即刷新" }))
     .toBeVisible();

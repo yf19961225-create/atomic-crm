@@ -1,3 +1,4 @@
+import { hasAppDraft } from "../updates/drafts";
 import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
@@ -197,4 +198,36 @@ it("does not carry a previous Production draft into another Production", async (
   await expect
     .element(screen.getByLabelText("小标签文字"))
     .toHaveValue("P02 saved");
+});
+
+it("tracks actual item marking edits, exact reverts and bulk label drafts", async () => {
+  const screen = await render(
+    <CoreAdminContext>
+      <ProductionItemMarking
+        parent={parent}
+        items={[item]}
+        onChanged={async () => {}}
+      />
+    </CoreAdminContext>,
+  );
+  await screen.getByLabelText("SUN5 标签操作").click();
+  await screen
+    .getByRole("button", { name: "标签 / 特殊要求", exact: true })
+    .click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("标签继承模式").selectOptions("append");
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByLabelText("标签继承模式").selectOptions("inherit");
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  await screen.getByLabelText("选择标签产品 SUN5 1").click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "给所选产品追加标签" }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "添加标签", exact: true }).click();
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "恢复所选产品为继承" }).click();
+  expect(hasAppDraft()).toBe(false);
 });
