@@ -68,12 +68,15 @@ it("groups Orders without per-Order requests and paginates server-side", async (
   }));
   const screen = await mount(
     <Customer360
-      record={{ id: "a", name: "Customer A" }}
+      record={{ id: "a", name: "Customer A", status: "inactive" }}
       profile={<p>Master fields</p>}
     />,
   );
   await expect
     .element(screen.getByRole("link", { name: "OD01", exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("状态：停用", { exact: true }))
     .toBeVisible();
   expect(
     rpc.mock.calls.filter((c) => c[0] === "romiku_customer_business_history"),

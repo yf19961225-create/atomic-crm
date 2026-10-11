@@ -16,6 +16,7 @@ export function FormalCustomerSelector({
 }) {
   const listboxId = useId();
   const [open, setOpen] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -32,13 +33,14 @@ export function FormalCustomerSelector({
   const directory = useGetList("romiku_formal_customer_directory", {
     pagination: { page, perPage: PAGE_SIZE },
     sort: { field: "name", order: "ASC" },
-    filter: debouncedQuery
-      ? { "search_text@ilike": `%${debouncedQuery}%` }
-      : {},
+    filter: {
+      ...(showInactive ? {} : { status: "active" }),
+      ...(debouncedQuery ? { "search_text@ilike": `%${debouncedQuery}%` } : {}),
+    },
   });
   useEffect(() => {
     setCustomers([]);
-  }, [debouncedQuery]);
+  }, [debouncedQuery, showInactive]);
   useEffect(() => {
     if (!directory.data) return;
     setCustomers((current) => {
@@ -62,6 +64,18 @@ export function FormalCustomerSelector({
   };
   return (
     <div className="relative grid gap-1">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={showInactive}
+          onChange={(e) => {
+            setShowInactive(e.target.checked);
+            setPage(1);
+            setActiveIndex(0);
+          }}
+        />
+        显示停用客户
+      </label>
       <input
         role="combobox"
         aria-label="正式客户"
@@ -110,7 +124,7 @@ export function FormalCustomerSelector({
             >
               {customer
                 ? [
-                    customer.name,
+                    `${customer.name}${customer.status === "inactive" ? " · 已停用" : ""}`,
                     customer.brand,
                     customer.contact,
                     customer.country,

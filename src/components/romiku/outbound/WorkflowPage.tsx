@@ -1,3 +1,4 @@
+import { CustomerActions } from "../customers/CustomerActions";
 import { userDisplayName } from "@/lib/userDisplayName";
 import { InquiryQuoteLinks } from "../inquiries/InquiryQuoteLinks";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
@@ -224,6 +225,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
   });
   const open = (id: string | null) => {
     const next = new URLSearchParams(params);
+    next.delete("customerTab");
     if (id) next.set("record", id);
     else next.delete("record");
     setParams(next);
@@ -277,7 +279,13 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           </select>
         </label>
       </div>
-      {kind !== "formal_customer" && (
+      {kind === "formal_customer" ? (
+        <CustomerActions
+          ids={selection.ids}
+          onDone={selection.clear}
+          disabled={isPending || !!error}
+        />
+      ) : (
         <BulkActions
           kind={kind}
           ids={selection.ids}
@@ -309,9 +317,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           )}
           <thead className="bg-muted">
             <tr>
-              {config.kind !== "customer" && (
-                <th className="p-3">{selection.header}</th>
-              )}
+              <th className="p-3">{selection.header}</th>
               {[
                 config.kind === "inquiry" ? "询盘／客户" : "公司",
                 "国家／地区",
@@ -333,7 +339,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                   {title}
                 </th>
               ))}
-              {config.kind !== "customer" && (
+              {
                 <th
                   className={
                     config.kind === "inquiry" ? "whitespace-nowrap p-2" : "p-3"
@@ -341,15 +347,13 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 >
                   操作
                 </th>
-              )}
+              }
             </tr>
           </thead>
           <tbody>
             {data.map((record) => (
               <tr key={record.id} className="hover:bg-muted/50 border-t">
-                {config.kind !== "customer" && (
-                  <td className="p-3">{selection.checkbox(record)}</td>
-                )}
+                <td className="p-3">{selection.checkbox(record)}</td>
                 <td className="p-3">
                   <div className="flex flex-col items-start gap-1">
                     <button
@@ -484,7 +488,24 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
                 {config.kind !== "customer" && (
                   <FollowupCells record={record} kind={config.kind} />
                 )}
-                {config.kind !== "customer" && (
+                {config.kind === "customer" ? (
+                  <td className="p-3">
+                    <CustomerActions
+                      ids={[String(record.id)]}
+                      record={record}
+                      onView={() => {
+                        open(String(record.id));
+                      }}
+                      onEdit={() => {
+                        const next = new URLSearchParams(params);
+                        next.set("record", String(record.id));
+                        next.set("customerTab", "客户资料");
+                        setParams(next);
+                      }}
+                      onDone={selection.clear}
+                    />
+                  </td>
+                ) : (
                   <td className={config.kind === "inquiry" ? "p-2" : "p-3"}>
                     <RecordDelete
                       kind={

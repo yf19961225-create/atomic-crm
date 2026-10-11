@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router";
 import { useState, type ReactNode } from "react";
 import { useGetOne, type RaRecord } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
@@ -24,7 +25,10 @@ export function Customer360({
   record: RaRecord;
   profile: ReactNode;
 }) {
-  const [tab, setTab] = useState("业务记录"),
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(
+      params.get("customerTab") === "客户资料" ? "客户资料" : "业务记录",
+    ),
     [search, setSearch] = useState(""),
     [page, setPage] = useState(0),
     [kind, setKind] = useState<BusinessKind | "all">("all");
@@ -72,6 +76,7 @@ export function Customer360({
   return (
     <div className="space-y-5">
       <div className="space-y-1">
+        <p>状态：{record.status === "inactive" ? "停用" : "启用"}</p>
         <h2 className="text-2xl font-semibold">
           {customer.name}
           {customer.brand && ` · ${customer.brand}`}

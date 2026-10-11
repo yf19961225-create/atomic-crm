@@ -1008,13 +1008,14 @@ CREATE OR REPLACE FUNCTION "public"."romiku_delete_record"("kind" "text", "recor
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-declare pi_count int := 0; order_count int := 0; production_count int := 0; packing_count int := 0; payment_count int := 0; followup_count int := 0; inquiry_dependencies jsonb; previous_inquiry_delete text;
+declare pi_count int := 0; order_count int := 0; production_count int := 0; packing_count int := 0; payment_count int := 0; followup_count int := 0; inquiry_dependencies jsonb; previous_inquiry_delete text; customer_dependencies jsonb;
 begin
   if auth.uid() is null or coalesce(nullif(current_setting('role', true), 'none'), session_user) <> 'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。','dependencies','{}'::jsonb); end if;
-  if kind is null or kind not in ('quote','pi','order','packing','outbound','manual_task','production','website_inquiry') then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。','dependencies','{}'::jsonb); end if;
+  if kind is null or kind not in ('quote','pi','order','packing','outbound','manual_task','production','website_inquiry','formal_customer') then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。','dependencies','{}'::jsonb); end if;
   -- Lock the parent before checking dependencies. FK inserts take KEY SHARE,
   -- so concurrent downstream creation cannot slip past this delete.
   case kind
+    when 'formal_customer' then perform 1 from public.romiku_formal_customers where id=record_id for update;
     when 'website_inquiry' then perform 1 from public.romiku_website_inquiries where id=record_id for update;
     when 'quote' then perform 1 from public.romiku_quotes where id=record_id for update;
     when 'pi' then perform 1 from public.romiku_pis where id=record_id for update;
@@ -1025,7 +1026,14 @@ begin
     when 'manual_task' then perform 1 from public.romiku_manual_tasks where id=record_id for update;
   end case;
   if not found then return jsonb_build_object('ok',false,'code','NOT_FOUND','message','记录不存在。','dependencies','{}'::jsonb); end if;
-  if kind='quote' then
+  if kind='formal_customer' then
+    customer_dependencies:=public.romiku_customer_dependencies(record_id);
+    if exists(select 1 from jsonb_each_text(customer_dependencies) d where d.value::bigint>0) then
+      return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message','该客户已有业务历史，不能永久删除。为保护历史业务和 Customer 360，请使用停用客户。','dependencies',customer_dependencies);
+    end if;
+    delete from public.romiku_customer_contacts where formal_customer_id=record_id;
+    delete from public.romiku_formal_customers where id=record_id;
+  elsif kind='quote' then
     select count(*) into pi_count from public.romiku_pis where source_quote_id=record_id;
     select count(*) into order_count from public.romiku_orders where source_quote_id=record_id;
     if pi_count+order_count>0 then return jsonb_build_object('ok',false,'code','HAS_DOWNSTREAM','message',format('该报价单已有 %s 张 PI、%s 张订单，无法删除。',pi_count,order_count),'dependencies',jsonb_build_object('pi',pi_count,'orders',order_count)); end if;

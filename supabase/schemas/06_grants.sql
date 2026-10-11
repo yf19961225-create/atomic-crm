@@ -193,7 +193,7 @@ revoke all on table public.romiku_source_urls from public, anon, authenticated;
 grant select, insert, update, delete on table public.romiku_source_urls to authenticated;
 grant all on table public.romiku_source_urls to service_role;
 revoke all on table public.romiku_formal_customers from public, anon, authenticated;
-grant select, insert, update, delete on table public.romiku_formal_customers to authenticated;
+grant select, insert, update on table public.romiku_formal_customers to authenticated;
 grant all on table public.romiku_formal_customers to service_role;
 revoke all on table public.romiku_customer_contacts from public, anon, authenticated;
 grant select, insert, update, delete on table public.romiku_customer_contacts to authenticated;

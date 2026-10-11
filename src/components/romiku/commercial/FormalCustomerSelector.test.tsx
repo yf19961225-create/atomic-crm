@@ -13,6 +13,7 @@ it("reads the searchable Formal Customer directory and snapshots only the chosen
         romiku_formal_customer_directory: [
           {
             id: "formal-1",
+            status: "active",
             name: "Formal buyer",
             brand: "ROMIKU Spain",
             contact: "Ana Buyer",
@@ -50,6 +51,7 @@ it("uses one keyboard-searchable combobox with an explicit unlinked option", asy
         romiku_formal_customer_directory: [
           {
             id: "formal-2",
+            status: "active",
             name: "Global Beauty",
             brand: "GB",
             contact: "Bea Buyer",
@@ -83,4 +85,46 @@ it("uses one keyboard-searchable combobox with an explicit unlinked option", asy
   await input.fill("");
   await userEvent.keyboard("{Enter}");
   expect(onSelect).toHaveBeenLastCalledWith({ formalCustomerId: null });
+});
+
+it("hides inactive customers until explicitly requested and preserves the selected snapshot", async () => {
+  const onSelect = vi.fn();
+  const screen = await render(
+    <CoreAdminContext
+      dataProvider={fakeRestDataProvider({
+        romiku_formal_customer_directory: [
+          {
+            id: "active",
+            name: "Active buyer",
+            status: "active",
+            search_text: "active buyer",
+          },
+          {
+            id: "inactive",
+            name: "Historic buyer",
+            status: "inactive",
+            search_text: "historic buyer",
+          },
+        ],
+      })}
+    >
+      <FormalCustomerSelector onSelect={onSelect} />
+    </CoreAdminContext>,
+  );
+  await screen.getByRole("combobox").click();
+  await expect
+    .element(screen.getByRole("option", { name: "Active buyer", exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByRole("option", { name: /Historic buyer/ }))
+    .not.toBeInTheDocument();
+  await screen.getByRole("checkbox", { name: "显示停用客户" }).click();
+  await screen.getByRole("combobox").click();
+  await screen
+    .getByRole("option", { name: "Historic buyer · 已停用", exact: true })
+    .click();
+  expect(onSelect).toHaveBeenLastCalledWith({
+    formalCustomerId: "inactive",
+    snapshot: { name: "Historic buyer" },
+  });
 });

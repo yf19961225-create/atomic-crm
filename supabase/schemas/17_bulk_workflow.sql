@@ -12,7 +12,8 @@ select 'packing'::text kind,id,document_number label,status from public.romiku_p
 union all
 select 'website_inquiry'::text kind,id,document_number label,status from public.romiku_website_inquiries
 union all
-select 'outbound'::text kind,id,name label,status from public.romiku_outbound_companies;
+select 'outbound'::text kind,id,name label,status from public.romiku_outbound_companies
+union all select 'formal_customer'::text,id,name,status from public.romiku_formal_customers;
 revoke all on public.romiku_workflow_records from public,anon;
 grant select on public.romiku_workflow_records to authenticated,service_role;
 create or replace function public.romiku_inquiry_dependencies(record_id uuid) returns jsonb language sql stable security invoker set search_path='' as $$
@@ -25,7 +26,7 @@ create or replace function public.romiku_delete_preflight(kind text,ids uuid[]) 
 declare r record; v uuid; dep jsonb; reasons jsonb; policy jsonb; eligible jsonb:='[]'; blocked jsonb:='[]'; item jsonb;
 begin
 if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 条记录。'); end if;
- if kind not in ('quote','pi','order','production','packing','website_inquiry','outbound') or kind is null then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。'); end if;
+ if kind not in ('quote','pi','order','production','packing','website_inquiry','outbound','formal_customer') or kind is null then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。'); end if;
 
  for v in select distinct unnest(ids) order by 1 loop
   select * into r from public.romiku_workflow_records w where w.kind=romiku_delete_preflight.kind and w.id=v;
@@ -35,6 +36,9 @@ if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),se
    blocked:=blocked||jsonb_build_array(item);continue;
   end if;
   case kind
+   when 'formal_customer' then
+    dep:=public.romiku_customer_dependencies(v);
+    if exists(select 1 from jsonb_each_text(dep) d where d.value::bigint>0) then reasons:=jsonb_build_array('该客户已有业务历史，不能永久删除。请使用停用客户。'); end if;
    when 'order' then
     policy:=public.romiku_order_delete_eligibility(v);reasons:=policy->'blocked_reasons';dep:=policy;
    when 'quote' then
@@ -62,7 +66,7 @@ create or replace function public.romiku_batch_delete(kind text,ids uuid[]) retu
 declare v uuid; label text; outcome jsonb; success jsonb:='[]'; failed jsonb:='[]';
 begin
 if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 条记录。'); end if;
- if kind not in ('quote','pi','order','production','packing','website_inquiry','outbound') or kind is null then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。'); end if;
+ if kind not in ('quote','pi','order','production','packing','website_inquiry','outbound','formal_customer') or kind is null then return jsonb_build_object('ok',false,'code','UNSUPPORTED_KIND','message','不支持的删除类型。'); end if;
 
  for v in select distinct unnest(ids) order by 1 loop
   select w.label into label from public.romiku_workflow_records w where w.kind=romiku_batch_delete.kind and w.id=v;
@@ -79,6 +83,7 @@ declare v uuid; label text; success jsonb:='[]'; failed jsonb:='[]'; allowed tex
 begin
 if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),session_user)<>'authenticated' then return jsonb_build_object('ok',false,'code','UNAUTHENTICATED','message','请先登录。'); end if;if ids is null or cardinality(ids) not between 1 and 100 or array_position(ids,null) is not null then return jsonb_build_object('ok',false,'code','INVALID_ARGUMENT','message','请选择 1 至 100 条记录。'); end if;
  case kind
+ when 'formal_customer' then allowed:=array['active','inactive'];
  when 'quote' then allowed:=array['pending_quote','quoted','following_up','customer_no_reply','won','invalid'];
  when 'pi' then allowed:=array['draft','sent','confirmed','cancelled'];
  when 'production' then allowed:=array['pending_send','scheduled','received','cancelled'];
@@ -94,6 +99,7 @@ if auth.uid() is null or coalesce(nullif(current_setting('role',true),'none'),se
   begin
    select w.label into label from public.romiku_workflow_records w where w.kind=romiku_batch_status.kind and w.id=v;
    case kind
+    when 'formal_customer' then update public.romiku_formal_customers set status=target_status where id=v;
     when 'quote' then update public.romiku_quotes set status=target_status where id=v;
     when 'pi' then update public.romiku_pis set status=target_status where id=v;
     when 'production' then update public.romiku_production_orders set status=target_status where id=v;
