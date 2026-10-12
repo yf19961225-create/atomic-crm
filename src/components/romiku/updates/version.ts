@@ -127,9 +127,7 @@ export async function refreshApp(
           installing.cancel();
           throw new AppUpdateError("update", error);
         }
-        if (!registration.waiting && registration.active === controller)
-          await installing.ready;
-        else if (!registration.waiting && registration.installing)
+        if (!registration.waiting && registration.installing)
           await installing.ready;
         else installing.cancel();
       }

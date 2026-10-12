@@ -1,6 +1,9 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { fetchAppVersion, refreshApp } from "./version";
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 it("fetches an uncached exact Git build and rejects HTML/invalid metadata", async () => {
   const fetch = vi
     .spyOn(globalThis, "fetch")
@@ -131,4 +134,23 @@ it("exposes the failed update stage and leaves the page available for retry", as
   await expect(refreshApp(() => true, vi.fn())).rejects.toThrow(
     "service-worker-update",
   );
+});
+it("reloads through the network-first shell when update finds no waiting worker", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const active = { state: "activated" } as ServiceWorker;
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(
+    active,
+  );
+  const registration = new EventTarget() as ServiceWorkerRegistration;
+  Object.defineProperty(registration, "active", { value: active });
+  registration.update = vi.fn(async () => {});
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    registration,
+  );
+  const reload = vi.fn();
+  const refresh = refreshApp(() => true, reload);
+  await vi.advanceTimersByTimeAsync(20000);
+  await refresh;
+  expect(registration.update).toHaveBeenCalledOnce();
+  expect(reload).toHaveBeenCalledOnce();
 });
