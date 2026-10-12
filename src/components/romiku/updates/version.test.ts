@@ -254,3 +254,16 @@ it("waits for the target HTML instead of reloading an old shell", async () => {
   expect(fetch).toHaveBeenCalledTimes(2);
   expect(navigate).toHaveBeenCalledOnce();
 });
+
+it("keeps the current app open when target HTML cannot be fetched", async () => {
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(null);
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    undefined,
+  );
+  vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+  const navigate = vi.fn();
+  await expect(
+    refreshApp(() => true, navigate, "b".repeat(40)),
+  ).rejects.toMatchObject({ stage: "shell-fetch" });
+  expect(navigate).not.toHaveBeenCalled();
+});
