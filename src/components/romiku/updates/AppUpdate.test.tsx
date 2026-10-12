@@ -67,6 +67,25 @@ it("confirms the latest remote build when refresh is clicked", async () => {
   expect(fetchVersion).toHaveBeenCalledTimes(2);
   expect(refresh.mock.calls[0]?.[2]).toBe("c".repeat(40));
 });
+it("does not navigate when the click-time version request fails", async () => {
+  const fetchVersion = vi
+    .fn()
+    .mockResolvedValueOnce("b".repeat(40))
+    .mockRejectedValueOnce(new Error("offline"));
+  const refresh = vi.fn();
+  const screen = await render(
+    <AppUpdate
+      currentBuild={"a".repeat(40)}
+      fetchVersion={fetchVersion}
+      refresh={refresh}
+    />,
+  );
+  await screen.getByRole("button", { name: "立即刷新" }).click();
+  await expect
+    .element(screen.getByText("新版本暂时加载失败，请稍后重试。"))
+    .toBeVisible();
+  expect(refresh).not.toHaveBeenCalled();
+});
 it("checks visible tabs every 60 seconds and focus, never hidden tabs", async () => {
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   const visible = vi
