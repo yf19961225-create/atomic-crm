@@ -66,7 +66,10 @@ export default defineConfig({
           {
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
-            options: { cacheName: "romiku-app-shell" },
+            options: {
+              cacheName: "romiku-app-shell",
+              networkTimeoutSeconds: 5,
+            },
           },
         ],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],

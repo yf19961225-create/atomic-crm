@@ -121,6 +121,7 @@ async function verifiedUpdateUrl(
       throw new AppUpdateError("shell-fetch", error);
     }
     if (!response.ok) throw new AppUpdateError("shell-fetch");
+    const shellResponse = response.clone();
     const html = new DOMParser().parseFromString(
       await response.text(),
       "text/html",
@@ -128,7 +129,19 @@ async function verifiedUpdateUrl(
     if (
       html.querySelector<HTMLMetaElement>('meta[name="crm-build"]')?.content ===
       expectedBuild
-    ) return target.href;
+    ) {
+      // The installed PWA starts at /. Warm only its app-shell cache so a
+      // cold launch can fall back to this exact verified build.
+      if (canRefresh() && "caches" in window) {
+        try {
+          const cache = await caches.open("romiku-app-shell");
+          await cache.put("/", shellResponse);
+        } catch {
+          // Storage failures do not block the already verified navigation.
+        }
+      }
+      return target.href;
+    }
     if (attempt < 3)
       await new Promise((resolve) => window.setTimeout(resolve, 1000));
   }

@@ -13,4 +13,9 @@ assert.match(
   /registerRoute\([^;]+"navigate"[^;]+NetworkFirst/,
   "PWA navigations must use the network-first shell route",
 );
+assert.equal(
+  /NetworkFirst\(\{[^}]*networkTimeoutSeconds:5/.test(worker),
+  true,
+  "PWA navigations must fall back to the verified shell within five seconds",
+);
 process.stdout.write("PWA shell cache policy verified\n");

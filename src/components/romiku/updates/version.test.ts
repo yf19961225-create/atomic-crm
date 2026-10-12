@@ -234,6 +234,23 @@ it("checks the target HTML before navigating to a cache-unique app shell", async
   );
 });
 
+it("warms the PWA start URL with the verified shell before navigating", async () => {
+  const target = "b".repeat(40);
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(null);
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(`<meta name="crm-build" content="${target}">`),
+  );
+  const events: string[] = [];
+  const put = vi.fn(async (_request: RequestInfo, _response: Response) => {
+    events.push("cache root");
+  });
+  vi.spyOn(window.caches, "open").mockResolvedValue({ put } as unknown as Cache);
+  await refreshApp(() => true, () => events.push("navigate"), target);
+  expect(events).toEqual(["cache root", "navigate"]);
+  expect(put.mock.calls[0]?.[0]).toBe("/");
+  expect(await put.mock.calls[0]?.[1]?.text()).toContain(target);
+});
+
 it("waits for the target HTML instead of reloading an old shell", async () => {
   vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(null);
   vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
