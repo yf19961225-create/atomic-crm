@@ -57,21 +57,6 @@ export class AppUpdateError extends Error {
   }
 }
 
-// Preview diagnostic only: retained across a worker-driven page replacement.
-export function traceUpdate(stage: string, reset = false) {
-  try {
-    const previous = reset
-      ? ""
-      : window.sessionStorage.getItem("__crm_update_trace") ?? "";
-    window.sessionStorage.setItem(
-      "__crm_update_trace",
-      `${previous}${previous ? " → " : ""}${stage}`.slice(-600),
-    );
-  } catch {
-    // Storage may be unavailable in private browsing.
-  }
-}
-
 function waitForWorker(
   registration: ServiceWorkerRegistration,
   getInstalling: () => ServiceWorker | null,
@@ -161,13 +146,11 @@ export async function refreshApp(
   const targetUrl = expectedBuild
     ? await verifiedUpdateUrl(expectedBuild, canRefresh)
     : undefined;
-  traceUpdate(`shell:${targetUrl ? "ok" : "none"}`);
   if (expectedBuild && !targetUrl) return;
   let navigated = false;
   const navigate = () => {
     if (navigated || !canRefresh()) return;
     navigated = true;
-    traceUpdate("navigate");
     reload(targetUrl);
   };
   // The verified shell is served network-first. Navigate before a waiting
@@ -180,14 +163,12 @@ export async function refreshApp(
     let registration: ServiceWorkerRegistration | undefined;
     try {
       registration = await navigator.serviceWorker.getRegistration("/");
-      traceUpdate(`registration:${registration ? "yes" : "no"}`);
     } catch (error) {
       throw new AppUpdateError("registration", error);
     }
     const controller = navigator.serviceWorker.controller;
     if (registration && controller) {
       if (!registration.waiting) {
-        traceUpdate("update:start");
         // Subscribe before update(): updatefound can fire while update() is pending.
         const installing = waitForWorker(
           registration,
@@ -196,7 +177,6 @@ export async function refreshApp(
         void installing.ready.catch(() => {});
         try {
           await registration.update();
-          traceUpdate("update:done");
         } catch (error) {
           installing.cancel();
           throw new AppUpdateError("update", error);
@@ -220,7 +200,6 @@ export async function refreshApp(
       }
       if (!canRefresh()) return;
       const waiting = registration.waiting;
-      traceUpdate(`waiting:${waiting ? "yes" : "no"}`);
       if (waiting) {
         await new Promise<void>((resolve, reject) => {
           const finish = (error?: Error) => {
@@ -233,12 +212,10 @@ export async function refreshApp(
             else resolve();
           };
           const changed = () => {
-            traceUpdate("controllerchange");
             finish();
             if (targetUrl) navigate();
           };
           const timer = window.setTimeout(() => {
-            traceUpdate("activation:timeout");
             finish();
             if (targetUrl) navigate();
           }, 2000);

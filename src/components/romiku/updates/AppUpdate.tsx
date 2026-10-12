@@ -5,7 +5,6 @@ import {
   AppUpdateError,
   fetchAppVersion,
   refreshApp,
-  traceUpdate,
   watchAppWorker,
 } from "./version";
 
@@ -98,9 +97,6 @@ export function AppUpdate({
         </p>
       )}
       {failure && <p role="alert">{failure}</p>}
-      <output className="sr-only" aria-label="更新诊断">
-        {window.sessionStorage.getItem("__crm_update_trace") ?? ""}
-      </output>
       {dirty ? (
         <Button
           variant="outline"
@@ -116,13 +112,11 @@ export function AppUpdate({
             if (hasAppDraft()) return;
             setBusy(true);
             setFailure("");
-            traceUpdate("click", true);
             try {
               // A worker or chunk error can announce an update before the
               // version check has populated remoteBuild. Confirm the target
               // at click time so refresh never falls back to a blind reload.
               const targetBuild = await fetchVersion();
-              traceUpdate(`version:${targetBuild.slice(0, 8)}`);
               if (targetBuild === currentBuild) {
                 setAvailable(false);
                 return;
@@ -132,7 +126,6 @@ export function AppUpdate({
             } catch (error) {
               const stage =
                 error instanceof AppUpdateError ? error.stage : "unknown";
-              traceUpdate(`error:${stage}`);
               console.warn(`[CRM update] failed at ${stage}`);
               setFailure("新版本暂时加载失败，请稍后重试。");
             } finally {
