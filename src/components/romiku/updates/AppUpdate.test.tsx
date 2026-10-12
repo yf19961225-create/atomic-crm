@@ -47,6 +47,7 @@ it("detects another build without reloading and guards unsaved input until cance
   await screen.getByRole("button", { name: "Cancel draft" }).click();
   await screen.getByRole("button", { name: "立即刷新" }).click();
   expect(refresh).toHaveBeenCalledOnce();
+  expect(refresh.mock.calls[0]?.[2]).toBe("b".repeat(40));
 });
 it("checks visible tabs every 60 seconds and focus, never hidden tabs", async () => {
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });

@@ -213,3 +213,44 @@ it("keeps a draft created while activation stalls before the fallback reload", a
   expect(message).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
   expect(reload).not.toHaveBeenCalled();
 });
+
+it("checks the target HTML before navigating to a cache-unique app shell", async () => {
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(null);
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    undefined,
+  );
+  const target = "b".repeat(40);
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(`<html><head><meta name="crm-build" content="${target}"></head></html>`),
+  );
+  const navigate = vi.fn();
+  await refreshApp(() => true, navigate, target);
+  expect(fetch).toHaveBeenCalledWith(
+    expect.stringContaining(`__crm_update=${target}`),
+    expect.objectContaining({ cache: "no-store", redirect: "error" }),
+  );
+  expect(navigate).toHaveBeenCalledWith(
+    expect.stringContaining(`__crm_update=${target}`),
+  );
+});
+
+it("waits for the target HTML instead of reloading an old shell", async () => {
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(null);
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    undefined,
+  );
+  const old = "a".repeat(40);
+  const target = "b".repeat(40);
+  const fetch = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(
+      new Response(`<meta name="crm-build" content="${old}">`),
+    )
+    .mockResolvedValueOnce(
+      new Response(`<meta name="crm-build" content="${target}">`),
+    );
+  const navigate = vi.fn();
+  await refreshApp(() => true, navigate, target);
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(navigate).toHaveBeenCalledOnce();
+});

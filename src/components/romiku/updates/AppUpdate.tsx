@@ -16,7 +16,11 @@ export function AppUpdate({
 }: {
   currentBuild?: string;
   fetchVersion?: () => Promise<string>;
-  refresh?: (canRefresh: () => boolean) => Promise<void> | void;
+  refresh?: (
+    canRefresh: () => boolean,
+    reload?: (url?: string) => void,
+    expectedBuild?: string,
+  ) => Promise<void> | void;
   watchWorker?: (onUpdate: () => void) => () => void;
 }) {
   const [available, setAvailable] = useState(false);
@@ -109,7 +113,7 @@ export function AppUpdate({
             setBusy(true);
             setFailure("");
             try {
-              await refresh(() => !hasAppDraft());
+              await refresh(() => !hasAppDraft(), undefined, remoteBuild);
             } catch (error) {
               const stage =
                 error instanceof AppUpdateError ? error.stage : "unknown";

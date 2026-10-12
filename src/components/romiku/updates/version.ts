@@ -102,7 +102,9 @@ function waitForWorker(
 /** Only called after explicit consent; never clear auth, preferences or caches. */
 export async function refreshApp(
   canRefresh: () => boolean,
-  reload: () => void = () => window.location.reload(),
+  reload: (url?: string) => void = (url) =>
+    url ? window.location.assign(url) : window.location.reload(),
+  expectedBuild = "",
 ) {
   if (!canRefresh()) return;
   if ("serviceWorker" in navigator) {
@@ -169,5 +171,43 @@ export async function refreshApp(
       }
     }
   }
-  if (canRefresh()) reload();
+  if (!canRefresh()) return;
+  if (!expectedBuild) {
+    reload();
+    return;
+  }
+  // An updated version.json may reach an edge before its HTML. Check the
+  // actual app shell through a non-navigation request, which Workbox does not
+  // satisfy from its navigation cache. The query also gives the subsequent
+  // navigation a fresh cache key.
+  const target = new URL(window.location.href);
+  target.searchParams.set("__crm_update", expectedBuild);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (!canRefresh()) return;
+    let response: Response;
+    try {
+      response = await fetch(target.pathname + target.search, {
+        cache: "no-store",
+        credentials: "same-origin",
+        redirect: "error",
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (error) {
+      throw new AppUpdateError("shell-fetch", error);
+    }
+    if (!response.ok) throw new AppUpdateError("shell-fetch");
+    const html = new DOMParser().parseFromString(
+      await response.text(),
+      "text/html",
+    );
+    if (
+      html.querySelector<HTMLMetaElement>('meta[name="crm-build"]')?.content ===
+      expectedBuild
+    ) {
+      if (canRefresh()) reload(target.href);
+      return;
+    }
+    if (attempt < 3) await new Promise((resolve) => window.setTimeout(resolve, 1000));
+  }
+  throw new AppUpdateError("shell-version");
 }
