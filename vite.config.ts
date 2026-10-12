@@ -58,9 +58,16 @@ export default defineConfig({
       workbox: {
         clientsClaim: true,
         skipWaiting: false,
-        navigateFallbackDenylist: [/^\/version\.json$/, /^\/api\//],
+        // Navigation fallback serves precached index.html cache-first forever.
+        // Let navigations revalidate the app shell instead.
+        navigateFallback: null,
         runtimeCaching: [
           { urlPattern: /\/version\.json$/, handler: "NetworkOnly" },
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: { cacheName: "romiku-app-shell" },
+          },
         ],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB

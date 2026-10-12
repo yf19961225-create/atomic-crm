@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { hasAppDraft, useHasAppDraft } from "./drafts";
-import { fetchAppVersion, refreshApp, watchAppWorker } from "./version";
+import {
+  AppUpdateError,
+  fetchAppVersion,
+  refreshApp,
+  watchAppWorker,
+} from "./version";
 
 export function AppUpdate({
   currentBuild = import.meta.env.VITE_APP_BUILD_SHA,
@@ -16,6 +21,7 @@ export function AppUpdate({
   const [later, setLater] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
+  const [remoteBuild, setRemoteBuild] = useState("");
   const dirty = useHasAppDraft();
   useEffect(() => {
     let disposed = false,
@@ -28,7 +34,9 @@ export function AppUpdate({
         return;
       pending = true;
       try {
-        if ((await fetchVersion()) !== currentBuild) {
+        const remote = await fetchVersion();
+        if (remote !== currentBuild) {
+          setRemoteBuild(remote);
           announce();
           if (import.meta.env.PROD && "serviceWorker" in navigator) {
             const registration =
@@ -70,6 +78,7 @@ export function AppUpdate({
       aria-label="CRM 版本更新"
       className="fixed inset-x-2 top-2 z-[100] mx-auto max-w-2xl space-y-2 rounded border bg-background p-3 shadow-lg"
       data-current-build={currentBuild}
+      data-remote-build={remoteBuild}
     >
       <p>
         {dirty
@@ -99,14 +108,18 @@ export function AppUpdate({
             setFailure("");
             try {
               await refresh(() => !hasAppDraft());
-            } catch {
-              setFailure("暂时无法加载新版本，请检查网络后重试。");
+            } catch (error) {
+              console.warn("[CRM update] failed", {
+                stage:
+                  error instanceof AppUpdateError ? error.stage : "unknown",
+              });
+              setFailure("新版本暂时加载失败，请稍后重试。");
             } finally {
               setBusy(false);
             }
           }}
         >
-          {busy ? "正在准备更新…" : "立即刷新"}
+          {busy ? "正在准备更新…" : failure ? "重试" : "立即刷新"}
         </Button>
       )}
     </aside>

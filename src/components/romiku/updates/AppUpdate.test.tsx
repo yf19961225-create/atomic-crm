@@ -94,22 +94,26 @@ it("does not announce a failed version request and turns chunk errors into one e
   expect(refresh).not.toHaveBeenCalled();
 });
 it("keeps the draft and offers retry after an update download fails", async () => {
+  const refresh = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValue(undefined);
   const screen = await render(
     <AppUpdate
       currentBuild={"a".repeat(40)}
       fetchVersion={async () => "b".repeat(40)}
-      refresh={async () => {
-        throw new Error("offline");
-      }}
+      refresh={refresh}
     />,
   );
   await screen.getByRole("button", { name: "立即刷新" }).click();
   await expect
-    .element(screen.getByText("暂时无法加载新版本，请检查网络后重试。"))
+    .element(screen.getByText("新版本暂时加载失败，请稍后重试。"))
     .toBeVisible();
   await expect
-    .element(screen.getByRole("button", { name: "立即刷新" }))
+    .element(screen.getByRole("button", { name: "重试" }))
     .toBeEnabled();
+  await screen.getByRole("button", { name: "重试" }).click();
+  expect(refresh).toHaveBeenCalledTimes(2);
 });
 it("protects the native customer archive form on an otherwise read-only Order", async () => {
   const { CoreAdminContext } = await import("ra-core");

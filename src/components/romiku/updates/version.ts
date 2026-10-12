@@ -47,46 +47,96 @@ export function watchAppWorker(onUpdate: () => void) {
   };
 }
 
+export class AppUpdateError extends Error {
+  constructor(
+    public readonly stage: string,
+    cause?: unknown,
+  ) {
+    super(`service-worker-${stage}`, { cause });
+    this.name = "AppUpdateError";
+  }
+}
+
+function waitForWorker(
+  registration: ServiceWorkerRegistration,
+  getInstalling: () => ServiceWorker | null,
+) {
+  let cancel = () => {};
+  const ready = new Promise<ServiceWorker>((resolve, reject) => {
+    let worker: ServiceWorker | null = null;
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      registration.removeEventListener("updatefound", found);
+      worker?.removeEventListener("statechange", changed);
+      if (error) reject(error);
+      else resolve(worker!);
+    };
+    cancel = () => finish();
+    const changed = () => {
+      if (worker?.state === "installed" || worker?.state === "activated")
+        finish();
+      else if (worker?.state === "redundant")
+        finish(new AppUpdateError("install"));
+    };
+    const found = () => {
+      const installing = getInstalling();
+      if (!installing || installing === worker) return;
+      worker?.removeEventListener("statechange", changed);
+      worker = installing;
+      worker.addEventListener("statechange", changed);
+      changed();
+    };
+    const timer = window.setTimeout(
+      () => finish(new AppUpdateError("install-timeout")),
+      20000,
+    );
+    registration.addEventListener("updatefound", found);
+    found();
+  });
+  return { ready, cancel };
+}
+
 /** Only called after explicit consent; never clear auth, preferences or caches. */
-export async function refreshApp(canRefresh: () => boolean) {
+export async function refreshApp(
+  canRefresh: () => boolean,
+  reload: () => void = () => window.location.reload(),
+) {
   if (!canRefresh()) return;
   if ("serviceWorker" in navigator) {
-    const registration = await navigator.serviceWorker.getRegistration("/");
-    if (registration) {
-      await registration.update();
-      const installing = registration.installing;
-      if (installing)
-        await new Promise<void>((resolve, reject) => {
-          const timer = window.setTimeout(
-            () => finish(new Error("更新尚未准备好，请重试。")),
-            20000,
-          );
-          const finish = (error?: Error) => {
-            clearTimeout(timer);
-            installing.removeEventListener("statechange", state);
-            if (error) reject(error);
-            else resolve();
-          };
-          const state = () => {
-            if (
-              installing.state === "installed" ||
-              installing.state === "activated"
-            )
-              finish();
-            else if (installing.state === "redundant")
-              finish(new Error("更新下载失败，请重试。"));
-          };
-          installing.addEventListener("statechange", state);
-          state();
-        });
+    let registration: ServiceWorkerRegistration | undefined;
+    try {
+      registration = await navigator.serviceWorker.getRegistration("/");
+    } catch (error) {
+      throw new AppUpdateError("registration", error);
+    }
+    const controller = navigator.serviceWorker.controller;
+    if (registration && controller) {
+      if (!registration.waiting) {
+        // Subscribe before update(): updatefound can fire while update() is pending.
+        const installing = waitForWorker(
+          registration,
+          () => registration.installing,
+        );
+        void installing.ready.catch(() => {});
+        try {
+          await registration.update();
+        } catch (error) {
+          installing.cancel();
+          throw new AppUpdateError("update", error);
+        }
+        if (!registration.waiting && registration.active === controller)
+          await installing.ready;
+        else if (!registration.waiting && registration.installing)
+          await installing.ready;
+        else installing.cancel();
+      }
       if (!canRefresh()) return;
       const waiting = registration.waiting;
-      if (waiting)
+      if (waiting) {
         await new Promise<void>((resolve, reject) => {
-          const timer = window.setTimeout(
-            () => finish(new Error("更新尚未生效，请重试。")),
-            15000,
-          );
           const finish = (error?: Error) => {
             clearTimeout(timer);
             navigator.serviceWorker.removeEventListener(
@@ -97,10 +147,19 @@ export async function refreshApp(canRefresh: () => boolean) {
             else resolve();
           };
           const changed = () => finish();
+          const timer = window.setTimeout(
+            () => finish(new AppUpdateError("activate-timeout")),
+            15000,
+          );
           navigator.serviceWorker.addEventListener("controllerchange", changed);
-          waiting.postMessage({ type: "SKIP_WAITING" });
+          try {
+            waiting.postMessage({ type: "SKIP_WAITING" });
+          } catch (error) {
+            finish(new AppUpdateError("activate", error));
+          }
         });
+      }
     }
   }
-  if (canRefresh()) window.location.reload();
+  if (canRefresh()) reload();
 }
