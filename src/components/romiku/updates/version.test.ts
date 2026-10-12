@@ -290,3 +290,23 @@ it("verifies the shell before activating a worker and navigates on controller ch
   await refreshApp(() => true, () => events.push("navigate"), target);
   expect(events).toEqual(["shell verified", "skip waiting", "navigate"]);
 });
+
+it("keeps a draft created during shell verification before worker activation", async () => {
+  const target = "b".repeat(40);
+  let allowed = true;
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+    allowed = false;
+    return new Response(`<meta name="crm-build" content="${target}">`);
+  });
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue({
+    state: "activated",
+  } as ServiceWorker);
+  const postMessage = vi.fn();
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue({
+    waiting: { postMessage },
+  } as unknown as ServiceWorkerRegistration);
+  const navigate = vi.fn();
+  await refreshApp(() => allowed, navigate, target);
+  expect(postMessage).not.toHaveBeenCalled();
+  expect(navigate).not.toHaveBeenCalled();
+});
