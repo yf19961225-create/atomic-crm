@@ -7,6 +7,7 @@
     "test:unit:app": "vitest --config vitest.config.ts",
     "test:unit:claude": "vitest --config vitest.config.ts --project claude",
     "test:unit:functions": "vitest --config vitest.config.ts --project functions",
+    "test:pwa-cache": "node scripts/verify-pwa-shell.mjs",
     "dev": "vite --force",
     "dev:demo": "vite --config vite.demo.config --force",
     "build": "tsc && tsc --project tsconfig.server.json && vite build",

@@ -93,6 +93,72 @@ it("confirms the latest remote build when refresh is clicked", async () => {
   expect(fetchVersion).toHaveBeenCalledTimes(2);
   expect(refresh.mock.calls[0]?.[2]).toBe("c".repeat(40));
 });
+it("activates a waiting worker after the verified PWA shell has loaded", async () => {
+  const originalUrl = window.location.href;
+  const build = "b".repeat(40);
+  window.history.replaceState(null, "", `/?__crm_update=${build}`);
+  const postMessage = vi.fn();
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue({
+    state: "activated",
+  } as ServiceWorker);
+  const registration = new EventTarget() as ServiceWorkerRegistration;
+  Object.defineProperty(registration, "waiting", {
+    value: { postMessage },
+  });
+  registration.update = vi.fn(async () => {});
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    registration,
+  );
+  try {
+    await render(
+      <AppUpdate
+        currentBuild={build}
+        fetchVersion={async () => build}
+        watchWorker={() => () => {}}
+      />,
+    );
+    await expect.poll(() => postMessage.mock.calls.length).toBe(1);
+    expect(postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+  } finally {
+    window.history.replaceState(null, "", originalUrl);
+  }
+});
+it("activates a worker that finishes installing after the new PWA shell loads", async () => {
+  const originalUrl = window.location.href;
+  const build = "b".repeat(40);
+  window.history.replaceState(null, "", `/?__crm_update=${build}`);
+  const postMessage = vi.fn();
+  const registration = new EventTarget() as ServiceWorkerRegistration;
+  const installing = new EventTarget() as ServiceWorker;
+  Object.defineProperty(registration, "installing", {
+    value: installing,
+  });
+  Object.defineProperty(registration, "waiting", {
+    value: null,
+    configurable: true,
+  });
+  registration.update = vi.fn(async () => {});
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    registration,
+  );
+  try {
+    await render(
+      <AppUpdate
+        currentBuild={build}
+        fetchVersion={async () => build}
+        watchWorker={() => () => {}}
+      />,
+    );
+    await expect.poll(() => registration.update).toHaveBeenCalledOnce();
+    Object.defineProperty(registration, "waiting", {
+      value: { postMessage },
+    });
+    installing.dispatchEvent(new Event("statechange"));
+    await expect.poll(() => postMessage.mock.calls.length).toBe(1);
+  } finally {
+    window.history.replaceState(null, "", originalUrl);
+  }
+});
 it("does not navigate when the click-time version request fails", async () => {
   const fetchVersion = vi
     .fn()

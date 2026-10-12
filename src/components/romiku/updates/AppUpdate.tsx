@@ -30,6 +30,53 @@ export function AppUpdate({
   const [remoteBuild, setRemoteBuild] = useState("");
   const dirty = useHasAppDraft();
   useEffect(() => {
+    // The user has already accepted this exact build. Finish the worker
+    // update on the new page so its start URL cannot reopen an old shell.
+    if (
+      new URLSearchParams(window.location.search).get("__crm_update") !==
+        currentBuild ||
+      dirty ||
+      !("serviceWorker" in navigator)
+    )
+      return;
+    let disposed = false;
+    let registration: ServiceWorkerRegistration | undefined;
+    let installing: ServiceWorker | null = null;
+    let ready = false;
+    let sent = false;
+    const activate = () => {
+      if (disposed || !ready || sent || hasAppDraft()) return;
+      if (registration?.waiting) {
+        sent = true;
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+    };
+    const watch = () => {
+      installing?.removeEventListener("statechange", activate);
+      installing = registration?.installing ?? null;
+      installing?.addEventListener("statechange", activate);
+      activate();
+    };
+    void (async () => {
+      try {
+        if ((await fetchVersion()) !== currentBuild || disposed) return;
+        registration = await navigator.serviceWorker.getRegistration("/");
+        if (!registration || disposed) return;
+        registration.addEventListener("updatefound", watch);
+        await registration.update();
+        ready = true;
+        watch();
+      } catch {
+        // The new shell is already usable; a later worker check can retry.
+      }
+    })();
+    return () => {
+      disposed = true;
+      registration?.removeEventListener("updatefound", watch);
+      installing?.removeEventListener("statechange", activate);
+    };
+  }, [currentBuild, dirty, fetchVersion]);
+  useEffect(() => {
     let disposed = false,
       pending = false;
     const announce = () => {
