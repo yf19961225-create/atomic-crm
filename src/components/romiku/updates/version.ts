@@ -127,9 +127,22 @@ export async function refreshApp(
           installing.cancel();
           throw new AppUpdateError("update", error);
         }
-        if (!registration.waiting && registration.installing)
-          await installing.ready;
-        else installing.cancel();
+        if (!registration.waiting && registration.installing) {
+          // A new app shell remains available through the current worker's
+          // network-first navigation route even if this install stalls.
+          let graceTimer: number | undefined;
+          try {
+            await Promise.race([
+              installing.ready,
+              new Promise<void>((resolve) => {
+                graceTimer = window.setTimeout(resolve, 2000);
+              }),
+            ]);
+          } finally {
+            clearTimeout(graceTimer);
+            installing.cancel();
+          }
+        } else installing.cancel();
       }
       if (!canRefresh()) return;
       const waiting = registration.waiting;

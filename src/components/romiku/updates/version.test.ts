@@ -154,3 +154,24 @@ it("reloads through the network-first shell when update finds no waiting worker"
   expect(registration.update).toHaveBeenCalledOnce();
   expect(reload).toHaveBeenCalledOnce();
 });
+it("uses network-first reload if an installing worker does not finish", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const active = { state: "activated" } as ServiceWorker;
+  const installing = new EventTarget() as ServiceWorker;
+  Object.defineProperty(installing, "state", { value: "installing" });
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(
+    active,
+  );
+  const registration = new EventTarget() as ServiceWorkerRegistration;
+  Object.defineProperty(registration, "active", { value: active });
+  Object.defineProperty(registration, "installing", { value: installing });
+  registration.update = vi.fn(async () => {});
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue(
+    registration,
+  );
+  const reload = vi.fn();
+  const refresh = refreshApp(() => true, reload);
+  await vi.advanceTimersByTimeAsync(3000);
+  await refresh;
+  expect(reload).toHaveBeenCalledOnce();
+});
