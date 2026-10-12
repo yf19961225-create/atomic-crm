@@ -49,6 +49,32 @@ it("detects another build without reloading and guards unsaved input until cance
   expect(refresh).toHaveBeenCalledOnce();
   expect(refresh.mock.calls[0]?.[2]).toBe("b".repeat(40));
 });
+it("releases a temporary form draft before the first update click after navigation", async () => {
+  function Page() {
+    const [showForm, setShowForm] = useState(true);
+    return (
+      <>
+        <AppUpdate
+          currentBuild={"a".repeat(40)}
+          fetchVersion={async () => "b".repeat(40)}
+          refresh={refresh}
+        />
+        {showForm && <Editor />}
+        <button onClick={() => setShowForm(false)}>Open workbench</button>
+      </>
+    );
+  }
+  const refresh = vi.fn();
+  const screen = await render(<Page />);
+  await screen.getByRole("textbox", { name: "draft" }).fill("login in progress");
+  await expect
+    .element(screen.getByRole("button", { name: "稍后刷新" }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: "Open workbench" }).click();
+  await screen.getByRole("button", { name: "立即刷新" }).click();
+  await expect.poll(() => refresh.mock.calls.length).toBe(1);
+  expect(refresh.mock.calls[0]?.[2]).toBe("b".repeat(40));
+});
 it("confirms the latest remote build when refresh is clicked", async () => {
   const fetchVersion = vi
     .fn()
