@@ -109,10 +109,9 @@ export function AppUpdate({
             try {
               await refresh(() => !hasAppDraft());
             } catch (error) {
-              console.warn("[CRM update] failed", {
-                stage:
-                  error instanceof AppUpdateError ? error.stage : "unknown",
-              });
+              const stage =
+                error instanceof AppUpdateError ? error.stage : "unknown";
+              console.warn(`[CRM update] failed at ${stage}`);
               setFailure("新版本暂时加载失败，请稍后重试。");
             } finally {
               setBusy(false);

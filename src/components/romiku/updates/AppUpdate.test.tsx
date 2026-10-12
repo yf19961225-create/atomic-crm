@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { useState } from "react";
 import { AppUpdate } from "./AppUpdate";
+import { AppUpdateError } from "./version";
 import { useAppDraft } from "./drafts";
 afterEach(() => {
   vi.useRealTimers();
@@ -114,6 +115,22 @@ it("keeps the draft and offers retry after an update download fails", async () =
     .toBeEnabled();
   await screen.getByRole("button", { name: "重试" }).click();
   expect(refresh).toHaveBeenCalledTimes(2);
+});
+it("logs the exact update stage without exposing request details", async () => {
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const screen = await render(
+    <AppUpdate
+      currentBuild={"a".repeat(40)}
+      fetchVersion={async () => "b".repeat(40)}
+      refresh={async () => {
+        throw new AppUpdateError("install-timeout");
+      }}
+    />,
+  );
+  await screen.getByRole("button", { name: "立即刷新" }).click();
+  expect(warning).toHaveBeenCalledWith(
+    "[CRM update] failed at install-timeout",
+  );
 });
 it("protects the native customer archive form on an otherwise read-only Order", async () => {
   const { CoreAdminContext } = await import("ra-core");
