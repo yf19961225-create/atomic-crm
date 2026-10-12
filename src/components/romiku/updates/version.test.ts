@@ -267,3 +267,26 @@ it("keeps the current app open when target HTML cannot be fetched", async () => 
   ).rejects.toMatchObject({ stage: "shell-fetch" });
   expect(navigate).not.toHaveBeenCalled();
 });
+
+it("verifies the shell before activating a worker and navigates on controller change", async () => {
+  const target = "b".repeat(40);
+  const events: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+    events.push("shell verified");
+    return new Response(`<meta name="crm-build" content="${target}">`);
+  });
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue({
+    state: "activated",
+  } as ServiceWorker);
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue({
+    waiting: {
+      postMessage: () => {
+        events.push("skip waiting");
+        navigator.serviceWorker.dispatchEvent(new Event("controllerchange"));
+        expect(events).toContain("navigate");
+      },
+    },
+  } as unknown as ServiceWorkerRegistration);
+  await refreshApp(() => true, () => events.push("navigate"), target);
+  expect(events).toEqual(["shell verified", "skip waiting", "navigate"]);
+});

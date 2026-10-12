@@ -99,6 +99,42 @@ function waitForWorker(
   return { ready, cancel };
 }
 
+async function verifiedUpdateUrl(
+  expectedBuild: string,
+  canRefresh: () => boolean,
+): Promise<string | undefined> {
+  // Check the new shell before activating a worker: activation can replace
+  // this page before its async continuation runs in an installed PWA.
+  const target = new URL(window.location.href);
+  target.searchParams.set("__crm_update", expectedBuild);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (!canRefresh()) return;
+    let response: Response;
+    try {
+      response = await fetch(target.pathname + target.search, {
+        cache: "no-store",
+        credentials: "same-origin",
+        redirect: "error",
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (error) {
+      throw new AppUpdateError("shell-fetch", error);
+    }
+    if (!response.ok) throw new AppUpdateError("shell-fetch");
+    const html = new DOMParser().parseFromString(
+      await response.text(),
+      "text/html",
+    );
+    if (
+      html.querySelector<HTMLMetaElement>('meta[name="crm-build"]')?.content ===
+      expectedBuild
+    ) return target.href;
+    if (attempt < 3)
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+  }
+  throw new AppUpdateError("shell-version");
+}
+
 /** Only called after explicit consent; never clear auth, preferences or caches. */
 export async function refreshApp(
   canRefresh: () => boolean,
@@ -107,6 +143,16 @@ export async function refreshApp(
   expectedBuild = "",
 ) {
   if (!canRefresh()) return;
+  const targetUrl = expectedBuild
+    ? await verifiedUpdateUrl(expectedBuild, canRefresh)
+    : undefined;
+  if (expectedBuild && !targetUrl) return;
+  let navigated = false;
+  const navigate = () => {
+    if (navigated || !canRefresh()) return;
+    navigated = true;
+    reload(targetUrl);
+  };
   if ("serviceWorker" in navigator) {
     let registration: ServiceWorkerRegistration | undefined;
     try {
@@ -159,8 +205,14 @@ export async function refreshApp(
             if (error) reject(error);
             else resolve();
           };
-          const changed = () => finish();
-          const timer = window.setTimeout(() => finish(), 2000);
+          const changed = () => {
+            finish();
+            if (targetUrl) navigate();
+          };
+          const timer = window.setTimeout(() => {
+            finish();
+            if (targetUrl) navigate();
+          }, 2000);
           navigator.serviceWorker.addEventListener("controllerchange", changed);
           try {
             waiting.postMessage({ type: "SKIP_WAITING" });
@@ -171,43 +223,5 @@ export async function refreshApp(
       }
     }
   }
-  if (!canRefresh()) return;
-  if (!expectedBuild) {
-    reload();
-    return;
-  }
-  // An updated version.json may reach an edge before its HTML. Check the
-  // actual app shell through a non-navigation request, which Workbox does not
-  // satisfy from its navigation cache. The query also gives the subsequent
-  // navigation a fresh cache key.
-  const target = new URL(window.location.href);
-  target.searchParams.set("__crm_update", expectedBuild);
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (!canRefresh()) return;
-    let response: Response;
-    try {
-      response = await fetch(target.pathname + target.search, {
-        cache: "no-store",
-        credentials: "same-origin",
-        redirect: "error",
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch (error) {
-      throw new AppUpdateError("shell-fetch", error);
-    }
-    if (!response.ok) throw new AppUpdateError("shell-fetch");
-    const html = new DOMParser().parseFromString(
-      await response.text(),
-      "text/html",
-    );
-    if (
-      html.querySelector<HTMLMetaElement>('meta[name="crm-build"]')?.content ===
-      expectedBuild
-    ) {
-      if (canRefresh()) reload(target.href);
-      return;
-    }
-    if (attempt < 3) await new Promise((resolve) => window.setTimeout(resolve, 1000));
-  }
-  throw new AppUpdateError("shell-version");
+  navigate();
 }
