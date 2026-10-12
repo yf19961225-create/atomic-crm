@@ -175,3 +175,21 @@ it("uses network-first reload if an installing worker does not finish", async ()
   await refresh;
   expect(reload).toHaveBeenCalledOnce();
 });
+it("reloads the network-first shell when skipWaiting does not change the controller", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const active = { state: "activated" } as ServiceWorker;
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue(
+    active,
+  );
+  const message = vi.fn();
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue({
+    active,
+    waiting: { postMessage: message },
+  } as unknown as ServiceWorkerRegistration);
+  const reload = vi.fn();
+  const refresh = refreshApp(() => true, reload);
+  await vi.advanceTimersByTimeAsync(15000);
+  await refresh;
+  expect(message).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+  expect(reload).toHaveBeenCalledOnce();
+});

@@ -132,6 +132,24 @@ it("logs the exact update stage without exposing request details", async () => {
     "[CRM update] failed at install-timeout",
   );
 });
+it("ignores a waiting worker when the page already matches the remote build", async () => {
+  let workerUpdate: (() => void) | undefined;
+  const screen = await render(
+    <AppUpdate
+      currentBuild={"a".repeat(40)}
+      fetchVersion={async () => "a".repeat(40)}
+      watchWorker={(callback) => {
+        workerUpdate = callback;
+        return () => {};
+      }}
+    />,
+  );
+  expect(workerUpdate).toBeTypeOf("function");
+  workerUpdate?.();
+  await expect
+    .element(screen.getByRole("status", { name: "CRM 版本更新" }))
+    .not.toBeInTheDocument();
+});
 it("protects the native customer archive form on an otherwise read-only Order", async () => {
   const { CoreAdminContext } = await import("ra-core");
   const { MemoryRouter } = await import("react-router");

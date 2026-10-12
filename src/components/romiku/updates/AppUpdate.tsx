@@ -12,10 +12,12 @@ export function AppUpdate({
   currentBuild = import.meta.env.VITE_APP_BUILD_SHA,
   fetchVersion = fetchAppVersion,
   refresh = refreshApp,
+  watchWorker = watchAppWorker,
 }: {
   currentBuild?: string;
   fetchVersion?: () => Promise<string>;
   refresh?: (canRefresh: () => boolean) => Promise<void> | void;
+  watchWorker?: (onUpdate: () => void) => () => void;
 }) {
   const [available, setAvailable] = useState(false);
   const [later, setLater] = useState(false);
@@ -54,7 +56,7 @@ export function AppUpdate({
       event.preventDefault();
       announce();
     };
-    const unwatch = watchAppWorker(announce);
+    const unwatch = watchWorker(() => void check());
     const timer = window.setInterval(() => void check(), 60000);
     window.addEventListener("focus", check);
     window.addEventListener("online", check);
@@ -70,7 +72,7 @@ export function AppUpdate({
       document.removeEventListener("visibilitychange", check);
       window.removeEventListener("vite:preloadError", preload);
     };
-  }, [currentBuild, fetchVersion]);
+  }, [currentBuild, fetchVersion, watchWorker]);
   if (!available) return null;
   return (
     <aside

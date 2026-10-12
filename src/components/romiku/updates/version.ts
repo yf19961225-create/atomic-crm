@@ -158,10 +158,7 @@ export async function refreshApp(
             else resolve();
           };
           const changed = () => finish();
-          const timer = window.setTimeout(
-            () => finish(new AppUpdateError("activate-timeout")),
-            15000,
-          );
+          const timer = window.setTimeout(() => finish(), 2000);
           navigator.serviceWorker.addEventListener("controllerchange", changed);
           try {
             waiting.postMessage({ type: "SKIP_WAITING" });
