@@ -170,6 +170,12 @@ export async function refreshApp(
     traceUpdate("navigate");
     reload(targetUrl);
   };
+  // The verified shell is served network-first. Navigate before a waiting
+  // worker can replace this document and cancel the PWA's first navigation.
+  if (targetUrl) {
+    navigate();
+    return;
+  }
   if ("serviceWorker" in navigator) {
     let registration: ServiceWorkerRegistration | undefined;
     try {

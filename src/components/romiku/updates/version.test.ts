@@ -268,7 +268,7 @@ it("keeps the current app open when target HTML cannot be fetched", async () => 
   expect(navigate).not.toHaveBeenCalled();
 });
 
-it("verifies the shell before activating a worker and navigates on controller change", async () => {
+it("verifies the shell and navigates without waiting for worker activation", async () => {
   const target = "b".repeat(40);
   const events: string[] = [];
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
@@ -288,7 +288,23 @@ it("verifies the shell before activating a worker and navigates on controller ch
     },
   } as unknown as ServiceWorkerRegistration);
   await refreshApp(() => true, () => events.push("navigate"), target);
-  expect(events).toEqual(["shell verified", "skip waiting", "navigate"]);
+  expect(events).toEqual(["shell verified", "navigate"]);
+});
+
+it("starts the verified navigation before a waiting worker can replace the PWA page", async () => {
+  const target = "b".repeat(40);
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(`<meta name="crm-build" content="${target}">`),
+  );
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue({
+    state: "activated",
+  } as ServiceWorker);
+  const events: string[] = [];
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue({
+    waiting: { postMessage: () => events.push("skip waiting") },
+  } as unknown as ServiceWorkerRegistration);
+  await refreshApp(() => true, () => events.push("navigate"), target);
+  expect(events[0]).toBe("navigate");
 });
 
 it("keeps a draft created during shell verification before worker activation", async () => {
