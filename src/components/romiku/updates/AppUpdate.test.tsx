@@ -49,6 +49,24 @@ it("detects another build without reloading and guards unsaved input until cance
   expect(refresh).toHaveBeenCalledOnce();
   expect(refresh.mock.calls[0]?.[2]).toBe("b".repeat(40));
 });
+it("confirms the latest remote build when refresh is clicked", async () => {
+  const fetchVersion = vi
+    .fn()
+    .mockResolvedValueOnce("b".repeat(40))
+    .mockResolvedValueOnce("c".repeat(40));
+  const refresh = vi.fn();
+  const screen = await render(
+    <AppUpdate
+      currentBuild={"a".repeat(40)}
+      fetchVersion={fetchVersion}
+      refresh={refresh}
+    />,
+  );
+  await screen.getByRole("button", { name: "立即刷新" }).click();
+  await expect.poll(() => refresh.mock.calls.length).toBe(1);
+  expect(fetchVersion).toHaveBeenCalledTimes(2);
+  expect(refresh.mock.calls[0]?.[2]).toBe("c".repeat(40));
+});
 it("checks visible tabs every 60 seconds and focus, never hidden tabs", async () => {
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   const visible = vi

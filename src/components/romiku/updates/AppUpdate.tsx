@@ -113,7 +113,16 @@ export function AppUpdate({
             setBusy(true);
             setFailure("");
             try {
-              await refresh(() => !hasAppDraft(), undefined, remoteBuild);
+              // A worker or chunk error can announce an update before the
+              // version check has populated remoteBuild. Confirm the target
+              // at click time so refresh never falls back to a blind reload.
+              const targetBuild = await fetchVersion();
+              if (targetBuild === currentBuild) {
+                setAvailable(false);
+                return;
+              }
+              setRemoteBuild(targetBuild);
+              await refresh(() => !hasAppDraft(), undefined, targetBuild);
             } catch (error) {
               const stage =
                 error instanceof AppUpdateError ? error.stage : "unknown";
