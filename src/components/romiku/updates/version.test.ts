@@ -193,3 +193,23 @@ it("reloads the network-first shell when skipWaiting does not change the control
   expect(message).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
   expect(reload).toHaveBeenCalledOnce();
 });
+
+it("keeps a draft created while activation stalls before the fallback reload", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  vi.spyOn(navigator.serviceWorker, "controller", "get").mockReturnValue({
+    state: "activated",
+  } as ServiceWorker);
+  let allowed = true;
+  const message = vi.fn(() => {
+    allowed = false;
+  });
+  vi.spyOn(navigator.serviceWorker, "getRegistration").mockResolvedValue({
+    waiting: { postMessage: message },
+  } as unknown as ServiceWorkerRegistration);
+  const reload = vi.fn();
+  const refresh = refreshApp(() => allowed, reload);
+  await vi.advanceTimersByTimeAsync(2000);
+  await refresh;
+  expect(message).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+  expect(reload).not.toHaveBeenCalled();
+});
