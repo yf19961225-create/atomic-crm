@@ -16,11 +16,21 @@ describe("product sourcing writes", () => {
         _sanity_verified: true,
         _sanity_verified_sku: "RMK-100",
         internal_notes: "Use kraft gift box.",
+        qty_per_carton: 24,
+        length_cm: 50,
+        width_cm: 40,
+        height_cm: 35,
+        carton_weight_kg: 12.5,
       }),
     ).toEqual({
       sku: "RMK-100",
       sanity_product_id: "sanity-product-100",
       internal_notes: "Use kraft gift box.",
+      qty_per_carton: 24,
+      length_cm: 50,
+      width_cm: 40,
+      height_cm: 35,
+      carton_weight_kg: 12.5,
     });
   });
 

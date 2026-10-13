@@ -4,6 +4,11 @@ export type ProductExtensionWrite = {
   _sanity_verified?: boolean;
   _sanity_verified_sku?: string;
   internal_notes?: string | null;
+  qty_per_carton?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  carton_weight_kg?: number | null;
 };
 
 export type ProductSupplierWrite = {
@@ -52,6 +57,11 @@ export const toProductExtensionWrite = (
     ? { sanity_product_id: values.sanity_product_id }
     : {}),
   internal_notes: values.internal_notes || null,
+  qty_per_carton: values.qty_per_carton ?? null,
+  length_cm: values.length_cm ?? null,
+  width_cm: values.width_cm ?? null,
+  height_cm: values.height_cm ?? null,
+  carton_weight_kg: values.carton_weight_kg ?? null,
 });
 
 /** Selects the join-record columns; it never materializes a product master. */

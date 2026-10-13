@@ -20,7 +20,9 @@ export const createSupabaseProcurementOverlayClient = (): OverlayClient => ({
     read(
       getSupabaseClient()
         .from("romiku_product_extensions")
-        .select("id,sanity_product_id,sku,internal_notes")
+        .select(
+          "id,sanity_product_id,sku,internal_notes,qty_per_carton,length_cm,width_cm,height_cm,carton_weight_kg",
+        )
         .or(productMatch(ids, skus)),
     ),
   getSuppliers: async (ids, skus) => {

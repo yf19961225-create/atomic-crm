@@ -37,32 +37,32 @@ export const ProductSupplierInputs = () => (
     />
     <NumberInput
       source="qty_per_carton"
-      label="每箱数量"
+      label="供应商覆盖值（可选）：每箱数量"
       min={0.0001}
       helperText={false}
     />
     <DateInput source="reference_date" label="参考日期" helperText={false} />
     <NumberInput
       source="length_cm"
-      label="长度（cm）"
+      label="供应商覆盖值（可选）：长度（cm）"
       min={0}
       helperText={false}
     />
     <NumberInput
       source="width_cm"
-      label="宽度（cm）"
+      label="供应商覆盖值（可选）：宽度（cm）"
       min={0}
       helperText={false}
     />
     <NumberInput
       source="height_cm"
-      label="高度（cm）"
+      label="供应商覆盖值（可选）：高度（cm）"
       min={0}
       helperText={false}
     />
     <NumberInput
       source="carton_weight_kg"
-      label="每箱重量（kg）"
+      label="供应商覆盖值（可选）：每箱重量（kg）"
       min={0}
       helperText={false}
     />

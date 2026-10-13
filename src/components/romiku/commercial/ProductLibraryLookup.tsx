@@ -92,10 +92,9 @@ export function createItemSnapshot(
     .filter(Boolean)
     .join(" ");
   const overlay = options.procurementPacking;
-  // A packing overlay only carries dimensions when it identified a preferred
-  // supplier or the sole supplier. With multiple unpreferred suppliers, its
-  // values remain absent and we keep only the catalog Qty/Ctn fallback.
-  const hasSelectedSupplier = Boolean(
+  // The overlay resolves supplier overrides over product defaults per field.
+  // A product with no supplier can still carry its own packing defaults.
+  const hasPackingOverlay = Boolean(
     overlay &&
       (overlay.supplierCount === 1 ||
         overlay.qtyPerCarton != null ||
@@ -110,13 +109,13 @@ export function createItemSnapshot(
       product.packaging?.en ??
       product.packaging?.es ??
       "",
-    qty_per_carton: hasSelectedSupplier
+    qty_per_carton: hasPackingOverlay
       ? (overlay?.qtyPerCarton ??
         (product.cartonQty == null ? null : Number(product.cartonQty)))
       : product.cartonQty == null
         ? null
         : Number(product.cartonQty),
-    ...(hasSelectedSupplier
+    ...(hasPackingOverlay
       ? {
           length_cm: overlay?.lengthCm ?? null,
           width_cm: overlay?.widthCm ?? null,
@@ -164,9 +163,9 @@ export function ProductLibraryLookup({
   inputRef?: Ref<HTMLInputElement>;
   specificationMode?: ProductSpecificationMode;
   documentLanguage?: DocumentLanguage;
-  /** Capture ProductSupplier packing only when selecting into a Quote. */
+  /** Capture effective CRM packing only when selecting into a Quote. */
   captureQuotePacking?: boolean;
-  /** Capture supplier packing only when a new document snapshot is selected. */
+  /** Capture effective CRM packing only when a new document snapshot is selected. */
   capturePacking?: boolean;
   /** Save the Product Library unit in the selected item snapshot. */
   includeUnit?: boolean;

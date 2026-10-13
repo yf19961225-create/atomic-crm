@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   addCostHistory,
   saveInternalNotes,
+  savePackingDefaults,
   saveSupplier,
   type ProductDrawerClient,
 } from "./productDrawerActions";
@@ -59,6 +60,36 @@ describe("Product Drawer writes", () => {
       "link-1",
       expect.objectContaining({ moq: 80 }),
     );
+  });
+  it("saves product packing without a supplier and never writes supplier or Sanity data", async () => {
+    const writes = client();
+    const refresh = vi.fn();
+    const packing = {
+      qty_per_carton: 24,
+      length_cm: 50,
+      width_cm: 40,
+      height_cm: 35,
+      carton_weight_kg: 12.5,
+    };
+    await savePackingDefaults(writes, product, undefined, packing, refresh);
+    expect(writes.createExtension).toHaveBeenCalledWith({
+      sku: product.sku,
+      sanity_product_id: product.id,
+      ...packing,
+    });
+    expect(writes.createSupplier).not.toHaveBeenCalled();
+    await savePackingDefaults(
+      writes,
+      product,
+      "extension-1",
+      { ...packing, length_cm: 51 },
+      refresh,
+    );
+    expect(writes.updateExtension).toHaveBeenCalledWith("extension-1", {
+      ...packing,
+      length_cm: 51,
+    });
+    expect(writes.updateSupplier).not.toHaveBeenCalled();
   });
   it("appends reference cost history only to the selected supplier link", async () => {
     const writes = client();

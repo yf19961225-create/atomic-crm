@@ -13,10 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   addCostHistory,
   saveInternalNotes,
+  savePackingDefaults,
   saveSupplier,
   type DrawerCost,
   type DrawerExtension,
   type DrawerSupplier,
+  type PackingDefaults,
   type ProductDrawerClient,
   type ProductDrawerReadClient,
   type SupplierOption,
@@ -50,12 +52,42 @@ const emptySupplierForm = () => ({
   supplier_item_number: "",
   moq: "",
   lead_days: "",
+  preferred: false,
+});
+const emptyPackingForm = () => ({
   qty_per_carton: "",
   length_cm: "",
   width_cm: "",
   height_cm: "",
   carton_weight_kg: "",
-  preferred: false,
+});
+const packingFormFrom = (extension: DrawerExtension | null) => ({
+  qty_per_carton:
+    extension?.qty_per_carton == null ? "" : String(extension.qty_per_carton),
+  length_cm: extension?.length_cm == null ? "" : String(extension.length_cm),
+  width_cm: extension?.width_cm == null ? "" : String(extension.width_cm),
+  height_cm: extension?.height_cm == null ? "" : String(extension.height_cm),
+  carton_weight_kg:
+    extension?.carton_weight_kg == null
+      ? ""
+      : String(extension.carton_weight_kg),
+});
+const numericSnapshot = (form: Record<string, string>) =>
+  JSON.stringify(
+    Object.values(form).map((value) =>
+      value.trim() === "" ? null : Number(value),
+    ),
+  );
+const packingValues = (
+  form: ReturnType<typeof emptyPackingForm>,
+): PackingDefaults => ({
+  qty_per_carton:
+    form.qty_per_carton.trim() === "" ? null : Number(form.qty_per_carton),
+  length_cm: form.length_cm.trim() === "" ? null : Number(form.length_cm),
+  width_cm: form.width_cm.trim() === "" ? null : Number(form.width_cm),
+  height_cm: form.height_cm.trim() === "" ? null : Number(form.height_cm),
+  carton_weight_kg:
+    form.carton_weight_kg.trim() === "" ? null : Number(form.carton_weight_kg),
 });
 
 const supplierFormFrom = (supplier: DrawerSupplier | null, supplierId = "") =>
@@ -65,17 +97,6 @@ const supplierFormFrom = (supplier: DrawerSupplier | null, supplierId = "") =>
         supplier_item_number: supplier.supplier_item_number ?? "",
         moq: supplier.moq == null ? "" : String(supplier.moq),
         lead_days: supplier.lead_days == null ? "" : String(supplier.lead_days),
-        qty_per_carton:
-          supplier.qty_per_carton == null
-            ? ""
-            : String(supplier.qty_per_carton),
-        length_cm: supplier.length_cm == null ? "" : String(supplier.length_cm),
-        width_cm: supplier.width_cm == null ? "" : String(supplier.width_cm),
-        height_cm: supplier.height_cm == null ? "" : String(supplier.height_cm),
-        carton_weight_kg:
-          supplier.carton_weight_kg == null
-            ? ""
-            : String(supplier.carton_weight_kg),
         preferred: Boolean(supplier.preferred),
       }
     : { ...emptySupplierForm(), supplier_id: supplierId };
@@ -133,6 +154,12 @@ const ProductDrawerSession = ({
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [supplierBaseline, setSupplierBaseline] = useState(emptySupplierForm);
   const [supplierInvalid, setSupplierInvalid] = useState(false);
+  const [packingForm, setPackingForm] = useState(emptyPackingForm);
+  const [packingBaseline, setPackingBaseline] = useState(emptyPackingForm);
+  const [packingInvalid, setPackingInvalid] = useState(false);
+  const packingDirty =
+    packingInvalid ||
+    numericSnapshot(packingForm) !== numericSnapshot(packingBaseline);
   const supplierDirty =
     supplierInvalid ||
     supplierSnapshot(supplierForm) !== supplierSnapshot(supplierBaseline);
@@ -141,11 +168,13 @@ const ProductDrawerSession = ({
   const currentDraft = useRef({
     notesDirty,
     supplierDirty,
+    packingDirty,
     supplierId: supplierForm.supplier_id,
   });
   currentDraft.current = {
     notesDirty,
     supplierDirty,
+    packingDirty,
     supplierId: supplierForm.supplier_id,
   };
   const hydrated = useRef(false);
@@ -153,7 +182,9 @@ const ProductDrawerSession = ({
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
   const [costDirty, setCostDirty] = useState(false);
-  useAppDraft(open && (supplierDirty || costDirty || notesDirty));
+  useAppDraft(
+    open && (supplierDirty || costDirty || notesDirty || packingDirty),
+  );
   const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
   const imageFailed = failedImageKey === imageKey;
 
@@ -168,6 +199,11 @@ const ProductDrawerSession = ({
       ]);
       if (version !== loadVersion.current) return;
       setExtension(nextExtension);
+      if (!currentDraft.current.packingDirty) {
+        const loadedPacking = packingFormFrom(nextExtension);
+        setPackingForm(loadedPacking);
+        setPackingBaseline(loadedPacking);
+      }
       if (!currentDraft.current.notesDirty) {
         setNotes(nextExtension?.internal_notes ?? "");
       }
@@ -229,6 +265,25 @@ const ProductDrawerSession = ({
       setMessage("备注保存失败。");
     }
   };
+  const submitPacking = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const submitted = packingForm;
+    setMessage("");
+    try {
+      await savePackingDefaults(
+        client,
+        product,
+        extension?.id,
+        packingValues(submitted),
+        () => refreshCurrent(),
+      );
+      setPackingBaseline(submitted);
+      setPackingInvalid(false);
+      setMessage("装箱信息已保存。");
+    } catch {
+      setMessage("装箱信息保存失败。");
+    }
+  };
   const submitSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const supplierId = supplierForm.supplier_id;
@@ -245,11 +300,6 @@ const ProductDrawerSession = ({
           supplier_item_number: supplierForm.supplier_item_number || undefined,
           moq: Number(supplierForm.moq) || null,
           lead_days: Number(supplierForm.lead_days) || null,
-          qty_per_carton: Number(supplierForm.qty_per_carton) || null,
-          length_cm: Number(supplierForm.length_cm) || null,
-          width_cm: Number(supplierForm.width_cm) || null,
-          height_cm: Number(supplierForm.height_cm) || null,
-          carton_weight_kg: Number(supplierForm.carton_weight_kg) || null,
         },
         () => refreshCurrent(supplierId),
       );
@@ -290,8 +340,8 @@ const ProductDrawerSession = ({
       onOpenChange={(nextOpen) => {
         if (
           !nextOpen &&
-          supplierDirty &&
-          !window.confirm("有未保存的采购信息，是否放弃？")
+          (supplierDirty || packingDirty || notesDirty || costDirty) &&
+          !window.confirm("有未保存的修改，是否放弃？")
         )
           return;
         onOpenChange(nextOpen);
@@ -365,11 +415,64 @@ const ProductDrawerSession = ({
               保存备注
             </Button>
           </div>
+          <form
+            aria-label="产品装箱信息"
+            className="space-y-2"
+            onInput={(event) =>
+              setPackingInvalid(hasInvalidNumericInput(event.currentTarget))
+            }
+            onSubmit={submitPacking}
+          >
+            <h3 className="font-medium">产品装箱信息</h3>
+            <p className="text-sm text-muted-foreground">
+              产品默认装箱数据，不需要供应商。
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["qty_per_carton", "Qty/Ctn"],
+                  ["length_cm", "长(cm)"],
+                  ["width_cm", "宽(cm)"],
+                  ["height_cm", "高(cm)"],
+                  ["carton_weight_kg", "单箱重量(kg)"],
+                ] as const
+              ).map(([name, label]) => (
+                <label className="block space-y-1" key={name}>
+                  <span>{label}</span>
+                  <Input
+                    name={name}
+                    type="number"
+                    step="any"
+                    min={name === "qty_per_carton" ? "0.0001" : "0"}
+                    value={packingForm[name]}
+                    onChange={(event) =>
+                      setPackingForm((current) => ({
+                        ...current,
+                        [name]: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit">保存装箱信息</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPackingForm(packingBaseline);
+                  setPackingInvalid(false);
+                }}
+              >
+                取消/恢复
+              </Button>
+            </div>
+          </form>
           <div className="space-y-2">
             <h3 className="font-medium">供应商采购信息</h3>
             <p className="text-sm text-muted-foreground">
-              每个供应商独立维护 Qty/Ctn、箱规和单箱重量；这些数据仅保存到采购
-              overlay。
+              供应商 SKU、MOQ 和交期独立维护。已有供应商箱规保留为可选覆盖值。
             </p>
             {suppliers.length ? (
               <ul>
@@ -381,7 +484,8 @@ const ProductDrawerSession = ({
                     <span>
                       {supplier.supplier_name ?? supplier.supplier_id}
                       {supplier.preferred ? "（Preferred Supplier）" : ""} ·
-                      Qty/Ctn {supplier.qty_per_carton ?? "—"} · 箱规{" "}
+                      供应商覆盖值（可选）：Qty/Ctn{" "}
+                      {supplier.qty_per_carton ?? "—"} · 箱规{" "}
                       {supplier.length_cm != null &&
                       supplier.width_cm != null &&
                       supplier.height_cm != null
@@ -473,44 +577,6 @@ const ProductDrawerSession = ({
                   />
                 </label>
               ))}
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  [
-                    "qty_per_carton",
-                    "Qty/Ctn",
-                    selectedSupplier?.qty_per_carton ?? "",
-                  ],
-                  ["length_cm", "长(cm)", selectedSupplier?.length_cm ?? ""],
-                  ["width_cm", "宽(cm)", selectedSupplier?.width_cm ?? ""],
-                  ["height_cm", "高(cm)", selectedSupplier?.height_cm ?? ""],
-                  [
-                    "carton_weight_kg",
-                    "单箱重量(kg)",
-                    selectedSupplier?.carton_weight_kg ?? "",
-                  ],
-                ].map(([name, label]) => (
-                  <label className="block space-y-1" key={name}>
-                    <span>{label}</span>
-                    <Input
-                      name={String(name)}
-                      type="number"
-                      step="any"
-                      disabled={!supplierForm.supplier_id}
-                      value={
-                        supplierForm[
-                          name as keyof typeof supplierForm
-                        ] as string
-                      }
-                      onChange={(event) => {
-                        setSupplierForm((current) => ({
-                          ...current,
-                          [name]: event.target.value,
-                        }));
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
               <label className="flex items-center gap-2">
                 <input
                   name="preferred"

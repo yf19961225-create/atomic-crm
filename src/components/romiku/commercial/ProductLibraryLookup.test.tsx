@@ -73,6 +73,15 @@ describe("Product Library item snapshots", () => {
     ).toMatchObject({ qty_per_carton: 12 });
   });
 
+  it("captures product-level packing defaults without a supplier only into a newly selected snapshot", () => {
+    const product: SanityCatalogProduct = { id: "default-product", sku: "DEF-1", skuSort: "DEF-1", isPublished: true, cartonQty: 12 };
+    const snapshot = createItemSnapshot(product, undefined, {
+      includeCartonWeight: true,
+      procurementPacking: { supplierCount: 0, qtyPerCarton: 24, lengthCm: 50, widthCm: 40, heightCm: 35, cartonWeightKg: 12.5 },
+    });
+    expect(snapshot.packing_snapshot).toMatchObject({ qty_per_carton: 24, length_cm: 50, width_cm: 40, height_cm: 35, carton_weight_kg: 12.5, carton_cbm: 0.07 });
+  });
+
   it("captures selected supplier weight and the saved unit for an independent Packing snapshot", () => {
     const snapshot = createItemSnapshot(
       {

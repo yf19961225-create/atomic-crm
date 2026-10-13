@@ -2,6 +2,7 @@ import { required, useInput } from "ra-core";
 import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import { TextInput } from "@/components/admin/text-input";
+import { NumberInput } from "@/components/admin/number-input";
 import { SanityProductLookup } from "./SanityProductLookup";
 import { useSanityProductSource } from "./sanityProductSource";
 
@@ -59,6 +60,39 @@ export const ProductExtensionInputs = () => {
         multiline
         helperText={false}
       />
+      <h3>产品装箱信息</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <NumberInput
+          source="qty_per_carton"
+          label="Qty/Ctn"
+          min={0.0001}
+          helperText={false}
+        />
+        <NumberInput
+          source="length_cm"
+          label="长(cm)"
+          min={0}
+          helperText={false}
+        />
+        <NumberInput
+          source="width_cm"
+          label="宽(cm)"
+          min={0}
+          helperText={false}
+        />
+        <NumberInput
+          source="height_cm"
+          label="高(cm)"
+          min={0}
+          helperText={false}
+        />
+        <NumberInput
+          source="carton_weight_kg"
+          label="单箱重量(kg)"
+          min={0}
+          helperText={false}
+        />
+      </div>
     </div>
   );
 };

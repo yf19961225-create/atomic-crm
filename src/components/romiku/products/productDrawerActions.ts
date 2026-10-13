@@ -1,4 +1,11 @@
 export type DrawerProduct = { id: string; sku?: string | null };
+export type PackingDefaults = {
+  qty_per_carton: number | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
+  carton_weight_kg: number | null;
+};
 export type SupplierValues = {
   id?: string;
   supplier_id: string;
@@ -18,7 +25,10 @@ export type CostValues = {
   effective_date: string;
   source_type: string;
 };
-export type DrawerExtension = { id: string; internal_notes?: string | null };
+export type DrawerExtension = {
+  id: string;
+  internal_notes?: string | null;
+} & Partial<PackingDefaults>;
 export type DrawerSupplier = {
   id: string;
   supplier_id: string;
@@ -43,14 +53,16 @@ export type DrawerCost = {
 };
 export type SupplierOption = { id: string; name: string };
 export type ProductDrawerClient = {
-  createExtension: (value: {
-    sku: string;
-    sanity_product_id: string;
-    internal_notes: string | null;
-  }) => Promise<unknown>;
+  createExtension: (
+    value: {
+      sku: string;
+      sanity_product_id: string;
+      internal_notes?: string | null;
+    } & Partial<PackingDefaults>,
+  ) => Promise<unknown>;
   updateExtension: (
     id: string,
-    value: { internal_notes: string | null },
+    value: { internal_notes?: string | null } & Partial<PackingDefaults>,
   ) => Promise<unknown>;
   createSupplier: (
     value: SupplierValues & { sku: string; sanity_product_id: string },
@@ -86,6 +98,23 @@ export const saveInternalNotes = async (
       sku: product.sku,
       sanity_product_id: product.id,
       internal_notes: internalNotes || null,
+    });
+  await refresh([product]);
+};
+export const savePackingDefaults = async (
+  client: ProductDrawerClient,
+  product: DrawerProduct,
+  extensionId: string | undefined,
+  values: PackingDefaults,
+  refresh: (products: DrawerProduct[]) => Promise<unknown> | unknown,
+) => {
+  if (!product.sku) throw new Error("Sanity product SKU is required");
+  if (extensionId) await client.updateExtension(extensionId, values);
+  else
+    await client.createExtension({
+      sku: product.sku,
+      sanity_product_id: product.id,
+      ...values,
     });
   await refresh([product]);
 };

@@ -10,6 +10,11 @@ export type OverlayClient = {
       sanity_product_id?: string | null;
       sku: string;
       internal_notes?: string | null;
+      qty_per_carton?: number | null;
+      length_cm?: number | null;
+      width_cm?: number | null;
+      height_cm?: number | null;
+      carton_weight_kg?: number | null;
     }>
   >;
   getSuppliers: (
@@ -99,11 +104,12 @@ export const loadProductProcurementOverlay = async (
       supplierMoq: preferred?.moq,
       leadDays: preferred?.lead_days,
       referenceCost: cost && { cost: cost.cost, currency: cost.currency },
-      qtyPerCarton: preferred?.qty_per_carton,
-      lengthCm: preferred?.length_cm,
-      widthCm: preferred?.width_cm,
-      heightCm: preferred?.height_cm,
-      cartonWeightKg: preferred?.carton_weight_kg,
+      qtyPerCarton: preferred?.qty_per_carton ?? extension?.qty_per_carton,
+      lengthCm: preferred?.length_cm ?? extension?.length_cm,
+      widthCm: preferred?.width_cm ?? extension?.width_cm,
+      heightCm: preferred?.height_cm ?? extension?.height_cm,
+      cartonWeightKg:
+        preferred?.carton_weight_kg ?? extension?.carton_weight_kg,
     });
   }
   return result;

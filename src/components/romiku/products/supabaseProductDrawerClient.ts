@@ -62,7 +62,9 @@ export const createSupabaseProductDrawerClient = (): ProductDrawerClient &
     read(
       getSupabaseClient()
         .from("romiku_product_extensions")
-        .select("id,internal_notes")
+        .select(
+          "id,internal_notes,qty_per_carton,length_cm,width_cm,height_cm,carton_weight_kg",
+        )
         .or(productFilter(product))
         .maybeSingle(),
     ),
