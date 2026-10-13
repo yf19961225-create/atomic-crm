@@ -1,7 +1,23 @@
 import { expect, it, vi } from "vitest";
 import fakeRestDataProvider from "ra-data-fakerest";
-import { createProductionOrders } from "./productionWorkflow";
+import {
+  createProductionOrders,
+  readProductionItems,
+} from "./productionWorkflow";
 import { readRelated } from "../outbound/workflow";
+
+it("reopens Production items by their saved position after an append", async () => {
+  const provider = fakeRestDataProvider({
+    romiku_production_items: [
+      { id: "z", production_order_id: "p", sku: "FIRST", position: 1 },
+      { id: "a", production_order_id: "p", sku: "SECOND", position: 2 },
+      { id: "b", production_order_id: "other", sku: "OTHER", position: 1 },
+    ],
+  });
+  expect(
+    (await readProductionItems(provider, "p")).map((item) => item.sku),
+  ).toEqual(["FIRST", "SECOND"]);
+});
 
 it("creates one Production for every selected batch without supplier grouping", async () => {
   const provider = fakeRestDataProvider({

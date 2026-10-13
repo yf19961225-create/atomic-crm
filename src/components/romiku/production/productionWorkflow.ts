@@ -21,6 +21,21 @@ export function positiveQuantity(value: unknown) {
     throw new Error("数量必须大于零。");
   return quantity;
 }
+
+/** Production already stores positions; display them in that saved order. */
+export async function readProductionItems(
+  provider: DataProvider,
+  productionOrderId: string,
+) {
+  const rows = await readRelated(provider, "romiku_production_items", {
+    production_order_id: productionOrderId,
+  });
+  return rows.sort(
+    (a, b) =>
+      Number(a.position || 0) - Number(b.position || 0) ||
+      String(a.id).localeCompare(String(b.id)),
+  );
+}
 export async function createProductionOrders(
   provider: DataProvider,
   orderId: string,

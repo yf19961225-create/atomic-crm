@@ -5,6 +5,7 @@ import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { statusOptions } from "../shared/workflowStatus";
 import { ProductionWorkbench } from "./ProductionWorkbench";
+import { readProductionItems } from "./productionWorkflow";
 import { savedBuyerName } from "./productionWorkspace";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
@@ -430,9 +431,7 @@ function FulfillmentEditor({
     queryFn: () =>
       kind === "packing"
         ? readPackingItems(provider, String(record.id))
-        : readRelated(provider, config.items, {
-            [config.foreignKey]: record.id,
-          }),
+        : readProductionItems(provider, String(record.id)),
   });
   const parent = useGetOne(
     "romiku_orders",
