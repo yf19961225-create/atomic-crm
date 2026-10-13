@@ -782,6 +782,7 @@ create table public.romiku_packing_lists (
 create table public.romiku_packing_items (
     id uuid primary key default gen_random_uuid(),
     packing_list_id uuid not null,
+    position integer check (position > 0),
     order_id uuid,
     source_order_item_id uuid,
     sanity_product_id text,

@@ -23,6 +23,7 @@ import { errorMessage } from "../outbound/RelatedRecords";
 import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { PackingItemsGrid } from "../packing/PackingItemsGrid";
+import { readPackingItems } from "../packing/packingWorkflow";
 import { PackingExportDetails } from "../packing/PackingExportDetails";
 import { normalizePackingExportModel } from "../packing/packingExportModel";
 import { renderPackingXlsx } from "../packing/packingXlsxRenderer";
@@ -68,10 +69,16 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const [committedSearch, setCommittedSearch] = useState("");
   const [status, setStatus] = useState("");
   const orderId = params.get("order");
-  const searchResult = useModuleSearch(kind, config.resource, committedSearch, page, {
-    ...(orderId ? { order_id: orderId } : {}),
-    ...(status ? { status } : {}),
-  });
+  const searchResult = useModuleSearch(
+    kind,
+    config.resource,
+    committedSearch,
+    page,
+    {
+      ...(orderId ? { order_id: orderId } : {}),
+      ...(status ? { status } : {}),
+    },
+  );
   const ordinary = useGetList(
     config.resource,
     {
@@ -173,9 +180,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
           </Link>
         </p>
       )}
-      {query.isPending && !query.data.length && (
-        <p>正在加载{config.plural}…</p>
-      )}
+      {query.isPending && !query.data.length && <p>正在加载{config.plural}…</p>}
       {query.isFetching && !!query.data.length && <p role="status">搜索中…</p>}
       {query.error && (
         <p role="alert">
@@ -423,7 +428,11 @@ function FulfillmentEditor({
   const items = useQuery({
     queryKey: ["fulfillment-items", kind, record.id],
     queryFn: () =>
-      readRelated(provider, config.items, { [config.foreignKey]: record.id }),
+      kind === "packing"
+        ? readPackingItems(provider, String(record.id))
+        : readRelated(provider, config.items, {
+            [config.foreignKey]: record.id,
+          }),
   });
   const parent = useGetOne(
     "romiku_orders",

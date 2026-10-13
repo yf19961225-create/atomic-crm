@@ -1,6 +1,7 @@
 import { normalizeSpecificationDisplay } from "../quotes/normalizeSpecificationDisplay";
 import { RequestedQuantity } from "../quotes/RequestedQuantity";
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -31,12 +32,17 @@ import {
   cartonCbmFromPacking,
   newDraftCommercialItemId,
   lineAmount,
-  nextPositions,
   quantityFromPacking,
   reorderCommercialItems,
   type CommercialDocumentKind,
   type CommercialItem,
 } from "./commercialLineItems";
+import {
+  commercialDisplayRows,
+  initialEmptyLines,
+  nextCommercialPosition,
+  reorderVisibleCommercialItems,
+} from "./commercialLineDisplay";
 
 export function CommercialLineItemsTable({
   kind,
@@ -87,13 +93,17 @@ export function CommercialLineItemsTable({
   const [quoteUsdDrafts, setQuoteUsdDrafts] = useState<Record<string, string>>(
     {},
   );
-  const [draftRows, setDraftRows] = useState(() =>
-    Array.from({ length: 5 }, (_, id) => id),
-  );
+  const [draftRows, setDraftRows] = useState(() => initialEmptyLines(items));
+  const draftRowsTouched = useRef(false);
+  useEffect(() => {
+    if (!draftRowsTouched.current) setDraftRows(initialEmptyLines(items));
+  }, [items]);
   const draftSkuRefs = useRef<Array<HTMLInputElement | null>>([]);
   const rowSkuRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const rowNameRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const adapter = commercialItemAdapter(kind);
+  const visibleRows = commercialDisplayRows(items, editable ? draftRows : []);
+  const nextPosition = () => nextCommercialPosition(items, draftRows);
   const formatQuoteCbm = (packing: Record<string, unknown>) => {
     const value = cartonCbmFromPacking(packing);
     return value == null ? "" : value.toFixed(3);
@@ -142,6 +152,7 @@ export function CommercialLineItemsTable({
     await onChanged();
   };
   const add = async () => {
+    draftRowsTouched.current = true;
     if (onItemsChange) {
       onItemsChange([
         ...items,
@@ -152,7 +163,7 @@ export function CommercialLineItemsTable({
           unit_price: 0,
           product_snapshot: {},
           packing_snapshot: {},
-          position: items.length + 1,
+          position: nextPosition(),
         },
       ]);
       return;
@@ -165,7 +176,7 @@ export function CommercialLineItemsTable({
         unit_price: 0,
         product_snapshot: {},
         packing_snapshot: {},
-        position: items.length + 1,
+        position: nextPosition(),
       },
     });
     await onChanged();
@@ -174,6 +185,7 @@ export function CommercialLineItemsTable({
     draftIndex: number,
     data: Record<string, unknown>,
   ) => {
+    draftRowsTouched.current = true;
     if (onItemsChange) {
       onItemsChange([
         ...items,
@@ -184,12 +196,12 @@ export function CommercialLineItemsTable({
           unit_price: 0,
           product_snapshot: {},
           packing_snapshot: {},
-          position: items.length + 1,
+          position: nextPosition(),
           ...data,
         },
       ]);
       setDraftRows((current) =>
-        current.filter((id) => id !== draftRows[draftIndex]),
+        current.filter((row) => row.id !== draftRows[draftIndex].id),
       );
       return;
     }
@@ -201,19 +213,38 @@ export function CommercialLineItemsTable({
         unit_price: 0,
         product_snapshot: {},
         packing_snapshot: {},
-        position: items.length + 1,
+        position: nextPosition(),
         ...data,
       },
     });
     await onChanged();
     setDraftRows((current) =>
-      current.filter((id) => id !== draftRows[draftIndex]),
+      current.filter((row) => row.id !== draftRows[draftIndex].id),
     );
   };
-  const advanceDraft = (draftIndex: number) => {
+  const advanceDraft = (draftIndex: number, created: boolean) => {
+    draftRowsTouched.current = true;
+    if (created) {
+      setDraftRows((current) => [
+        ...current,
+        {
+          id: Math.max(-1, ...current.map((row) => row.id)) + 1,
+          position: nextPosition() + 1,
+        },
+      ]);
+      setTimeout(() => draftSkuRefs.current[draftRows.length - 1]?.focus(), 0);
+      return;
+    }
     if (draftIndex + 1 < draftRows.length)
       draftSkuRefs.current[draftIndex + 1]?.focus();
-    else setDraftRows((current) => [...current, Math.max(-1, ...current) + 1]);
+    else
+      setDraftRows((current) => [
+        ...current,
+        {
+          id: Math.max(-1, ...current.map((row) => row.id)) + 1,
+          position: nextPosition(),
+        },
+      ]);
     if (draftIndex + 1 >= draftRows.length)
       setTimeout(() => draftSkuRefs.current[draftIndex + 1]?.focus(), 0);
   };
@@ -223,6 +254,7 @@ export function CommercialLineItemsTable({
     else draftSkuRefs.current[0]?.focus();
   };
   const copy = async (item: CommercialItem) => {
+    draftRowsTouched.current = true;
     const { id: _id, ...copyItem } = item;
     if (onItemsChange) {
       onItemsChange([
@@ -230,7 +262,7 @@ export function CommercialLineItemsTable({
         {
           ...copyItem,
           id: newDraftCommercialItemId(),
-          position: items.length + 1,
+          position: nextPosition(),
         },
       ]);
       return;
@@ -239,7 +271,7 @@ export function CommercialLineItemsTable({
       data: {
         ...copyItem,
         [adapter.parentKey]: documentId,
-        position: items.length + 1,
+        position: nextPosition(),
       },
     });
     await onChanged();
@@ -250,8 +282,9 @@ export function CommercialLineItemsTable({
       result.destination.index === result.source.index
     )
       return;
+    draftRowsTouched.current = true;
     if (onItemsChange) {
-      const next = nextPositions(
+      const next = reorderVisibleCommercialItems(
         items,
         result.source.index,
         result.destination.index,
@@ -267,7 +300,11 @@ export function CommercialLineItemsTable({
         provider,
         kind,
         items,
-        nextPositions(items, result.source.index, result.destination.index),
+        reorderVisibleCommercialItems(
+          items,
+          result.source.index,
+          result.destination.index,
+        ),
       );
       await onChanged();
     } catch {
@@ -348,7 +385,58 @@ export function CommercialLineItemsTable({
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => {
+                {visibleRows.map((row, visibleIndex) => {
+                  if (row.kind === "empty") {
+                    const { draftIndex } = row;
+                    return (
+                      <tr
+                        className="border-t bg-muted/20"
+                        key={`draft-${row.row.id}`}
+                      >
+                        {!compactQuote && (
+                          <td className="p-2 text-muted-foreground">—</td>
+                        )}
+                        <td className="text-muted-foreground">
+                          {visibleIndex + 1}
+                        </td>
+                        <td className="p-1">
+                          <ProductLibraryLookup
+                            specificationMode={
+                              kind === "quote" ? "machines-only" : "none"
+                            }
+                            captureQuotePacking={kind === "quote"}
+                            documentLanguage={documentLanguage}
+                            inputRef={(element) => {
+                              draftSkuRefs.current[draftIndex] = element;
+                            }}
+                            onSelected={(snapshot) =>
+                              void createDraft(draftIndex, snapshot)
+                            }
+                            onManualSku={(sku) =>
+                              void createDraft(draftIndex, { sku })
+                            }
+                          />
+                        </td>
+                        <td
+                          colSpan={compactQuote ? 6 : showCustomerCode ? 10 : 9}
+                        >
+                          <input
+                            aria-label={`草稿 SKU ${draftIndex + 1}`}
+                            className="w-full bg-transparent p-1 text-muted-foreground"
+                            placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter") return;
+                              event.preventDefault();
+                              const sku = event.currentTarget.value.trim();
+                              if (sku) void createDraft(draftIndex, { sku });
+                              advanceDraft(draftIndex, Boolean(sku));
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const { item, itemIndex: index } = row;
                   const product = (item.product_snapshot ?? {}) as Record<
                     string,
                     unknown
@@ -472,7 +560,7 @@ export function CommercialLineItemsTable({
                           )}
                           <td {...(compactQuote ? drag.dragHandleProps : {})}>
                             {compactQuote && "⠿ "}
-                            {index + 1}
+                            {visibleIndex + 1}
                           </td>
                           <td className="p-1">
                             {editable ? (
@@ -570,21 +658,23 @@ export function CommercialLineItemsTable({
                                     <Button
                                       type="button"
                                       variant="outline"
-                                      onClick={() =>
-                                        onItemsChange
-                                          ? onItemsChange(
-                                              items.filter(
-                                                (candidate) =>
-                                                  candidate.id !== item.id,
-                                              ),
-                                            )
-                                          : void provider
-                                              .delete(adapter.resource, {
-                                                id: item.id,
-                                                previousData: item,
-                                              })
-                                              .then(onChanged)
-                                      }
+                                      onClick={() => {
+                                        draftRowsTouched.current = true;
+                                        if (onItemsChange)
+                                          onItemsChange(
+                                            items.filter(
+                                              (candidate) =>
+                                                candidate.id !== item.id,
+                                            ),
+                                          );
+                                        else
+                                          void provider
+                                            .delete(adapter.resource, {
+                                              id: item.id,
+                                              previousData: item,
+                                            })
+                                            .then(onChanged);
+                                      }}
                                     >
                                       删除行
                                     </Button>
@@ -1007,54 +1097,6 @@ export function CommercialLineItemsTable({
                     </Draggable>
                   );
                 })}
-                {editable &&
-                  draftRows.map((draftId, draftIndex) => (
-                    <tr
-                      className="border-t bg-muted/20"
-                      key={`draft-${draftId}`}
-                    >
-                      {!compactQuote && (
-                        <td className="p-2 text-muted-foreground">—</td>
-                      )}
-                      <td className="text-muted-foreground">
-                        {items.length + draftIndex + 1}
-                      </td>
-                      <td className="p-1">
-                        <ProductLibraryLookup
-                          specificationMode={
-                            kind === "quote" ? "machines-only" : "none"
-                          }
-                          captureQuotePacking={kind === "quote"}
-                          documentLanguage={documentLanguage}
-                          inputRef={(element) => {
-                            draftSkuRefs.current[draftIndex] = element;
-                          }}
-                          onSelected={(snapshot) =>
-                            void createDraft(draftIndex, snapshot)
-                          }
-                          onManualSku={(sku) =>
-                            void createDraft(draftIndex, { sku })
-                          }
-                        />
-                      </td>
-                      <td
-                        colSpan={compactQuote ? 6 : showCustomerCode ? 10 : 9}
-                      >
-                        <input
-                          aria-label={`草稿 SKU ${draftIndex + 1}`}
-                          className="w-full bg-transparent p-1 text-muted-foreground"
-                          placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
-                          onKeyDown={(event) => {
-                            if (event.key !== "Enter") return;
-                            event.preventDefault();
-                            const sku = event.currentTarget.value.trim();
-                            if (sku) void createDraft(draftIndex, { sku });
-                            advanceDraft(draftIndex);
-                          }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
                 {provided.placeholder}
               </tbody>
               {!compactQuote && (

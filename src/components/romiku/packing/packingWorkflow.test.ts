@@ -3,6 +3,7 @@ import fakeRestDataProvider from "ra-data-fakerest";
 import {
   createOrderPackingList,
   packingTotals,
+  readPackingItems,
   resolvePackingItemDefaults,
   savePackingItem,
 } from "./packingWorkflow";
@@ -62,6 +63,25 @@ function setup() {
     ],
   });
 }
+it("appends a new Packing row after legacy rows and keeps that order on reload", async () => {
+  const p = setup();
+  await p.create("romiku_packing_items", {
+    data: { id: "z-legacy", packing_list_id: "p3", sku: "FIRST", quantity: 1 },
+  });
+  await p.create("romiku_packing_items", {
+    data: { id: "a-legacy", packing_list_id: "p3", sku: "SECOND", quantity: 1 },
+  });
+  const before = await readPackingItems(p, "p3");
+  expect(before.map((row) => row.sku)).toEqual(["SECOND", "FIRST"]);
+  await savePackingItem(p, { id: "p3", order_id: null }, "", {
+    sku: "NEW",
+    quantity: 1,
+  });
+  const reopened = await readPackingItems(p, "p3");
+  expect(reopened.map((row) => row.sku)).toEqual(["SECOND", "FIRST", "NEW"]);
+  expect(reopened.at(-1)?.position).toBe(3);
+  expect(reopened.slice(0, 2).every((row) => row.position == null)).toBe(true);
+});
 it("packs a partial remaining quantity into another list and preserves Order snapshots", async () => {
   const p = setup();
   const source = (await p.getOne("romiku_order_items", { id: "i" })).data;

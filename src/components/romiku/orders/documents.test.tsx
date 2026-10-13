@@ -214,6 +214,22 @@ it.each([
     (await provider.getList("romiku_formal_customers", list)).data,
   ).toEqual([]);
 });
+
+it.each(["/pi/p", "/orders/o"])(
+  "appends a new %s item below the five existing empty lines",
+  async (path) => {
+    const { screen } = await setup(path);
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    const rows = () => [...document.querySelectorAll("table tbody tr")];
+    expect(rows()).toHaveLength(6);
+    await screen.getByRole("button", { name: "新增产品行" }).click();
+    expect(rows()).toHaveLength(7);
+    expect(
+      rows()[5].querySelector('input[aria-label="草稿 SKU 5"]'),
+    ).not.toBeNull();
+    expect(rows()[6].textContent).toContain("7");
+  },
+);
 it.each([
   ["pi", "PI", "romiku_pi_items", "pii"],
   ["orders", "订单", "romiku_order_items", "oi"],

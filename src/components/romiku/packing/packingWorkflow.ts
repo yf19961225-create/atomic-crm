@@ -23,6 +23,34 @@ const dimensionLabels: Record<(typeof dimensions)[number], string> = {
 };
 
 type PackingSnapshot = Record<string, unknown>;
+/** Legacy rows retain their historical id order; positioned rows follow it. */
+export async function readPackingItems(
+  provider: DataProvider,
+  packingListId: string,
+) {
+  const rows = await readRelated(provider, "romiku_packing_items", {
+    packing_list_id: packingListId,
+  });
+  return rows.sort((a, b) => {
+    const aPosition = Number(a.position) > 0 ? Number(a.position) : null;
+    const bPosition = Number(b.position) > 0 ? Number(b.position) : null;
+    if (aPosition === null && bPosition !== null) return -1;
+    if (aPosition !== null && bPosition === null) return 1;
+    if (aPosition !== null && bPosition !== null && aPosition !== bPosition)
+      return aPosition - bPosition;
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+
+async function nextPackingPosition(
+  provider: DataProvider,
+  packingListId: string,
+) {
+  const rows = await readPackingItems(provider, packingListId);
+  return (
+    Math.max(rows.length, ...rows.map((row) => Number(row.position) || 0)) + 1
+  );
+}
 const numberOr = (value: unknown, fallback = 0) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
@@ -253,6 +281,8 @@ export async function savePackingItem(
       ? null
       : positiveQuantity(values.qty_per_carton);
   data.remark = values.remark || null;
+  if (!previous)
+    data.position = await nextPackingPosition(provider, String(parent.id));
   if (isOrderBacked) {
     const { data: source } = await provider.getOne("romiku_order_items", {
       id: sourceId,

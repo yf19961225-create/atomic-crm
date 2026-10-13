@@ -5,6 +5,7 @@ import fakeRestDataProvider from "ra-data-fakerest";
 import { MemoryRouter, Routes } from "react-router";
 import { page, userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";
+import { hasAppDraft } from "../updates/drafts";
 import "@/index.css";
 
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
@@ -361,6 +362,85 @@ it("creates a direct Quote and supports adding its own items", async () => {
   expect(
     (await provider.getList("romiku_formal_customers", list)).data,
   ).toEqual([]);
+});
+
+it("appends a new Quote item after the existing empty rows", async () => {
+  const { screen } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const rows = () => [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  expect(rows()).toHaveLength(6);
+  expect(
+    rows()[5].querySelector('input[aria-label="草稿 SKU 5"]'),
+  ).not.toBeNull();
+
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+
+  expect(rows()).toHaveLength(7);
+  expect(
+    rows()[5].querySelector('input[aria-label="草稿 SKU 5"]'),
+  ).not.toBeNull();
+  expect(rows()[6].textContent).toContain("7");
+  expect(rows()[6].querySelector('input[aria-label="草稿 SKU 5"]')).toBeNull();
+});
+
+it("clears the draft after removing a newly appended Quote row", async () => {
+  const { screen } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByText("⋯", { exact: true }).last().click();
+  await screen.getByRole("button", { name: "删除行", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+});
+
+it("continues Enter entry in a new bottom row", async () => {
+  const { screen } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByLabelText("草稿 SKU 1").fill("SKU-7");
+  await userEvent.keyboard("{Enter}");
+  const rows = [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  expect(rows.at(-2)?.querySelector('input[value="SKU-7"]')).not.toBeNull();
+  expect(
+    rows.at(-1)?.querySelector('input[aria-label^="草稿 SKU"]'),
+  ).not.toBeNull();
+});
+
+it("keeps repeated appended Quote rows below blanks after Save and Edit", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const add = screen.getByRole("button", { name: "新增产品行" });
+  await add.click();
+  await add.click();
+  await add.click();
+  const rows = () => [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  expect(
+    rows()
+      .slice(-3)
+      .map((row) => row.cells[0]?.textContent?.trim()),
+  ).toEqual(["⠿ 7", "⠿ 8", "⠿ 9"]);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  const persisted = (await provider.getList("romiku_quote_items", list)).data;
+  expect(
+    persisted.filter((row) => row.sku === "MANUAL").map((row) => row.position),
+  ).toEqual([7, 8, 9]);
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(
+    rows()
+      .slice(-3)
+      .map((row) => row.cells[0]?.textContent?.trim()),
+  ).toEqual(["⠿ 7", "⠿ 8", "⠿ 9"]);
 });
 
 it.each([
