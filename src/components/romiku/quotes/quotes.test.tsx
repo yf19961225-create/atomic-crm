@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -9,6 +9,7 @@ import { hasAppDraft } from "../updates/drafts";
 import "@/index.css";
 
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
+afterEach(() => vi.unstubAllGlobals());
 vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
   getSupabaseClient: () => ({ rpc }),
 }));
@@ -364,26 +365,125 @@ it("creates a direct Quote and supports adding its own items", async () => {
   ).toEqual([]);
 });
 
-it("appends a new Quote item after the existing empty rows", async () => {
+it("keeps products in the first and second draft rows they were entered in", async () => {
+  const { screen } = await setup("/quotes/q", { items: [] });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const rows = () => [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  const sku = (index: number) =>
+    rows()[index].querySelector<HTMLInputElement>(
+      'input[aria-label="搜索 SKU 或产品"]',
+    )?.value;
+
+  // Three visual empty rows are deliberate. Activating a row must hydrate
+  // that same slot instead of moving its product beneath the other blanks.
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  expect(rows()).toHaveLength(3);
+  await screen.getByLabelText("搜索 SKU 或产品").nth(0).fill("SUN002");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(rows()).toHaveLength(3);
+  expect([sku(0), sku(1), sku(2)]).toEqual(["SUN002", "", ""]);
+
+  await screen.getByLabelText("搜索 SKU 或产品").nth(1).fill("G02");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect([sku(0), sku(1), sku(2)]).toEqual(["SUN002", "G02", ""]);
+
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  expect(rows()).toHaveLength(4);
+  expect([sku(0), sku(1), sku(2), sku(3)]).toEqual(["SUN002", "G02", "", ""]);
+});
+
+it("does not move a selected first-row SKU below later empty rows", async () => {
+  const { screen } = await setup("/quotes/q", { items: [] });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByLabelText("搜索 SKU 或产品").first().fill("SUN002");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const rows = [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  expect(
+    rows[0].querySelector<HTMLInputElement>(
+      'input[aria-label="搜索 SKU 或产品"]',
+    )?.value,
+  ).toBe("SUN002");
+});
+
+it("keeps actual catalog selections in row one and row two", async () => {
+  const catalogFetch = vi.fn((input: string) =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify(
+          input.startsWith("/api/product-catalog")
+            ? {
+                result: [
+                  {
+                    _id: "sun002",
+                    sku: "SUN002",
+                    isPublished: true,
+                    name: { zh: "SUN002" },
+                  },
+                  {
+                    _id: "g02",
+                    sku: "G02",
+                    isPublished: true,
+                    name: { zh: "G02" },
+                  },
+                ],
+              }
+            : { images: {}, powerSupplies: {} },
+        ),
+      ),
+    ),
+  );
+  vi.stubGlobal("fetch", catalogFetch);
+  const { screen } = await setup("/quotes/q", { items: [] });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const rows = () => [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  const sku = (index: number) =>
+    rows()[index].querySelector<HTMLInputElement>(
+      'input[aria-label="搜索 SKU 或产品"]',
+    )?.value;
+  await screen.getByLabelText("搜索 SKU 或产品").first().fill("SUN002");
+  expect(catalogFetch).not.toHaveBeenCalled();
+  await userEvent.keyboard("{Enter}");
+  await screen.getByText("SUN002", { exact: true }).click();
+  expect(sku(0)).toBe("SUN002");
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  await screen.getByLabelText("搜索 SKU 或产品").last().fill("G02");
+  await userEvent.keyboard("{Enter}");
+  await screen.getByText("G02", { exact: true }).click();
+  expect([sku(0), sku(1)]).toEqual(["SUN002", "G02"]);
+});
+
+it("appends a blank Quote draft after the current visual end", async () => {
   const { screen } = await setup("/quotes/q");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   const rows = () => [
     ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
   ];
-  expect(rows()).toHaveLength(6);
+  expect(rows()).toHaveLength(2);
   expect(
-    rows()[5].querySelector('input[aria-label="草稿 SKU 5"]'),
+    rows()[1].querySelector('input[aria-label="草稿 SKU 1"]'),
   ).not.toBeNull();
 
   await screen.getByRole("button", { name: "新增产品行" }).click();
 
-  expect(rows()).toHaveLength(7);
+  expect(rows()).toHaveLength(3);
   expect(
-    rows()[5].querySelector('input[aria-label="草稿 SKU 5"]'),
+    rows()[1].querySelector('input[aria-label="草稿 SKU 1"]'),
   ).not.toBeNull();
-  expect(rows()[6].textContent).toContain("7");
-  expect(rows()[6].querySelector('input[aria-label="草稿 SKU 5"]')).toBeNull();
+  expect(rows()[2].textContent).toContain("3");
+  expect(
+    rows()[2].querySelector('input[aria-label="草稿 SKU 2"]'),
+  ).not.toBeNull();
 });
 
 it("clears the draft after removing a newly appended Quote row", async () => {
@@ -393,27 +493,96 @@ it("clears the draft after removing a newly appended Quote row", async () => {
   expect(hasAppDraft()).toBe(false);
   await screen.getByRole("button", { name: "新增产品行" }).click();
   expect(hasAppDraft()).toBe(true);
-  await screen.getByText("⋯", { exact: true }).last().click();
-  await screen.getByRole("button", { name: "删除行", exact: true }).click();
+  await screen.getByRole("button", { name: "删除空行 3" }).click();
   expect(hasAppDraft()).toBe(false);
 });
 
-it("continues Enter entry in a new bottom row", async () => {
-  const { screen } = await setup("/quotes/q");
+it("continues Enter entry without moving the entered SKU", async () => {
+  const { screen } = await setup("/quotes/q", { items: [] });
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   await screen.getByLabelText("草稿 SKU 1").fill("SKU-7");
   await userEvent.keyboard("{Enter}");
-  const rows = [
+  const rows = () => [
     ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
   ];
-  expect(rows.at(-2)?.querySelector('input[value="SKU-7"]')).not.toBeNull();
+  expect(rows()[0]?.querySelector('input[value="SKU-7"]')).not.toBeNull();
   expect(
-    rows.at(-1)?.querySelector('input[aria-label^="草稿 SKU"]'),
+    rows()[1]?.querySelector('input[aria-label^="草稿 SKU"]'),
+  ).not.toBeNull();
+  await screen.getByLabelText("草稿 SKU 1").fill("G02");
+  await userEvent.keyboard("{Enter}");
+  expect(rows()[0]?.querySelector('input[value="SKU-7"]')).not.toBeNull();
+  expect(rows()[1]?.querySelector('input[value="G02"]')).not.toBeNull();
+  expect(
+    rows()[2]?.querySelector('input[aria-label^="草稿 SKU"]'),
   ).not.toBeNull();
 });
 
-it("keeps repeated appended Quote rows below blanks after Save and Edit", async () => {
+it("appends after deleting a middle Quote row", async () => {
+  const { screen } = await setup("/quotes/q", {
+    items: [
+      { ...defaultQuoteItems[0], id: "a", sku: "SUN002", position: 1 },
+      { ...defaultQuoteItems[0], id: "b", sku: "G02", position: 2 },
+      { ...defaultQuoteItems[0], id: "c", sku: "ABC", position: 3 },
+    ],
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByLabelText("行操作").nth(1).click();
+  await screen.getByRole("button", { name: "删除行", exact: true }).click();
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  const rows = [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  expect(
+    rows.map(
+      (row) =>
+        row.querySelector<HTMLInputElement>(
+          'input[aria-label="搜索 SKU 或产品"]',
+        )?.value,
+    ),
+  ).toEqual(["SUN002", "ABC", "", ""]);
+});
+
+it("appends after a dragged Quote order and saves the reordered products", async () => {
+  const { screen, provider } = await setup("/quotes/q", {
+    items: [
+      { ...defaultQuoteItems[0], id: "a", sku: "SUN002", position: 1 },
+      { ...defaultQuoteItems[0], id: "b", sku: "G02", position: 2 },
+      { ...defaultQuoteItems[0], id: "c", sku: "ABC", position: 3 },
+    ],
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  screen.getByText("⠿ 3", { exact: true }).element().focus();
+  await userEvent.keyboard("{Space}{ArrowUp}{ArrowUp}{Space}");
+  const rows = () => [
+    ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+  ];
+  const skus = () =>
+    rows().map(
+      (row) =>
+        row.querySelector<HTMLInputElement>(
+          'input[aria-label="搜索 SKU 或产品"]',
+        )?.value,
+    );
+  expect(skus().slice(0, 3)).toEqual(["ABC", "SUN002", "G02"]);
+  await screen.getByRole("button", { name: "新增产品行" }).click();
+  expect(skus().slice(0, 5)).toEqual(["ABC", "SUN002", "G02", "", ""]);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  const persisted = (await provider.getList("romiku_quote_items", list)).data;
+  expect(
+    persisted
+      .sort((a, b) => Number(a.position) - Number(b.position))
+      .map((item) => item.sku),
+  ).toEqual(["ABC", "SUN002", "G02"]);
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(skus().slice(0, 3)).toEqual(["ABC", "SUN002", "G02"]);
+});
+
+it("saves only selected Quote rows and reopens them in visual order", async () => {
   const { screen, provider } = await setup("/quotes/q");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
@@ -428,19 +597,26 @@ it("keeps repeated appended Quote rows below blanks after Save and Edit", async 
     rows()
       .slice(-3)
       .map((row) => row.cells[0]?.textContent?.trim()),
-  ).toEqual(["⠿ 7", "⠿ 8", "⠿ 9"]);
+  ).toEqual(["3", "4", "5"]);
+  await screen.getByLabelText("搜索 SKU 或产品").last().fill("NEW");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(rows().at(-1)?.querySelector('input[value="NEW"]')).not.toBeNull();
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   const persisted = (await provider.getList("romiku_quote_items", list)).data;
-  expect(
-    persisted.filter((row) => row.sku === "MANUAL").map((row) => row.position),
-  ).toEqual([7, 8, 9]);
+  expect(persisted.map((row) => row.sku)).toEqual(["A", "NEW"]);
+  expect(persisted.find((row) => row.sku === "NEW")?.position).toBe(5);
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
   expect(
     rows()
-      .slice(-3)
-      .map((row) => row.cells[0]?.textContent?.trim()),
-  ).toEqual(["⠿ 7", "⠿ 8", "⠿ 9"]);
+      .slice(0, 2)
+      .map(
+        (row) =>
+          row.querySelector<HTMLInputElement>(
+            'input[aria-label="搜索 SKU 或产品"]',
+          )?.value,
+      ),
+  ).toEqual(["A", "NEW"]);
 });
 
 it.each([

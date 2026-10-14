@@ -1,6 +1,6 @@
 import type { CommercialItem } from "./commercialLineItems";
 
-export type EmptyLine = { id: number; position: number };
+export type EmptyLine = { id: number; position: number; added?: boolean };
 
 const position = (value: unknown) => {
   const parsed = Number(value);
@@ -9,19 +9,27 @@ const position = (value: unknown) => {
 const itemPosition = (item: CommercialItem, index: number) =>
   position(item.position) || index + 1;
 
-/** Empty rows are visual slots; their positions keep later new items below them. */
+export function orderedCommercialItems(items: CommercialItem[]) {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort(
+      (a, b) =>
+        itemPosition(a.item, a.index) - itemPosition(b.item, b.index) ||
+        a.index - b.index,
+    )
+    .map(({ item }) => item);
+}
+
+/** Start with one blank at the visual end, never in a gap among saved items. */
 export function initialEmptyLines(
   items: CommercialItem[],
-  count = 5,
+  count = 1,
 ): EmptyLine[] {
-  const occupied = new Set(items.map(itemPosition));
-  const rows: EmptyLine[] = [];
-  let next = 1;
-  while (rows.length < count) {
-    if (!occupied.has(next)) rows.push({ id: rows.length, position: next });
-    next++;
-  }
-  return rows;
+  const last = Math.max(0, ...items.map(itemPosition));
+  return Array.from({ length: count }, (_, index) => ({
+    id: index,
+    position: last + index + 1,
+  }));
 }
 
 export function nextCommercialPosition(
@@ -42,7 +50,7 @@ export function commercialDisplayRows(
   empty: EmptyLine[],
 ) {
   return [
-    ...items.map((item, itemIndex) => ({
+    ...orderedCommercialItems(items).map((item, itemIndex) => ({
       kind: "item" as const,
       item,
       itemIndex,
@@ -64,7 +72,7 @@ export function reorderVisibleCommercialItems(
   destinationIndex: number,
 ) {
   const slots = items.map(itemPosition).sort((a, b) => a - b);
-  const moved = [...items];
+  const moved = orderedCommercialItems(items);
   const [item] = moved.splice(sourceIndex, 1);
   moved.splice(destinationIndex, 0, item);
   return moved.map((row, index) => ({

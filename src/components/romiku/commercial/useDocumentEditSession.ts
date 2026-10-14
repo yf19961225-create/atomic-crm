@@ -108,6 +108,7 @@ export function useDocumentEditSession(
   const [items, setItems] = useState<CommercialItem[]>(() =>
     copy(persistedItems || []),
   );
+  const [blankRowsDirty, setBlankRowsDirty] = useState(false);
 
   useEffect(() => {
     if (editing || !persistedItems) return;
@@ -134,11 +135,13 @@ export function useDocumentEditSession(
       setValues(copy(savedValues));
       setItems(copy(savedItems));
     }
+    setBlankRowsDirty(false);
     setEditing(true);
   }, [editing, readyForEdit, persistedItems, record, savedItems, savedValues]);
   const cancel = useCallback(() => {
     setValues(copy(savedValues));
     setItems(copy(savedItems));
+    setBlankRowsDirty(false);
     setEditing(false);
   }, [savedItems, savedValues]);
   const commit = useCallback(
@@ -147,6 +150,7 @@ export function useDocumentEditSession(
       setSavedItems(copy(nextItems));
       setValues(copy(nextValues));
       setItems(copy(nextItems));
+      setBlankRowsDirty(false);
       setEditing(false);
     },
     [],
@@ -155,11 +159,13 @@ export function useDocumentEditSession(
   const dirty = useMemo(
     () =>
       editing &&
-      (header(values) !== header(savedValues) ||
+      (blankRowsDirty ||
+        header(values) !== header(savedValues) ||
         lines(items, normalizeQuoteSpecification) !==
           lines(savedItems, normalizeQuoteSpecification)),
     [
       editing,
+      blankRowsDirty,
       items,
       savedItems,
       savedValues,
@@ -173,6 +179,7 @@ export function useDocumentEditSession(
     setValues,
     items,
     setItems,
+    setBlankRowsDirty,
     savedItems,
     start,
     cancel,

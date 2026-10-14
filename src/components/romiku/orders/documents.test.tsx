@@ -203,6 +203,8 @@ it.each([
     .click();
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("button", { name: "新增产品行" }).click();
+  await screen.getByLabelText("搜索 SKU 或产品").last().fill("DIRECT");
+  await screen.getByText("汇总", { exact: true }).click();
   const numbers = screen.getByRole("spinbutton");
   await numbers.nth(6).fill("10");
   await numbers.nth(7).fill("3.50");
@@ -215,19 +217,56 @@ it.each([
   ).toEqual([]);
 });
 
+it.each([
+  ["pi", "PI"],
+  ["orders", "订单"],
+])(
+  "keeps direct %s first and second product entries in their own rows",
+  async (path, label) => {
+    const { screen } = await setup(`/${path}`);
+    await screen
+      .getByRole("link", { name: `新建${label}`, exact: true })
+      .click();
+    await screen
+      .getByLabelText("采购方名称", { exact: true })
+      .fill("Direct buyer");
+    await screen
+      .getByRole("button", { name: `创建${label}`, exact: true })
+      .click();
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    const rows = () => [
+      ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
+    ];
+    const sku = (index: number) =>
+      rows()[index].querySelector<HTMLInputElement>(
+        'input[aria-label="搜索 SKU 或产品"]',
+      )?.value;
+    expect(rows()).toHaveLength(1);
+    await screen.getByLabelText("搜索 SKU 或产品").first().fill("SUN002");
+    await screen.getByText("汇总", { exact: true }).click();
+    expect(sku(0)).toBe("SUN002");
+    await screen.getByRole("button", { name: "新增产品行" }).click();
+    await screen.getByLabelText("搜索 SKU 或产品").last().fill("G02");
+    await screen.getByText("汇总", { exact: true }).click();
+    expect([sku(0), sku(1)]).toEqual(["SUN002", "G02"]);
+    await screen.getByRole("button", { name: "新增产品行" }).click();
+    expect([sku(0), sku(1), sku(2)]).toEqual(["SUN002", "G02", ""]);
+  },
+);
+
 it.each(["/pi/p", "/orders/o"])(
-  "appends a new %s item below the five existing empty lines",
+  "appends a new %s blank line below the current visual end",
   async (path) => {
     const { screen } = await setup(path);
     await screen.getByRole("button", { name: "编辑", exact: true }).click();
     const rows = () => [...document.querySelectorAll("table tbody tr")];
-    expect(rows()).toHaveLength(6);
+    expect(rows()).toHaveLength(2);
     await screen.getByRole("button", { name: "新增产品行" }).click();
-    expect(rows()).toHaveLength(7);
+    expect(rows()).toHaveLength(3);
     expect(
-      rows()[5].querySelector('input[aria-label="草稿 SKU 5"]'),
+      rows()[1].querySelector('input[aria-label="草稿 SKU 1"]'),
     ).not.toBeNull();
-    expect(rows()[6].textContent).toContain("7");
+    expect(rows()[2].textContent).toContain("3");
   },
 );
 it.each([

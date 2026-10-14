@@ -796,6 +796,7 @@ function DocumentEditor({
               onChanged={items.refetch}
               editable={session.editing}
               onItemsChange={session.setItems}
+              onBlankRowsDirtyChange={session.setBlankRowsDirty}
             />
           )}
           {kind === "order" && items.data && (

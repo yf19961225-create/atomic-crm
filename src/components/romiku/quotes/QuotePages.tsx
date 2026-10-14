@@ -618,6 +618,7 @@ function QuoteEditor({
               onChanged={items.refetch}
               editable={session.editing}
               onItemsChange={session.setItems}
+              onBlankRowsDirtyChange={session.setBlankRowsDirty}
             />
           )}
         </TabsContent>

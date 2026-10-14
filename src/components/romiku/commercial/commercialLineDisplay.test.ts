@@ -19,32 +19,53 @@ const labels = (items: CommercialItem[]) =>
     row.kind === "item" ? row.item.sku : "empty",
   );
 
-it("keeps five empty rows in place and appends repeated additions below them", () => {
+it("starts with one empty row after saved items and appends blanks below it", () => {
   const original = [item("A", 1)];
-  expect(labels(original)).toEqual([
-    "A",
-    "empty",
-    "empty",
-    "empty",
-    "empty",
-    "empty",
-  ]);
-  const rows = [...original];
-  for (const sku of ["B", "C", "D"]) {
-    const empty = initialEmptyLines(rows);
-    rows.push(item(sku, nextCommercialPosition(rows, empty)));
-  }
-  expect(rows.map((row) => row.position)).toEqual([1, 7, 8, 9]);
-  expect(labels(rows)).toEqual([
-    "A",
-    "empty",
-    "empty",
-    "empty",
-    "empty",
-    "empty",
-    "B",
-    "C",
-    "D",
+  expect(labels(original)).toEqual(["A", "empty"]);
+  const blanks = initialEmptyLines(original);
+  blanks.push({ id: 1, position: nextCommercialPosition(original, blanks) });
+  blanks.push({ id: 2, position: nextCommercialPosition(original, blanks) });
+  expect(
+    commercialDisplayRows(original, blanks).map((row) => row.position),
+  ).toEqual([1, 2, 3, 4]);
+  expect(initialEmptyLines([item("A", 1), item("C", 3)])[0].position).toBe(4);
+});
+
+it("hydrates an empty row at its own position without moving later blanks", () => {
+  const blanks = initialEmptyLines([], 3);
+  const [first, second, third] = blanks;
+  expect(first.position).toBe(1);
+  const selectedFirst = item("SUN002", first.position);
+  expect(
+    commercialDisplayRows([selectedFirst], [second, third]).map((row) =>
+      row.kind === "item" ? row.item.sku : "empty",
+    ),
+  ).toEqual(["SUN002", "empty", "empty"]);
+  const selectedSecond = item("G02", second.position);
+  expect(
+    commercialDisplayRows([selectedFirst, selectedSecond], [third]).map(
+      (row) => (row.kind === "item" ? row.item.sku : "empty"),
+    ),
+  ).toEqual(["SUN002", "G02", "empty"]);
+  // Selection can finish out of order because a product lookup is async.
+  expect(
+    commercialDisplayRows([selectedSecond, selectedFirst], [third]).map(
+      (row) => (row.kind === "item" ? row.item.sku : "empty"),
+    ),
+  ).toEqual(["SUN002", "G02", "empty"]);
+});
+
+it("drag reorder follows visible positions even when item array insertion order differs", () => {
+  expect(
+    reorderVisibleCommercialItems(
+      [item("G02", 2), item("SUN002", 1), item("ABC", 3)],
+      0,
+      2,
+    ),
+  ).toEqual([
+    { id: "G02", position: 1 },
+    { id: "ABC", position: 2 },
+    { id: "SUN002", position: 3 },
   ]);
 });
 
@@ -53,8 +74,8 @@ it("appends below current rows after a middle item is deleted", () => {
   remaining.push(
     item("E", nextCommercialPosition(remaining, initialEmptyLines(remaining))),
   );
-  expect(labels(remaining).at(-1)).toBe("E");
-  expect(remaining.at(-1)?.position).toBe(10);
+  expect(commercialDisplayRows(remaining, []).at(-1)?.kind).toBe("item");
+  expect(remaining.at(-1)?.position).toBe(11);
 });
 
 it("keeps visual item slots after a drag and appends after the dragged last item", () => {
@@ -69,6 +90,9 @@ it("keeps visual item slots after a drag and appends after the dragged last item
   moved.push(
     item("NEW", nextCommercialPosition(moved, initialEmptyLines(moved))),
   );
-  expect(labels(moved).indexOf("A")).toBeLessThan(labels(moved).indexOf("NEW"));
-  expect(labels(moved).at(-1)).toBe("NEW");
+  const reordered = commercialDisplayRows(moved, []).map((row) =>
+    row.kind === "item" ? row.item.sku : "empty",
+  );
+  expect(reordered.indexOf("A")).toBeLessThan(reordered.indexOf("NEW"));
+  expect(reordered.at(-1)).toBe("NEW");
 });
