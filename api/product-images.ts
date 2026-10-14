@@ -86,6 +86,8 @@ const imageUrl = (product: WebsiteProduct) => {
   return relativeImage ? new URL(relativeImage, websiteOrigin).href : "";
 };
 
+const legacyWebsiteKey = (sku: string) => sku.toLowerCase().replace(/#$/, "");
+
 const parseSkus = (url: URL) => {
   const values = url.searchParams.getAll("skus");
   if (values.length !== 1) return null;
@@ -125,9 +127,16 @@ export default {
         if (!product.sku) continue;
         exactKeys.set(product.sku, exactKeys.has(product.sku) ? null : key);
       }
+      // Older indexes have no products map. Keep their key convention, while
+      // checking the chunk's actual SKU before accepting an image.
+      const legacyIndex = !index.products;
       const chunks = new Map<string, Array<{ sku: string; key: string }>>();
       for (const sku of skus) {
-        const key = exactKeys.get(sku);
+        const key = legacyIndex
+          ? index.productChunks?.[sku]
+            ? sku
+            : legacyWebsiteKey(sku)
+          : exactKeys.get(sku);
         if (!key) continue;
         const category = index.productChunks?.[key];
         const chunk = category ? index.chunks?.[category] : undefined;
