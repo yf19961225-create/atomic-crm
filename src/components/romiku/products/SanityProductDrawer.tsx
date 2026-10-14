@@ -30,6 +30,7 @@ type DrawerClient = ProductDrawerClient & ProductDrawerReadClient;
 type Props = {
   product: SanityCatalogProduct | null;
   resolvedImageUrl?: string;
+  onImageError?: (url: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   refreshOverlay: (product: SanityCatalogProduct) => Promise<void>;
@@ -139,6 +140,7 @@ export const SanityProductDrawer = (props: Props) =>
 const ProductDrawerSession = ({
   product,
   resolvedImageUrl,
+  onImageError,
   open,
   onOpenChange,
   refreshOverlay,
@@ -351,22 +353,25 @@ const ProductDrawerSession = ({
         <SheetHeader>
           <SheetTitle>{productText(product.name)}</SheetTitle>
           <SheetDescription>
-            Sanity 产品资料只读；内部采购资料保存到 Supabase。
+            产品主数据只读；内部采购资料保存到 CRM。
           </SheetDescription>
         </SheetHeader>
-        <section className="space-y-3 px-4" aria-label="Sanity 产品资料">
+        <section className="space-y-3 px-4" aria-label="产品详情">
           {resolvedImageUrl && !imageFailed ? (
             <img
               src={resolvedImageUrl}
               alt={`${product.sku ?? "未命名"} 产品图片`}
               className="h-32 w-32 object-cover"
-              onError={() => setFailedImageKey(imageKey)}
+              onError={() => {
+                setFailedImageKey(imageKey);
+                if (resolvedImageUrl) onImageError?.(resolvedImageUrl);
+              }}
             />
           ) : (
             <p>暂无产品图片</p>
           )}
           <dl className="grid grid-cols-2 gap-2 text-sm">
-            <dt>SKU</dt>
+            <dt>货号</dt>
             <dd>{product.sku ?? "—"}</dd>
             <dt>中文名</dt>
             <dd>{product.name?.zh ?? "—"}</dd>
@@ -376,19 +381,19 @@ const ProductDrawerSession = ({
             <dd>{product.name?.es ?? "—"}</dd>
             <dt>分类</dt>
             <dd>{productText(product.category?.title)}</dd>
-            <dt>MOQ</dt>
+            <dt>起订量</dt>
             <dd>
               {product.moqQuantity ?? "—"} {productText(product.moqUnit)}
             </dd>
             <dt>包装</dt>
             <dd>{productText(product.packaging)}</dd>
-            <dt>Carton Qty</dt>
+            <dt>每箱数量</dt>
             <dd>{product.cartonQty ?? "—"}</dd>
             <dt>发布状态</dt>
             <dd>{product.isPublished ? "已发布" : "未发布"}</dd>
           </dl>
           <div>
-            <p className="font-medium">Parameters</p>
+            <p className="font-medium">产品参数</p>
             {product.parameters?.length ? (
               <ul>
                 {product.parameters.map((parameter, index) => (
@@ -405,7 +410,7 @@ const ProductDrawerSession = ({
         </section>
         <section className="space-y-4 border-t p-4" aria-label="内部采购资料">
           <div className="space-y-2">
-            <label htmlFor="internal-notes">Internal Notes</label>
+            <label htmlFor="internal-notes">产品备注</label>
             <Textarea
               id="internal-notes"
               value={notes}
@@ -430,7 +435,7 @@ const ProductDrawerSession = ({
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  ["qty_per_carton", "Qty/Ctn"],
+                  ["qty_per_carton", "每箱数量"],
                   ["length_cm", "长(cm)"],
                   ["width_cm", "宽(cm)"],
                   ["height_cm", "高(cm)"],
@@ -472,7 +477,7 @@ const ProductDrawerSession = ({
           <div className="space-y-2">
             <h3 className="font-medium">供应商采购信息</h3>
             <p className="text-sm text-muted-foreground">
-              供应商 SKU、MOQ 和交期独立维护。已有供应商箱规保留为可选覆盖值。
+              供应商货号、起订量、交期等信息按供应商独立维护。已有供应商箱规保留为可选覆盖值。
             </p>
             {suppliers.length ? (
               <ul>
@@ -483,18 +488,18 @@ const ProductDrawerSession = ({
                   >
                     <span>
                       {supplier.supplier_name ?? supplier.supplier_id}
-                      {supplier.preferred ? "（Preferred Supplier）" : ""} ·
-                      供应商覆盖值（可选）：Qty/Ctn{" "}
+                      {supplier.preferred ? "（首选供应商）" : ""} ·
+                      供应商覆盖值（可选）：每箱数量{" "}
                       {supplier.qty_per_carton ?? "—"} · 箱规{" "}
                       {supplier.length_cm != null &&
                       supplier.width_cm != null &&
                       supplier.height_cm != null
                         ? `${supplier.length_cm} × ${supplier.width_cm} × ${supplier.height_cm} cm`
                         : "—"}{" "}
-                      · 重量 {supplier.carton_weight_kg ?? "—"} kg · SKU{" "}
-                      {supplier.supplier_item_number ?? "—"} · MOQ{" "}
-                      {supplier.moq ?? "—"} · Lead Time{" "}
-                      {supplier.lead_days ?? "—"} 天
+                      · 重量 {supplier.carton_weight_kg ?? "—"} kg · 供应商货号{" "}
+                      {supplier.supplier_item_number ?? "—"} · 起订量{" "}
+                      {supplier.moq ?? "—"} · 交期 {supplier.lead_days ?? "—"}{" "}
+                      天
                     </span>
                     <Button
                       type="button"
@@ -522,9 +527,9 @@ const ProductDrawerSession = ({
               className="space-y-2"
             >
               <label className="block space-y-1">
-                <span>Supplier</span>
+                <span>供应商</span>
                 <select
-                  aria-label="Supplier"
+                  aria-label="供应商"
                   name="supplier_id"
                   value={supplierForm.supplier_id}
                   onChange={(event) => {
@@ -553,11 +558,11 @@ const ProductDrawerSession = ({
               {[
                 [
                   "supplier_item_number",
-                  "Supplier SKU",
+                  "供应商货号",
                   selectedSupplier?.supplier_item_number ?? "",
                 ],
-                ["moq", "Supplier MOQ", selectedSupplier?.moq ?? ""],
-                ["lead_days", "Lead Time", selectedSupplier?.lead_days ?? ""],
+                ["moq", "供应商起订量", selectedSupplier?.moq ?? ""],
+                ["lead_days", "交期", selectedSupplier?.lead_days ?? ""],
               ].map(([name, label]) => (
                 <label className="block space-y-1" key={name}>
                   <span>{label}</span>
@@ -590,7 +595,7 @@ const ProductDrawerSession = ({
                     }));
                   }}
                 />{" "}
-                Preferred Supplier
+                首选供应商
               </label>
               <Button type="submit">
                 {selectedSupplier ? "保存采购信息" : "新增并保存供应商关联"}
@@ -598,13 +603,13 @@ const ProductDrawerSession = ({
             </form>
           </div>
           <div className="space-y-2">
-            <h3 className="font-medium">Reference Cost / Cost History</h3>
+            <h3 className="font-medium">参考成本 / 成本历史</h3>
             {costs.length ? (
               <ul>
                 {costs.map((cost) => (
                   <li key={cost.id}>
                     {cost.currency} {cost.cost} · {cost.effective_date} ·{" "}
-                    {cost.source_type}
+                    {cost.source_type === "manual" ? "手动" : cost.source_type}
                   </li>
                 ))}
               </ul>
@@ -624,24 +629,20 @@ const ProductDrawerSession = ({
               <p>
                 {selectedSupplier
                   ? `当前供应商：${selectedSupplier.supplier_name ?? selectedSupplier.supplier_id}`
-                  : "选择上方供应商的编辑以新增成本"}
+                  : "选择上方供应商后，可编辑并新增参考成本。"}
               </p>
               <Input
                 name="cost"
                 type="number"
                 step="0.01"
-                placeholder="Reference Cost"
+                placeholder="参考成本"
               />
-              <Input
-                name="currency"
-                defaultValue="USD"
-                placeholder="Currency"
-              />
+              <Input name="currency" defaultValue="USD" placeholder="币种" />
               <Input name="effective_date" type="date" />
               <Input
                 name="source_type"
                 defaultValue="manual"
-                placeholder="Source type"
+                placeholder="来源类型"
               />
               <Button type="submit">新增参考成本</Button>
             </form>

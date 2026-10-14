@@ -2,6 +2,7 @@ import {
   createSanityProductSource,
   type SanityProductMatch,
 } from "./sanityProductSource";
+import { sanityProductImageUrls } from "./websiteProductImages";
 
 export const romikuSanityConfig = {
   projectId: "gxuvcyaa",
@@ -40,7 +41,7 @@ export const mapRomikuSanityRecord = (
     sanityProductId: value._id,
     sku: value.sku,
     title: value.name?.en ?? value.name?.zh,
-    imageUrl: value.images?.[0]?.url,
+    imageUrl: sanityProductImageUrls(value.images)[0],
     parameters: value.parameters,
     category: value.category,
     moqQuantity: value.moqQuantity,

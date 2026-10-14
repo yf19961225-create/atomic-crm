@@ -11,9 +11,11 @@ vi.mock("./SanityProductDrawer", () => ({
   SanityProductDrawer: ({
     open,
     resolvedImageUrl,
+    onImageError,
   }: {
     open: boolean;
     resolvedImageUrl?: string;
+    onImageError?: (url: string) => void;
   }) =>
     open ? (
       <>
@@ -22,6 +24,11 @@ vi.mock("./SanityProductDrawer", () => ({
           <img alt="Drawer 产品图片" src={resolvedImageUrl} />
         ) : (
           <p>Drawer 暂无产品图片</p>
+        )}
+        {resolvedImageUrl && (
+          <button onClick={() => onImageError?.(resolvedImageUrl)}>
+            模拟图片加载失败
+          </button>
         )}
       </>
     ) : null,
@@ -42,7 +49,8 @@ vi.mock("./productProcurementOverlay", () => ({
     ),
 }));
 
-vi.mock("./websiteProductImages", () => ({
+vi.mock("./websiteProductImages", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./websiteProductImages")>()),
   loadWebsiteProductImages: loadWebsiteImages,
 }));
 
@@ -216,11 +224,11 @@ describe("SanityCatalogList", () => {
 
     const screen = await render(<SanityCatalogList />);
 
-    await screen.getByRole("cell", { name: "RMK-100" }).click();
+    await screen.getByRole("cell", { name: "RMK-100", exact: true }).click();
     await expect.element(screen.getByText("产品 Drawer 已打开")).toBeVisible();
   });
 
-  it("passes the catalog-resolved image URL to the drawer without another image request", async () => {
+  it("passes the authoritative Sanity image URL to the drawer without another image request", async () => {
     const resolvedImageUrl =
       "https://romiku.com/images/products-local/005_main1.jpg";
     loadWebsiteImages.mockResolvedValue(
@@ -240,11 +248,11 @@ describe("SanityCatalogList", () => {
     await screen.getByRole("cell", { name: "005", exact: true }).click();
     await expect
       .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
-      .toHaveAttribute("src", resolvedImageUrl);
+      .toHaveAttribute("src", "https://sanity.example.test/005.jpg");
     expect(loadWebsiteImages).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the catalog image URL and replaces a failed image with a Chinese placeholder", async () => {
+  it("falls back to the matching website image when a Sanity image fails", async () => {
     loadWebsiteImages.mockResolvedValue(
       new Map([
         ["sanity-1", "https://romiku.com/images/products-local/005_main1.jpg"],
@@ -268,12 +276,33 @@ describe("SanityCatalogList", () => {
       .element(image)
       .toHaveAttribute(
         "src",
-        "https://romiku.com/images/products-local/005_main1.jpg",
+        "https://res.cloudinary.com/example/image/upload/005.jpg",
       );
     image.element().dispatchEvent(new Event("error"));
     await expect
-      .element(screen.getByRole("cell", { name: "—" }).first())
-      .toBeVisible();
+      .element(screen.getByRole("img", { name: "005 图片" }))
+      .toHaveAttribute(
+        "src",
+        "https://romiku.com/images/products-local/005_main1.jpg",
+      );
+  });
+
+  it("passes a same-SKU fallback into the open drawer after its Sanity image fails", async () => {
+    const primary = new URL("/appIcon/152.png", location.href).href;
+    const fallback = new URL("/appIcon/144.png", location.href).href;
+    loadWebsiteImages.mockResolvedValue(new Map([["sanity-1", fallback]]));
+    getPage.mockResolvedValue({
+      products: [product({ images: [{ url: primary }] })],
+    });
+    const screen = await render(<SanityCatalogList />);
+    await screen.getByRole("cell", { name: "RMK-100", exact: true }).click();
+    await expect
+      .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
+      .toHaveAttribute("src", primary);
+    await screen.getByRole("button", { name: "模拟图片加载失败" }).click();
+    await expect
+      .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
+      .toHaveAttribute("src", fallback);
   });
 
   it("uses the same Chinese placeholder when a product has no image URL", async () => {
@@ -282,7 +311,7 @@ describe("SanityCatalogList", () => {
     const screen = await render(<SanityCatalogList />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "—" }).first())
+      .element(screen.getByRole("cell", { name: "暂无图片" }).first())
       .toBeVisible();
   });
 

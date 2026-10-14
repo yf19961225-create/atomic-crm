@@ -13,6 +13,56 @@ describe("Product Library item snapshots", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
+  it("uses the Sanity image in the shared selector and falls back only to the same SKU website image", async () => {
+    const primary = new URL("/appIcon/152.png", location.href).href;
+    const fallback = new URL("/appIcon/144.png", location.href).href;
+    const onSelected = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: [
+                      {
+                        _id: "product-img",
+                        sku: "IMG-1",
+                        name: { zh: "测试产品" },
+                        images: [{ url: primary }],
+                        isPublished: true,
+                      },
+                    ],
+                  }
+                : { images: { "IMG-1": fallback }, powerSupplies: {} },
+            ),
+          ),
+        ),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup onSelected={onSelected} onManualSku={vi.fn()} />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").fill("IMG-1");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
+    await expect
+      .element(screen.getByRole("button", { name: /IMG-1 · 测试产品/ }))
+      .toBeVisible();
+    const image = screen.container.querySelector("ul img") as HTMLImageElement;
+    expect(image.src).toBe(primary);
+    image.dispatchEvent(new Event("error"));
+    await expect
+      .poll(
+        () =>
+          (screen.container.querySelector("ul img") as HTMLImageElement)?.src,
+      )
+      .toBe(fallback);
+    await screen.getByRole("button", { name: /IMG-1 · 测试产品/ }).click();
+    expect(onSelected.mock.calls[0]?.[0]?.product_snapshot?.image_url).toBe(
+      fallback,
+    );
+  });
   it("captures the selected catalog product and website image without master linkage writes", () => {
     const snapshot = createItemSnapshot(
       {
@@ -74,12 +124,32 @@ describe("Product Library item snapshots", () => {
   });
 
   it("captures product-level packing defaults without a supplier only into a newly selected snapshot", () => {
-    const product: SanityCatalogProduct = { id: "default-product", sku: "DEF-1", skuSort: "DEF-1", isPublished: true, cartonQty: 12 };
+    const product: SanityCatalogProduct = {
+      id: "default-product",
+      sku: "DEF-1",
+      skuSort: "DEF-1",
+      isPublished: true,
+      cartonQty: 12,
+    };
     const snapshot = createItemSnapshot(product, undefined, {
       includeCartonWeight: true,
-      procurementPacking: { supplierCount: 0, qtyPerCarton: 24, lengthCm: 50, widthCm: 40, heightCm: 35, cartonWeightKg: 12.5 },
+      procurementPacking: {
+        supplierCount: 0,
+        qtyPerCarton: 24,
+        lengthCm: 50,
+        widthCm: 40,
+        heightCm: 35,
+        cartonWeightKg: 12.5,
+      },
     });
-    expect(snapshot.packing_snapshot).toMatchObject({ qty_per_carton: 24, length_cm: 50, width_cm: 40, height_cm: 35, carton_weight_kg: 12.5, carton_cbm: 0.07 });
+    expect(snapshot.packing_snapshot).toMatchObject({
+      qty_per_carton: 24,
+      length_cm: 50,
+      width_cm: 40,
+      height_cm: 35,
+      carton_weight_kg: 12.5,
+      carton_cbm: 0.07,
+    });
   });
 
   it("captures selected supplier weight and the saved unit for an independent Packing snapshot", () => {

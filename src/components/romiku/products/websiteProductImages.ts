@@ -1,5 +1,26 @@
 import type { SanityCatalogProduct } from "./sanityCatalogSource";
 
+const usableImageUrls = (urls: Array<string | undefined>) =>
+  [...new Set(urls)].filter((url): url is string => {
+    if (!url) return false;
+    try {
+      return ["http:", "https:"].includes(new URL(url).protocol);
+    } catch {
+      return false;
+    }
+  });
+
+export const sanityProductImageUrls = (images?: Array<{ url?: string }>) =>
+  usableImageUrls((images ?? []).map((image) => image?.url));
+
+// The current Sanity record is authoritative. The website index is only a
+// fallback for the same SKU when its Sanity image cannot be loaded.
+export const catalogProductImageCandidates = (
+  product: SanityCatalogProduct,
+  websiteImageUrl?: string,
+) =>
+  usableImageUrls([...sanityProductImageUrls(product.images), websiteImageUrl]);
+
 export const loadWebsiteProductDetails = async (
   products: SanityCatalogProduct[],
 ) => {

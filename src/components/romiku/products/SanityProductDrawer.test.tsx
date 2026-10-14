@@ -39,6 +39,53 @@ const createClient = (): ProductDrawerClient & ProductDrawerReadClient => ({
 });
 
 describe("SanityProductDrawer", () => {
+  it("uses Chinese labels throughout product details and displays manual cost sources in Chinese", async () => {
+    const client = createClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([
+      {
+        id: "relation-1",
+        supplier_id: "supplier-a",
+        supplier_name: "华东供应商",
+      },
+    ]);
+    vi.mocked(client.getCosts).mockResolvedValue([
+      {
+        id: "cost-1",
+        product_supplier_id: "relation-1",
+        cost: 12,
+        currency: "USD",
+        effective_date: "2026-10-14",
+        source_type: "manual",
+      },
+    ]);
+    const screen = await render(
+      <SanityProductDrawer
+        product={product}
+        open
+        onOpenChange={vi.fn()}
+        refreshOverlay={vi.fn()}
+        client={client}
+      />,
+    );
+    for (const label of [
+      "供应商",
+      "供应商货号",
+      "供应商起订量",
+      "交期",
+      "首选供应商",
+      "产品备注",
+    ]) {
+      await expect
+        .element(screen.getByLabelText(label, { exact: true }))
+        .toBeVisible();
+    }
+    await expect.element(screen.getByText("参考成本 / 成本历史")).toBeVisible();
+    await expect.element(screen.getByPlaceholder("参考成本")).toBeVisible();
+    await expect.element(screen.getByText(/手动/)).toBeVisible();
+    expect(
+      screen.getByText("Reference Cost / Cost History"),
+    ).not.toBeInTheDocument();
+  });
   it("renders the loaded Sanity product read-only and never requests Sanity again", async () => {
     const client = createClient();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -57,7 +104,7 @@ describe("SanityProductDrawer", () => {
     await expect.element(screen.getByText("Caja")).toBeVisible();
     await expect.element(screen.getByText("材质：PP")).toBeVisible();
     await expect.element(screen.getByText("已发布")).toBeVisible();
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toBeVisible();
+    await expect.element(screen.getByLabelText("每箱数量")).toBeVisible();
     await expect.element(screen.getByLabelText("长(cm)")).toBeVisible();
     await expect.element(screen.getByLabelText("单箱重量(kg)")).toBeVisible();
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -131,7 +178,7 @@ describe("SanityProductDrawer", () => {
       />,
     );
 
-    await screen.getByLabelText("Internal Notes").fill("首次备注");
+    await screen.getByLabelText("产品备注").fill("首次备注");
     await screen.getByRole("button", { name: "保存备注" }).click();
 
     await expect.element(screen.getByText("备注已保存。")).toBeVisible();
@@ -169,7 +216,7 @@ describe("SanityProductDrawer", () => {
       .element(view.getByTestId("draft-state"))
       .toHaveTextContent("false");
     for (const [label, value] of [
-      ["Qty/Ctn", "24"],
+      ["每箱数量", "24"],
       ["长(cm)", "50"],
       ["宽(cm)", "40"],
       ["高(cm)", "35"],
@@ -188,7 +235,7 @@ describe("SanityProductDrawer", () => {
       .toHaveTextContent("false");
     await view.rerender(drawerWithObserver(client, false));
     await view.rerender(drawerWithObserver(client));
-    await expect.element(view.getByLabelText("Qty/Ctn")).toHaveValue(24);
+    await expect.element(view.getByLabelText("每箱数量")).toHaveValue(24);
     await expect.element(view.getByLabelText("单箱重量(kg)")).toHaveValue(12.5);
     await expect
       .element(view.getByTestId("draft-state"))
@@ -217,7 +264,7 @@ describe("SanityProductDrawer", () => {
       />,
     );
 
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(null);
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(null);
     await screen.getByLabelText("长(cm)").fill("50");
     await screen.getByLabelText("宽(cm)").fill("50");
     await screen.getByLabelText("高(cm)").fill("50");
@@ -248,11 +295,13 @@ describe("SanityProductDrawer", () => {
       carton_weight_kg: 12.5,
     });
     const screen = await render(drawerWithObserver(client));
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-    await screen.getByLabelText("Supplier", { exact: true }).selectOptions("supplier-a");
-    await screen.getByLabelText("Supplier SKU").fill("SUP-24");
-    await screen.getByLabelText("Supplier MOQ").fill("120");
-    await screen.getByLabelText("Lead Time").fill("10");
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+    await screen
+      .getByLabelText("供应商", { exact: true })
+      .selectOptions("supplier-a");
+    await screen.getByLabelText("供应商货号").fill("SUP-24");
+    await screen.getByLabelText("供应商起订量").fill("120");
+    await screen.getByLabelText("交期").fill("10");
     await screen.getByRole("button", { name: "新增并保存供应商关联" }).click();
     expect(client.createSupplier).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -267,7 +316,7 @@ describe("SanityProductDrawer", () => {
       }),
     );
     expect(client.updateExtension).not.toHaveBeenCalled();
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
   });
 });
 
@@ -310,11 +359,11 @@ describe("product drawer draft lifecycle", () => {
   it("opens clean, tracks cost edits, clears on close and reopens clean", async () => {
     const client = loadedClient();
     const screen = await render(drawerWithObserver(client));
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("false");
-    await screen.getByPlaceholder("Reference Cost").fill("12");
+    await screen.getByPlaceholder("参考成本").fill("12");
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("true");
@@ -323,7 +372,7 @@ describe("product drawer draft lifecycle", () => {
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("false");
     await screen.rerender(drawerWithObserver(client));
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("false");
@@ -331,17 +380,17 @@ describe("product drawer draft lifecycle", () => {
 
   it("returns to clean when supplier and cost values match their baselines", async () => {
     const screen = await render(drawerWithObserver(loadedClient()));
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-    await screen.getByLabelText("Qty/Ctn").fill("25");
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+    await screen.getByLabelText("每箱数量").fill("25");
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("true");
-    await screen.getByLabelText("Qty/Ctn").fill("24.0");
+    await screen.getByLabelText("每箱数量").fill("24.0");
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("false");
-    await screen.getByPlaceholder("Reference Cost").fill("12");
-    await screen.getByPlaceholder("Reference Cost").fill("");
+    await screen.getByPlaceholder("参考成本").fill("12");
+    await screen.getByPlaceholder("参考成本").fill("");
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("false");
@@ -349,17 +398,17 @@ describe("product drawer draft lifecycle", () => {
 
   it("saving notes preserves independently dirty supplier and cost drafts", async () => {
     const screen = await render(drawerWithObserver(loadedClient()));
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-    await screen.getByLabelText("Internal Notes").fill("draft note");
-    await screen.getByLabelText("Qty/Ctn").fill("30");
-    await screen.getByPlaceholder("Reference Cost").fill("12");
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+    await screen.getByLabelText("产品备注").fill("draft note");
+    await screen.getByLabelText("每箱数量").fill("30");
+    await screen.getByPlaceholder("参考成本").fill("12");
     await screen.getByRole("button", { name: "保存备注" }).click();
     await expect.element(screen.getByText("备注已保存。")).toBeVisible();
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(30);
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(30);
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("true");
-    await screen.getByLabelText("Qty/Ctn").fill("24");
+    await screen.getByLabelText("每箱数量").fill("24");
     await screen.getByRole("button", { name: "新增参考成本" }).click();
     await expect.element(screen.getByText("参考成本已保存。")).toBeVisible();
     await expect
@@ -380,20 +429,20 @@ describe("product drawer draft lifecycle", () => {
       }),
     );
     const screen = await render(drawerWithObserver(client));
-    await screen.getByLabelText("Internal Notes").fill("local draft");
+    await screen.getByLabelText("产品备注").fill("local draft");
     resolveExtension({
       id: "extension-1",
       internal_notes: "server note",
       qty_per_carton: 24,
     });
-    await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
+    await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
     await expect
-      .element(screen.getByLabelText("Internal Notes"))
+      .element(screen.getByLabelText("产品备注"))
       .toHaveValue("local draft");
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("true");
-    await screen.getByLabelText("Internal Notes").fill("server note");
+    await screen.getByLabelText("产品备注").fill("server note");
     await expect
       .element(screen.getByTestId("draft-state"))
       .toHaveTextContent("false");
@@ -409,19 +458,19 @@ it("keeps newer notes dirty when an earlier save finishes", async () => {
     }),
   );
   const screen = await render(drawerWithObserver(client));
-  await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-  await screen.getByLabelText("Internal Notes").fill("submitted note");
+  await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+  await screen.getByLabelText("产品备注").fill("submitted note");
   await screen.getByRole("button", { name: "保存备注" }).click();
-  await screen.getByLabelText("Internal Notes").fill("newer note");
+  await screen.getByLabelText("产品备注").fill("newer note");
   resolveSave();
   await expect.element(screen.getByText("备注已保存。")).toBeVisible();
   await expect
-    .element(screen.getByLabelText("Internal Notes"))
+    .element(screen.getByLabelText("产品备注"))
     .toHaveValue("newer note");
   await expect
     .element(screen.getByTestId("draft-state"))
     .toHaveTextContent("true");
-  await screen.getByLabelText("Internal Notes").fill("submitted note");
+  await screen.getByLabelText("产品备注").fill("submitted note");
   await expect
     .element(screen.getByTestId("draft-state"))
     .toHaveTextContent("false");
@@ -429,23 +478,21 @@ it("keeps newer notes dirty when an earlier save finishes", async () => {
 
 it("packing save clears only its source and leaves notes and cost drafts intact", async () => {
   const screen = await render(drawerWithObserver(loadedClient()));
-  await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-  await screen.getByLabelText("Internal Notes").fill("unsaved note");
-  await screen.getByPlaceholder("Reference Cost").fill("12");
-  await screen.getByLabelText("Qty/Ctn").fill("30");
+  await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+  await screen.getByLabelText("产品备注").fill("unsaved note");
+  await screen.getByPlaceholder("参考成本").fill("12");
+  await screen.getByLabelText("每箱数量").fill("30");
   await screen.getByRole("button", { name: "保存装箱信息" }).click();
   await expect.element(screen.getByText("装箱信息已保存。")).toBeVisible();
   await expect
-    .element(screen.getByLabelText("Internal Notes"))
+    .element(screen.getByLabelText("产品备注"))
     .toHaveValue("unsaved note");
-  await expect
-    .element(screen.getByPlaceholder("Reference Cost"))
-    .toHaveValue(12);
+  await expect.element(screen.getByPlaceholder("参考成本")).toHaveValue(12);
   await expect
     .element(screen.getByTestId("draft-state"))
     .toHaveTextContent("true");
-  await screen.getByLabelText("Internal Notes").fill("");
-  await screen.getByPlaceholder("Reference Cost").fill("");
+  await screen.getByLabelText("产品备注").fill("");
+  await screen.getByPlaceholder("参考成本").fill("");
   await expect
     .element(screen.getByTestId("draft-state"))
     .toHaveTextContent("false");
@@ -453,8 +500,8 @@ it("packing save clears only its source and leaves notes and cost drafts intact"
 
 it("tracks invalid numeric keyboard input instead of treating it as untouched blank", async () => {
   const screen = await render(drawerWithObserver(loadedClient()));
-  await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-  const cost = screen.getByPlaceholder("Reference Cost");
+  await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+  const cost = screen.getByPlaceholder("参考成本");
   await cost.click();
   await userEvent.keyboard("e");
   expect((cost.element() as HTMLInputElement).validity.badInput).toBe(true);
@@ -482,12 +529,12 @@ it("tracks invalid numeric keyboard input instead of treating it as untouched bl
 
 it("keeps explicit zero cost and packing values dirty until restored", async () => {
   const screen = await render(drawerWithObserver(loadedClient()));
-  await expect.element(screen.getByLabelText("Qty/Ctn")).toHaveValue(24);
-  await screen.getByPlaceholder("Reference Cost").fill("0");
+  await expect.element(screen.getByLabelText("每箱数量")).toHaveValue(24);
+  await screen.getByPlaceholder("参考成本").fill("0");
   await expect
     .element(screen.getByTestId("draft-state"))
     .toHaveTextContent("true");
-  await screen.getByPlaceholder("Reference Cost").fill("");
+  await screen.getByPlaceholder("参考成本").fill("");
   await screen.getByLabelText("长(cm)").fill("0");
   await expect
     .element(screen.getByTestId("draft-state"))

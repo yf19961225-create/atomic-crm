@@ -7,7 +7,10 @@ import {
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
 import { createSupabaseProcurementOverlayClient } from "../products/supabaseProcurementOverlayClient";
-import { loadWebsiteProductDetails } from "../products/websiteProductImages";
+import {
+  catalogProductImageCandidates,
+  loadWebsiteProductDetails,
+} from "../products/websiteProductImages";
 
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
 export type DocumentLanguage = "zh" | "en" | "es";
@@ -174,6 +177,7 @@ export function ProductLibraryLookup({
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [images, setImages] = useState<Map<string, string>>(new Map());
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [localizedPowerSupplies, setLocalizedPowerSupplies] = useState<
     Map<string, Record<string, string>>
   >(new Map());
@@ -199,6 +203,7 @@ export function ProductLibraryLookup({
         if (!cancelled) {
           setProducts(page.products);
           setImages(details.images);
+          setFailedImages(new Set());
           setLocalizedPowerSupplies(details.localizedPowerSupplies);
           setActiveIndex(page.products.length ? 0 : -1);
         }
@@ -231,17 +236,23 @@ export function ProductLibraryLookup({
             .catch(() => undefined)
         : undefined;
     onSelected(
-      createItemSnapshot(product, images.get(product.id), {
-        documentLanguage,
-        localizedPowerSupply: importMachineSpecifications
-          ? localizedPowerSupplies.get(product.id)
-          : undefined,
-        includeSpecification:
-          specificationMode === "all" || importMachineSpecifications,
-        procurementPacking,
-        includeUnit,
-        includeCartonWeight: capturePacking,
-      }),
+      createItemSnapshot(
+        product,
+        catalogProductImageCandidates(product, images.get(product.id)).find(
+          (url) => !failedImages.has(url),
+        ),
+        {
+          documentLanguage,
+          localizedPowerSupply: importMachineSpecifications
+            ? localizedPowerSupplies.get(product.id)
+            : undefined,
+          includeSpecification:
+            specificationMode === "all" || importMachineSpecifications,
+          procurementPacking,
+          includeUnit,
+          includeCartonWeight: capturePacking,
+        },
+      ),
     );
     setSearch(product.sku ?? "");
     setQuery("");
@@ -316,40 +327,51 @@ export function ProductLibraryLookup({
       {(loading || products.length > 0) && (
         <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded border bg-background shadow">
           {loading && <li className="p-2">正在搜索产品…</li>}
-          {products.map((product, index) => (
-            <li key={product.id}>
-              <button
-                type="button"
-                ref={(element) => {
-                  optionRefs.current[index] = element;
-                }}
-                aria-selected={activeIndex === index}
-                className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
-                onMouseEnter={() => setActiveIndex(index)}
-                onMouseDown={(event) => {
-                  // Keep focus in the lookup until click selects the catalog
-                  // product. Otherwise the input blur treats the selected SKU
-                  // as a manual override and clears the fresh snapshot.
-                  event.preventDefault();
-                }}
-                onClick={() => void select(product)}
-              >
-                {images.get(product.id) ? (
-                  <img
-                    className="h-8 w-8 object-cover"
-                    src={images.get(product.id)}
-                    alt=""
-                  />
-                ) : (
-                  <span className="h-8 w-8">—</span>
-                )}
-                <span>
-                  <strong>{product.sku}</strong> ·{" "}
-                  {product.name?.zh ?? product.name?.en ?? "未命名产品"}
-                </span>
-              </button>
-            </li>
-          ))}
+          {products.map((product, index) => {
+            const image = catalogProductImageCandidates(
+              product,
+              images.get(product.id),
+            ).find((url) => !failedImages.has(url));
+            return (
+              <li key={product.id}>
+                <button
+                  type="button"
+                  ref={(element) => {
+                    optionRefs.current[index] = element;
+                  }}
+                  aria-selected={activeIndex === index}
+                  className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseDown={(event) => {
+                    // Keep focus in the lookup until click selects the catalog
+                    // product. Otherwise the input blur treats the selected SKU
+                    // as a manual override and clears the fresh snapshot.
+                    event.preventDefault();
+                  }}
+                  onClick={() => void select(product)}
+                >
+                  {image ? (
+                    <img
+                      className="h-8 w-8 object-cover"
+                      src={image}
+                      alt=""
+                      onError={() =>
+                        setFailedImages((current) =>
+                          new Set(current).add(image),
+                        )
+                      }
+                    />
+                  ) : (
+                    <span className="h-8 w-8">暂无图片</span>
+                  )}
+                  <span>
+                    <strong>{product.sku}</strong> ·{" "}
+                    {product.name?.zh ?? product.name?.en ?? "未命名产品"}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadWebsiteProductImages } from "./websiteProductImages";
+import {
+  catalogProductImageCandidates,
+  loadWebsiteProductImages,
+} from "./websiteProductImages";
 
 const product = (id: string, sku: string) => ({
   id,
@@ -33,5 +36,37 @@ describe("loadWebsiteProductImages", () => {
         ["second", "https://romiku.com/005.jpg"],
       ]),
     );
+  });
+});
+
+describe("catalogProductImageCandidates", () => {
+  it("prefers the current Sanity image and retains the matching website image as fallback", () => {
+    expect(
+      catalogProductImageCandidates(
+        {
+          ...product("sanity-1", "SUN SF30MAX"),
+          images: [{ url: "https://cdn.example.com/current.png" }],
+        },
+        "https://romiku.com/current.png",
+      ),
+    ).toEqual([
+      "https://cdn.example.com/current.png",
+      "https://romiku.com/current.png",
+    ]);
+  });
+
+  it("uses the next valid Sanity image and never guesses another SKU image", () => {
+    expect(
+      catalogProductImageCandidates({
+        ...product("sanity-2", "SUN SF20MAX-R"),
+        images: [{ url: "" }, { url: "https://cdn.example.com/second.png" }],
+      }),
+    ).toEqual(["https://cdn.example.com/second.png"]);
+    expect(
+      catalogProductImageCandidates({
+        ...product("sanity-3", "SUN SF20MAX-R"),
+        images: [],
+      }),
+    ).toEqual([]);
   });
 });

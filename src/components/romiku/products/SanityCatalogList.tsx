@@ -10,7 +10,10 @@ import {
 } from "./productProcurementOverlay";
 import { createSupabaseProcurementOverlayClient } from "./supabaseProcurementOverlayClient";
 import { SanityProductDrawer } from "./SanityProductDrawer";
-import { loadWebsiteProductImages } from "./websiteProductImages";
+import {
+  catalogProductImageCandidates,
+  loadWebsiteProductImages,
+} from "./websiteProductImages";
 import { SearchInput } from "../search/SearchInput";
 
 export const catalogColumns = [
@@ -151,7 +154,10 @@ export const SanityCatalogList = () => {
         <tbody>
           {products.map((product) => {
             const item = overlay.get(product.id),
-              image = images.get(product.id);
+              image = catalogProductImageCandidates(
+                product,
+                images.get(product.id),
+              ).find((url) => !failedImages.has(url));
             const hasDimensions =
               item?.lengthCm != null &&
               item?.widthCm != null &&
@@ -172,7 +178,7 @@ export const SanityCatalogList = () => {
                 onClick={() => setSelectedProduct(product)}
               >
                 <td className="p-2">
-                  {image && !failedImages.has(product.id) ? (
+                  {image ? (
                     <button
                       type="button"
                       aria-label={`预览 ${product.sku || "产品"} 图片`}
@@ -188,14 +194,14 @@ export const SanityCatalogList = () => {
                         onError={() =>
                           setFailedImages((current) => {
                             const next = new Set(current);
-                            next.add(product.id);
+                            next.add(image);
                             return next;
                           })
                         }
                       />
                     </button>
                   ) : (
-                    "—"
+                    "暂无图片"
                   )}
                 </td>
                 <td className="p-2">{product.sku || "—"}</td>
@@ -236,8 +242,16 @@ export const SanityCatalogList = () => {
       {!products.length && !loading && !error && <p>没有找到匹配产品。</p>}
       <SanityProductDrawer
         product={selectedProduct}
+        onImageError={(url) =>
+          setFailedImages((current) => new Set(current).add(url))
+        }
         resolvedImageUrl={
-          selectedProduct ? images.get(selectedProduct.id) : undefined
+          selectedProduct
+            ? catalogProductImageCandidates(
+                selectedProduct,
+                images.get(selectedProduct.id),
+              ).find((url) => !failedImages.has(url))
+            : undefined
         }
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}

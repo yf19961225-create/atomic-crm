@@ -5,6 +5,15 @@ import {
 } from "./romikuSanityProductSource";
 
 describe("ROMIKU Sanity mapping", () => {
+  it("uses the first valid image URL when earlier Sanity image entries are empty", () => {
+    expect(
+      mapRomikuSanityRecord({
+        _id: "product-second",
+        sku: "IMG-2",
+        images: [{ url: "" }, { url: "https://cdn.example.test/second.jpg" }],
+      })?.imageUrl,
+    ).toBe("https://cdn.example.test/second.jpg");
+  });
   it("maps the configured product shape without copying a product master", () => {
     const mapped = mapRomikuSanityRecord({
       _id: "product-005",
