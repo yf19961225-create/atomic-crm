@@ -20,6 +20,7 @@ type WebsiteProduct = {
 type WebsiteIndex = {
   chunks?: Record<string, string>;
   productChunks?: Record<string, string>;
+  products?: Record<string, Pick<WebsiteProduct, "sku">>;
 };
 
 const jsonObjectAfter = (source: string, marker: string): unknown => {
@@ -85,8 +86,6 @@ const imageUrl = (product: WebsiteProduct) => {
   return relativeImage ? new URL(relativeImage, websiteOrigin).href : "";
 };
 
-const websiteLookupKey = (sku: string) => sku.toLowerCase().replace(/#$/, "");
-
 const parseSkus = (url: URL) => {
   const values = url.searchParams.getAll("skus");
   if (values.length !== 1) return null;
@@ -118,14 +117,22 @@ export default {
         await readText(indexUrl),
         productIndexPrefix,
       ) as WebsiteIndex;
-      const chunks = new Map<string, string[]>();
+      // Website index keys are slugs and can differ from the business SKU.
+      // Resolve through the index's explicit SKU before reading a chunk.
+      // Duplicate business SKUs are ambiguous, so leave them unmatched.
+      const exactKeys = new Map<string, string | null>();
+      for (const [key, product] of Object.entries(index.products ?? {})) {
+        if (!product.sku) continue;
+        exactKeys.set(product.sku, exactKeys.has(product.sku) ? null : key);
+      }
+      const chunks = new Map<string, Array<{ sku: string; key: string }>>();
       for (const sku of skus) {
-        const lookupKey = websiteLookupKey(sku);
-        const category =
-          index.productChunks?.[sku] ?? index.productChunks?.[lookupKey];
+        const key = exactKeys.get(sku);
+        if (!key) continue;
+        const category = index.productChunks?.[key];
         const chunk = category ? index.chunks?.[category] : undefined;
         if (!chunk || !/^products-[a-z-]+\.js$/.test(chunk)) continue;
-        chunks.set(chunk, [...(chunks.get(chunk) ?? []), sku]);
+        chunks.set(chunk, [...(chunks.get(chunk) ?? []), { sku, key }]);
       }
       const images: Record<string, string> = {};
       const powerSupplies: Record<string, Record<string, string>> = {};
@@ -135,16 +142,10 @@ export default {
             await readText(new URL(`data/${chunk}`, websiteOrigin).href),
             productChunkPrefix,
           ) as Record<string, WebsiteProduct>;
-          for (const sku of chunkSkus) {
-            const lookupKey = websiteLookupKey(sku);
-            const product =
-              products[lookupKey] ??
-              Object.values(products).find(
-                (value) =>
-                  value.sku != null &&
-                  websiteLookupKey(value.sku) === lookupKey,
-              );
-            const url = imageUrl(product ?? {});
+          for (const { sku, key } of chunkSkus) {
+            const product = products[key];
+            if (product?.sku !== sku) continue;
+            const url = imageUrl(product);
             if (url) images[sku] = url;
             if (product?.localizedPowerSupply)
               powerSupplies[sku] = product.localizedPowerSupply;
