@@ -116,6 +116,10 @@ const hasInvalidNumericInput = (form: HTMLFormElement) =>
   Array.from(form.elements).some(
     (field) => field instanceof HTMLInputElement && field.validity.badInput,
   );
+const costSourceValue = (value: FormDataEntryValue | null) => {
+  const source = String(value ?? "manual");
+  return source === "手动" ? "manual" : source;
+};
 const costSnapshot = (form: HTMLFormElement) => {
   const values = new FormData(form);
   const cost = String(values.get("cost") ?? "");
@@ -125,7 +129,7 @@ const costSnapshot = (form: HTMLFormElement) => {
       .trim()
       .toUpperCase(),
     String(values.get("effective_date") ?? ""),
-    String(values.get("source_type") ?? ""),
+    costSourceValue(values.get("source_type")),
     hasInvalidNumericInput(form),
   ]);
 };
@@ -323,7 +327,7 @@ const ProductDrawerSession = ({
         cost: Number(form.get("cost")),
         currency: String(form.get("currency") ?? "USD"),
         effective_date: String(form.get("effective_date")),
-        source_type: String(form.get("source_type") ?? "manual"),
+        source_type: costSourceValue(form.get("source_type")),
       });
       await loadInternal();
       if (costSnapshot(formElement) === submittedSnapshot) {
@@ -641,7 +645,7 @@ const ProductDrawerSession = ({
               <Input name="effective_date" type="date" />
               <Input
                 name="source_type"
-                defaultValue="manual"
+                defaultValue="手动"
                 placeholder="来源类型"
               />
               <Button type="submit">新增参考成本</Button>

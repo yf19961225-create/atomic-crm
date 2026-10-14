@@ -82,9 +82,39 @@ describe("SanityProductDrawer", () => {
     await expect.element(screen.getByText("参考成本 / 成本历史")).toBeVisible();
     await expect.element(screen.getByPlaceholder("参考成本")).toBeVisible();
     await expect.element(screen.getByText(/手动/)).toBeVisible();
+    await expect
+      .element(screen.getByPlaceholder("来源类型"))
+      .toHaveValue("手动");
     expect(
       screen.getByText("Reference Cost / Cost History"),
     ).not.toBeInTheDocument();
+  });
+  it("submits the localized manual source using the existing internal value", async () => {
+    const client = createClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([
+      {
+        id: "relation-1",
+        supplier_id: "supplier-a",
+        supplier_name: "华东供应商",
+      },
+    ]);
+    const screen = await render(
+      <SanityProductDrawer
+        product={product}
+        open
+        onOpenChange={vi.fn()}
+        refreshOverlay={vi.fn()}
+        client={client}
+      />,
+    );
+    await screen
+      .getByLabelText("供应商", { exact: true })
+      .selectOptions("supplier-a");
+    await screen.getByPlaceholder("参考成本").fill("12");
+    await screen.getByRole("button", { name: "新增参考成本" }).click();
+    expect(client.createCost).toHaveBeenCalledWith(
+      expect.objectContaining({ source_type: "manual" }),
+    );
   });
   it("renders the loaded Sanity product read-only and never requests Sanity again", async () => {
     const client = createClient();
