@@ -1,5 +1,6 @@
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { productionDraftSnapshot } from "./productionDraftSnapshot";
+import { saveProductionWorkspace } from "./productionWorkspace";
 import { hasAppDraft } from "../updates/drafts";
 import { QueryClient } from "@tanstack/react-query";
 import { OrderProductionPanel } from "./OrderProductionPanel";
@@ -504,6 +505,39 @@ it("returns shared requirements to read-only summary after a successful save", a
   await expect
     .element(screen.getByRole("button", { name: "编辑统一要求", exact: true }))
     .toBeVisible();
+});
+
+it("saves the chosen factory calendar date without browser timezone input and clears it to null", async () => {
+  const { screen } = await setup();
+  await expect.element(screen.getByText("工厂交期：—")).toBeVisible();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  const date = screen.getByLabelText("工厂交期", { exact: true });
+  await expect.element(date).toHaveAttribute("type", "date");
+  await date.fill("2026-10-25");
+  expect(hasAppDraft()).toBe(true);
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(() => rpc.mock.calls.length).toBe(1);
+  expect(rpc.mock.calls[0][1].header.factory_due_at).toBe(
+    "2026-10-25T15:59:59.999Z",
+  );
+  await expect.poll(hasAppDraft).toBe(false);
+
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await date.fill("2026-10-30");
+  await screen.getByRole("button", { name: "清空" }).click();
+  await expect.element(date).toHaveValue("");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(() => rpc.mock.calls.length).toBe(2);
+  expect(rpc.mock.calls[1][1].header.factory_due_at).toBeNull();
+});
+
+it("rejects an invalid factory due date before sending a partial workspace", async () => {
+  rpc.mockReset();
+  await expect(
+    saveProductionWorkspace({ id: "p", factory_due_at: "10" }, [], {}),
+  ).rejects.toThrow("工厂交期格式无效，请重新选择日期。");
+  expect(rpc).not.toHaveBeenCalled();
 });
 
 it("edits only the product small label in the whole session; cancel restores and save refreshes final text", async () => {

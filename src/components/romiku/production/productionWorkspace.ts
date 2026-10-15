@@ -2,6 +2,7 @@ import { normalizeBarcode, validateBarcode } from "./barcode";
 import type { AllocationIssue } from "./productionAllocation";
 import type { RaRecord } from "ra-core";
 import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
+import { productionDueDatePayload } from "./productionDueDate";
 import {
   normalizeItemMarkingOverride,
   normalizeProductionInstructions,
@@ -53,6 +54,8 @@ export async function saveProductionWorkspace(
     "marking_snapshot",
   ])
     if (record[key] !== undefined) header[key] = record[key];
+  if (header.factory_due_at !== undefined)
+    header.factory_due_at = productionDueDatePayload(header.factory_due_at);
   if (!isNew && record.document_number)
     header.document_number = record.document_number;
   for (const item of items) {

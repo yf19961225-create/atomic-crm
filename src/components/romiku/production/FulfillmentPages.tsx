@@ -5,6 +5,7 @@ import { BulkActions } from "../shared/BulkActions";
 import { usePageSelection } from "../shared/usePageSelection";
 import { statusOptions } from "../shared/workflowStatus";
 import { ProductionWorkbench } from "./ProductionWorkbench";
+import { productionDueDateLabel } from "./productionDueDate";
 import { readProductionItems } from "./productionWorkflow";
 import { savedBuyerName } from "./productionWorkspace";
 import { RecordDelete } from "../shared/RecordDelete";
@@ -274,7 +275,7 @@ export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
                         )}
                         label="生产状态"
                       />,
-                      record.factory_due_at,
+                      productionDueDateLabel(record.factory_due_at),
                       localDateTimeLabel(record.created_at),
                     ]
                   : [
@@ -367,7 +368,7 @@ const productionFields: Field[] = [
     required: true,
     choices: productionStatusChoices,
   },
-  { key: "factory_due_at", label: "工厂交期（ISO / 时区）" },
+  { key: "factory_due_at", label: "工厂交期" },
   { key: "anomaly_notes", label: "异常备注", type: "textarea" },
   { key: "notes", label: "生产备注", type: "textarea" },
 ];

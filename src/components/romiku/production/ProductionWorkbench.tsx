@@ -1,5 +1,9 @@
 import { productionDraftSnapshot } from "./productionDraftSnapshot";
 import {
+  productionDueDateInput,
+  productionDueDateLabel,
+} from "./productionDueDate";
+import {
   ProductionBarcode,
   BarcodePaste,
   BARCODE_NOTE,
@@ -232,6 +236,9 @@ export function ProductionWorkbench({
                 {productionStatusLabel(record.status)}
               </p>
             )}
+            {!isNew && (
+              <p>工厂交期：{productionDueDateLabel(record.factory_due_at)}</p>
+            )}
           </div>
           <div className="flex gap-2">
             {editing ? (
@@ -347,61 +354,86 @@ export function ProductionWorkbench({
             )}
           </section>
           {editing && (
-            <details>
-              <summary>生产单详情</summary>
-              <div className="grid gap-3 py-3 md:grid-cols-2">
-                {[
-                  "document_number",
-                  "name",
-                  "factory_due_at",
-                  "notes",
-                  "anomaly_notes",
-                ]
-                  .filter((k) => !isNew || k !== "document_number")
-                  .map((k) => (
-                    <label className="block" key={k}>
-                      {
-                        (
-                          {
-                            document_number: "单据编号",
-                            name: "生产名称",
-                            factory_due_at: "工厂交期（ISO / 时区）",
-                            notes: "生产备注",
-                            anomaly_notes: "异常备注",
-                          } as Record<string, string>
-                        )[k]
-                      }
-                      <input
-                        className="block w-full rounded border p-2"
-                        aria-label={
-                          k === "document_number" ? "单据编号" : `生产详情 ${k}`
-                        }
-                        value={draft[k] || ""}
-                        onChange={(e) =>
-                          setDraft((d) => ({ ...d, [k]: e.target.value }))
-                        }
-                      />
-                    </label>
-                  ))}
-                <label>
-                  生产状态
-                  <select
-                    aria-label="生产状态"
-                    className="ml-2 rounded border p-2"
-                    value={draft.status || "pending_send"}
+            <div>
+              <div className="mb-3">
+                <label htmlFor="production-factory-due-date">工厂交期</label>
+                <div className="flex gap-2">
+                  <input
+                    id="production-factory-due-date"
+                    type="date"
+                    aria-label="工厂交期"
+                    className="block w-full rounded border p-2"
+                    value={productionDueDateInput(draft.factory_due_at)}
                     onChange={(e) =>
-                      setDraft((d) => ({ ...d, status: e.target.value }))
+                      setDraft((d) => ({
+                        ...d,
+                        factory_due_at: e.target.value,
+                      }))
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!productionDueDateInput(draft.factory_due_at)}
+                    onClick={() =>
+                      setDraft((d) => ({ ...d, factory_due_at: null }))
                     }
                   >
-                    {productionStatusChoices.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    清空
+                  </Button>
+                </div>
               </div>
-            </details>
+              <details>
+                <summary>生产单详情</summary>
+                <div className="grid gap-3 py-3 md:grid-cols-2">
+                  {["document_number", "name", "notes", "anomaly_notes"]
+                    .filter((k) => !isNew || k !== "document_number")
+                    .map((k) => (
+                      <label className="block" key={k}>
+                        {
+                          (
+                            {
+                              document_number: "单据编号",
+                              name: "生产名称",
+                              notes: "生产备注",
+                              anomaly_notes: "异常备注",
+                            } as Record<string, string>
+                          )[k]
+                        }
+                        <input
+                          className="block w-full rounded border p-2"
+                          aria-label={
+                            k === "document_number"
+                              ? "单据编号"
+                              : `生产详情 ${k}`
+                          }
+                          value={draft[k] || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, [k]: e.target.value }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  <label>
+                    生产状态
+                    <select
+                      aria-label="生产状态"
+                      className="ml-2 rounded border p-2"
+                      value={draft.status || "pending_send"}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, status: e.target.value }))
+                      }
+                    >
+                      {productionStatusChoices.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </details>
+            </div>
           )}
           <h2 className="text-xl font-semibold">所有产品</h2>
           <p className="text-sm text-muted-foreground">{BARCODE_NOTE}</p>

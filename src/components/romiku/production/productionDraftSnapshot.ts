@@ -1,4 +1,5 @@
 import type { RaRecord } from "ra-core";
+import { productionDueDateInput } from "./productionDueDate";
 import {
   normalizeProductionInstructions,
   normalizeItemMarkingOverride,
@@ -26,7 +27,12 @@ export function productionDraftSnapshot(record: RaRecord, items: RaRecord[]) {
         "factory_due_at",
         "notes",
         "anomaly_notes",
-      ].map((key) => [key, text(record[key])]),
+      ].map((key) => [
+        key,
+        key === "factory_due_at"
+          ? productionDueDateInput(record[key])
+          : text(record[key]),
+      ]),
     ),
     status: record.status || "pending_send",
     instructions: {
