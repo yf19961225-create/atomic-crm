@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { MemoryRouter } from "react-router";
-import { ProductLibrary } from "./ProductLibrary";
+import { RecordContextProvider } from "ra-core";
+import { ProductLibrary, ProductSupplierEditLink } from "./ProductLibrary";
+import { romikuRoutes } from "../routes/RomikuRoutes";
+import { ProductSupplierEdit } from "./ProductForms";
 import type { SanityCatalogProduct } from "./sanityCatalogSource";
 
 const getPage = vi.hoisted(() => vi.fn());
@@ -19,6 +22,19 @@ const catalogProduct: SanityCatalogProduct = {
 };
 
 describe("ProductLibrary", () => {
+  it("opens the ProductSupplier relation editor with the relation id on a registered route", async () => {
+    const screen = await render(
+      <MemoryRouter>
+        <RecordContextProvider value={{ id: "relation-123", supplier_id: "supplier-456" }}>
+          <ProductSupplierEditLink />
+        </RecordContextProvider>
+      </MemoryRouter>,
+    );
+    await expect.element(screen.getByRole("link", { name: "编辑供应商关联" }))
+      .toHaveAttribute("href", "/product-library/suppliers/relation-123/edit");
+    const route = romikuRoutes.find((entry) => entry.props.path === "/product-library/suppliers/:id/edit");
+    expect(route?.props.element.type).toBe(ProductSupplierEdit);
+  });
   beforeEach(() => {
     getPage.mockReset();
   });

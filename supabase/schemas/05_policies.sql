@@ -171,7 +171,6 @@ alter table public.romiku_product_suppliers enable row level security;
 create policy romiku_read on public.romiku_product_suppliers for select to authenticated using (true);
 create policy romiku_insert on public.romiku_product_suppliers for insert to authenticated with check (true);
 create policy romiku_update on public.romiku_product_suppliers for update to authenticated using (true) with check (true);
-create policy romiku_delete on public.romiku_product_suppliers for delete to authenticated using (true);
 alter table public.romiku_procurement_cost_history enable row level security;
 create policy romiku_read on public.romiku_procurement_cost_history for select to authenticated using (true);
 create policy romiku_insert on public.romiku_procurement_cost_history for insert to authenticated with check (true);

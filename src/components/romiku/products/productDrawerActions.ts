@@ -52,6 +52,11 @@ export type DrawerCost = {
   source_type: string;
 };
 export type SupplierOption = { id: string; name: string };
+export type DeleteSupplierResult = {
+  ok: boolean;
+  code?: string;
+  message?: string;
+};
 export type ProductDrawerClient = {
   createExtension: (
     value: {
@@ -71,6 +76,7 @@ export type ProductDrawerClient = {
     id: string,
     value: SupplierValues & { sku: string; sanity_product_id: string },
   ) => Promise<unknown>;
+  deleteSupplier: (id: string) => Promise<DeleteSupplierResult>;
   createCost: (
     value: CostValues & { product_supplier_id: string },
   ) => Promise<unknown>;

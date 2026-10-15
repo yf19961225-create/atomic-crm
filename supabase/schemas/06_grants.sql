@@ -243,7 +243,7 @@ revoke all on table public.romiku_product_extensions from public, anon, authenti
 grant select, insert, update, delete on table public.romiku_product_extensions to authenticated;
 grant all on table public.romiku_product_extensions to service_role;
 revoke all on table public.romiku_product_suppliers from public, anon, authenticated;
-grant select, insert, update, delete on table public.romiku_product_suppliers to authenticated;
+grant select, insert, update on table public.romiku_product_suppliers to authenticated;
 grant all on table public.romiku_product_suppliers to service_role;
 revoke all on table public.romiku_procurement_cost_history from public, anon, authenticated;
 grant select, insert on table public.romiku_procurement_cost_history to authenticated;
@@ -321,5 +321,7 @@ grant execute on function public.romiku_submit_website_inquiry(jsonb) to service
 
 revoke all on function public.romiku_delete_record(text,uuid) from public, anon;
 grant execute on function public.romiku_delete_record(text,uuid) to authenticated;
+revoke all on function public.romiku_delete_product_supplier(uuid) from public, anon;
+grant execute on function public.romiku_delete_product_supplier(uuid) to authenticated;
 
 revoke delete on public.romiku_payments from authenticated,anon;

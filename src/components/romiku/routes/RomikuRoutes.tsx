@@ -3,6 +3,7 @@ import { GlobalSearch } from "../search/GlobalSearch";
 import { RomikuCalendar } from "../calendar/RomikuCalendar";
 import { ManualTaskList, ManualTaskPage } from "../calendar/ManualTasks";
 import { ProductLibrary } from "../products";
+import { ProductSupplierEdit } from "../products";
 import {
   SupplierContactList,
   SupplierCreate,
@@ -164,5 +165,10 @@ export const romikuRoutes = [
     key="/product-library"
     path="/product-library"
     element={<ProductLibrary />}
+  />,
+  <Route
+    key="/product-library/suppliers/:id/edit"
+    path="/product-library/suppliers/:id/edit"
+    element={<ProductSupplierEdit />}
   />,
 ];

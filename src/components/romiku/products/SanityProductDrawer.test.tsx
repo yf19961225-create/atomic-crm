@@ -29,6 +29,7 @@ const createClient = (): ProductDrawerClient & ProductDrawerReadClient => ({
   updateExtension: vi.fn().mockResolvedValue(undefined),
   createSupplier: vi.fn().mockResolvedValue(undefined),
   updateSupplier: vi.fn().mockResolvedValue(undefined),
+  deleteSupplier: vi.fn().mockResolvedValue({ ok: true }),
   createCost: vi.fn().mockResolvedValue(undefined),
   getExtension: vi.fn().mockResolvedValue(null),
   getSuppliers: vi.fn().mockResolvedValue([]),
@@ -39,6 +40,44 @@ const createClient = (): ProductDrawerClient & ProductDrawerReadClient => ({
 });
 
 describe("SanityProductDrawer", () => {
+  it("edits the selected relation by its own id and can cancel without writing", async () => {
+    const client = createClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([{ id: "relation-1", supplier_id: "supplier-a", supplier_name: "华东供应商", supplier_item_number: "OLD" }]);
+    const screen = await render(<SanityProductDrawer product={product} open onOpenChange={vi.fn()} refreshOverlay={vi.fn()} client={client} />);
+    await screen.getByRole("button", { name: "编辑供应商关联" }).click();
+    await screen.getByLabelText("供应商货号").fill("NEW");
+    await screen.getByRole("button", { name: "取消编辑" }).click();
+    expect(client.updateSupplier).not.toHaveBeenCalled();
+    await screen.getByRole("button", { name: "编辑供应商关联" }).click();
+    await screen.getByLabelText("供应商货号").fill("NEW");
+    await screen.getByRole("button", { name: "保存采购信息" }).click();
+    expect(client.updateSupplier).toHaveBeenCalledWith("relation-1", expect.objectContaining({ supplier_item_number: "NEW" }));
+  });
+
+  it("only deletes one relation after confirmation and keeps packing defaults", async () => {
+    const client = createClient();
+    vi.mocked(client.getExtension).mockResolvedValue({ id: "extension-1", qty_per_carton: 24 });
+    vi.mocked(client.getSuppliers).mockResolvedValue([{ id: "relation-1", supplier_id: "supplier-a", supplier_name: "华东供应商" }]);
+    const screen = await render(<SanityProductDrawer product={product} open onOpenChange={vi.fn()} refreshOverlay={vi.fn()} client={client} />);
+    await screen.getByRole("button", { name: "删除供应商关联" }).click();
+    await expect.element(screen.getByText(/此操作不会删除供应商主档/)).toBeVisible();
+    await screen.getByRole("button", { name: "取消删除" }).click();
+    expect(client.deleteSupplier).not.toHaveBeenCalled();
+    await screen.getByRole("button", { name: "删除供应商关联" }).click();
+    await screen.getByRole("button", { name: "确认删除关联" }).click();
+    expect(client.deleteSupplier).toHaveBeenCalledWith("relation-1");
+    expect(client.updateExtension).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's cost-history block without deleting anything else", async () => {
+    const client = createClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([{ id: "relation-1", supplier_id: "supplier-a", supplier_name: "华东供应商" }]);
+    vi.mocked(client.deleteSupplier).mockResolvedValue({ ok: false, code: "HAS_COST_HISTORY", message: "该供应商关联已有成本历史，不能直接删除。请先保留该关联或使用停用方式。" });
+    const screen = await render(<SanityProductDrawer product={product} open onOpenChange={vi.fn()} refreshOverlay={vi.fn()} client={client} />);
+    await screen.getByRole("button", { name: "删除供应商关联" }).click();
+    await screen.getByRole("button", { name: "确认删除关联" }).click();
+    await expect.element(screen.getByRole("alert")).toHaveTextContent("已有成本历史");
+  });
   it("uses Chinese labels throughout product details and displays manual cost sources in Chinese", async () => {
     const client = createClient();
     vi.mocked(client.getSuppliers).mockResolvedValue([

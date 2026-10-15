@@ -84,6 +84,29 @@ exception
 end;
 $$;
 
+-- ProductSupplier deletion checks cost history under a parent row lock.
+CREATE OR REPLACE FUNCTION "public"."romiku_delete_product_supplier"("relation_id" uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path TO '' AS $$
+BEGIN
+  IF auth.uid() IS NULL OR coalesce(nullif(current_setting('role', true), 'none'), session_user) <> 'authenticated' THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'UNAUTHENTICATED', 'message', '请先登录。');
+  END IF;
+  PERFORM 1 FROM public.romiku_product_suppliers WHERE id = relation_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'NOT_FOUND', 'message', '供应商关联不存在。');
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.romiku_procurement_cost_history WHERE product_supplier_id = relation_id) THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'HAS_COST_HISTORY',
+      'message', '该供应商关联已有成本历史，不能直接删除。请先保留该关联或使用停用方式。');
+  END IF;
+  DELETE FROM public.romiku_product_suppliers WHERE id = relation_id;
+  RETURN jsonb_build_object('ok', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('ok', false, 'code', 'DELETE_FAILED',
+    'message', '供应商关联删除失败，记录未被更改。');
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION "public"."get_domain_favicon"("domain_name" "text") RETURNS "text"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'

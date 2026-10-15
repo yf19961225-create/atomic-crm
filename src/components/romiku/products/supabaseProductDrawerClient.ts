@@ -53,6 +53,16 @@ export const createSupabaseProductDrawerClient = (): ProductDrawerClient &
         .eq("id", id),
     );
   },
+  deleteSupplier: async (id) => {
+    const { data, error } = await getSupabaseClient().rpc(
+      "romiku_delete_product_supplier",
+      { relation_id: id },
+    );
+    if (error) throw new Error(error.message);
+    if (!data || typeof data.ok !== "boolean")
+      throw new Error("Invalid product supplier delete result");
+    return data;
+  },
   createCost: async (value) => {
     await write(
       getSupabaseClient().from("romiku_procurement_cost_history").insert(value),

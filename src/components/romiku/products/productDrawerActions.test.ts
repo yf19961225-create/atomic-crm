@@ -13,6 +13,7 @@ const client = (): ProductDrawerClient => ({
   updateExtension: vi.fn(),
   createSupplier: vi.fn().mockResolvedValue({ id: "supplier-link-1" }),
   updateSupplier: vi.fn(),
+  deleteSupplier: vi.fn().mockResolvedValue({ ok: true }),
   createCost: vi.fn(),
 });
 

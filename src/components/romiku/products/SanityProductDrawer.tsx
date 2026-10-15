@@ -11,6 +11,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   addCostHistory,
   saveInternalNotes,
   savePackingDefaults,
@@ -188,6 +195,9 @@ const ProductDrawerSession = ({
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
   const [costDirty, setCostDirty] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DrawerSupplier | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteFailure, setDeleteFailure] = useState("");
   useAppDraft(
     open && (supplierDirty || costDirty || notesDirty || packingDirty),
   );
@@ -337,6 +347,32 @@ const ProductDrawerSession = ({
       setMessage("参考成本已保存。");
     } catch {
       setMessage("参考成本保存失败。");
+    }
+  };
+  const deleteRelation = async () => {
+    if (!deleteTarget || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteFailure("");
+    try {
+      const result = await client.deleteSupplier(deleteTarget.id);
+      if (!result.ok) {
+        setDeleteFailure(result.message ?? "供应商关联删除失败。");
+        return;
+      }
+      const deletedSupplierId = deleteTarget.supplier_id;
+      setDeleteTarget(null);
+      if (selectedSupplier?.id === deleteTarget.id) {
+        setSelectedSupplier(null);
+        setSupplierForm(emptySupplierForm());
+        setSupplierBaseline(emptySupplierForm());
+        setSupplierInvalid(false);
+      }
+      await refreshCurrent(deletedSupplierId);
+      setMessage("供应商关联已删除。");
+    } catch {
+      setDeleteFailure("供应商关联删除失败，请刷新后重试。");
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -505,18 +541,30 @@ const ProductDrawerSession = ({
                       {supplier.moq ?? "—"} · 交期 {supplier.lead_days ?? "—"}{" "}
                       天
                     </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setSupplierInvalid(false);
-                        setSelectedSupplier(supplier);
-                        setSupplierForm(supplierFormFrom(supplier));
-                        setSupplierBaseline(supplierFormFrom(supplier));
-                      }}
-                    >
-                      编辑
-                    </Button>
+                    <span className="flex shrink-0 gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setSupplierInvalid(false);
+                          setSelectedSupplier(supplier);
+                          setSupplierForm(supplierFormFrom(supplier));
+                          setSupplierBaseline(supplierFormFrom(supplier));
+                        }}
+                      >
+                        编辑供应商关联
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          setDeleteFailure("");
+                          setDeleteTarget(supplier);
+                        }}
+                      >
+                        删除供应商关联
+                      </Button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -604,6 +652,18 @@ const ProductDrawerSession = ({
               <Button type="submit">
                 {selectedSupplier ? "保存采购信息" : "新增并保存供应商关联"}
               </Button>
+              {selectedSupplier && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSupplierForm(supplierBaseline);
+                    setSupplierInvalid(false);
+                  }}
+                >
+                  取消编辑
+                </Button>
+              )}
             </form>
           </div>
           <div className="space-y-2">
@@ -653,6 +713,30 @@ const ProductDrawerSession = ({
           </div>
           {message && <p role="status">{message}</p>}
         </section>
+        <Dialog
+          open={deleteTarget !== null}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen && !deleteBusy) setDeleteTarget(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>删除供应商关联</DialogTitle>
+              <DialogDescription>
+                确定删除该产品与此供应商的关联吗？此操作不会删除供应商主档。
+              </DialogDescription>
+            </DialogHeader>
+            {deleteFailure && <p role="alert">{deleteFailure}</p>}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" disabled={deleteBusy} onClick={() => setDeleteTarget(null)}>
+                取消删除
+              </Button>
+              <Button type="button" variant="destructive" disabled={deleteBusy} onClick={() => void deleteRelation()}>
+                {deleteBusy ? "正在删除…" : "确认删除关联"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );

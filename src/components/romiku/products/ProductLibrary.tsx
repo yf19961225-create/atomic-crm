@@ -1,4 +1,6 @@
 import { Link } from "react-router";
+import { useRecordContext } from "ra-core";
+import { Button } from "@/components/ui/button";
 import { CreateButton } from "@/components/admin/create-button";
 import { DataTable } from "@/components/admin/data-table";
 import { EditButton } from "@/components/admin/edit-button";
@@ -39,11 +41,23 @@ const ProductSuppliersList = () => (
       <DataTable.Col source="preferred" label="首选" />
       <DataTable.Col source="active" label="启用" />
       <DataTable.Col label="">
-        <EditButton label="编辑采购信息" />
+        <ProductSupplierEditLink />
       </DataTable.Col>
     </DataTable>
   </List>
 );
+
+export const ProductSupplierEditLink = () => {
+  const record = useRecordContext<{ id: string }>();
+  if (!record) return null;
+  return (
+    <Button variant="outline" asChild>
+      <Link to={`/product-library/suppliers/${record.id}/edit`} onClick={(event) => event.stopPropagation()}>
+        编辑供应商关联
+      </Link>
+    </Button>
+  );
+};
 
 const ReferenceCostsList = () => (
   <List
