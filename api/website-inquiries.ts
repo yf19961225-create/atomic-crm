@@ -1,4 +1,5 @@
 import { serverSupabaseTarget } from "../supabase/functions/_shared/deploymentTarget.js";
+import { supabaseServerAuthHeaders } from "../server/supabaseServerAuth.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
@@ -105,8 +106,8 @@ export default {
       return reject(405, "method_not_allowed", { Allow: "POST" });
     const secret = process.env.WEBSITE_INQUIRY_SECRET;
     const supabaseUrl = serverSupabaseTarget((key) => process.env[key]);
-    const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!secret || !supabaseUrl || !serviceRole)
+    const authHeaders = supabaseServerAuthHeaders((key) => process.env[key]);
+    if (!secret || !supabaseUrl || !authHeaders)
       return reject(503, "intake_unavailable");
     if (
       !credentialsMatch(request.headers.get("X-ROMIKU-Website-Secret"), secret)
@@ -133,8 +134,7 @@ export default {
     const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1`;
     const headers = {
       "Content-Type": "application/json",
-      apikey: serviceRole,
-      Authorization: `Bearer ${serviceRole}`,
+      ...authHeaders,
     };
     let receipt: z.infer<typeof receiptSchema>[number];
     let persistenceStage = "rpc_headers";

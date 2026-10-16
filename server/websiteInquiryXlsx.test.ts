@@ -24,6 +24,7 @@ beforeEach(() => {
   vi.stubEnv("VERCEL_ENV", "preview");
   vi.stubEnv("WEBSITE_INQUIRY_SECRET", "qa-secret");
   vi.stubEnv("SUPABASE_URL", "https://ciwaibtotispazfviims.supabase.co");
+  vi.stubEnv("SUPABASE_SECRET_KEY", "");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "qa-role");
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockImplementation(async (url) =>
@@ -90,6 +91,36 @@ it("uses only saved inquiry header/items and returns binary attachment without s
     ),
   ).toBe(true);
   expect(String(fetchMock.mock.calls[0][0])).toContain("submission_id=eq.");
+});
+it.each([false, true])(
+  "uses the new server secret without Bearer (legacy also present: %s)",
+  async (legacyPresent) => {
+    vi.stubEnv("SUPABASE_SECRET_KEY", "preview-new-secret");
+    if (!legacyPresent) vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    const response = await endpoint.fetch(request());
+    expect(response.status).toBe(200);
+    for (const [, init] of fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes("ciwaibtotispazfviims.supabase.co/rest/v1/"),
+    )) {
+      const headers = new Headers(init?.headers);
+      expect(headers.get("apikey")).toBe("preview-new-secret");
+      expect(headers.has("Authorization")).toBe(false);
+    }
+    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain("qa-role");
+  },
+);
+it("preserves legacy apikey and Bearer headers", async () => {
+  const response = await endpoint.fetch(request());
+  expect(response.status).toBe(200);
+  const headers = new Headers(fetchMock.mock.calls[0][1]?.headers);
+  expect(headers.get("apikey")).toBe("qa-role");
+  expect(headers.get("Authorization")).toBe("Bearer qa-role");
+});
+it("fails closed before Supabase when both server keys are absent", async () => {
+  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+  const response = await endpoint.fetch(request());
+  expect(response.status).toBe(503);
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 it("fails closed outside the named Preview or malformed request", async () => {
   expect(

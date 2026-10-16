@@ -1,4 +1,5 @@
 import { serverSupabaseTarget } from "../supabase/functions/_shared/deploymentTarget.js";
+import { supabaseServerAuthHeaders } from "../server/supabaseServerAuth.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -85,10 +86,10 @@ export async function loadInquiryImage(
 export default {
   async fetch(request: Request): Promise<Response> {
     if (request.method !== "POST") return reject(405, "method_not_allowed");
-    const secret = process.env.WEBSITE_INQUIRY_SECRET,
-      service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const secret = process.env.WEBSITE_INQUIRY_SECRET;
+    const authHeaders = supabaseServerAuthHeaders((key) => process.env[key]);
     const supabaseUrl = serverSupabaseTarget((key) => process.env[key]);
-    if (!secret || !service || !supabaseUrl)
+    if (!secret || !authHeaders || !supabaseUrl)
       return reject(503, "attachment_unavailable");
     const received = request.headers.get("X-ROMIKU-Website-Secret");
     if (
@@ -116,7 +117,7 @@ export default {
       return reject(400, "invalid_json");
     }
     if (!body.success) return reject(422, "invalid_payload");
-    const headers = { apikey: service, Authorization: `Bearer ${service}` };
+    const headers = authHeaders;
     try {
       const filter = new URLSearchParams({
         id: `eq.${body.data.id}`,

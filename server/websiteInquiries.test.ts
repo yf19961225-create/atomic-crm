@@ -58,6 +58,7 @@ beforeEach(() => {
   vi.stubEnv("VERCEL_ENV", "preview");
   vi.stubEnv("WEBSITE_INQUIRY_SECRET", "test-secret");
   vi.stubEnv("SUPABASE_URL", "https://ciwaibtotispazfviims.supabase.co");
+  vi.stubEnv("SUPABASE_SECRET_KEY", "");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role");
   vi.stubGlobal("fetch", fetchMock);
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -105,6 +106,37 @@ describe("website intake HTTP boundary", () => {
     "SUPABASE_SERVICE_ROLE_KEY",
   ])("fails closed when server configuration %s is missing", async (name) => {
     vi.stubEnv(name, "");
+    const response = await endpoint.fetch(request());
+    expect(response.status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    "uses only the new server secret as apikey (legacy also present: %s)",
+    async (legacyPresent) => {
+      vi.stubEnv("SUPABASE_SECRET_KEY", "preview-new-secret");
+      if (!legacyPresent) vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+      const response = await endpoint.fetch(request());
+      expect(response.status).toBe(201);
+      const headers = new Headers(fetchMock.mock.calls[0][1]?.headers);
+      expect(headers.get("apikey")).toBe("preview-new-secret");
+      expect(headers.has("Authorization")).toBe(false);
+      expect(JSON.stringify(fetchMock.mock.calls)).not.toContain(
+        "test-service-role",
+      );
+    },
+  );
+
+  it("keeps the legacy apikey and Bearer headers when the new secret is absent", async () => {
+    const response = await endpoint.fetch(request());
+    expect(response.status).toBe(201);
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers);
+    expect(headers.get("apikey")).toBe("test-service-role");
+    expect(headers.get("Authorization")).toBe("Bearer test-service-role");
+  });
+
+  it("fails closed without either server key", async () => {
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     const response = await endpoint.fetch(request());
     expect(response.status).toBe(503);
     expect(fetchMock).not.toHaveBeenCalled();
