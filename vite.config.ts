@@ -2,6 +2,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { assertDeploymentBuildTarget } from "./server/deploymentBuildTarget";
+const deploymentTarget = assertDeploymentBuildTarget(process.env);
 const buildSha =
   process.env.VERCEL_GIT_COMMIT_SHA ||
   execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -81,6 +83,12 @@ export default defineConfig({
   ],
   define: {
     "import.meta.env.VITE_APP_BUILD_SHA": JSON.stringify(buildSha),
+    "import.meta.env.VITE_DEPLOYMENT_ENV": JSON.stringify(
+      deploymentTarget?.environment ?? "development",
+    ),
+    "import.meta.env.VITE_SUPABASE_PROJECT_REF": JSON.stringify(
+      deploymentTarget?.projectRef ?? null,
+    ),
     ...(process.env.NODE_ENV === "production" && process.env.VITE_SUPABASE_URL
       ? {
           "import.meta.env.VITE_IS_DEMO": JSON.stringify(
