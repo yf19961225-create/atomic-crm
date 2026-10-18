@@ -1,14 +1,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { assertDeploymentBuildTarget } from "./server/deploymentBuildTarget";
+import { resolveBuildSha } from "./server/buildSha";
 const deploymentTarget = assertDeploymentBuildTarget(process.env);
-const buildSha =
-  process.env.VERCEL_GIT_COMMIT_SHA ||
-  execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-if (!/^[a-f0-9]{40}$/i.test(buildSha))
-  throw new Error("Git build SHA required");
+const buildSha = resolveBuildSha(process.env);
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
