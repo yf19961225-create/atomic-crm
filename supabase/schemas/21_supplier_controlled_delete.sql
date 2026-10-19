@@ -46,3 +46,5 @@ exception when others then
 end;
 $$;
 
+revoke all on function public.romiku_delete_supplier(uuid) from public, anon, authenticated;
+grant execute on function public.romiku_delete_supplier(uuid) to authenticated;
