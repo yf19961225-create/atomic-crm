@@ -6,6 +6,7 @@ import { ProductLibrary } from "../products";
 import {
   SupplierContactList,
   SupplierCreate,
+  SupplierEdit,
   SupplierList,
 } from "../suppliers";
 import { romikuNavigation } from "./navigation";
@@ -154,6 +155,11 @@ export const romikuRoutes = [
     key="/romiku_suppliers/create"
     path="/romiku_suppliers/create"
     element={<SupplierCreate />}
+  />,
+  <Route
+    key="/romiku_suppliers/:id"
+    path="/romiku_suppliers/:id"
+    element={<SupplierEdit />}
   />,
   <Route
     key="/supplier-contacts"
