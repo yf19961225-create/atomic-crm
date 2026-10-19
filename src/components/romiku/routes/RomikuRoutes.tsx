@@ -4,6 +4,7 @@ import { RomikuCalendar } from "../calendar/RomikuCalendar";
 import { ManualTaskList, ManualTaskPage } from "../calendar/ManualTasks";
 import { ProductLibrary } from "../products";
 import {
+  SupplierContactEdit,
   SupplierContactList,
   SupplierCreate,
   SupplierEdit,
@@ -165,6 +166,11 @@ export const romikuRoutes = [
     key="/supplier-contacts"
     path="/supplier-contacts"
     element={<SupplierContactList />}
+  />,
+  <Route
+    key="/romiku_supplier_contacts/:id"
+    path="/romiku_supplier_contacts/:id"
+    element={<SupplierContactEdit />}
   />,
   <Route
     key="/product-library"
