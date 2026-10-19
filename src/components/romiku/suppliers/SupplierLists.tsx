@@ -6,6 +6,7 @@ import { List } from "@/components/admin/list";
 import { SearchInput } from "@/components/admin/search-input";
 import { Button } from "@/components/ui/button";
 import { supplierStatusLabel } from "../commercialLabels";
+import { SupplierDeleteButton } from "./SupplierDeleteButton";
 
 const SupplierActions = () => (
   <div className="flex gap-2">
@@ -35,7 +36,10 @@ export const SupplierList = () => (
       />
       <DataTable.Col source="default_lead_days" label="默认交期（天）" />
       <DataTable.Col label="">
-        <EditButton label="编辑供应商" />
+        <div className="flex items-center gap-2">
+          <EditButton label="编辑供应商" />
+          <SupplierDeleteButton />
+        </div>
       </DataTable.Col>
     </DataTable>
   </List>

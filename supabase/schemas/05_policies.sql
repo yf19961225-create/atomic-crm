@@ -156,7 +156,6 @@ alter table public.romiku_suppliers enable row level security;
 create policy romiku_read on public.romiku_suppliers for select to authenticated using (true);
 create policy romiku_insert on public.romiku_suppliers for insert to authenticated with check (true);
 create policy romiku_update on public.romiku_suppliers for update to authenticated using (true) with check (true);
-create policy romiku_delete on public.romiku_suppliers for delete to authenticated using (true);
 alter table public.romiku_supplier_contacts enable row level security;
 create policy romiku_read on public.romiku_supplier_contacts for select to authenticated using (true);
 create policy romiku_insert on public.romiku_supplier_contacts for insert to authenticated with check (true);
