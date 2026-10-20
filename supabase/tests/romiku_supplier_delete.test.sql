@@ -10,7 +10,7 @@ select ok(not has_function_privilege('anon','public.romiku_delete_supplier(uuid)
 select ok(not has_table_privilege('authenticated','public.romiku_suppliers','DELETE'),'authenticated callers cannot bypass controlled delete');
 select is((select array_agg(conrelid::regclass::text order by conrelid::regclass::text)
   from pg_constraint where contype='f' and confrelid='public.romiku_suppliers'::regclass),
-  array['romiku_manual_tasks','romiku_product_suppliers','romiku_production_orders','romiku_supplier_contacts'],
+  array['romiku_manual_tasks','romiku_production_orders','romiku_product_suppliers','romiku_supplier_contacts'],
   'dependency audit includes every direct supplier FK');
 set local role authenticated;
 select is(romiku_delete_supplier(gen_random_uuid())->>'code','UNAUTHENTICATED','delete requires a logged-in user');

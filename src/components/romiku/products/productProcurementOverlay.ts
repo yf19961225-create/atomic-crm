@@ -28,6 +28,7 @@ export type OverlayClient = {
       supplier_id: string;
       supplier_name?: string;
       preferred: boolean;
+      active?: boolean;
       moq?: number | null;
       lead_days?: number | null;
       qty_per_carton?: number | null;
@@ -76,7 +77,8 @@ export const loadProductProcurementOverlay = async (
     client.getExtensions(ids, skus),
     client.getSuppliers(ids, skus),
   ]);
-  const costs = await client.getCosts(suppliers.map((supplier) => supplier.id));
+  const activeSuppliers = suppliers.filter((supplier) => supplier.active !== false);
+  const costs = await client.getCosts(activeSuppliers.map((supplier) => supplier.id));
   const result = new Map<string, ProductOverlay>();
   for (const product of products) {
     const extension = extensions.find(
@@ -84,7 +86,7 @@ export const loadProductProcurementOverlay = async (
         row.sanity_product_id === product.id ||
         (!row.sanity_product_id && row.sku === product.sku),
     );
-    const matched = suppliers.filter(
+    const matched = activeSuppliers.filter(
       (row) =>
         row.sanity_product_id === product.id ||
         (!row.sanity_product_id && row.sku === product.sku),

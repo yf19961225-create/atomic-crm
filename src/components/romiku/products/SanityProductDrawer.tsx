@@ -25,6 +25,11 @@ import {
 } from "./productDrawerActions";
 import type { SanityCatalogProduct } from "./sanityCatalogSource";
 import { createSupabaseProductDrawerClient } from "./supabaseProductDrawerClient";
+import {
+  createProductSupplierManagementClient,
+  type ProductSupplierManagementClient,
+  ProductSupplierActionError,
+} from "./productSupplierManagementClient";
 
 type DrawerClient = ProductDrawerClient & ProductDrawerReadClient;
 type Props = {
@@ -35,9 +40,11 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   refreshOverlay: (product: SanityCatalogProduct) => Promise<void>;
   client?: DrawerClient;
+  managementClient?: ProductSupplierManagementClient;
 };
 
 const defaultClient = createSupabaseProductDrawerClient();
+const defaultManagementClient = createProductSupplierManagementClient();
 
 const productText = (value?: Record<string, string>) =>
   value?.zh ?? value?.en ?? value?.es ?? "—";
@@ -149,6 +156,7 @@ const ProductDrawerSession = ({
   onOpenChange,
   refreshOverlay,
   client = defaultClient,
+  managementClient = defaultManagementClient,
 }: Props) => {
   const [extension, setExtension] = useState<DrawerExtension | null>(null);
   const [suppliers, setSuppliers] = useState<DrawerSupplier[]>([]);
@@ -157,6 +165,12 @@ const ProductDrawerSession = ({
   const [notes, setNotes] = useState("");
   const [selectedSupplier, setSelectedSupplier] =
     useState<DrawerSupplier | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<DrawerSupplier | null>(null);
+  const [editForm, setEditForm] = useState(emptySupplierForm);
+  const [editBaseline, setEditBaseline] = useState(emptySupplierForm);
+  const [replacingSupplier, setReplacingSupplier] = useState<DrawerSupplier | null>(null);
+  const [replacementSupplierId, setReplacementSupplierId] = useState("");
+  const [replacementPreferred, setReplacementPreferred] = useState(false);
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [supplierBaseline, setSupplierBaseline] = useState(emptySupplierForm);
   const [supplierInvalid, setSupplierInvalid] = useState(false);
@@ -169,6 +183,9 @@ const ProductDrawerSession = ({
   const supplierDirty =
     supplierInvalid ||
     supplierSnapshot(supplierForm) !== supplierSnapshot(supplierBaseline);
+  const editDirty = editingSupplier !== null &&
+    supplierSnapshot(editForm) !== supplierSnapshot(editBaseline);
+  const replacementDirty = replacingSupplier !== null && replacementSupplierId !== "";
   const [notesBaseline, setNotesBaseline] = useState("");
   const notesDirty = notes !== notesBaseline;
   const currentDraft = useRef({
@@ -188,9 +205,7 @@ const ProductDrawerSession = ({
   const [message, setMessage] = useState("");
   const [failedImageKey, setFailedImageKey] = useState<string>();
   const [costDirty, setCostDirty] = useState(false);
-  useAppDraft(
-    open && (supplierDirty || costDirty || notesDirty || packingDirty),
-  );
+  useAppDraft(open && (supplierDirty || editDirty || replacementDirty || costDirty || notesDirty || packingDirty));
   const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
   const imageFailed = failedImageKey === imageKey;
 
@@ -219,16 +234,15 @@ const ProductDrawerSession = ({
       hydrated.current = true;
       setSuppliers(nextSuppliers);
       setSupplierOptions(options);
+      const activeSuppliers = nextSuppliers.filter((supplier) => supplier.active !== false);
       const activeSupplier =
-        nextSuppliers.find(
-          (supplier) => supplier.supplier_id === preferredSupplierId,
-        ) ??
-        nextSuppliers.find((supplier) => supplier.preferred) ??
-        (nextSuppliers.length === 1 ? nextSuppliers[0] : null);
+        activeSuppliers.find((supplier) => supplier.supplier_id === preferredSupplierId) ??
+        activeSuppliers.find((supplier) => supplier.preferred) ??
+        (activeSuppliers.length === 1 ? activeSuppliers[0] : null);
       if (!currentDraft.current.supplierDirty) {
         setSelectedSupplier(activeSupplier);
-        setSupplierForm(supplierFormFrom(activeSupplier));
-        setSupplierBaseline(supplierFormFrom(activeSupplier));
+        setSupplierForm(emptySupplierForm());
+        setSupplierBaseline(emptySupplierForm());
       } else {
         // Refresh persisted linkage without replacing an in-progress form.
         const refreshedSupplier = nextSuppliers.find(
@@ -294,13 +308,14 @@ const ProductDrawerSession = ({
     event.preventDefault();
     const supplierId = supplierForm.supplier_id;
     if (!supplierId) return setMessage("请选择供应商。");
+    if (suppliers.some((supplier) => supplier.supplier_id === supplierId))
+      return setMessage("该供应商已有历史关联，请使用编辑采购信息或更换供应商。");
     setMessage("");
     try {
       await saveSupplier(
         client,
         product,
         {
-          id: selectedSupplier?.id,
           supplier_id: supplierId,
           preferred: supplierForm.preferred,
           supplier_item_number: supplierForm.supplier_item_number || undefined,
@@ -310,9 +325,67 @@ const ProductDrawerSession = ({
         () => refreshCurrent(supplierId),
       );
       setSupplierBaseline(supplierForm);
-      setMessage("采购信息已保存。");
+      setSupplierForm(emptySupplierForm());
+      setSupplierBaseline(emptySupplierForm());
+      setMessage("供应商关联已新增。");
     } catch {
       setMessage("供应商关联保存失败。");
+    }
+  };
+  const saveEditedSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingSupplier) return;
+    setMessage("");
+    try {
+      await managementClient.save({
+        relationId: editingSupplier.id,
+        supplierItemNumber: editForm.supplier_item_number || null,
+        moq: editForm.moq === "" ? null : Number(editForm.moq),
+        leadDays: editForm.lead_days === "" ? null : Number(editForm.lead_days),
+        preferred: editForm.preferred,
+        qtyPerCarton: editingSupplier.qty_per_carton,
+        lengthCm: editingSupplier.length_cm,
+        widthCm: editingSupplier.width_cm,
+        heightCm: editingSupplier.height_cm,
+        cartonWeightKg: editingSupplier.carton_weight_kg,
+        referenceDate: editingSupplier.reference_date,
+        notes: editingSupplier.notes,
+      });
+      setEditBaseline(editForm);
+      setEditingSupplier(null);
+      await refreshCurrent(editingSupplier.supplier_id);
+      setMessage("采购信息已保存。");
+    } catch {
+      setMessage("采购信息保存失败，原关联未更改。");
+    }
+  };
+  const replaceSupplier = async () => {
+    if (!replacingSupplier || !replacementSupplierId) return;
+    setMessage("");
+    try {
+      await managementClient.replace(replacingSupplier.id, replacementSupplierId, replacementPreferred);
+      const targetId = replacementSupplierId;
+      setReplacingSupplier(null);
+      setReplacementSupplierId("");
+      await refreshCurrent(targetId);
+      setMessage("供应商已更换，原关联及成本历史已保留。");
+    } catch (error) {
+      setMessage(error instanceof ProductSupplierActionError && error.code === "ALREADY_LINKED"
+        ? "该供应商已经关联此产品。" : "更换供应商失败，原关联未更改。");
+    }
+  };
+  const removeSupplier = async (supplier: DrawerSupplier) => {
+    if (!window.confirm(`确定删除 ${supplier.supplier_name ?? supplier.supplier_id} 与此产品的关联吗？供应商主档不会删除。`)) return;
+    setMessage("");
+    try {
+      await managementClient.remove(supplier.id);
+      if (selectedSupplier?.id === supplier.id) setSelectedSupplier(null);
+      await refreshCurrent();
+      setMessage("供应商关联已删除；供应商主档仍保留。");
+    } catch (error) {
+      setMessage(error instanceof ProductSupplierActionError && error.code === "HAS_COST_HISTORY"
+        ? `该关联已有 ${error.costHistoryCount ?? 1} 条成本历史，不能删除。`
+        : "删除关联失败，原关联未更改。");
     }
   };
   const submitCost = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -346,7 +419,7 @@ const ProductDrawerSession = ({
       onOpenChange={(nextOpen) => {
         if (
           !nextOpen &&
-          (supplierDirty || packingDirty || notesDirty || costDirty) &&
+          (supplierDirty || editDirty || replacementDirty || packingDirty || notesDirty || costDirty) &&
           !window.confirm("有未保存的修改，是否放弃？")
         )
           return;
@@ -483,12 +556,12 @@ const ProductDrawerSession = ({
             <p className="text-sm text-muted-foreground">
               供应商货号、起订量、交期等信息按供应商独立维护。已有供应商箱规保留为可选覆盖值。
             </p>
-            {suppliers.length ? (
+            {suppliers.some((supplier) => supplier.active !== false) ? (
               <ul>
-                {suppliers.map((supplier) => (
+                {suppliers.filter((supplier) => supplier.active !== false).map((supplier) => (
                   <li
                     key={supplier.id}
-                    className="flex items-center justify-between gap-2"
+                    className="space-y-2 border-b py-2"
                   >
                     <span>
                       {supplier.supplier_name ?? supplier.supplier_id}
@@ -505,23 +578,53 @@ const ProductDrawerSession = ({
                       {supplier.moq ?? "—"} · 交期 {supplier.lead_days ?? "—"}{" "}
                       天
                     </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setSupplierInvalid(false);
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" onClick={() => {
                         setSelectedSupplier(supplier);
-                        setSupplierForm(supplierFormFrom(supplier));
-                        setSupplierBaseline(supplierFormFrom(supplier));
-                      }}
-                    >
-                      编辑
-                    </Button>
+                        setEditingSupplier(supplier);
+                        setEditForm(supplierFormFrom(supplier));
+                        setEditBaseline(supplierFormFrom(supplier));
+                        setReplacingSupplier(null);
+                      }}>编辑采购信息</Button>
+                      <Button type="button" variant="outline" onClick={() => {
+                        setReplacingSupplier(supplier);
+                        setReplacementSupplierId("");
+                        setReplacementPreferred(Boolean(supplier.preferred));
+                        setEditingSupplier(null);
+                      }}>更换供应商</Button>
+                      <Button type="button" variant="destructive" onClick={() => void removeSupplier(supplier)}>删除关联</Button>
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : (
               <p>—</p>
+            )}
+            {suppliers.some((supplier) => supplier.active === false) && (
+              <div aria-label="已停用供应商关联">
+                <h4 className="font-medium">已停用的历史关联</h4>
+                <ul>{suppliers.filter((supplier) => supplier.active === false).map((supplier) => (
+                  <li key={supplier.id}>{supplier.supplier_name ?? supplier.supplier_id} · 供应商货号 {supplier.supplier_item_number ?? "—"} · 起订量 {supplier.moq ?? "—"} · 交期 {supplier.lead_days ?? "—"} 天</li>
+                ))}</ul>
+              </div>
+            )}
+            {editingSupplier && (
+              <form aria-label="编辑采购信息" className="space-y-2 rounded border p-3" onSubmit={saveEditedSupplier}>
+                <p>当前供应商：{editingSupplier.supplier_name ?? editingSupplier.supplier_id}</p>
+                <label className="block space-y-1"><span>编辑供应商货号</span><Input value={editForm.supplier_item_number} onChange={(event) => setEditForm((form) => ({ ...form, supplier_item_number: event.target.value }))} /></label>
+                <label className="block space-y-1"><span>编辑供应商起订量</span><Input type="number" min="0" value={editForm.moq} onChange={(event) => setEditForm((form) => ({ ...form, moq: event.target.value }))} /></label>
+                <label className="block space-y-1"><span>编辑交期</span><Input type="number" min="0" step="1" value={editForm.lead_days} onChange={(event) => setEditForm((form) => ({ ...form, lead_days: event.target.value }))} /></label>
+                <label className="flex gap-2"><input type="checkbox" checked={editForm.preferred} onChange={(event) => setEditForm((form) => ({ ...form, preferred: event.target.checked }))} />编辑首选供应商</label>
+                <div className="flex gap-2"><Button type="submit">保存采购信息</Button><Button type="button" variant="outline" onClick={() => { setEditingSupplier(null); setEditForm(editBaseline); }}>取消编辑</Button></div>
+              </form>
+            )}
+            {replacingSupplier && (
+              <div role="group" aria-label="更换供应商" className="space-y-2 rounded border p-3">
+                <p>原供应商：{replacingSupplier.supplier_name ?? replacingSupplier.supplier_id}。原关联及成本历史会保留为停用状态。</p>
+                <label className="block space-y-1"><span>目标供应商</span><select aria-label="目标供应商" value={replacementSupplierId} onChange={(event) => setReplacementSupplierId(event.target.value)}><option value="">选择目标供应商</option>{supplierOptions.filter((option) => option.id !== replacingSupplier.supplier_id).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+                <label className="flex gap-2"><input type="checkbox" checked={replacementPreferred} onChange={(event) => setReplacementPreferred(event.target.checked)} />设为首选供应商</label>
+                <div className="flex gap-2"><Button type="button" disabled={!replacementSupplierId} onClick={() => void replaceSupplier()}>确认更换供应商</Button><Button type="button" variant="outline" onClick={() => { setReplacingSupplier(null); setReplacementSupplierId(""); }}>取消更换</Button></div>
+              </div>
             )}
             <form
               onInput={(event) =>
@@ -530,6 +633,7 @@ const ProductDrawerSession = ({
               onSubmit={submitSupplier}
               className="space-y-2"
             >
+              <h4 className="font-medium">新增供应商关联</h4>
               <label className="block space-y-1">
                 <span>供应商</span>
                 <select
@@ -542,13 +646,9 @@ const ProductDrawerSession = ({
                       (supplier) => supplier.supplier_id === event.target.value,
                     );
                     setSelectedSupplier(nextSupplier ?? null);
-                    setSupplierForm(
-                      supplierFormFrom(
-                        nextSupplier ?? null,
-                        event.target.value,
-                      ),
-                    );
-                    setSupplierBaseline(supplierFormFrom(nextSupplier ?? null));
+                    const nextForm = { ...emptySupplierForm(), supplier_id: event.target.value };
+                    setSupplierForm(nextForm);
+                    setSupplierBaseline(nextForm);
                   }}
                 >
                   <option value="">选择供应商</option>
@@ -573,7 +673,7 @@ const ProductDrawerSession = ({
                   <Input
                     name={String(name)}
                     type={name === "supplier_item_number" ? "text" : "number"}
-                    disabled={!supplierForm.supplier_id}
+                    disabled={!supplierForm.supplier_id || suppliers.some((supplier) => supplier.supplier_id === supplierForm.supplier_id)}
                     value={
                       supplierForm[name as keyof typeof supplierForm] as string
                     }
@@ -590,7 +690,7 @@ const ProductDrawerSession = ({
                 <input
                   name="preferred"
                   type="checkbox"
-                  disabled={!supplierForm.supplier_id}
+                  disabled={!supplierForm.supplier_id || suppliers.some((supplier) => supplier.supplier_id === supplierForm.supplier_id)}
                   checked={supplierForm.preferred}
                   onChange={(event) => {
                     setSupplierForm((current) => ({
@@ -601,9 +701,7 @@ const ProductDrawerSession = ({
                 />{" "}
                 首选供应商
               </label>
-              <Button type="submit">
-                {selectedSupplier ? "保存采购信息" : "新增并保存供应商关联"}
-              </Button>
+              <Button type="submit" disabled={!supplierForm.supplier_id || suppliers.some((supplier) => supplier.supplier_id === supplierForm.supplier_id)}>新增并保存供应商关联</Button>
             </form>
           </div>
           <div className="space-y-2">

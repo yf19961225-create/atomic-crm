@@ -8,6 +8,7 @@ import type {
   ProductDrawerReadClient,
 } from "./productDrawerActions";
 import type { SanityCatalogProduct } from "./sanityCatalogSource";
+import { ProductSupplierActionError, type ProductSupplierManagementClient } from "./productSupplierManagementClient";
 
 const product: SanityCatalogProduct = {
   id: "sanity-1",
@@ -36,6 +37,56 @@ const createClient = (): ProductDrawerClient & ProductDrawerReadClient => ({
   getSupplierOptions: vi
     .fn()
     .mockResolvedValue([{ id: "supplier-a", name: "华东供应商" }]),
+});
+const managementClient = (): ProductSupplierManagementClient => ({
+  save: vi.fn().mockResolvedValue({ ok: true }),
+  replace: vi.fn().mockResolvedValue({ ok: true }),
+  remove: vi.fn().mockResolvedValue({ ok: true }),
+  previewBulk: vi.fn().mockResolvedValue({ ok: true }),
+  applyBulk: vi.fn().mockResolvedValue({ ok: true }),
+});
+
+describe("product supplier actions", () => {
+  it("locks supplier identity while editing procurement on the same relation", async () => {
+    const client = createClient();
+    const management = managementClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([{ id: "relation-1", supplier_id: "supplier-a", supplier_name: "华东供应商", active: true, moq: 10 }]);
+    const screen = await render(<SanityProductDrawer product={product} open onOpenChange={vi.fn()} refreshOverlay={vi.fn()} client={client} managementClient={management} />);
+    await screen.getByRole("button", { name: "编辑采购信息" }).click();
+    await expect.element(screen.getByText("当前供应商：华东供应商").first()).toBeVisible();
+    await screen.getByLabelText("编辑供应商起订量").fill("20");
+    await screen.getByRole("button", { name: "保存采购信息" }).click();
+    expect(management.save).toHaveBeenCalledWith(expect.objectContaining({ relationId: "relation-1", moq: 20 }));
+    expect(client.createSupplier).not.toHaveBeenCalled();
+    expect(client.updateSupplier).not.toHaveBeenCalled();
+  });
+
+  it("uses an explicit replacement action and does not create a duplicate for an active target", async () => {
+    const client = createClient();
+    const management = managementClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([{ id: "relation-1", supplier_id: "supplier-a", supplier_name: "华东供应商", active: true }]);
+    vi.mocked(client.getSupplierOptions).mockResolvedValue([{ id: "supplier-a", name: "华东供应商" }, { id: "supplier-b", name: "目标供应商" }]);
+    vi.mocked(management.replace).mockRejectedValueOnce(new ProductSupplierActionError("ALREADY_LINKED"));
+    const screen = await render(<SanityProductDrawer product={product} open onOpenChange={vi.fn()} refreshOverlay={vi.fn()} client={client} managementClient={management} />);
+    await screen.getByRole("button", { name: "更换供应商" }).click();
+    await screen.getByLabelText("目标供应商").selectOptions("supplier-b");
+    await screen.getByRole("button", { name: "确认更换供应商" }).click();
+    await expect.element(screen.getByText("该供应商已经关联此产品。")).toBeVisible();
+    expect(management.replace).toHaveBeenCalledWith("relation-1", "supplier-b", false);
+  });
+
+  it("requires confirmation before controlled delete", async () => {
+    const client = createClient();
+    const management = managementClient();
+    vi.mocked(client.getSuppliers).mockResolvedValue([{ id: "relation-1", supplier_id: "supplier-a", supplier_name: "华东供应商", active: true }]);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const screen = await render(<SanityProductDrawer product={product} open onOpenChange={vi.fn()} refreshOverlay={vi.fn()} client={client} managementClient={management} />);
+    await screen.getByRole("button", { name: "删除关联" }).click();
+    expect(management.remove).not.toHaveBeenCalled();
+    await screen.getByRole("button", { name: "删除关联" }).click();
+    expect(management.remove).toHaveBeenCalledWith("relation-1");
+    confirm.mockRestore();
+  });
 });
 
 describe("SanityProductDrawer", () => {

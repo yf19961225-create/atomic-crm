@@ -6,13 +6,14 @@ import { ReferenceInput } from "@/components/admin/reference-input";
 import { SelectInput } from "@/components/admin/select-input";
 import { TextInput } from "@/components/admin/text-input";
 
-export const ProductSupplierInputs = () => (
+export const ProductSupplierInputs = ({ edit = false }: { edit?: boolean }) => (
   <div className="grid max-w-4xl gap-4 md:grid-cols-2">
     <TextInput
       source="sku"
       label="SKU"
       validate={required()}
       helperText={false}
+      disabled={edit}
     />
     <ReferenceInput source="supplier_id" reference="romiku_suppliers">
       <SelectInput
@@ -20,6 +21,7 @@ export const ProductSupplierInputs = () => (
         label="供应商"
         validate={required()}
         helperText={false}
+        disabled={edit}
       />
     </ReferenceInput>
     <TextInput
@@ -73,6 +75,7 @@ export const ProductSupplierInputs = () => (
         label="启用"
         helperText={false}
         defaultValue
+        disabled={edit}
       />
     </div>
     <TextInput source="notes" label="备注" multiline helperText={false} />

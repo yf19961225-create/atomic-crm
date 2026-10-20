@@ -61,6 +61,16 @@ describe("procurement overlay", () => {
       supplierCount: 0,
       unavailable: true,
     }));
+  it("excludes inactive historical relations from the active catalog summary", async () => {
+    const client = {
+      getExtensions: vi.fn().mockResolvedValue([]),
+      getSuppliers: vi.fn().mockResolvedValue([{ id: "old", sanity_product_id: "sanity-0", sku: "SKU-0", supplier_id: "s-old", supplier_name: "旧供应商", preferred: false, active: false, qty_per_carton: 99 }]),
+      getCosts: vi.fn().mockResolvedValue([]),
+    };
+    const overlay = await loadProductProcurementOverlay(products.slice(0, 1), client);
+    expect(overlay.get("sanity-0")).toMatchObject({ supplierCount: 0 });
+    expect(overlay.get("sanity-0")?.preferredSupplier).toBeUndefined();
+  });
   it("uses supplier overrides per field while preserving product defaults without a supplier", async () => {
     const client = {
       getExtensions: vi.fn().mockResolvedValue([

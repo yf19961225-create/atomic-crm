@@ -7,8 +7,7 @@ const getPage = vi.hoisted(() => vi.fn());
 const loadOverlay = vi.hoisted(() => vi.fn());
 const loadWebsiteImages = vi.hoisted(() => vi.fn());
 
-vi.mock("./SanityProductDrawer", () => ({
-  SanityProductDrawer: ({
+const FakeDrawer = ({
     open,
     resolvedImageUrl,
     onImageError,
@@ -31,8 +30,7 @@ vi.mock("./SanityProductDrawer", () => ({
           </button>
         )}
       </>
-    ) : null,
-}));
+    ) : null;
 
 vi.mock("./sanityCatalogSource", () => ({
   createSanityCatalogSource: () => ({ getPage }),
@@ -80,17 +78,17 @@ describe("SanityCatalogList", () => {
   it("renders the compact procurement columns returned for the catalog page", async () => {
     getPage.mockResolvedValue({ products: [product()] });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "RMK-100" }))
+      .element(screen.getByRole("cell", { name: "RMK-100", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "24" }))
+      .element(screen.getByRole("cell", { name: "24", exact: true }))
       .toBeVisible();
     expect(
       screen.getByRole("table").element().querySelectorAll("col"),
-    ).toHaveLength(8);
+    ).toHaveLength(9);
     for (const label of [
       "图片",
       "货号",
@@ -127,20 +125,53 @@ describe("SanityCatalogList", () => {
       ],
     });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "—" }).first())
+      .element(screen.getByRole("cell", { name: "—", exact: true }).first())
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "—" }).first())
+      .element(screen.getByRole("cell", { name: "—", exact: true }).first())
       .toBeVisible();
+  });
+
+  it("selects only loaded products and clears selection when paging", async () => {
+    getPage
+      .mockResolvedValueOnce({ products: [product()], nextCursor: { skuSort: "RMK-100", id: "sanity-1" } })
+      .mockResolvedValueOnce({ products: [product({ id: "sanity-2", sku: "RMK-200", skuSort: "RMK-200" })] })
+      .mockResolvedValue({ products: [product()], nextCursor: { skuSort: "RMK-100", id: "sanity-1" } });
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
+    await expect.element(screen.getByRole("cell", { name: "RMK-100", exact: true })).toBeVisible();
+    await screen.getByLabelText("全选当前页面").click();
+    await expect.element(screen.getByText("已选择 1 个产品")).toBeVisible();
+    await screen.getByRole("button", { name: "下一页" }).click();
+    await expect.element(screen.getByRole("cell", { name: "RMK-200", exact: true })).toBeVisible();
+    expect(screen.getByText("已选择 1 个产品")).not.toBeInTheDocument();
+    await screen.getByLabelText("选择 RMK-200").click();
+    await expect.element(screen.getByText("已选择 1 个产品")).toBeVisible();
+    await screen.getByRole("button", { name: "上一页" }).click();
+    await expect.element(screen.getByRole("cell", { name: "RMK-100", exact: true })).toBeVisible();
+    expect(screen.getByText("已选择 1 个产品")).not.toBeInTheDocument();
+  });
+
+  it("keeps manual search and clears selection when a new search is submitted", async () => {
+    getPage.mockResolvedValue({ products: [product()] });
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
+    await expect.element(screen.getByRole("cell", { name: "RMK-100", exact: true })).toBeVisible();
+    await screen.getByLabelText("选择 RMK-100").click();
+    await expect.element(screen.getByText("已选择 1 个产品")).toBeVisible();
+    const input = screen.getByRole("searchbox", { name: "搜索产品" });
+    await input.fill("RMK");
+    expect(getPage).toHaveBeenCalledTimes(1);
+    await expect.element(screen.getByText("已选择 1 个产品")).toBeVisible();
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
+    expect(screen.getByText("已选择 1 个产品")).not.toBeInTheDocument();
   });
 
   it("shows a Chinese error message when the read-only catalog request fails", async () => {
     getPage.mockRejectedValue(new Error("Sanity unavailable"));
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
       .element(screen.getByText("产品目录暂时无法加载。"))
@@ -167,7 +198,7 @@ describe("SanityCatalogList", () => {
       ]),
     );
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
       .element(screen.getByRole("cell", { name: "华东供应商 +1" }))
@@ -176,16 +207,16 @@ describe("SanityCatalogList", () => {
       .element(screen.getByRole("cell", { name: "30", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "50 × 40 × 30 cm" }))
+      .element(screen.getByRole("cell", { name: "50 × 40 × 30 cm", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "0.060 m³" }))
+      .element(screen.getByRole("cell", { name: "0.060 m³", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "12.5 kg" }))
+      .element(screen.getByRole("cell", { name: "12.5 kg", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "确认包装颜色" }))
+      .element(screen.getByRole("cell", { name: "确认包装颜色", exact: true }))
       .toBeVisible();
   });
 
@@ -195,13 +226,13 @@ describe("SanityCatalogList", () => {
       new Map([["sanity-1", { supplierCount: 0 }]]),
     );
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "RMK-100" }))
+      .element(screen.getByRole("cell", { name: "RMK-100", exact: true }))
       .toBeVisible();
     await expect
-      .element(screen.getByRole("cell", { name: "—" }).last())
+      .element(screen.getByRole("cell", { name: "—", exact: true }).last())
       .toBeVisible();
   });
 
@@ -209,10 +240,10 @@ describe("SanityCatalogList", () => {
     getPage.mockResolvedValue({ products: [product()] });
     loadOverlay.mockRejectedValue(new Error("Supabase unavailable"));
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "RMK-100" }))
+      .element(screen.getByRole("cell", { name: "RMK-100", exact: true }))
       .toBeVisible();
     await expect
       .element(screen.getByText("暂时无法加载").first())
@@ -222,7 +253,7 @@ describe("SanityCatalogList", () => {
   it("opens the product drawer when a catalog row is clicked", async () => {
     getPage.mockResolvedValue({ products: [product()] });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await screen.getByRole("cell", { name: "RMK-100", exact: true }).click();
     await expect.element(screen.getByText("产品 Drawer 已打开")).toBeVisible();
@@ -243,7 +274,7 @@ describe("SanityCatalogList", () => {
       ],
     });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await screen.getByRole("cell", { name: "005", exact: true }).click();
     await expect
@@ -269,7 +300,7 @@ describe("SanityCatalogList", () => {
       ],
     });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     const image = screen.getByRole("img", { name: "005 图片" });
     await expect
@@ -294,7 +325,7 @@ describe("SanityCatalogList", () => {
     getPage.mockResolvedValue({
       products: [product({ images: [{ url: primary }] })],
     });
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
     await screen.getByRole("cell", { name: "RMK-100", exact: true }).click();
     await expect
       .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
@@ -308,10 +339,10 @@ describe("SanityCatalogList", () => {
   it("uses the same Chinese placeholder when a product has no image URL", async () => {
     getPage.mockResolvedValue({ products: [product({ images: undefined })] });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "暂无图片" }).first())
+      .element(screen.getByRole("cell", { name: "暂无图片", exact: true }).first())
       .toBeVisible();
   });
 
@@ -319,7 +350,7 @@ describe("SanityCatalogList", () => {
     const first = product({ id: "first", sku: "001", skuSort: "001" });
     getPage.mockResolvedValue({ products: [first] });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     const input = screen.getByRole("searchbox", { name: "搜索产品" });
     for (const value of ["0", "00", "001"]) await input.fill(value);
@@ -333,7 +364,7 @@ describe("SanityCatalogList", () => {
         includeUnpublished: false,
       });
     await expect
-      .element(screen.getByRole("cell", { name: "001" }))
+      .element(screen.getByRole("cell", { name: "001", exact: true }))
       .toBeVisible();
   });
 
@@ -347,14 +378,14 @@ describe("SanityCatalogList", () => {
           })
         : Promise.resolve({ products: [first] }),
     );
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
     await expect
-      .element(screen.getByRole("cell", { name: "OLD" }))
+      .element(screen.getByRole("cell", { name: "OLD", exact: true }))
       .toBeVisible();
     await screen.getByRole("searchbox", { name: "搜索产品" }).fill("new");
     await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
-      .element(screen.getByRole("cell", { name: "OLD" }))
+      .element(screen.getByRole("cell", { name: "OLD", exact: true }))
       .toBeVisible();
     await expect.element(screen.getByRole("status")).toBeVisible();
     rejectSearch?.(new Error("offline"));
@@ -362,14 +393,14 @@ describe("SanityCatalogList", () => {
       .element(screen.getByRole("alert"))
       .toHaveTextContent("搜索失败");
     await expect
-      .element(screen.getByRole("cell", { name: "OLD" }))
+      .element(screen.getByRole("cell", { name: "OLD", exact: true }))
       .toBeVisible();
     await screen.getByRole("button", { name: "清空" }).click();
     await expect
       .element(screen.getByRole("searchbox", { name: "搜索产品" }))
       .toHaveValue("");
     await expect
-      .element(screen.getByRole("cell", { name: "OLD" }))
+      .element(screen.getByRole("cell", { name: "OLD", exact: true }))
       .toBeVisible();
     expect(getPage.mock.calls.at(-1)?.[0]).toEqual({
       search: "",
@@ -382,7 +413,7 @@ describe("SanityCatalogList", () => {
       products: [product({ sku: "005", skuSort: "005" })],
     });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await screen.getByRole("searchbox", { name: "搜索产品" }).fill("005");
     expect(getPage).toHaveBeenCalledTimes(1);
@@ -391,7 +422,7 @@ describe("SanityCatalogList", () => {
       .poll(() => getPage.mock.calls.at(-1)?.[0])
       .toEqual({ search: "005", includeUnpublished: false });
     await expect
-      .element(screen.getByRole("cell", { name: "005" }))
+      .element(screen.getByRole("cell", { name: "005", exact: true }))
       .toBeVisible();
   });
 
@@ -405,10 +436,10 @@ describe("SanityCatalogList", () => {
     );
     getPage.mockResolvedValue({ products });
 
-    const screen = await render(<SanityCatalogList />);
+    const screen = await render(<SanityCatalogList catalogSource={{ getPage }} overlayLoader={loadOverlay} imageLoader={loadWebsiteImages} DrawerComponent={FakeDrawer} />);
 
     await expect
-      .element(screen.getByRole("cell", { name: "SKU-0050" }))
+      .element(screen.getByRole("cell", { name: "SKU-0050", exact: true }))
       .toBeVisible();
   });
 });

@@ -34,6 +34,7 @@ export type DrawerSupplier = {
   supplier_id: string;
   supplier_name?: string | null;
   preferred?: boolean;
+  active?: boolean;
   supplier_item_number?: string | null;
   moq?: number | null;
   lead_days?: number | null;
@@ -42,6 +43,8 @@ export type DrawerSupplier = {
   width_cm?: number | null;
   height_cm?: number | null;
   carton_weight_kg?: number | null;
+  reference_date?: string | null;
+  notes?: string | null;
 };
 export type DrawerCost = {
   id: string;

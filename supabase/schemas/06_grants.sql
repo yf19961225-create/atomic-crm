@@ -244,6 +244,7 @@ grant select, insert, update, delete on table public.romiku_product_extensions t
 grant all on table public.romiku_product_extensions to service_role;
 revoke all on table public.romiku_product_suppliers from public, anon, authenticated;
 grant select, insert, update, delete on table public.romiku_product_suppliers to authenticated;
+-- 22_product_supplier_management.sql revokes direct DELETE after installing controlled deletion.
 grant all on table public.romiku_product_suppliers to service_role;
 revoke all on table public.romiku_procurement_cost_history from public, anon, authenticated;
 grant select, insert on table public.romiku_procurement_cost_history to authenticated;

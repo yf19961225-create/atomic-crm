@@ -76,8 +76,8 @@ export const ProductSupplierEdit = () => (
     redirect="/product-library"
     transform={toProductSupplierWrite}
   >
-    <ProductFormCard title="编辑产品供应商">
-      <ProductSupplierInputs />
+    <ProductFormCard title="编辑产品供应商采购信息">
+      <ProductSupplierInputs edit />
     </ProductFormCard>
   </EditBase>
 );
