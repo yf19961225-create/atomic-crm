@@ -319,7 +319,11 @@ export function CommercialLineItemsTable({
         <Droppable droppableId="commercial-lines">
           {(provided) => (
             <table
-              className="w-full min-w-[1100px] text-sm"
+              className={
+                editable
+                  ? "w-max min-w-[1100px] text-sm"
+                  : "w-full min-w-[1100px] text-sm"
+              }
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
@@ -390,8 +394,9 @@ export function CommercialLineItemsTable({
                         <td className="text-muted-foreground">
                           {visibleIndex + 1}
                         </td>
-                        <td className="p-1">
+                        <td className="p-1 md:min-w-[528px]">
                           <ProductLibraryLookup
+                            wideCommercial
                             specificationMode={
                               kind === "quote" ? "machines-only" : "none"
                             }
@@ -572,9 +577,14 @@ export function CommercialLineItemsTable({
                             {compactQuote && "⠿ "}
                             {visibleIndex + 1}
                           </td>
-                          <td className="p-1">
+                          <td
+                            className={
+                              editable ? "p-1 md:min-w-[528px]" : "p-1"
+                            }
+                          >
                             {editable ? (
                               <ProductLibraryLookup
+                                wideCommercial
                                 sku={item.sku}
                                 inputRef={(element) => {
                                   rowSkuRefs.current[String(item.id)] = element;

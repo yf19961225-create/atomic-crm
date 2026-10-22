@@ -159,6 +159,7 @@ export function ProductLibraryLookup({
   captureQuotePacking = false,
   capturePacking = false,
   includeUnit = false,
+  wideCommercial = false,
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
@@ -172,6 +173,8 @@ export function ProductLibraryLookup({
   capturePacking?: boolean;
   /** Save the Product Library unit in the selected item snapshot. */
   includeUnit?: boolean;
+  /** Give commercial document line items a wider desktop SKU lookup. */
+  wideCommercial?: boolean;
 }) {
   const [search, setSearch] = useState(sku);
   const [query, setQuery] = useState("");
@@ -260,7 +263,13 @@ export function ProductLibraryLookup({
     setActiveIndex(-1);
   };
   return (
-    <div className="relative min-w-48">
+    <div
+      className={
+        wideCommercial
+          ? "relative w-full max-w-full md:w-[520px]"
+          : "relative min-w-48"
+      }
+    >
       <input
         aria-label="搜索 SKU 或产品"
         ref={inputRef}
@@ -325,7 +334,7 @@ export function ProductLibraryLookup({
         </button>
       </div>
       {(loading || products.length > 0) && (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded border bg-background shadow">
+        <ul className="absolute z-20 mt-1 max-h-56 w-full min-w-full overflow-auto rounded border bg-background shadow">
           {loading && <li className="p-2">正在搜索产品…</li>}
           {products.map((product, index) => {
             const image = catalogProductImageCandidates(
@@ -352,7 +361,7 @@ export function ProductLibraryLookup({
                 >
                   {image ? (
                     <img
-                      className="h-8 w-8 object-cover"
+                      className="h-8 w-8 shrink-0 object-cover"
                       src={image}
                       alt=""
                       onError={() =>
@@ -362,9 +371,9 @@ export function ProductLibraryLookup({
                       }
                     />
                   ) : (
-                    <span className="h-8 w-8">暂无图片</span>
+                    <span className="h-8 w-8 shrink-0">暂无图片</span>
                   )}
-                  <span>
+                  <span className="min-w-0 flex-1 truncate whitespace-nowrap">
                     <strong>{product.sku}</strong> ·{" "}
                     {product.name?.zh ?? product.name?.en ?? "未命名产品"}
                   </span>
