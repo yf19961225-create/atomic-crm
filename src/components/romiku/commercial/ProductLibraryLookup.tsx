@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Ref } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { cartonCbmFromPacking } from "./commercialLineItems";
 import {
   loadProductProcurementOverlay,
@@ -14,6 +14,13 @@ import {
 
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
 export type DocumentLanguage = "zh" | "en" | "es";
+
+export function commercialResultPanelWidth(
+  viewportWidth: number,
+  left: number,
+) {
+  return Math.max(0, Math.min(900, viewportWidth - Math.max(0, left) - 16));
+}
 
 const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
   zh: ["zh", "en"],
@@ -186,7 +193,24 @@ export function ProductLibraryLookup({
   >(new Map());
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const lookupRef = useRef<HTMLDivElement>(null);
+  const [resultPanelWidth, setResultPanelWidth] = useState<number | null>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  useLayoutEffect(() => {
+    if (!wideCommercial || (!loading && products.length === 0)) return;
+    const updateWidth = () => {
+      const left = lookupRef.current?.getBoundingClientRect().left;
+      if (left == null) return;
+      setResultPanelWidth(commercialResultPanelWidth(window.innerWidth, left));
+    };
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    window.addEventListener("scroll", updateWidth, true);
+    return () => {
+      window.removeEventListener("resize", updateWidth);
+      window.removeEventListener("scroll", updateWidth, true);
+    };
+  }, [wideCommercial, loading, products.length]);
   useEffect(() => {
     let cancelled = false;
     if (!query.trim()) {
@@ -264,6 +288,7 @@ export function ProductLibraryLookup({
   };
   return (
     <div
+      ref={lookupRef}
       className={
         wideCommercial
           ? "relative w-full max-w-full md:w-[520px]"
@@ -335,6 +360,11 @@ export function ProductLibraryLookup({
       </div>
       {(loading || products.length > 0) && (
         <ul
+          style={
+            wideCommercial && resultPanelWidth != null
+              ? { maxWidth: resultPanelWidth }
+              : undefined
+          }
           className={`absolute z-20 mt-1 max-h-56 overflow-auto rounded border bg-background shadow ${
             wideCommercial
               ? "w-[900px] max-w-[calc(100dvw-1rem)]"

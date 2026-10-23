@@ -3,6 +3,7 @@ import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import {
+  commercialResultPanelWidth,
   createItemSnapshot,
   ProductLibraryLookup,
   shouldImportProductSpecifications,
@@ -12,6 +13,11 @@ describe("Product Library item snapshots", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+  it("keeps commercial results within the space to the right of the lookup", () => {
+    expect(commercialResultPanelWidth(1654, 332)).toBe(900);
+    expect(commercialResultPanelWidth(1024, 287)).toBe(721);
+    expect(commercialResultPanelWidth(390, 16)).toBe(358);
   });
   it("uses the Sanity image in the shared selector and falls back only to the same SKU website image", async () => {
     const primary = new URL("/appIcon/152.png", location.href).href;
