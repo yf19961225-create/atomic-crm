@@ -334,7 +334,13 @@ export function ProductLibraryLookup({
         </button>
       </div>
       {(loading || products.length > 0) && (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full min-w-full overflow-auto rounded border bg-background shadow">
+        <ul
+          className={`absolute z-20 mt-1 max-h-56 overflow-auto rounded border bg-background shadow ${
+            wideCommercial
+              ? "w-[900px] max-w-[calc(100dvw-1rem)]"
+              : "w-full min-w-full"
+          }`}
+        >
           {loading && <li className="p-2">正在搜索产品…</li>}
           {products.map((product, index) => {
             const image = catalogProductImageCandidates(
