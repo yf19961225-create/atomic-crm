@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
+import { createPortal } from "react-dom";
 import { cartonCbmFromPacking } from "./commercialLineItems";
 import {
   loadProductProcurementOverlay,
@@ -15,11 +16,25 @@ import {
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
 export type DocumentLanguage = "zh" | "en" | "es";
 
-export function commercialResultPanelWidth(
+export function commercialSearchPanelPosition(
   viewportWidth: number,
-  left: number,
+  viewportHeight: number,
+  anchor: Pick<DOMRect, "left" | "top" | "bottom">,
 ) {
-  return Math.max(0, Math.min(900, viewportWidth - Math.max(0, left) - 16));
+  const margin = viewportWidth < 768 ? 12 : 24;
+  const width = Math.max(0, Math.min(960, viewportWidth - margin * 2));
+  const left = Math.max(
+    margin,
+    Math.min(anchor.left, viewportWidth - width - margin),
+  );
+  const below = viewportHeight - anchor.bottom - margin - 4;
+  const above = anchor.top - margin - 4;
+  const openAbove = below < 280 && above > below;
+  const maxHeight = Math.max(120, Math.min(340, openAbove ? above : below));
+  const top = openAbove
+    ? Math.max(margin, anchor.top - maxHeight - 4)
+    : anchor.bottom + 4;
+  return { left, top, width, maxHeight };
 }
 
 const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
@@ -193,24 +208,38 @@ export function ProductLibraryLookup({
   >(new Map());
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const lookupRef = useRef<HTMLDivElement>(null);
-  const [resultPanelWidth, setResultPanelWidth] = useState<number | null>(null);
+  const triggerRef = useRef<HTMLInputElement>(null);
+  const expandedInputRef = useRef<HTMLInputElement>(null);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const [searchPanelPosition, setSearchPanelPosition] = useState<
+    ReturnType<typeof commercialSearchPanelPosition> | undefined
+  >();
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   useLayoutEffect(() => {
-    if (!wideCommercial || (!loading && products.length === 0)) return;
-    const updateWidth = () => {
-      const left = lookupRef.current?.getBoundingClientRect().left;
-      if (left == null) return;
-      setResultPanelWidth(commercialResultPanelWidth(window.innerWidth, left));
+    if (!wideCommercial || !searchPanelOpen) return;
+    const updatePosition = () => {
+      const anchor = triggerRef.current?.getBoundingClientRect();
+      if (!anchor) return;
+      setSearchPanelPosition(
+        commercialSearchPanelPosition(
+          window.innerWidth,
+          window.innerHeight,
+          anchor,
+        ),
+      );
     };
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    window.addEventListener("scroll", updateWidth, true);
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
     return () => {
-      window.removeEventListener("resize", updateWidth);
-      window.removeEventListener("scroll", updateWidth, true);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [wideCommercial, loading, products.length]);
+  }, [wideCommercial, searchPanelOpen]);
+  useLayoutEffect(() => {
+    if (searchPanelOpen && searchPanelPosition)
+      expandedInputRef.current?.focus();
+  }, [searchPanelOpen, searchPanelPosition]);
   useEffect(() => {
     let cancelled = false;
     if (!query.trim()) {
@@ -285,140 +314,176 @@ export function ProductLibraryLookup({
     setQuery("");
     setProducts([]);
     setActiveIndex(-1);
+    setSearchPanelOpen(false);
   };
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown" && products.length) {
+      event.preventDefault();
+      setActiveIndex((index) => Math.min(index + 1, products.length - 1));
+    } else if (event.key === "ArrowUp" && products.length) {
+      event.preventDefault();
+      setActiveIndex((index) => Math.max(index - 1, 0));
+    } else if (
+      event.key === "Enter" &&
+      (event.nativeEvent.isComposing || event.keyCode === 229)
+    ) {
+      return;
+    } else if (event.key === "Enter" && search.trim() !== query) {
+      event.preventDefault();
+      setQuery(search.trim());
+      setActiveIndex(-1);
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      void select(products[activeIndex]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setProducts([]);
+      setActiveIndex(-1);
+    }
+  };
+  const commitManualSku = () => {
+    const next = search.trim();
+    if (next && next !== sku) onManualSku(next);
+  };
+  const searchButton = (
+    <button
+      type="button"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => {
+        setQuery(search.trim());
+        setActiveIndex(-1);
+      }}
+    >
+      搜索
+    </button>
+  );
+  const clearButton = (
+    <button
+      type="button"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => {
+        setSearch("");
+        setQuery("");
+        setProducts([]);
+        setActiveIndex(-1);
+      }}
+    >
+      清空
+    </button>
+  );
+  const results = (loading || products.length > 0) && (
+    <ul className="max-h-56 w-full overflow-auto rounded border bg-background shadow">
+      {loading && <li className="p-2">正在搜索产品…</li>}
+      {products.map((product, index) => {
+        const image = catalogProductImageCandidates(
+          product,
+          images.get(product.id),
+        ).find((url) => !failedImages.has(url));
+        return (
+          <li key={product.id}>
+            <button
+              type="button"
+              ref={(element) => {
+                optionRefs.current[index] = element;
+              }}
+              aria-selected={activeIndex === index}
+              className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseDown={(event) => {
+                // Keep focus in the lookup until click selects the catalog
+                // product. Otherwise blur commits it as a manual SKU.
+                event.preventDefault();
+              }}
+              onClick={() => void select(product)}
+            >
+              {image ? (
+                <img
+                  className="h-8 w-8 shrink-0 object-cover"
+                  src={image}
+                  alt=""
+                  onError={() =>
+                    setFailedImages((current) => new Set(current).add(image))
+                  }
+                />
+              ) : (
+                <span className="h-8 w-8 shrink-0">暂无图片</span>
+              )}
+              <span className="min-w-0 flex-1 truncate whitespace-nowrap">
+                <strong>{product.sku}</strong> ·{" "}
+                {product.name?.zh ?? product.name?.en ?? "未命名产品"}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
   return (
     <div
-      ref={lookupRef}
       className={
-        wideCommercial
-          ? "relative w-full max-w-full md:w-[520px]"
-          : "relative min-w-48"
+        wideCommercial ? "relative w-full min-w-48" : "relative min-w-48"
       }
     >
       <input
         aria-label="搜索 SKU 或产品"
-        ref={inputRef}
+        ref={(element) => {
+          triggerRef.current = element;
+          if (typeof inputRef === "function") inputRef(element);
+          else if (inputRef) inputRef.current = element;
+        }}
         className="w-full rounded border p-1"
         value={search}
+        onFocus={wideCommercial ? () => setSearchPanelOpen(true) : undefined}
         onChange={(event) => {
           setSearch(event.target.value);
         }}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown" && products.length) {
-            event.preventDefault();
-            setActiveIndex((index) => Math.min(index + 1, products.length - 1));
-          } else if (event.key === "ArrowUp" && products.length) {
-            event.preventDefault();
-            setActiveIndex((index) => Math.max(index - 1, 0));
-          } else if (
-            event.key === "Enter" &&
-            (event.nativeEvent.isComposing || event.keyCode === 229)
-          ) {
-            return;
-          } else if (event.key === "Enter" && search.trim() !== query) {
-            event.preventDefault();
-            setQuery(search.trim());
-            setActiveIndex(-1);
-          } else if (event.key === "Enter" && activeIndex >= 0) {
-            event.preventDefault();
-            void select(products[activeIndex]);
-          } else if (event.key === "Escape") {
-            event.preventDefault();
-            setProducts([]);
-            setActiveIndex(-1);
-          }
-        }}
-        onBlur={() => {
-          const next = search.trim();
-          if (next && next !== sku) onManualSku(next);
-        }}
+        onKeyDown={wideCommercial ? undefined : handleInputKeyDown}
+        onBlur={wideCommercial ? undefined : commitManualSku}
         placeholder="SKU / 产品名称"
       />
-      <div className="flex gap-2 text-sm">
-        <button
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => {
-            setQuery(search.trim());
-            setActiveIndex(-1);
-          }}
-        >
-          搜索
-        </button>
-        <button
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => {
-            setSearch("");
-            setQuery("");
-            setProducts([]);
-            setActiveIndex(-1);
-          }}
-        >
-          清空
-        </button>
-      </div>
-      {(loading || products.length > 0) && (
-        <ul
-          style={
-            wideCommercial && resultPanelWidth != null
-              ? { maxWidth: resultPanelWidth }
-              : undefined
-          }
-          className={`absolute z-20 mt-1 max-h-56 overflow-auto rounded border bg-background shadow ${
-            wideCommercial
-              ? "w-[900px] max-w-[calc(100dvw-1rem)]"
-              : "w-full min-w-full"
-          }`}
-        >
-          {loading && <li className="p-2">正在搜索产品…</li>}
-          {products.map((product, index) => {
-            const image = catalogProductImageCandidates(
-              product,
-              images.get(product.id),
-            ).find((url) => !failedImages.has(url));
-            return (
-              <li key={product.id}>
-                <button
-                  type="button"
-                  ref={(element) => {
-                    optionRefs.current[index] = element;
-                  }}
-                  aria-selected={activeIndex === index}
-                  className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onMouseDown={(event) => {
-                    // Keep focus in the lookup until click selects the catalog
-                    // product. Otherwise the input blur treats the selected SKU
-                    // as a manual override and clears the fresh snapshot.
-                    event.preventDefault();
-                  }}
-                  onClick={() => void select(product)}
-                >
-                  {image ? (
-                    <img
-                      className="h-8 w-8 shrink-0 object-cover"
-                      src={image}
-                      alt=""
-                      onError={() =>
-                        setFailedImages((current) =>
-                          new Set(current).add(image),
-                        )
-                      }
-                    />
-                  ) : (
-                    <span className="h-8 w-8 shrink-0">暂无图片</span>
-                  )}
-                  <span className="min-w-0 flex-1 truncate whitespace-nowrap">
-                    <strong>{product.sku}</strong> ·{" "}
-                    {product.name?.zh ?? product.name?.en ?? "未命名产品"}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {!wideCommercial && (
+        <>
+          <div className="flex gap-2 text-sm">
+            {searchButton}
+            {clearButton}
+          </div>
+          {results && (
+            <div className="absolute z-20 mt-1 w-full">{results}</div>
+          )}
+        </>
       )}
+      {wideCommercial &&
+        searchPanelOpen &&
+        searchPanelPosition &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-label="产品搜索"
+            className="fixed z-[100] overflow-y-auto rounded-lg border bg-background p-3 shadow-xl"
+            style={searchPanelPosition}
+          >
+            <input
+              aria-label="产品搜索输入"
+              ref={expandedInputRef}
+              className="w-full rounded border p-2"
+              style={{ width: "100%" }}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              onBlur={() => {
+                commitManualSku();
+                setSearchPanelOpen(false);
+              }}
+              placeholder="SKU / 产品名称"
+            />
+            <div className="flex gap-2 py-1 text-sm">
+              {searchButton}
+              {clearButton}
+            </div>
+            {results}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import {
-  commercialResultPanelWidth,
+  commercialSearchPanelPosition,
   createItemSnapshot,
   ProductLibraryLookup,
   shouldImportProductSpecifications,
@@ -14,10 +14,187 @@ describe("Product Library item snapshots", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
-  it("keeps commercial results within the space to the right of the lookup", () => {
-    expect(commercialResultPanelWidth(1654, 332)).toBe(900);
-    expect(commercialResultPanelWidth(1024, 287)).toBe(721);
-    expect(commercialResultPanelWidth(390, 16)).toBe(358);
+  it("opens the commercial search input in a viewport-sized portal outside a clipped SKU cell", async () => {
+    const screen = await render(
+      <div style={{ width: 540, overflow: "hidden" }}>
+        <ProductLibraryLookup
+          wideCommercial
+          onSelected={vi.fn()}
+          onManualSku={vi.fn()}
+        />
+      </div>,
+    );
+    const cellInput = screen.getByLabelText("搜索 SKU 或产品");
+    await cellInput.click();
+
+    const panel = document.querySelector<HTMLElement>(
+      '[role="dialog"][aria-label="产品搜索"]',
+    );
+    expect(panel).not.toBeNull();
+    expect(panel?.parentElement).toBe(document.body);
+    const expandedInput = panel?.querySelector<HTMLInputElement>("input");
+    expect(expandedInput).not.toBeNull();
+    expect(panel!.getBoundingClientRect().width).toBeCloseTo(
+      Math.min(960, window.innerWidth - (window.innerWidth < 768 ? 24 : 48)),
+      0,
+    );
+    expect(expandedInput!.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+      panel!.getBoundingClientRect().width - 32,
+    );
+    expect(expandedInput!.getBoundingClientRect().width).toBeGreaterThan(
+      document
+        .querySelector<HTMLInputElement>('input[aria-label="搜索 SKU 或产品"]')!
+        .getBoundingClientRect().width,
+    );
+    expect(panel!.getBoundingClientRect().right).toBeLessThanOrEqual(
+      window.innerWidth - 12,
+    );
+  });
+
+  it("selects a result in the commercial portal without committing a manual SKU on blur", async () => {
+    const onSelected = vi.fn();
+    const onManualSku = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: [
+                      {
+                        _id: "portal-product",
+                        sku: "PORTAL-1",
+                        isPublished: true,
+                        name: { zh: "测试产品" },
+                      },
+                    ],
+                  }
+                : { images: {}, powerSupplies: {} },
+            ),
+          ),
+        ),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        wideCommercial
+        onSelected={onSelected}
+        onManualSku={onManualSku}
+      />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").click();
+    const panel = document.querySelector<HTMLElement>(
+      '[role="dialog"][aria-label="产品搜索"]',
+    )!;
+    const expandedInput = panel.querySelector<HTMLInputElement>("input")!;
+    await userEvent.type(expandedInput, "PORTAL");
+    await userEvent.click(panel.querySelector("button")!);
+    await expect
+      .element(screen.getByRole("button", { name: /PORTAL-1 · 测试产品/ }))
+      .toBeVisible();
+    await screen.getByRole("button", { name: /PORTAL-1 · 测试产品/ }).click();
+    expect(onSelected.mock.calls[0]?.[0]?.sku).toBe("PORTAL-1");
+    expect(onManualSku).not.toHaveBeenCalled();
+  });
+
+  it("keeps manual SKU entry and clearing inside the commercial search panel", async () => {
+    const onManualSku = vi.fn();
+    const screen = await render(
+      <div>
+        <ProductLibraryLookup
+          wideCommercial
+          onSelected={vi.fn()}
+          onManualSku={onManualSku}
+        />
+        <button type="button">离开搜索</button>
+      </div>,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").click();
+    let panel = document.querySelector<HTMLElement>(
+      '[role="dialog"][aria-label="产品搜索"]',
+    )!;
+    await userEvent.type(panel.querySelector("input")!, "TEMP-SKU");
+    await userEvent.click(panel.querySelectorAll("button")[1]);
+    expect(panel.querySelector("input")?.value).toBe("");
+    expect(onManualSku).not.toHaveBeenCalled();
+
+    await userEvent.type(panel.querySelector("input")!, "MANUAL-1");
+    await screen.getByRole("button", { name: "离开搜索" }).click();
+    expect(onManualSku).toHaveBeenCalledExactlyOnceWith("MANUAL-1");
+    panel = document.querySelector<HTMLElement>(
+      '[role="dialog"][aria-label="产品搜索"]',
+    )!;
+    expect(panel).toBeNull();
+  });
+
+  it("keeps Enter search and arrow-key result selection in the commercial panel", async () => {
+    const onSelected = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: [
+                      {
+                        _id: "keyboard-product",
+                        sku: "KEY-1",
+                        isPublished: true,
+                        name: { zh: "键盘测试产品" },
+                      },
+                    ],
+                  }
+                : { images: {}, powerSupplies: {} },
+            ),
+          ),
+        ),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        wideCommercial
+        onSelected={onSelected}
+        onManualSku={vi.fn()}
+      />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").click();
+    const expandedInput = document.querySelector<HTMLInputElement>(
+      '[role="dialog"][aria-label="产品搜索"] input',
+    )!;
+    await userEvent.type(expandedInput, "KEY");
+    await userEvent.keyboard("{Enter}");
+    await expect
+      .element(screen.getByRole("button", { name: /KEY-1 · 键盘测试产品/ }))
+      .toBeVisible();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    expect(onSelected.mock.calls[0]?.[0]?.sku).toBe("KEY-1");
+  });
+  it("clamps the detached commercial search panel inside the viewport", () => {
+    expect(
+      commercialSearchPanelPosition(1654, 900, {
+        left: 332,
+        top: 300,
+        bottom: 340,
+      }),
+    ).toMatchObject({ left: 332, width: 960 });
+    expect(
+      commercialSearchPanelPosition(1024, 900, {
+        left: 800,
+        top: 300,
+        bottom: 340,
+      }),
+    ).toMatchObject({ left: 40, width: 960 });
+    expect(
+      commercialSearchPanelPosition(390, 844, {
+        left: 200,
+        top: 300,
+        bottom: 340,
+      }),
+    ).toMatchObject({ left: 12, width: 366 });
   });
   it("uses the Sanity image in the shared selector and falls back only to the same SKU website image", async () => {
     const primary = new URL("/appIcon/152.png", location.href).href;

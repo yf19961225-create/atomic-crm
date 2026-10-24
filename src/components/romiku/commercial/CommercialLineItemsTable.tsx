@@ -394,7 +394,7 @@ export function CommercialLineItemsTable({
                         <td className="text-muted-foreground">
                           {visibleIndex + 1}
                         </td>
-                        <td className="p-1 md:min-w-[528px]">
+                        <td className="min-w-[220px] p-1">
                           <ProductLibraryLookup
                             wideCommercial
                             specificationMode={
@@ -578,9 +578,7 @@ export function CommercialLineItemsTable({
                             {visibleIndex + 1}
                           </td>
                           <td
-                            className={
-                              editable ? "p-1 md:min-w-[528px]" : "p-1"
-                            }
+                            className={editable ? "min-w-[220px] p-1" : "p-1"}
                           >
                             {editable ? (
                               <ProductLibraryLookup
