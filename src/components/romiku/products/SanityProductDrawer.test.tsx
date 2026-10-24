@@ -227,7 +227,7 @@ describe("SanityProductDrawer", () => {
     await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
   });
 
-  it("replaces a failed website image with the same fallback", async () => {
+  it("shows a failure state after its only image fails", async () => {
     const screen = await render(
       <SanityProductDrawer
         product={product}
@@ -243,7 +243,7 @@ describe("SanityProductDrawer", () => {
       .getByRole("img", { name: "RMK-100 产品图片" })
       .element()
       .dispatchEvent(new Event("error"));
-    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
+    await expect.element(screen.getByText("图片加载失败")).toBeVisible();
   });
 
   it("creates the minimum Extension then refreshes only the current product overlay", async () => {

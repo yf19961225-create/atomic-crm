@@ -24,6 +24,7 @@ import {
   type SupplierOption,
 } from "./productDrawerActions";
 import type { SanityCatalogProduct } from "./sanityCatalogSource";
+import { ProductCandidateImage } from "./ProductCandidateImage";
 import { createSupabaseProductDrawerClient } from "./supabaseProductDrawerClient";
 import {
   createProductSupplierManagementClient,
@@ -35,7 +36,8 @@ type DrawerClient = ProductDrawerClient & ProductDrawerReadClient;
 type Props = {
   product: SanityCatalogProduct | null;
   resolvedImageUrl?: string;
-  onImageError?: (url: string) => void;
+  imageCandidates?: string[];
+  websiteImageUrl?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   refreshOverlay: (product: SanityCatalogProduct) => Promise<void>;
@@ -151,7 +153,8 @@ export const SanityProductDrawer = (props: Props) =>
 const ProductDrawerSession = ({
   product,
   resolvedImageUrl,
-  onImageError,
+  imageCandidates,
+  websiteImageUrl,
   open,
   onOpenChange,
   refreshOverlay,
@@ -203,11 +206,8 @@ const ProductDrawerSession = ({
   const hydrated = useRef(false);
   const loadVersion = useRef(0);
   const [message, setMessage] = useState("");
-  const [failedImageKey, setFailedImageKey] = useState<string>();
   const [costDirty, setCostDirty] = useState(false);
   useAppDraft(open && (supplierDirty || editDirty || replacementDirty || costDirty || notesDirty || packingDirty));
-  const imageKey = product ? `${product.id}:${resolvedImageUrl ?? ""}` : "";
-  const imageFailed = failedImageKey === imageKey;
 
   const loadInternal = useCallback(
     async (preferredSupplierId?: string) => {
@@ -434,19 +434,14 @@ const ProductDrawerSession = ({
           </SheetDescription>
         </SheetHeader>
         <section className="space-y-3 px-4" aria-label="产品详情">
-          {resolvedImageUrl && !imageFailed ? (
-            <img
-              src={resolvedImageUrl}
-              alt={`${product.sku ?? "未命名"} 产品图片`}
-              className="h-32 w-32 object-cover"
-              onError={() => {
-                setFailedImageKey(imageKey);
-                if (resolvedImageUrl) onImageError?.(resolvedImageUrl);
-              }}
-            />
-          ) : (
-            <p>暂无产品图片</p>
-          )}
+          <ProductCandidateImage
+            sku={product.sku ?? ""}
+            candidates={imageCandidates ?? (resolvedImageUrl ? [resolvedImageUrl] : [])}
+            websiteUrl={websiteImageUrl}
+            alt={`${product.sku ?? "未命名"} 产品图片`}
+            sizeClassName="h-32 w-32"
+            emptyLabel="暂无产品图片"
+          />
           <dl className="grid grid-cols-2 gap-2 text-sm">
             <dt>货号</dt>
             <dd>{product.sku ?? "—"}</dd>

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   catalogProductImageCandidates,
+  catalogThumbnailImageCandidates,
   loadWebsiteProductImages,
 } from "./websiteProductImages";
 
@@ -40,6 +41,29 @@ describe("loadWebsiteProductImages", () => {
 });
 
 describe("catalogProductImageCandidates", () => {
+  it("uses an exact-SKU website thumbnail first without reordering Sanity gallery images", () => {
+    const item = {
+      ...product("sanity-1", "GC043"),
+      images: [
+        { url: "https://cdn.example.com/main.jpg" },
+        { url: "https://cdn.example.com/side.jpg" },
+      ],
+    };
+    expect(
+      catalogThumbnailImageCandidates(item, "https://romiku.com/gc043.jpg"),
+    ).toEqual([
+      "https://romiku.com/gc043.jpg",
+      "https://cdn.example.com/main.jpg",
+      "https://cdn.example.com/side.jpg",
+    ]);
+    expect(
+      catalogProductImageCandidates(item, "https://romiku.com/gc043.jpg"),
+    ).toEqual([
+      "https://cdn.example.com/main.jpg",
+      "https://cdn.example.com/side.jpg",
+      "https://romiku.com/gc043.jpg",
+    ]);
+  });
   it("prefers the current Sanity image and retains the matching website image as fallback", () => {
     expect(
       catalogProductImageCandidates(
@@ -68,5 +92,24 @@ describe("catalogProductImageCandidates", () => {
         images: [],
       }),
     ).toEqual([]);
+  });
+
+  it("skips empty and malformed image entries while preserving valid Sanity order", () => {
+    const item = {
+      ...product("sanity-4", "GC043"),
+      images: [
+        { url: "" },
+        { url: "not-a-url" },
+        { url: "https://cdn.example.com/first.jpg" },
+        { url: "https://cdn.example.com/second.jpg" },
+      ],
+    };
+    expect(catalogThumbnailImageCandidates(item)).toEqual([
+      "https://cdn.example.com/first.jpg",
+      "https://cdn.example.com/second.jpg",
+    ]);
+    expect(catalogThumbnailImageCandidates({ ...item, images: [] })).toEqual(
+      [],
+    );
   });
 });

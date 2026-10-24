@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
+import { useState } from "react";
 import { SanityCatalogList } from "./SanityCatalogList";
 import type { SanityCatalogProduct } from "./sanityCatalogSource";
 
@@ -9,28 +10,28 @@ const loadWebsiteImages = vi.hoisted(() => vi.fn());
 
 const FakeDrawer = ({
     open,
-    resolvedImageUrl,
-    onImageError,
+    imageCandidates,
   }: {
     open: boolean;
-    resolvedImageUrl?: string;
-    onImageError?: (url: string) => void;
-  }) =>
-    open ? (
+    imageCandidates?: string[];
+  }) => {
+    const [index, setIndex] = useState(0);
+    return open ? (
       <>
         <p>产品 Drawer 已打开</p>
-        {resolvedImageUrl ? (
-          <img alt="Drawer 产品图片" src={resolvedImageUrl} />
+        {imageCandidates?.[index] ? (
+          <img alt="Drawer 产品图片" src={imageCandidates[index]} />
         ) : (
           <p>Drawer 暂无产品图片</p>
         )}
-        {resolvedImageUrl && (
-          <button onClick={() => onImageError?.(resolvedImageUrl)}>
+        {imageCandidates?.[index] && (
+          <button onClick={() => setIndex((value) => value + 1)}>
             模拟图片加载失败
           </button>
         )}
       </>
     ) : null;
+  };
 
 vi.mock("./sanityCatalogSource", () => ({
   createSanityCatalogSource: () => ({ getPage }),
@@ -259,7 +260,7 @@ describe("SanityCatalogList", () => {
     await expect.element(screen.getByText("产品 Drawer 已打开")).toBeVisible();
   });
 
-  it("passes the authoritative Sanity image URL to the drawer without another image request", async () => {
+  it("passes the exact-SKU website thumbnail first to the drawer without another image request", async () => {
     const resolvedImageUrl =
       "https://romiku.com/images/products-local/005_main1.jpg";
     loadWebsiteImages.mockResolvedValue(
@@ -279,22 +280,22 @@ describe("SanityCatalogList", () => {
     await screen.getByRole("cell", { name: "005", exact: true }).click();
     await expect
       .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
-      .toHaveAttribute("src", "https://sanity.example.test/005.jpg");
+      .toHaveAttribute("src", resolvedImageUrl);
     expect(loadWebsiteImages).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to the matching website image when a Sanity image fails", async () => {
+  it("falls back to Sanity when the matching website image fails", async () => {
+    const website = new URL("/appIcon/152.png", location.href).href;
+    const sanity = new URL("/appIcon/144.png", location.href).href;
     loadWebsiteImages.mockResolvedValue(
-      new Map([
-        ["sanity-1", "https://romiku.com/images/products-local/005_main1.jpg"],
-      ]),
+      new Map([["sanity-1", website]]),
     );
     getPage.mockResolvedValue({
       products: [
         product({
           sku: "005",
           images: [
-            { url: "https://res.cloudinary.com/example/image/upload/005.jpg" },
+            { url: sanity },
           ],
         }),
       ],
@@ -307,18 +308,18 @@ describe("SanityCatalogList", () => {
       .element(image)
       .toHaveAttribute(
         "src",
-        "https://res.cloudinary.com/example/image/upload/005.jpg",
+        website,
       );
     image.element().dispatchEvent(new Event("error"));
     await expect
       .element(screen.getByRole("img", { name: "005 图片" }))
       .toHaveAttribute(
         "src",
-        "https://romiku.com/images/products-local/005_main1.jpg",
+        sanity,
       );
   });
 
-  it("passes a same-SKU fallback into the open drawer after its Sanity image fails", async () => {
+  it("passes the next same-SKU image into the open drawer after its website image fails", async () => {
     const primary = new URL("/appIcon/152.png", location.href).href;
     const fallback = new URL("/appIcon/144.png", location.href).href;
     loadWebsiteImages.mockResolvedValue(new Map([["sanity-1", fallback]]));
@@ -329,11 +330,11 @@ describe("SanityCatalogList", () => {
     await screen.getByRole("cell", { name: "RMK-100", exact: true }).click();
     await expect
       .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
-      .toHaveAttribute("src", primary);
+      .toHaveAttribute("src", fallback);
     await screen.getByRole("button", { name: "模拟图片加载失败" }).click();
     await expect
       .element(screen.getByRole("img", { name: "Drawer 产品图片" }))
-      .toHaveAttribute("src", fallback);
+      .toHaveAttribute("src", primary);
   });
 
   it("uses the same Chinese placeholder when a product has no image URL", async () => {

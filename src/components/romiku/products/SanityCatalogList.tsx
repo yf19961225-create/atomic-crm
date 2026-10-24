@@ -11,9 +11,10 @@ import {
 import { createSupabaseProcurementOverlayClient } from "./supabaseProcurementOverlayClient";
 import { SanityProductDrawer } from "./SanityProductDrawer";
 import {
-  catalogProductImageCandidates,
+  catalogThumbnailImageCandidates,
   loadWebsiteProductImages,
 } from "./websiteProductImages";
+import { ProductCandidateImage } from "./ProductCandidateImage";
 import { SearchInput } from "../search/SearchInput";
 import { Button } from "@/components/ui/button";
 import { BulkSupplierDialog } from "./BulkSupplierDialog";
@@ -61,8 +62,7 @@ export const SanityCatalogList = ({ catalogSource, overlayLoader = loadProductPr
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([]);
   const [bulkError, setBulkError] = useState("");
   const [images, setImages] = useState<Map<string, string>>(new Map()),
-    [imagePreview, setImagePreview] = useState<string | null>(null),
-    [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+    [imagePreview, setImagePreview] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -90,7 +90,6 @@ export const SanityCatalogList = ({ catalogSource, overlayLoader = loadProductPr
           setProducts(page.products);
           setNextCursor(page.nextCursor);
           setImages(nextImages);
-          setFailedImages(new Set());
           setOverlay(nextOverlay);
           setLoading(false);
         }
@@ -209,10 +208,10 @@ export const SanityCatalogList = ({ catalogSource, overlayLoader = loadProductPr
         <tbody>
           {products.map((product) => {
             const item = overlay.get(product.id),
-              image = catalogProductImageCandidates(
+              imageCandidates = catalogThumbnailImageCandidates(
                 product,
                 images.get(product.id),
-              ).find((url) => !failedImages.has(url));
+              );
             const hasDimensions =
               item?.lengthCm != null &&
               item?.widthCm != null &&
@@ -238,31 +237,14 @@ export const SanityCatalogList = ({ catalogSource, overlayLoader = loadProductPr
                   return next;
                 })} /></td>
                 <td className="p-2">
-                  {image ? (
-                    <button
-                      type="button"
-                      aria-label={`预览 ${product.sku || "产品"} 图片`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setImagePreview(image);
-                      }}
-                    >
-                      <img
-                        className="h-10 w-10 object-cover"
-                        src={image}
-                        alt={`${product.sku || "产品"} 图片`}
-                        onError={() =>
-                          setFailedImages((current) => {
-                            const next = new Set(current);
-                            next.add(image);
-                            return next;
-                          })
-                        }
-                      />
-                    </button>
-                  ) : (
-                    "暂无图片"
-                  )}
+                  <ProductCandidateImage
+                    sku={product.sku ?? ""}
+                    candidates={imageCandidates}
+                    websiteUrl={images.get(product.id)}
+                    alt={`${product.sku || "产品"} 图片`}
+                    sizeClassName="h-10 w-10"
+                    onSelect={setImagePreview}
+                  />
                 </td>
                 <td className="p-2">{product.sku || "—"}</td>
                 <td className="p-2 text-right">
@@ -313,17 +295,15 @@ export const SanityCatalogList = ({ catalogSource, overlayLoader = loadProductPr
       </div>
       <DrawerComponent
         product={selectedProduct}
-        onImageError={(url) =>
-          setFailedImages((current) => new Set(current).add(url))
-        }
-        resolvedImageUrl={
+        imageCandidates={
           selectedProduct
-            ? catalogProductImageCandidates(
+            ? catalogThumbnailImageCandidates(
                 selectedProduct,
                 images.get(selectedProduct.id),
-              ).find((url) => !failedImages.has(url))
-            : undefined
+              )
+            : []
         }
+        websiteImageUrl={selectedProduct ? images.get(selectedProduct.id) : undefined}
         open={selectedProduct !== null}
         onOpenChange={(open) => !open && setSelectedProduct(null)}
         refreshOverlay={refreshOverlay}

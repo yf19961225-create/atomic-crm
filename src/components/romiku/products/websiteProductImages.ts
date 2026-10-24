@@ -21,6 +21,14 @@ export const catalogProductImageCandidates = (
 ) =>
   usableImageUrls([...sanityProductImageUrls(product.images), websiteImageUrl]);
 
+// The catalog thumbnail favors the exact-SKU website image. Keep the Sanity
+// gallery order unchanged for consumers of catalogProductImageCandidates.
+export const catalogThumbnailImageCandidates = (
+  product: SanityCatalogProduct,
+  websiteImageUrl?: string,
+) =>
+  usableImageUrls([websiteImageUrl, ...sanityProductImageUrls(product.images)]);
+
 export const loadWebsiteProductDetails = async (
   products: SanityCatalogProduct[],
 ) => {
