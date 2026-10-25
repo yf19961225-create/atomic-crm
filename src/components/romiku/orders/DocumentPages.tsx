@@ -47,7 +47,10 @@ import { InlineStatusSelect } from "../shared/InlineStatusSelect";
 import { OrderProductionInstructions } from "../marking/OrderProductionInstructions";
 import { OrderExportDetails } from "./OrderExportDetails";
 import { PiExportDetails } from "./PiExportDetails";
-import { normalizeOrderExportModel } from "./orderExportModel";
+import {
+  missingCustomerCodePositions,
+  normalizeOrderExportModel,
+} from "./orderExportModel";
 import {
   orderCustomerCodeVisible,
   orderExportSnapshot,
@@ -499,6 +502,7 @@ function DocumentEditor({
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [failed, setFailed] = useState(false);
+  const [missingCodeRows, setMissingCodeRows] = useState<number[]>([]);
   const items = useQuery({
     queryKey: [`${kind}-items`, record.id],
     queryFn: () => readCommercialItems(provider, kind, String(record.id)),
@@ -506,7 +510,7 @@ function DocumentEditor({
   const session = useDocumentEditSession(record, items.data);
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const totals = quoteTotals(session.items, session.values);
-  const exportOrder = async () => {
+  const exportOrder = async (allowBlankCustomerCodes = false) => {
     if (kind !== "order") return;
     if (session.editing) {
       setFailed(true);
@@ -514,6 +518,12 @@ function DocumentEditor({
       return;
     }
     const model = normalizeOrderExportModel(record, items.data || []);
+    const missing = missingCustomerCodePositions(model);
+    if (missing.length && !allowBlankCustomerCodes) {
+      setMissingCodeRows(missing);
+      return;
+    }
+    setMissingCodeRows([]);
     try {
       const template = await fetch(orderTemplateUrl).then((response) =>
         response.arrayBuffer(),
@@ -707,6 +717,26 @@ function DocumentEditor({
           <Button type="button" variant="outline" disabled>
             导出 PDF（暂停）
           </Button>
+        </div>
+      )}
+      {kind === "order" && !session.editing && missingCodeRows.length > 0 && (
+        <div className="space-y-2" role="alert">
+          <p>
+            第 {missingCodeRows.join("、")} 行缺少客户货号；导出后对应的 ITEM.NO
+            将留空。
+          </p>
+          <div className="flex gap-2">
+            <Button type="button" onClick={() => void exportOrder(true)}>
+              仍要导出（留空）
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMissingCodeRows([])}
+            >
+              取消导出
+            </Button>
+          </div>
         </div>
       )}
       {kind === "pi" && (

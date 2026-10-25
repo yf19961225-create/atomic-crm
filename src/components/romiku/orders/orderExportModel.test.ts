@@ -1,5 +1,8 @@
 import { expect, it } from "vitest";
-import { normalizeOrderExportModel } from "./orderExportModel";
+import {
+  missingCustomerCodePositions,
+  normalizeOrderExportModel,
+} from "./orderExportModel";
 
 it("normalizes only saved snapshots, sorts position/id and inserts money rows conditionally", () => {
   const model = normalizeOrderExportModel(
@@ -105,4 +108,49 @@ it("exports customer codes only when visible while preserving each SKU and amoun
   ]);
   expect(hidden.customerCodeVisible).toBe(false);
   expect(hidden.items).toEqual(visible.items);
+});
+
+it("identifies displayed product rows with no customer code before export", () => {
+  const items = [
+    {
+      id: "later",
+      position: 3,
+      sku: "OUR-C",
+      customer_code: "",
+      quantity: 1,
+      unit_price: 1,
+      product_snapshot: {},
+      packing_snapshot: {},
+    },
+    {
+      id: "first",
+      position: 1,
+      sku: "OUR-A",
+      customer_code: "BUYER-A",
+      quantity: 1,
+      unit_price: 1,
+      product_snapshot: {},
+      packing_snapshot: {},
+    },
+    {
+      id: "middle",
+      position: 2,
+      sku: "OUR-B",
+      customer_code: "  ",
+      quantity: 1,
+      unit_price: 1,
+      product_snapshot: {},
+      packing_snapshot: {},
+    },
+  ];
+  const visible = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: true } } },
+    items,
+  );
+  const hidden = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: false } } },
+    items,
+  );
+  expect(missingCustomerCodePositions(visible)).toEqual([2, 3]);
+  expect(missingCustomerCodePositions(hidden)).toEqual([]);
 });

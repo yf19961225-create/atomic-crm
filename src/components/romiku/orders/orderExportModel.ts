@@ -149,3 +149,12 @@ export function normalizeOrderExportModel(
       : [],
   };
 }
+
+export function missingCustomerCodePositions(
+  model: OrderExportModel,
+): number[] {
+  if (!model.customerCodeVisible) return [];
+  return model.items
+    .filter((item) => !item.customerCode)
+    .map((item) => item.position);
+}

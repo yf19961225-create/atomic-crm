@@ -17,7 +17,10 @@ const list = {
   filter: {},
 };
 afterEach(() => vi.unstubAllGlobals());
-async function setup(path: string) {
+async function setup(
+  path: string,
+  options?: { orderCustomerCodeVisible?: boolean },
+) {
   await page.viewport(1440, 1200);
   const header = {
     status: "draft",
@@ -47,7 +50,21 @@ async function setup(path: string) {
       { id: "pii", pi_id: "p", source_quote_item_id: "qi", ...item },
     ],
     romiku_orders: [
-      { id: "o", document_number: "SO-001", source_pi_id: "p", ...header },
+      {
+        id: "o",
+        document_number: "SO-001",
+        source_pi_id: "p",
+        ...header,
+        ...(options?.orderCustomerCodeVisible === undefined
+          ? {}
+          : {
+              terms_snapshot: {
+                order_export: {
+                  customer_code_visible: options.orderCustomerCodeVisible,
+                },
+              },
+            }),
+      },
     ],
     romiku_production_orders: [],
     romiku_order_items: [
@@ -188,6 +205,19 @@ it("shows PI XLSX export only for a saved PI and disables it while editing", asy
   await expect
     .element(screen.getByRole("button", { name: "导出 XLSX", exact: true }))
     .toBeDisabled();
+});
+
+it("warns which Order rows have no customer code before exporting visible customer codes", async () => {
+  const { screen } = await setup("/orders/o", {
+    orderCustomerCodeVisible: true,
+  });
+  await screen.getByRole("button", { name: "导出 XLSX", exact: true }).click();
+  await expect
+    .element(screen.getByRole("alert"))
+    .toHaveTextContent("第 1 行缺少客户货号");
+  await expect
+    .element(screen.getByRole("button", { name: "仍要导出（留空）" }))
+    .toBeVisible();
 });
 it.each([
   ["pi", "PI"],

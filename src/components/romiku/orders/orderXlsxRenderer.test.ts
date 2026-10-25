@@ -27,7 +27,7 @@ it("copies the product row height from the fixed template", async () => {
   expect(rendered.getWorksheet("ORDER")!.getRow(10).height).toBe(71);
 });
 
-it("prints customer code below our SKU without shifting fixed workbook columns", async () => {
+it("prints only the selected item number without changing the fixed workbook layout", async () => {
   const template = await fetch(templateUrl).then((response) =>
     response.arrayBuffer(),
   );
@@ -56,9 +56,14 @@ it("prints customer code below our SKU without shifting fixed workbook columns",
   await hiddenBook.xlsx.load(await renderOrderXlsx(hidden, template));
   const shown = visibleBook.worksheets[0];
   const original = hiddenBook.worksheets[0];
-  expect(shown.getCell("B10").text).toContain("OUR-A");
-  expect(shown.getCell("B10").text).toContain("BUYER-A");
+  expect(shown.getCell("B10").text).toBe("BUYER-A");
   expect(original.getCell("B10").text).toBe("OUR-A");
+  expect(shown.getRow(10).height).toBe(original.getRow(10).height);
+  expect(shown.getCell("B10").alignment).toEqual(
+    original.getCell("B10").alignment,
+  );
+  expect(shown.getCell("B10").font).toEqual(original.getCell("B10").font);
+  expect(shown.getCell("B10").border).toEqual(original.getCell("B10").border);
   for (const column of ["C", "E", "F", "G", "H", "I", "J"])
     expect(shown.getCell(`${column}10`).value).toEqual(
       original.getCell(`${column}10`).value,
@@ -66,6 +71,29 @@ it("prints customer code below our SKU without shifting fixed workbook columns",
   expect(shown.getCell("H10").value).toBe(2);
   expect(shown.getCell("J10").value).toBe(6);
   expect(shown.columnCount).toBe(original.columnCount);
+});
+
+it("leaves ITEM.NO blank when a visible customer code is missing", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const model = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: true } } },
+    [
+      {
+        id: "missing",
+        sku: "OUR-A",
+        customer_code: "  ",
+        quantity: 1,
+        unit_price: 1,
+        product_snapshot: {},
+        packing_snapshot: {},
+      },
+    ],
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await renderOrderXlsx(model, template));
+  expect(workbook.worksheets[0].getCell("B10").text).toBe("");
 });
 
 it("removes the payment term row and closes the Terms gap when hidden", async () => {
