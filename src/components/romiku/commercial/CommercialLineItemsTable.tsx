@@ -103,6 +103,12 @@ export function CommercialLineItemsTable({
   const [quoteUsdDrafts, setQuoteUsdDrafts] = useState<Record<string, string>>(
     {},
   );
+  const [commercialPriceDrafts, setCommercialPriceDrafts] = useState<
+    Record<string, string>
+  >({});
+  useEffect(() => {
+    if (!editable) setCommercialPriceDrafts({});
+  }, [editable]);
   const [draftRows, setDraftRows] = useState(() => initialEmptyLines(items));
   const draftRowsTouched = useRef(false);
   useEffect(() => {
@@ -133,9 +139,14 @@ export function CommercialLineItemsTable({
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
   };
   const formatQuotePrice = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return "";
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 0 ? parsed.toFixed(4) : "";
   };
+  const savedPriceText = (item: CommercialItem) =>
+    item.unit_price_entered === false ? "" : String(item.unit_price);
+  const savedQuotePriceText = (item: CommercialItem) =>
+    item.unit_price_entered === false ? "" : formatQuotePrice(item.unit_price);
   const totals = useMemo(
     () =>
       items.reduce(
@@ -210,6 +221,7 @@ export function CommercialLineItemsTable({
           sku: "MANUAL",
           quantity: 1,
           unit_price: 0,
+          unit_price_entered: false,
           product_snapshot: {},
           packing_snapshot: {},
           position: draftRows[draftIndex].position,
@@ -227,6 +239,7 @@ export function CommercialLineItemsTable({
         sku: "MANUAL",
         quantity: 1,
         unit_price: 0,
+        unit_price_entered: false,
         product_snapshot: {},
         packing_snapshot: {},
         position: draftRows[draftIndex].position,
@@ -524,9 +537,12 @@ export function CommercialLineItemsTable({
                     await updatePacking("carton_cbm", parsed);
                   };
                   const updateQuoteCnyPrice = async (raw: string) => {
-                    const sourceCny = parseQuoteSourceCnyUnitPrice(raw);
+                    const sourceCny =
+                      raw === "" ? null : parseQuoteSourceCnyUnitPrice(raw);
                     let unitPrice = item.unit_price;
-                    if (quoteFxActive) {
+                    if (raw === "") {
+                      unitPrice = 0;
+                    } else if (quoteFxActive) {
                       try {
                         unitPrice = calculateQuoteUsdUnitPrice(
                           raw,
@@ -539,6 +555,7 @@ export function CommercialLineItemsTable({
                     await save(item, {
                       source_cny_unit_price: sourceCny,
                       unit_price: unitPrice,
+                      unit_price_entered: raw !== "",
                     });
                   };
                   const commitQuoteCnyPrice = async () => {
@@ -562,23 +579,23 @@ export function CommercialLineItemsTable({
                   };
                   const updateQuoteUsdPrice = async (raw: string) => {
                     await save(item, {
-                      unit_price: parseQuoteUsdUnitPrice(raw),
+                      unit_price: raw === "" ? 0 : parseQuoteUsdUnitPrice(raw),
+                      unit_price_entered: raw !== "",
                     });
                   };
                   const commitQuoteUsdPrice = async () => {
                     const raw =
-                      quoteUsdDrafts[quoteUsdKey] ??
-                      formatQuotePrice(item.unit_price);
+                      quoteUsdDrafts[quoteUsdKey] ?? savedQuotePriceText(item);
                     try {
                       await updateQuoteUsdPrice(raw);
                       setQuoteUsdDrafts((drafts) => ({
                         ...drafts,
-                        [quoteUsdKey]: formatQuotePrice(raw),
+                        [quoteUsdKey]: raw === "" ? "" : formatQuotePrice(raw),
                       }));
                     } catch {
                       setQuoteUsdDrafts((drafts) => ({
                         ...drafts,
-                        [quoteUsdKey]: formatQuotePrice(item.unit_price),
+                        [quoteUsdKey]: savedQuotePriceText(item),
                       }));
                     }
                   };
@@ -980,14 +997,14 @@ export function CommercialLineItemsTable({
                                   aria-label="单价(USD)"
                                   className="w-24 rounded border p-1"
                                   readOnly
-                                  value={formatQuotePrice(item.unit_price)}
+                                  value={savedQuotePriceText(item)}
                                 />
                               </td>
                             </>
                           ) : (
                             <td>
                               <input
-                                aria-label={compactQuote ? "单价" : undefined}
+                                aria-label="单价"
                                 className="w-20 rounded border p-1"
                                 type="number"
                                 min={compactQuote ? "0" : undefined}
@@ -996,8 +1013,9 @@ export function CommercialLineItemsTable({
                                 value={
                                   compactQuote
                                     ? (quoteUsdDrafts[quoteUsdKey] ??
-                                      formatQuotePrice(item.unit_price))
-                                    : String(item.unit_price)
+                                      savedQuotePriceText(item))
+                                    : (commercialPriceDrafts[quoteUsdKey] ??
+                                      savedPriceText(item))
                                 }
                                 disabled={!editable}
                                 onChange={(event) => {
@@ -1013,17 +1031,46 @@ export function CommercialLineItemsTable({
                                     } catch {
                                       // Preserve a valid partial decimal draft.
                                     }
-                                  } else if (onItemsChange)
-                                    void save(item, {
-                                      unit_price: Number(event.target.value),
-                                    });
+                                  } else {
+                                    const raw = event.target.value;
+                                    setCommercialPriceDrafts((drafts) => ({
+                                      ...drafts,
+                                      [quoteUsdKey]: raw,
+                                    }));
+                                    if (onItemsChange) {
+                                      try {
+                                        void save(item, {
+                                          unit_price:
+                                            raw === ""
+                                              ? 0
+                                              : parseQuoteUsdUnitPrice(raw),
+                                          unit_price_entered: raw !== "",
+                                        });
+                                      } catch {
+                                        // Preserve an incomplete decimal draft until blur.
+                                      }
+                                    }
+                                  }
                                 }}
                                 onBlur={(event) => {
                                   if (compactQuote) void commitQuoteUsdPrice();
-                                  else if (!onItemsChange)
-                                    void save(item, {
-                                      unit_price: Number(event.target.value),
-                                    });
+                                  else if (!onItemsChange) {
+                                    const raw = event.target.value;
+                                    try {
+                                      void save(item, {
+                                        unit_price:
+                                          raw === ""
+                                            ? 0
+                                            : parseQuoteUsdUnitPrice(raw),
+                                        unit_price_entered: raw !== "",
+                                      });
+                                    } catch {
+                                      setCommercialPriceDrafts((drafts) => ({
+                                        ...drafts,
+                                        [quoteUsdKey]: savedPriceText(item),
+                                      }));
+                                    }
+                                  }
                                 }}
                                 onKeyDown={(event) => {
                                   if (event.key === "Enter") {

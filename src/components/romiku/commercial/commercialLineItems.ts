@@ -10,6 +10,8 @@ export type CommercialItem = RaRecord & {
   customer_code?: string | null;
   quantity: number;
   unit_price: number;
+  /** Legacy rows omit this field and therefore retain their saved price, including zero. */
+  unit_price_entered?: boolean;
   source_cny_unit_price?: number | null;
 };
 export type CommercialItemWrite = ReturnType<typeof quoteItemWrite>;

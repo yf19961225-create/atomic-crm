@@ -19,22 +19,26 @@ export type DocumentLanguage = "zh" | "en" | "es";
 export function commercialSearchPanelPosition(
   viewportWidth: number,
   viewportHeight: number,
-  anchor: Pick<DOMRect, "left" | "top" | "bottom">,
+  anchor: Pick<DOMRect, "left" | "top" | "bottom" | "width">,
 ) {
-  const margin = viewportWidth < 768 ? 12 : 24;
-  const width = Math.max(0, Math.min(960, viewportWidth - margin * 2));
+  const margin = 12;
+  const width = Math.max(0, Math.min(anchor.width, viewportWidth - margin * 2));
   const left = Math.max(
     margin,
     Math.min(anchor.left, viewportWidth - width - margin),
   );
   const below = viewportHeight - anchor.bottom - margin - 4;
   const above = anchor.top - margin - 4;
-  const openAbove = below < 280 && above > below;
-  const maxHeight = Math.max(120, Math.min(340, openAbove ? above : below));
-  const top = openAbove
-    ? Math.max(margin, anchor.top - maxHeight - 4)
-    : anchor.bottom + 4;
-  return { left, top, width, maxHeight };
+  const openAbove = below < 320 && above > below;
+  const maxHeight = Math.max(0, Math.min(320, openAbove ? above : below));
+  const top = openAbove ? anchor.top - 4 : anchor.bottom + 4;
+  return {
+    left,
+    top,
+    width,
+    maxHeight,
+    transform: openAbove ? "translateY(-100%)" : undefined,
+  };
 }
 
 const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
@@ -195,7 +199,7 @@ export function ProductLibraryLookup({
   capturePacking?: boolean;
   /** Save the Product Library unit in the selected item snapshot. */
   includeUnit?: boolean;
-  /** Give commercial document line items a wider desktop SKU lookup. */
+  /** Portal only the results outside the commercial table's scroll container. */
   wideCommercial?: boolean;
 }) {
   const [search, setSearch] = useState(sku);
@@ -209,7 +213,6 @@ export function ProductLibraryLookup({
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const triggerRef = useRef<HTMLInputElement>(null);
-  const expandedInputRef = useRef<HTMLInputElement>(null);
   const [searchPanelOpen, setSearchPanelOpen] = useState(false);
   const [searchPanelPosition, setSearchPanelPosition] = useState<
     ReturnType<typeof commercialSearchPanelPosition> | undefined
@@ -236,10 +239,6 @@ export function ProductLibraryLookup({
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [wideCommercial, searchPanelOpen]);
-  useLayoutEffect(() => {
-    if (searchPanelOpen && searchPanelPosition)
-      expandedInputRef.current?.focus();
-  }, [searchPanelOpen, searchPanelPosition]);
   useEffect(() => {
     let cancelled = false;
     if (!query.trim()) {
@@ -339,6 +338,7 @@ export function ProductLibraryLookup({
       event.preventDefault();
       setProducts([]);
       setActiveIndex(-1);
+      setSearchPanelOpen(false);
     }
   };
   const commitManualSku = () => {
@@ -372,7 +372,10 @@ export function ProductLibraryLookup({
     </button>
   );
   const results = (loading || products.length > 0) && (
-    <ul className="max-h-56 w-full overflow-auto rounded border bg-background shadow">
+    <ul
+      className="max-h-80 w-full overflow-y-auto rounded border bg-background shadow-md"
+      style={{ maxHeight: 320, overflowY: "auto" }}
+    >
       {loading && <li className="p-2">正在搜索产品…</li>}
       {products.map((product, index) => {
         const image = catalogProductImageCandidates(
@@ -387,7 +390,8 @@ export function ProductLibraryLookup({
                 optionRefs.current[index] = element;
               }}
               aria-selected={activeIndex === index}
-              className={`flex w-full items-center gap-2 p-2 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
+              className={`flex h-10 w-full items-center gap-2 px-2 py-1 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
+              style={{ height: 40, boxSizing: "border-box" }}
               onMouseEnter={() => setActiveIndex(index)}
               onMouseDown={(event) => {
                 // Keep focus in the lookup until click selects the catalog
@@ -398,7 +402,8 @@ export function ProductLibraryLookup({
             >
               {image ? (
                 <img
-                  className="h-8 w-8 shrink-0 object-cover"
+                  className="h-[30px] w-[30px] shrink-0 object-cover"
+                  style={{ width: 30, height: 30 }}
                   src={image}
                   alt=""
                   onError={() =>
@@ -406,7 +411,9 @@ export function ProductLibraryLookup({
                   }
                 />
               ) : (
-                <span className="h-8 w-8 shrink-0">暂无图片</span>
+                <span className="h-[30px] w-[30px] shrink-0 text-xs">
+                  暂无图片
+                </span>
               )}
               <span className="min-w-0 flex-1 truncate whitespace-nowrap">
                 <strong>{product.sku}</strong> ·{" "}
@@ -437,49 +444,31 @@ export function ProductLibraryLookup({
         onChange={(event) => {
           setSearch(event.target.value);
         }}
-        onKeyDown={wideCommercial ? undefined : handleInputKeyDown}
-        onBlur={wideCommercial ? undefined : commitManualSku}
+        onKeyDown={handleInputKeyDown}
+        onBlur={() => {
+          commitManualSku();
+          setSearchPanelOpen(false);
+        }}
         placeholder="SKU / 产品名称"
       />
-      {!wideCommercial && (
-        <>
-          <div className="flex gap-2 text-sm">
-            {searchButton}
-            {clearButton}
-          </div>
-          {results && (
-            <div className="absolute z-20 mt-1 w-full">{results}</div>
-          )}
-        </>
+      <div className="flex gap-2 text-sm">
+        {searchButton}
+        {clearButton}
+      </div>
+      {!wideCommercial && results && (
+        <div className="absolute z-20 mt-1 w-full">{results}</div>
       )}
       {wideCommercial &&
         searchPanelOpen &&
         searchPanelPosition &&
+        results &&
         createPortal(
           <div
-            role="dialog"
-            aria-label="产品搜索"
-            className="fixed z-[100] overflow-y-auto rounded-lg border bg-background p-3 shadow-xl"
+            role="listbox"
+            aria-label="产品搜索结果"
+            className="fixed z-[100] overflow-hidden"
             style={searchPanelPosition}
           >
-            <input
-              aria-label="产品搜索输入"
-              ref={expandedInputRef}
-              className="w-full rounded border p-2"
-              style={{ width: "100%" }}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={handleInputKeyDown}
-              onBlur={() => {
-                commitManualSku();
-                setSearchPanelOpen(false);
-              }}
-              placeholder="SKU / 产品名称"
-            />
-            <div className="flex gap-2 py-1 text-sm">
-              {searchButton}
-              {clearButton}
-            </div>
             {results}
           </div>,
           document.body,

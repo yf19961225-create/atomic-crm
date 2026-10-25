@@ -80,6 +80,7 @@ const lines = (items: CommercialItem[], normalizeQuoteSpecification = false) =>
           "sanity_product_id",
           "quantity",
           "unit_price",
+          "unit_price_entered",
           "source_cny_unit_price",
           "product_snapshot",
           "packing_snapshot",

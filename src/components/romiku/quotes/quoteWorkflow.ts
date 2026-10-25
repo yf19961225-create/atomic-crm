@@ -235,6 +235,7 @@ export function quoteItemWrite(values: Values) {
     "sku",
     "quantity",
     "unit_price",
+    "unit_price_entered",
     "source_cny_unit_price",
     "product_snapshot",
     "packing_snapshot",

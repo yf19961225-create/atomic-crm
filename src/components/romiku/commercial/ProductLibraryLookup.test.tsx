@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import "@/index.css";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import {
   commercialSearchPanelPosition,
@@ -14,7 +15,30 @@ describe("Product Library item snapshots", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
-  it("opens the commercial search input in a viewport-sized portal outside a clipped SKU cell", async () => {
+  it("keeps one SKU input in the cell and portals only a compact aligned results list", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: [
+                      {
+                        _id: "compact",
+                        sku: "SKU-1",
+                        isPublished: true,
+                        name: { zh: "测试产品" },
+                      },
+                    ],
+                  }
+                : { images: {}, powerSupplies: {} },
+            ),
+          ),
+        ),
+      ),
+    );
     const screen = await render(
       <div style={{ width: 540, overflow: "hidden" }}>
         <ProductLibraryLookup
@@ -25,30 +49,85 @@ describe("Product Library item snapshots", () => {
       </div>,
     );
     const cellInput = screen.getByLabelText("搜索 SKU 或产品");
-    await cellInput.click();
+    await cellInput.fill("SKU-1");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
+    await expect
+      .element(screen.getByRole("button", { name: /SKU-1 · 测试产品/ }))
+      .toBeVisible();
 
     const panel = document.querySelector<HTMLElement>(
-      '[role="dialog"][aria-label="产品搜索"]',
+      '[role="listbox"][aria-label="产品搜索结果"]',
     );
     expect(panel).not.toBeNull();
     expect(panel?.parentElement).toBe(document.body);
-    const expandedInput = panel?.querySelector<HTMLInputElement>("input");
-    expect(expandedInput).not.toBeNull();
+    expect(
+      document.querySelectorAll('input[aria-label="搜索 SKU 或产品"]'),
+    ).toHaveLength(1);
+    expect(panel?.querySelector("input")).toBeNull();
     expect(panel!.getBoundingClientRect().width).toBeCloseTo(
-      Math.min(960, window.innerWidth - (window.innerWidth < 768 ? 24 : 48)),
+      cellInput.element().getBoundingClientRect().width,
       0,
     );
-    expect(expandedInput!.getBoundingClientRect().width).toBeGreaterThanOrEqual(
-      panel!.getBoundingClientRect().width - 32,
-    );
-    expect(expandedInput!.getBoundingClientRect().width).toBeGreaterThan(
-      document
-        .querySelector<HTMLInputElement>('input[aria-label="搜索 SKU 或产品"]')!
-        .getBoundingClientRect().width,
-    );
+    expect(panel!.getBoundingClientRect().height).toBeLessThanOrEqual(320);
     expect(panel!.getBoundingClientRect().right).toBeLessThanOrEqual(
       window.innerWidth - 12,
     );
+  });
+
+  it("scrolls compact 40px rows with 30px same-SKU thumbnails inside 320px", async () => {
+    const thumbnail = new URL("/appIcon/152.png", location.href).href;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: Array.from({ length: 12 }, (_, index) => ({
+                      _id: `compact-${index}`,
+                      sku: `SKU-${index}`,
+                      isPublished: true,
+                      name: { zh: `产品 ${index}` },
+                    })),
+                  }
+                : {
+                    images: Object.fromEntries(
+                      Array.from({ length: 12 }, (_, index) => [
+                        `SKU-${index}`,
+                        thumbnail,
+                      ]),
+                    ),
+                    powerSupplies: {},
+                  },
+            ),
+          ),
+        ),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        wideCommercial
+        onSelected={vi.fn()}
+        onManualSku={vi.fn()}
+      />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").fill("SKU");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
+    await expect
+      .element(screen.getByRole("button", { name: /SKU-0 · 产品 0/ }))
+      .toBeVisible();
+    const panel = document.querySelector<HTMLElement>(
+      '[role="listbox"][aria-label="产品搜索结果"]',
+    )!;
+    const list = panel.querySelector("ul")!;
+    const first = list.querySelector("button")!;
+    const image = first.querySelector("img")!;
+    expect(first.getBoundingClientRect().height).toBeCloseTo(40, 0);
+    expect(image.getBoundingClientRect().width).toBeCloseTo(30, 0);
+    expect(image.getBoundingClientRect().height).toBeCloseTo(30, 0);
+    expect(list.clientHeight).toBeLessThanOrEqual(320);
+    expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
   });
 
   it("selects a result in the commercial portal without committing a manual SKU on blur", async () => {
@@ -84,13 +163,8 @@ describe("Product Library item snapshots", () => {
         onManualSku={onManualSku}
       />,
     );
-    await screen.getByLabelText("搜索 SKU 或产品").click();
-    const panel = document.querySelector<HTMLElement>(
-      '[role="dialog"][aria-label="产品搜索"]',
-    )!;
-    const expandedInput = panel.querySelector<HTMLInputElement>("input")!;
-    await userEvent.type(expandedInput, "PORTAL");
-    await userEvent.click(panel.querySelector("button")!);
+    await screen.getByLabelText("搜索 SKU 或产品").fill("PORTAL");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
     await expect
       .element(screen.getByRole("button", { name: /PORTAL-1 · 测试产品/ }))
       .toBeVisible();
@@ -99,7 +173,7 @@ describe("Product Library item snapshots", () => {
     expect(onManualSku).not.toHaveBeenCalled();
   });
 
-  it("keeps manual SKU entry and clearing inside the commercial search panel", async () => {
+  it("keeps manual SKU entry and clearing in the original commercial input", async () => {
     const onManualSku = vi.fn();
     const screen = await render(
       <div>
@@ -111,22 +185,18 @@ describe("Product Library item snapshots", () => {
         <button type="button">离开搜索</button>
       </div>,
     );
-    await screen.getByLabelText("搜索 SKU 或产品").click();
-    let panel = document.querySelector<HTMLElement>(
-      '[role="dialog"][aria-label="产品搜索"]',
-    )!;
-    await userEvent.type(panel.querySelector("input")!, "TEMP-SKU");
-    await userEvent.click(panel.querySelectorAll("button")[1]);
-    expect(panel.querySelector("input")?.value).toBe("");
+    const input = screen.getByLabelText("搜索 SKU 或产品");
+    await input.fill("TEMP-SKU");
+    await screen.getByRole("button", { name: "清空", exact: true }).click();
+    expect((input.element() as HTMLInputElement).value).toBe("");
     expect(onManualSku).not.toHaveBeenCalled();
 
-    await userEvent.type(panel.querySelector("input")!, "MANUAL-1");
+    await input.fill("MANUAL-1");
     await screen.getByRole("button", { name: "离开搜索" }).click();
     expect(onManualSku).toHaveBeenCalledExactlyOnceWith("MANUAL-1");
-    panel = document.querySelector<HTMLElement>(
-      '[role="dialog"][aria-label="产品搜索"]',
-    )!;
-    expect(panel).toBeNull();
+    expect(
+      document.querySelector('[role="listbox"][aria-label="产品搜索结果"]'),
+    ).toBeNull();
   });
 
   it("keeps Enter search and arrow-key result selection in the commercial panel", async () => {
@@ -161,11 +231,7 @@ describe("Product Library item snapshots", () => {
         onManualSku={vi.fn()}
       />,
     );
-    await screen.getByLabelText("搜索 SKU 或产品").click();
-    const expandedInput = document.querySelector<HTMLInputElement>(
-      '[role="dialog"][aria-label="产品搜索"] input',
-    )!;
-    await userEvent.type(expandedInput, "KEY");
+    await screen.getByLabelText("搜索 SKU 或产品").fill("KEY");
     await userEvent.keyboard("{Enter}");
     await expect
       .element(screen.getByRole("button", { name: /KEY-1 · 键盘测试产品/ }))
@@ -173,28 +239,37 @@ describe("Product Library item snapshots", () => {
     await userEvent.keyboard("{ArrowDown}{Enter}");
     expect(onSelected.mock.calls[0]?.[0]?.sku).toBe("KEY-1");
   });
-  it("clamps the detached commercial search panel inside the viewport", () => {
+  it("anchors the results to input width and flips above near viewport bottom", () => {
     expect(
       commercialSearchPanelPosition(1654, 900, {
         left: 332,
         top: 300,
         bottom: 340,
+        width: 220,
       }),
-    ).toMatchObject({ left: 332, width: 960 });
+    ).toMatchObject({ left: 332, width: 220, top: 344 });
     expect(
       commercialSearchPanelPosition(1024, 900, {
-        left: 800,
+        left: 900,
         top: 300,
         bottom: 340,
+        width: 220,
       }),
-    ).toMatchObject({ left: 40, width: 960 });
+    ).toMatchObject({ left: 792, width: 220 });
     expect(
       commercialSearchPanelPosition(390, 844, {
-        left: 200,
-        top: 300,
-        bottom: 340,
+        left: 300,
+        top: 700,
+        bottom: 736,
+        width: 220,
       }),
-    ).toMatchObject({ left: 12, width: 366 });
+    ).toMatchObject({
+      left: 158,
+      width: 220,
+      maxHeight: 320,
+      top: 696,
+      transform: "translateY(-100%)",
+    });
   });
   it("uses the Sanity image in the shared selector and falls back only to the same SKU website image", async () => {
     const primary = new URL("/appIcon/152.png", location.href).href;

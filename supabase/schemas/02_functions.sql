@@ -822,8 +822,8 @@ BEGIN
     target_table,CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,
     CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,target_table)
     INTO new_id USING source_json;
-  EXECUTE format('INSERT INTO public.%I (%I,%I,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,requirement,customer_code,notes,position)
-    SELECT $1,id,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,requirement,customer_code,notes,position FROM public.%I WHERE %I=$2',
+  EXECUTE format('INSERT INTO public.%I (%I,%I,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,unit_price_entered,requirement,customer_code,notes,position)
+    SELECT $1,id,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,unit_price_entered,requirement,customer_code,notes,position FROM public.%I WHERE %I=$2',
     target_items,target_fk,lineage_column,source_items,source_fk) USING new_id,source_id;
   RETURN new_id;
 END;

@@ -248,6 +248,69 @@ it.each([
 });
 
 it.each([
+  ["pi", "romiku_pi_items"],
+  ["orders", "romiku_order_items"],
+])(
+  "keeps a new %s price blank through save and preserves typed decimals",
+  async (path, resource) => {
+    const { screen, provider } = await setup(
+      `/${path}/${path === "pi" ? "p" : "o"}`,
+    );
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await screen.getByRole("button", { name: "新增产品行" }).click();
+    await screen.getByLabelText("搜索 SKU 或产品").last().fill("NEW-ITEM");
+    await screen.getByText("汇总", { exact: true }).click();
+    const prices = screen.getByLabelText("单价", { exact: true }).all();
+    expect((prices.at(-1)!.element() as HTMLInputElement).value).toBe("");
+    await screen.getByRole("button", { name: "保存", exact: true }).click();
+    expect(
+      (await provider.getList(resource, list)).data.find(
+        (row) => row.sku === "NEW-ITEM",
+      ),
+    ).toMatchObject({
+      unit_price: 0,
+      unit_price_entered: false,
+    });
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    expect(
+      (
+        screen
+          .getByLabelText("单价", { exact: true })
+          .last()
+          .element() as HTMLInputElement
+      ).value,
+    ).toBe("");
+    const enteredPrice = screen.getByLabelText("单价", { exact: true }).last();
+    await enteredPrice.fill("5.50");
+    expect((enteredPrice.element() as HTMLInputElement).value).toBe("5.50");
+    await screen.getByRole("button", { name: "保存", exact: true }).click();
+    const rows = (await provider.getList(resource, list)).data;
+    expect(rows.find((row) => row.sku === "NEW-ITEM")).toMatchObject({
+      unit_price: 5.5,
+      unit_price_entered: true,
+    });
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await expect
+      .element(screen.getByLabelText("单价", { exact: true }).last())
+      .toHaveValue(5.5);
+  },
+);
+
+it.each(["pi", "orders"])(
+  "drops an unsaved %s price draft when editing is cancelled",
+  async (path) => {
+    const { screen } = await setup(`/${path}/${path === "pi" ? "p" : "o"}`);
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await screen.getByLabelText("单价", { exact: true }).fill("5.50");
+    await screen.getByRole("button", { name: "取消", exact: true }).click();
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await expect
+      .element(screen.getByLabelText("单价", { exact: true }))
+      .toHaveValue(10);
+  },
+);
+
+it.each([
   ["pi", "PI"],
   ["orders", "订单"],
 ])(

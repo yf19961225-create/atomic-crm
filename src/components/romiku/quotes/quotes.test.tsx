@@ -365,6 +365,64 @@ it("creates a direct Quote and supports adding its own items", async () => {
   ).toEqual([]);
 });
 
+it("keeps a newly added Quote price blank after save while preserving an explicit zero", async () => {
+  const { screen, provider } = await setup("/quotes/q", { items: [] });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByLabelText("搜索 SKU 或产品").first().fill("NEW-QUOTE");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  const price = screen.getByLabelText("单价", { exact: true });
+  expect((price.element() as HTMLInputElement).value).toBe("");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  const saved = (await provider.getList("romiku_quote_items", list)).data[0];
+  expect(saved).toMatchObject({ unit_price: 0, unit_price_entered: false });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(
+    (
+      screen
+        .getByLabelText("单价", { exact: true })
+        .element() as HTMLInputElement
+    ).value,
+  ).toBe("");
+  await screen.getByLabelText("单价", { exact: true }).fill("0");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  expect(
+    (await provider.getList("romiku_quote_items", list)).data[0],
+  ).toMatchObject({
+    unit_price: 0,
+    unit_price_entered: true,
+  });
+});
+
+it("leaves a new Quote USD price blank in FX mode until a CNY price is entered", async () => {
+  const { screen } = await setup("/quotes/q", { items: [] });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("启用汇率换算", { exact: true }).click();
+  await screen.getByLabelText("USD 汇率", { exact: true }).fill("6.77");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  await screen.getByLabelText("搜索 SKU 或产品").first().fill("FX-NEW");
+  await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+  expect(
+    (
+      screen
+        .getByLabelText("人民币单价", { exact: true })
+        .element() as HTMLInputElement
+    ).value,
+  ).toBe("");
+  expect(
+    (
+      screen
+        .getByLabelText("单价(USD)", { exact: true })
+        .element() as HTMLInputElement
+    ).value,
+  ).toBe("");
+  await screen.getByLabelText("人民币单价", { exact: true }).fill("5.00");
+  await expect
+    .element(screen.getByLabelText("单价(USD)", { exact: true }))
+    .toHaveValue("0.7386");
+});
+
 it("keeps products in the first and second draft rows they were entered in", async () => {
   const { screen } = await setup("/quotes/q", { items: [] });
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
