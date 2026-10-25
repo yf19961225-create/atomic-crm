@@ -48,6 +48,11 @@ import { OrderProductionInstructions } from "../marking/OrderProductionInstructi
 import { OrderExportDetails } from "./OrderExportDetails";
 import { PiExportDetails } from "./PiExportDetails";
 import { normalizeOrderExportModel } from "./orderExportModel";
+import {
+  orderCustomerCodeVisible,
+  orderExportSnapshot,
+  withOrderExportSnapshot,
+} from "./orderExportSnapshot";
 import { normalizePiExportModel } from "./piExportModel";
 import { renderOrderXlsx } from "./orderXlsxRenderer";
 import { renderPiXlsx } from "./piXlsxRenderer";
@@ -797,6 +802,25 @@ function DocumentEditor({
               editable={session.editing}
               onItemsChange={session.setItems}
               onBlankRowsDirtyChange={session.setBlankRowsDirty}
+              orderCustomerCodeVisible={
+                kind === "order" &&
+                orderCustomerCodeVisible(
+                  session.values.terms_snapshot,
+                  session.items,
+                )
+              }
+              onOrderCustomerCodeVisibleChange={(visible) => {
+                const terms = session.values.terms_snapshot as
+                  | Record<string, unknown>
+                  | undefined;
+                session.setValues({
+                  ...session.values,
+                  terms_snapshot: withOrderExportSnapshot(terms, {
+                    ...orderExportSnapshot(terms),
+                    customer_code_visible: visible,
+                  }),
+                });
+              }}
             />
           )}
           {kind === "order" && items.data && (

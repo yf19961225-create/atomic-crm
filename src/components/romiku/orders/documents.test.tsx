@@ -269,6 +269,49 @@ it.each(["/pi/p", "/orders/o"])(
     expect(rows()[2].textContent).toContain("3");
   },
 );
+it("keeps an Order customer code when its column is hidden, saved and reopened", async () => {
+  const { screen, provider } = await setup("/orders/o");
+  const checkbox = screen.getByRole("checkbox", { name: "显示客户货号" });
+  await expect.element(checkbox).not.toBeChecked();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await checkbox.click();
+  await screen.getByRole("textbox", { name: "客户货号 A" }).fill("BUYER-001");
+  await checkbox.click();
+  await expect
+    .element(screen.getByRole("textbox", { name: "客户货号 A" }))
+    .not.toBeInTheDocument();
+  await checkbox.click();
+  await expect
+    .element(screen.getByRole("textbox", { name: "客户货号 A" }))
+    .toHaveValue("BUYER-001");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .poll(
+      async () =>
+        (await provider.getOne("romiku_order_items", { id: "oi" })).data
+          .customer_code,
+    )
+    .toBe("BUYER-001");
+  await expect
+    .poll(
+      async () =>
+        (
+          (await provider.getOne("romiku_orders", { id: "o" })).data
+            .terms_snapshot as {
+            order_export?: { customer_code_visible?: boolean };
+          }
+        ).order_export?.customer_code_visible,
+    )
+    .toBe(true);
+  await screen.getByRole("link", { name: "返回订单" }).click();
+  await screen.getByRole("link", { name: "SO-001", exact: true }).click();
+  await expect
+    .element(screen.getByRole("checkbox", { name: "显示客户货号" }))
+    .toBeChecked();
+  await expect
+    .element(screen.getByRole("textbox", { name: "客户货号 A" }))
+    .toHaveValue("BUYER-001");
+});
 it.each([
   ["pi", "PI", "romiku_pi_items", "pii"],
   ["orders", "订单", "romiku_order_items", "oi"],

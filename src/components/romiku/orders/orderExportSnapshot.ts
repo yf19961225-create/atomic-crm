@@ -8,6 +8,8 @@ export type ContactSnapshot = {
 
 export type OrderExportSnapshot = {
   template_key: "order";
+  /** Controls the optional Order item column and export without deleting item codes. */
+  customer_code_visible: boolean;
   /** Hides the complete Terms block without deleting its saved text. */
   terms_visible: boolean;
   seller: ContactSnapshot;
@@ -26,6 +28,7 @@ export type OrderExportSnapshot = {
 
 export const defaultOrderExportSnapshot = (): OrderExportSnapshot => ({
   template_key: "order",
+  customer_code_visible: false,
   terms_visible: true,
   seller: {
     company_name: "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲",
@@ -71,6 +74,7 @@ export function orderExportSnapshot(value: unknown): OrderExportSnapshot {
   if (!exportSnapshot) return defaults;
   return {
     template_key: "order",
+    customer_code_visible: exportSnapshot.customer_code_visible === true,
     terms_visible: exportSnapshot.terms_visible !== false,
     seller: { ...defaults.seller, ...exportSnapshot.seller },
     terms: Object.fromEntries(
@@ -83,6 +87,20 @@ export function orderExportSnapshot(value: unknown): OrderExportSnapshot {
       ]),
     ) as OrderExportSnapshot["terms"],
   };
+}
+
+/** Old Orders had item customer codes but no persisted visibility choice. */
+export function orderCustomerCodeVisible(
+  termsSnapshot: unknown,
+  items: ReadonlyArray<{ customer_code?: unknown }>,
+): boolean {
+  const saved = (
+    termsSnapshot as {
+      order_export?: { customer_code_visible?: unknown };
+    } | null
+  )?.order_export?.customer_code_visible;
+  if (typeof saved === "boolean") return saved;
+  return items.some((item) => Boolean(String(item.customer_code ?? "").trim()));
 }
 
 export function withOrderExportSnapshot(

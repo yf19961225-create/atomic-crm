@@ -538,7 +538,19 @@ export async function renderOrderXlsx(
     const row = layout.productStart + i;
     applyStyle(sheet, row, styles.product);
     sheet.getCell(row, 1).value = item.position;
-    sheet.getCell(row, 2).value = item.sku;
+    // The approved workbook has no spare product column. Keep the original
+    // SKU in B and add the optional buyer code on a second line in that cell.
+    // Every other column, image anchor, formula and print coordinate stays put.
+    sheet.getCell(row, 2).value =
+      model.customerCodeVisible && item.customerCode
+        ? `${item.sku}\n客户货号: ${item.customerCode}`
+        : item.sku;
+    if (model.customerCodeVisible && item.customerCode) {
+      sheet.getCell(row, 2).alignment = {
+        ...sheet.getCell(row, 2).alignment,
+        wrapText: true,
+      };
+    }
     sheet.getCell(row, 3).value = item.name;
     sheet.getCell(row, 5).value = item.specification;
     sheet.getCell(row, 6).value = item.cartons;

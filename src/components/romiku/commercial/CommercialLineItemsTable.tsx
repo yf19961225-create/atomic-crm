@@ -58,6 +58,8 @@ export function CommercialLineItemsTable({
   quoteFxEnabled = false,
   quoteFxRate,
   websiteSourceQuote = false,
+  orderCustomerCodeVisible = false,
+  onOrderCustomerCodeVisibleChange,
 }: {
   kind: CommercialDocumentKind;
   documentId: string;
@@ -72,14 +74,19 @@ export function CommercialLineItemsTable({
   quoteFxEnabled?: boolean;
   quoteFxRate?: unknown;
   websiteSourceQuote?: boolean;
+  orderCustomerCodeVisible?: boolean;
+  onOrderCustomerCodeVisibleChange?: (visible: boolean) => void;
 }) {
   const compactQuote = kind === "quote";
   const quoteFxActive = compactQuote && quoteFxEnabled;
   const orderTemplate = kind === "order";
   const provider = useDataProvider();
-  const [showCustomerCode, setShowCustomerCode] = useState(
+  const [localShowCustomerCode, setLocalShowCustomerCode] = useState(
     kind !== "quote" && items.some((item) => Boolean(item.customer_code)),
   );
+  const showCustomerCode = orderTemplate
+    ? orderCustomerCodeVisible
+    : localShowCustomerCode;
   const [drawer, setDrawer] = useState<CommercialItem | null>(null);
   // Keep a Quote CBM as the user's raw decimal text until blur. Converting on
   // every keystroke turns the valid intermediate value "0." into "0" and
@@ -161,6 +168,24 @@ export function CommercialLineItemsTable({
     });
     await onChanged();
   };
+  const customerCodeCell = (item: CommercialItem) => (
+    <td>
+      <input
+        aria-label={`客户货号 ${item.sku}`}
+        className={`${orderTemplate ? "w-28" : "w-24"} rounded border p-1`}
+        value={String(item.customer_code ?? "")}
+        disabled={!editable}
+        onChange={(event) => {
+          if (onItemsChange)
+            void save(item, { customer_code: event.target.value });
+        }}
+        onBlur={(event) => {
+          if (!onItemsChange)
+            void save(item, { customer_code: event.target.value });
+        }}
+      />
+    </td>
+  );
   const add = () => {
     draftRowsTouched.current = true;
     setDraftRows((current) => [
@@ -304,13 +329,17 @@ export function CommercialLineItemsTable({
   };
   return (
     <section className="space-y-3 overflow-x-auto">
-      {!orderTemplate && !compactQuote && (
+      {!compactQuote && (
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={showCustomerCode}
             disabled={!editable}
-            onChange={(event) => setShowCustomerCode(event.target.checked)}
+            onChange={(event) =>
+              orderTemplate
+                ? onOrderCustomerCodeVisibleChange?.(event.target.checked)
+                : setLocalShowCustomerCode(event.target.checked)
+            }
           />
           显示客户货号
         </label>
@@ -334,6 +363,7 @@ export function CommercialLineItemsTable({
                         "",
                         "No.",
                         "货号",
+                        ...(showCustomerCode ? ["客户货号"] : []),
                         "产品名称",
                         "图片",
                         "产品规格",
@@ -613,6 +643,9 @@ export function CommercialLineItemsTable({
                               <span>{item.sku}</span>
                             )}
                           </td>
+                          {showCustomerCode &&
+                            orderTemplate &&
+                            customerCodeCell(item)}
                           <td>
                             <RequestedQuantity
                               websiteSource={compactQuote && websiteSourceQuote}
@@ -742,27 +775,8 @@ export function CommercialLineItemsTable({
                           )}
                           {showCustomerCode &&
                             !orderTemplate &&
-                            !compactQuote && (
-                              <td>
-                                <input
-                                  className="w-24 rounded border p-1"
-                                  value={String(item.customer_code ?? "")}
-                                  disabled={!editable}
-                                  onChange={(event) => {
-                                    if (onItemsChange)
-                                      void save(item, {
-                                        customer_code: event.target.value,
-                                      });
-                                  }}
-                                  onBlur={(event) => {
-                                    if (!onItemsChange)
-                                      void save(item, {
-                                        customer_code: event.target.value,
-                                      });
-                                  }}
-                                />
-                              </td>
-                            )}
+                            !compactQuote &&
+                            customerCodeCell(item)}
                           {!orderTemplate && (
                             <td>
                               <textarea

@@ -1,8 +1,22 @@
 import { expect, it } from "vitest";
 import {
   defaultOrderExportSnapshot,
+  orderCustomerCodeVisible,
   orderExportSnapshot,
 } from "./orderExportSnapshot";
+
+it("defaults new Orders to hidden customer codes and restores legacy coded Orders", () => {
+  expect(defaultOrderExportSnapshot().customer_code_visible).toBe(false);
+  const coded = [{ customer_code: "BUYER-1" }];
+  expect(orderCustomerCodeVisible({}, coded)).toBe(true);
+  expect(
+    orderCustomerCodeVisible(
+      { order_export: { customer_code_visible: false } },
+      coded,
+    ),
+  ).toBe(false);
+  expect(orderCustomerCodeVisible({}, [])).toBe(false);
+});
 
 it("initializes the eight Order Terms from the fixed workbook defaults", () => {
   const terms = defaultOrderExportSnapshot().terms;

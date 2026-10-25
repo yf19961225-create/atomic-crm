@@ -27,6 +27,47 @@ it("copies the product row height from the fixed template", async () => {
   expect(rendered.getWorksheet("ORDER")!.getRow(10).height).toBe(71);
 });
 
+it("prints customer code below our SKU without shifting fixed workbook columns", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const items = [
+    {
+      id: "a",
+      sku: "OUR-A",
+      customer_code: "BUYER-A",
+      quantity: 2,
+      unit_price: 3,
+      product_snapshot: { name: "Saved name" },
+      packing_snapshot: { cartons: 1, qty_per_carton: 2 },
+    },
+  ];
+  const visible = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: true } } },
+    items,
+  );
+  const hidden = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: false } } },
+    items,
+  );
+  const visibleBook = new ExcelJS.Workbook();
+  const hiddenBook = new ExcelJS.Workbook();
+  await visibleBook.xlsx.load(await renderOrderXlsx(visible, template));
+  await hiddenBook.xlsx.load(await renderOrderXlsx(hidden, template));
+  const shown = visibleBook.worksheets[0];
+  const original = hiddenBook.worksheets[0];
+  expect(shown.getCell("B10").text).toContain("OUR-A");
+  expect(shown.getCell("B10").text).toContain("BUYER-A");
+  expect(original.getCell("B10").text).toBe("OUR-A");
+  for (const column of ["C", "E", "F", "G", "H", "I", "J"])
+    expect(shown.getCell(`${column}10`).value).toEqual(
+      original.getCell(`${column}10`).value,
+    );
+  expect(shown.getCell("H10").value).toBe(2);
+  expect(shown.getCell("J10").value).toBe(6);
+  expect(shown.columnCount).toBe(original.columnCount);
+});
+
 it("removes the payment term row and closes the Terms gap when hidden", async () => {
   const model = normalizeOrderExportModel(
     {

@@ -3,12 +3,14 @@ import {
   type CommercialItem,
 } from "../commercial/commercialLineItems";
 import {
+  orderCustomerCodeVisible,
   orderExportSnapshot,
   type ContactSnapshot,
 } from "./orderExportSnapshot";
 
 export type OrderExportModel = {
   worksheetName: "ORDER";
+  customerCodeVisible: boolean;
   documentNumber: string;
   documentDate: string;
   requirements: string;
@@ -18,6 +20,7 @@ export type OrderExportModel = {
   items: Array<{
     position: number;
     sku: string;
+    customerCode: string;
     name: string;
     imageUrl: string;
     specification: string;
@@ -82,6 +85,10 @@ export function normalizeOrderExportModel(
   const balance = money(total - deposit);
   return {
     worksheetName: "ORDER",
+    customerCodeVisible: orderCustomerCodeVisible(
+      order.terms_snapshot,
+      sourceItems,
+    ),
     documentNumber: text(order.document_number),
     documentDate: text(order.document_date),
     requirements: text(order.notes),
@@ -106,6 +113,7 @@ export function normalizeOrderExportModel(
         return {
           position: index + 1,
           sku: text(item.sku),
+          customerCode: text(item.customer_code),
           name: text(product.name),
           imageUrl: text(product.image_url),
           specification: text(product.specification),

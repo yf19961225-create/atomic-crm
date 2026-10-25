@@ -66,3 +66,43 @@ it("omits the complete Terms block when the saved Order snapshot hides it", () =
 
   expect(model.terms).toEqual([]);
 });
+
+it("exports customer codes only when visible while preserving each SKU and amount", () => {
+  const items = [
+    {
+      id: "a",
+      sku: "OUR-A",
+      customer_code: "BUYER-A",
+      quantity: 2,
+      unit_price: 3,
+      product_snapshot: {},
+      packing_snapshot: {},
+    },
+    {
+      id: "b",
+      sku: "OUR-B",
+      customer_code: "BUYER-B",
+      quantity: 1,
+      unit_price: 4,
+      product_snapshot: {},
+      packing_snapshot: {},
+    },
+  ];
+  const visible = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: true } } },
+    items,
+  );
+  const hidden = normalizeOrderExportModel(
+    { terms_snapshot: { order_export: { customer_code_visible: false } } },
+    items,
+  );
+  expect(visible.customerCodeVisible).toBe(true);
+  expect(
+    visible.items.map((item) => [item.sku, item.customerCode, item.amount]),
+  ).toEqual([
+    ["OUR-A", "BUYER-A", 6],
+    ["OUR-B", "BUYER-B", 4],
+  ]);
+  expect(hidden.customerCodeVisible).toBe(false);
+  expect(hidden.items).toEqual(visible.items);
+});

@@ -7,6 +7,7 @@ export type CommercialDocumentKind = "quote" | "pi" | "order";
 export type CommercialItem = RaRecord & {
   position?: number | null;
   sku: string;
+  customer_code?: string | null;
   quantity: number;
   unit_price: number;
   source_cny_unit_price?: number | null;
