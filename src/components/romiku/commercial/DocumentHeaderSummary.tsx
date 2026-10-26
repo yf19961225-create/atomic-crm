@@ -3,6 +3,7 @@ import {
   RomikuDateTimePicker,
 } from "../shared/RomikuDatePicker";
 import { businessDateFieldKinds } from "../shared/businessDateFields";
+import { localBusinessDateTime } from "../shared/businessDate";
 import type { Values } from "../outbound/WorkflowFields";
 import { setValue, valueAt } from "../outbound/WorkflowFields";
 import type { RaRecord } from "ra-core";
@@ -34,9 +35,11 @@ const documentFields: HeaderField[] = [
   },
 ];
 
-const display = (value: unknown) => {
+const display = (value: unknown, key: string) => {
   if (!value) return "—";
   const text = String(value);
+  if (businessDateFieldKinds[key] === "datetime" && text.includes("T"))
+    return localBusinessDateTime(text).slice(0, 10) || text;
   return text.includes("T") ? text.slice(0, 10) : text;
 };
 
@@ -181,7 +184,9 @@ export function DocumentHeaderSummary({
                     />
                   )
                 ) : (
-                  <span className="break-words text-sm">{display(value)}</span>
+                  <span className="break-words text-sm">
+                    {display(value, field.key)}
+                  </span>
                 )}
               </dd>
             </div>

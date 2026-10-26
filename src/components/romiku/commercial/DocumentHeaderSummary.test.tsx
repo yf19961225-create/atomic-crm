@@ -1,6 +1,31 @@
 import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DocumentHeaderSummary } from "./DocumentHeaderSummary";
+import { commands } from "vitest/browser";
+
+it.each(["quote", "pi", "order"] as const)(
+  "%s summary keeps timestamp dates on the selected local calendar day",
+  async (kind) => {
+    await commands.setTimezone("Asia/Shanghai");
+    const screen = await render(
+      <DocumentHeaderSummary
+        kind={kind}
+        editable={false}
+        values={{
+          document_date: "2026-10-31",
+          due_at: "2026-10-31T16:00:00.000Z",
+        }}
+        onChange={() => {}}
+      />,
+    );
+    await expect
+      .element(screen.getByText("2026-11-01", { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByText("2026-10-31", { exact: true }))
+      .toBeVisible();
+  },
+);
 
 it("shows the saved customer snapshot and edits only the document values", async () => {
   const onChange = vi.fn();
