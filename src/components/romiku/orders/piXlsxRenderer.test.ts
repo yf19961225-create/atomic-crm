@@ -140,3 +140,35 @@ it("removes whole Terms and Banking regions without deleting saved data", async 
     "BANKING",
   );
 });
+
+it("changing internal document name leaves formal XLSX identity and template content unchanged", async () => {
+  const header = {
+    document_number: "PI261026001",
+    document_date: "2026-10-31",
+    counterparty_snapshot: { name: "Buyer", brand: "HISTORICAL BRAND" },
+  };
+  const rows = [
+    {
+      id: "name-test-line",
+      sku: "005",
+      customer_code: "BUYER-005",
+      quantity: 2,
+      unit_price: 5.5,
+      position: 1,
+      product_snapshot: { name: "Product" },
+      packing_snapshot: {},
+    },
+  ];
+  const before = normalizePiExportModel(header, rows);
+  const after = normalizePiExportModel(
+    { ...header, document_name: "Marianne 美甲灯 Tú" },
+    rows,
+  );
+  expect(after).toEqual(before);
+  const template = await fetch(templateUrl).then((r) => r.arrayBuffer());
+  const output = await renderPiXlsx(after, template);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(output);
+  expect(workbook.worksheets[0].getCell("J1").text).toContain("PI261026001");
+  expect(workbook.worksheets[0].getCell("J1").text).not.toContain("Marianne");
+});

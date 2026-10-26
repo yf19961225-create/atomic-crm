@@ -542,6 +542,13 @@ DECLARE
   sequence_value text;
 BEGIN
   IF TG_OP = 'UPDATE' THEN
+    IF TG_ARGV[0] IN ('quote','pi','order') THEN
+      IF NEW.document_number IS DISTINCT FROM OLD.document_number THEN
+        RAISE EXCEPTION 'Formal document number cannot be changed' USING ERRCODE = '23514';
+      END IF;
+      -- Preserve legacy numbers verbatim, including on unrelated updates.
+      RETURN NEW;
+    END IF;
     NEW.document_number := btrim(coalesce(NEW.document_number,''));
     IF NEW.document_number = '' THEN
       RAISE EXCEPTION 'Document number is required' USING ERRCODE = '23514';
@@ -817,8 +824,8 @@ BEGIN
   END IF;
   -- Item writes also lock this header, preserving a coherent copy while converting.
   source_json := source_json || jsonb_build_object('source_' || source_kind || '_id',source_id);
-  EXECUTE format('INSERT INTO public.%I (counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s)
-    SELECT counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s FROM jsonb_populate_record(NULL::public.%I,$1) RETURNING id',
+  EXECUTE format('INSERT INTO public.%I (document_name,counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s)
+    SELECT document_name,counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s FROM jsonb_populate_record(NULL::public.%I,$1) RETURNING id',
     target_table,CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,
     CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,target_table)
     INTO new_id USING source_json;

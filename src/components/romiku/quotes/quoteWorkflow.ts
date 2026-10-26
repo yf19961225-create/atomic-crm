@@ -167,7 +167,7 @@ export function quoteHeaderWrite(values: Values, previous?: Values) {
     "currency",
     "fx_enabled",
     "usd_cny_rate",
-    "document_number",
+    "document_name",
     "document_language",
     "document_date",
     "valid_until",
@@ -214,9 +214,13 @@ export function quoteHeaderWrite(values: Values, previous?: Values) {
   }
   if (write.fx_enabled === true && !write.usd_cny_rate)
     throw new Error("启用汇率换算时必须填写 USD 汇率。");
-  if (write.document_number !== undefined) {
-    write.document_number = String(write.document_number).trim();
-    if (!write.document_number) throw new Error("单据编号不能为空。");
+  if (write.document_name !== undefined) {
+    if (write.document_name !== null && typeof write.document_name !== "string")
+      throw new Error("单据名称必须是文字。");
+    write.document_name =
+      typeof write.document_name === "string"
+        ? write.document_name.trim() || null
+        : null;
   }
   if (write.document_language !== undefined) {
     write.document_language = String(write.document_language).trim();

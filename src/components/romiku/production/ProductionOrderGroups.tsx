@@ -1,3 +1,4 @@
+import { documentTitle } from "../commercial/documentIdentity";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useDataProvider, type RaRecord } from "ra-core";
@@ -182,8 +183,11 @@ export function ProductionOrderGroups() {
                 className="font-semibold underline"
                 to={`/orders/${group.id}`}
               >
-                {group.document_number}
+                {documentTitle(group)}
               </Link>
+              <p className="text-sm text-muted-foreground">
+                订单编号：{group.document_number}
+              </p>
               <p className="mt-1">{group.customer_name}</p>
             </div>
             <div className="text-sm">

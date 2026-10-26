@@ -512,7 +512,7 @@ it("does not allow receipts against an unsaved Order edit session", async () => 
 });
 
 it.each(["pi", "order"] as const)(
-  "%s edited number survives save/reopen without changing UUID or lineage",
+  "%s edited name survives save/reopen without changing number, UUID or lineage",
   async (kind) => {
     const id = kind === "order" ? "o" : "p";
     const resource = kind === "order" ? "romiku_orders" : "romiku_pis";
@@ -522,7 +522,7 @@ it.each(["pi", "order"] as const)(
     const original = (await provider.getOne(resource, { id })).data;
     await screen.getByRole("button", { name: "编辑", exact: true }).click();
     await screen
-      .getByLabelText("单据编号", { exact: true })
+      .getByLabelText("单据名称", { exact: true })
       .fill("QA-RENAMED-20261026");
     await screen.getByRole("button", { name: "保存", exact: true }).click();
     await expect
@@ -535,7 +535,8 @@ it.each(["pi", "order"] as const)(
       .toBeVisible();
     const saved = (await provider.getOne(resource, { id })).data;
     expect(saved.id).toBe(id);
-    expect(saved.document_number).toBe("QA-RENAMED-20261026");
+    expect(saved.document_name).toBe("QA-RENAMED-20261026");
+    expect(saved.document_number).toBe(original.document_number);
     expect(saved.source_pi_id).toBe(original.source_pi_id);
     expect(saved.source_quote_id).toBe(original.source_quote_id);
     await screen.rerender(
@@ -575,13 +576,17 @@ it.each(["pi", "order"] as const)(
         await screen
           .getByRole("button", { name: "导出 XLSX", exact: true })
           .click();
-        await expect.poll(() => filename).toBe("QA-RENAMED-20261026.xlsx");
+        await expect
+          .poll(() => filename)
+          .toBe(`${original.document_number}.xlsx`);
         const book = new ExcelJS.Workbook();
         await book.xlsx.load(await exported!.arrayBuffer());
         expect(book.worksheets[0].getCell("J1").text).toContain(
+          String(original.document_number),
+        );
+        expect(book.worksheets[0].getCell("J1").text).not.toContain(
           "QA-RENAMED-20261026",
         );
-        expect(book.worksheets[0].getCell("J1").text).not.toContain("SO-001");
       } finally {
         create.mockRestore();
         click.mockRestore();

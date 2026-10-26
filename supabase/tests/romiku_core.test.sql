@@ -62,8 +62,8 @@ select is(
   'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001',
   'Quote number uses the Shanghai business date and its own daily counter'
 );
-select lives_ok($$update romiku_quotes set document_number='RFQ-MANUAL'$$,'manual Quote number edits are allowed');
-select is((select document_number from romiku_quotes limit 1),'RFQ-MANUAL','manual Quote number persists');
+select throws_ok($$update romiku_quotes set document_number='RFQ-MANUAL'$$,'23514',null,'Quote number changes blocked');
+select isnt((select document_number from romiku_quotes limit 1),'RFQ-MANUAL','original Quote number persists');
 select throws_ok($$insert into romiku_quotes(document_number) values ('FORGED')$$,'23514',null,'clients cannot choose document numbers');
 select throws_ok($$select romiku_quote_from_inquiry('30000000-0000-0000-0000-000000000001',array['ffffffff-ffff-ffff-ffff-ffffffffffff']::uuid[])$$,'23514',null,'invalid selection fails atomically');
 select is((select count(*) from romiku_quotes),1::bigint,'failed conversion leaves no partial document');
@@ -100,9 +100,12 @@ select is(
   3,
   'Order counter self-heals after a stale-counter collision'
 );
+-- Privileged LOCAL fixture represents a pre-migration historical number.
+alter table romiku_orders disable trigger romiku_number;
 update romiku_orders
 set document_number='OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '005'
 where id=(select id from test_ids where kind='direct_order');
+alter table romiku_orders enable trigger romiku_number;
 update romiku_document_daily_counters
 set last_value=1
 where document_kind='order'
@@ -322,10 +325,10 @@ update romiku_formal_customers set name='Changed later' where id='70000000-0000-
 select is((select counterparty_snapshot->>'name' from romiku_quotes where id='71000000-0000-0000-0000-000000000001'),'Formal buyer','Formal Customer edits never rewrite Quote snapshot');
 select is((select formal_customer_id from romiku_orders where id='73000000-0000-0000-0000-000000000001'),'70000000-0000-0000-0000-000000000001'::uuid,'direct Order persists Formal Customer identity');
 select is((select document_language from romiku_pis where id='72000000-0000-0000-0000-000000000001'),'es','direct PI persists document language');
-select lives_ok($$update romiku_pis set document_number='RPI-MANUAL' where id='72000000-0000-0000-0000-000000000001'$$,'manual PI number edits are allowed');
-select lives_ok($$update romiku_orders set document_number='RCI-MANUAL' where id='73000000-0000-0000-0000-000000000001'$$,'manual Order number edits are allowed');
+select throws_ok($$update romiku_pis set document_number='RPI-MANUAL' where id='72000000-0000-0000-0000-000000000001'$$,'23514',null,'PI number changes blocked');
+select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id='73000000-0000-0000-0000-000000000001'$$,'23514',null,'Order number changes blocked');
 select lives_ok($$update romiku_production_orders set document_number='RCI-MANUAL-P01' where id='41000000-0000-0000-0000-000000000001'$$,'manual Production number edits are allowed');
-select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id=(select id from test_ids where kind='order')$$,'23505',null,'manual numbers remain unique within the document type');
+select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id=(select id from test_ids where kind='order')$$,'23514',null,'manual number update is rejected');
 reset role;
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='r' and not c.relrowsecurity),'RLS enabled on every ROMIKU table');
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='v' and not coalesce(c.reloptions @> array['security_invoker=true'],false)),'all ROMIKU derived views use security invoker');

@@ -831,11 +831,11 @@ it("allows spaces while typing a cleaned Quote specification in the edit session
   await expect.element(spec).toHaveValue("48W 24LEDS");
 });
 
-it("retains a renamed Quote number through save and fresh reopen without changing source identity", async () => {
+it("retains an independent Quote name through save and reopen with stable number", async () => {
   const { screen, provider } = await setup("/quotes/q");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen
-    .getByLabelText("单据编号", { exact: true })
+    .getByLabelText("单据名称", { exact: true })
     .fill("QA-QUOTE-RENAMED");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
@@ -847,7 +847,7 @@ it("retains a renamed Quote number through save and fresh reopen without changin
     (await provider.getOne("romiku_quotes", { id: "q" })).data,
   ).toMatchObject({
     id: "q",
-    document_number: "QA-QUOTE-RENAMED",
+    document_name: "QA-QUOTE-RENAMED",
     source_website_inquiry_id: "in",
   });
   await screen.rerender(
@@ -862,4 +862,26 @@ it("retains a renamed Quote number through save and fresh reopen without changin
       screen.getByRole("heading", { name: "QA-QUOTE-RENAMED", exact: true }),
     )
     .toBeVisible();
+});
+
+it("tracks name-only drafts and clears them on cancel without touching brand", async () => {
+  const { screen, provider } = await setup("/quotes/q", {
+    quote: {
+      document_name: "Old",
+      counterparty_snapshot: { name: "Buyer", brand: "KEEP" },
+    },
+  });
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  expect(hasAppDraft()).toBe(false);
+  await screen.getByLabelText("单据名称", { exact: true }).fill("New name");
+  await expect.poll(() => hasAppDraft()).toBe(true);
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  await expect.poll(() => hasAppDraft()).toBe(false);
+  expect(
+    (await provider.getOne("romiku_quotes", { id: "q" })).data,
+  ).toMatchObject({
+    document_name: "Old",
+    document_number: "Q-001",
+    counterparty_snapshot: { brand: "KEEP" },
+  });
 });

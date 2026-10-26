@@ -381,6 +381,7 @@ create table public.romiku_website_inquiry_followups (
 create table public.romiku_quotes (
     id uuid primary key default gen_random_uuid(),
     document_number text not null unique,
+    document_name text,
     status text not null default 'draft',
     counterparty_snapshot jsonb not null default '{}',
     bank_snapshot jsonb not null default '{}',
@@ -455,6 +456,7 @@ create table public.romiku_quote_versions (
 create table public.romiku_pis (
     id uuid primary key default gen_random_uuid(),
     document_number text not null unique,
+    document_name text,
     status text not null default 'draft',
     counterparty_snapshot jsonb not null default '{}',
     bank_snapshot jsonb not null default '{}',
@@ -511,6 +513,7 @@ create table public.romiku_pi_items (
 create table public.romiku_orders (
     id uuid primary key default gen_random_uuid(),
     document_number text not null unique,
+    document_name text,
     status text not null default 'draft',
     counterparty_snapshot jsonb not null default '{}',
     bank_snapshot jsonb not null default '{}',

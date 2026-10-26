@@ -268,6 +268,18 @@ select 'packing'::text resource_type,h.id,h.document_number title,coalesce(h.nam
  where q<>'' and 'packing'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or h.order_id=order_filter) and (i.business_search_text like '%'||pattern||'%' escape E'\\' or (search_phone is not null and i.business_search_text like '%'||search_phone||'%'))
  union all
 select 'packing'::text resource_type,h.id,h.document_number title,coalesce(h.name,'') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_packing_lists h join public.romiku_orders src on src.id=h.order_id cross join lateral public.romiku_search_matches(jsonb_build_object('source_order.document_number',lower(src.document_number)),q,pattern,null) m where q<>'' and 'packing'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or h.order_id=order_filter) and src.source_search_text like '%'||pattern||'%' escape E'\\'
+ union all
+select 'quote'::text resource_type,h.id,h.document_number title,coalesce(h.counterparty_snapshot->>'name',h.counterparty_snapshot->>'company','') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_quotes h
+ cross join lateral public.romiku_search_matches(jsonb_build_object('document_name',lower(h.document_name)),q,pattern,null) m
+ where q<>'' and 'quote'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or null::uuid=order_filter) and lower(h.document_name) like '%'||pattern||'%' escape E'\\'
+ union all
+select 'pi'::text resource_type,h.id,h.document_number title,coalesce(h.counterparty_snapshot->>'name',h.counterparty_snapshot->>'company','') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_pis h
+ cross join lateral public.romiku_search_matches(jsonb_build_object('document_name',lower(h.document_name)),q,pattern,null) m
+ where q<>'' and 'pi'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or null::uuid=order_filter) and lower(h.document_name) like '%'||pattern||'%' escape E'\\'
+ union all
+select 'order'::text resource_type,h.id,h.document_number title,coalesce(h.counterparty_snapshot->>'name',h.counterparty_snapshot->>'company','') subtitle,h.created_at,m.rank,m.matched_fields from public.romiku_orders h
+ cross join lateral public.romiku_search_matches(jsonb_build_object('document_name',lower(h.document_name)),q,pattern,null) m
+ where q<>'' and 'order'=any(types) and (status_filter is null or h.status=status_filter) and (order_filter is null or h.id=order_filter) and lower(h.document_name) like '%'||pattern||'%' escape E'\\'
   ), merged as (
     select resource_type,id,title,subtitle,created_at,min(rank) rank,array_agg(distinct f order by f) matched_fields
     from hits cross join lateral unnest(matched_fields) a(f)

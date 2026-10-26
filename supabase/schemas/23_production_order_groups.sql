@@ -30,7 +30,7 @@ BEGIN
         LEFT JOIN public.romiku_suppliers s ON s.id = p.supplier_id
         WHERE p_order_id IS NULL OR p.order_id = p_order_id
     ), groups AS (
-        SELECT o.id, o.document_number, o.document_date,
+        SELECT o.id, o.document_number, o.document_name, o.document_date,
             coalesce(nullif(o.counterparty_snapshot->>'company_name',''),
                 nullif(o.counterparty_snapshot->>'company',''),
                 nullif(o.counterparty_snapshot->>'name',''),
@@ -44,7 +44,7 @@ BEGIN
             max(p.factory_due_at) AS latest_factory_due_at,
             max(p.created_at) AS latest_created_at,
             bool_or(p_search = '' OR position(lower(btrim(p_search)) IN lower(concat_ws(' ',
-                o.document_number, o.counterparty_snapshot->>'company_name',
+                o.document_number, o.document_name, o.counterparty_snapshot->>'company_name',
                 o.counterparty_snapshot->>'company', o.counterparty_snapshot->>'name',
                 o.counterparty_snapshot->>'business_name', p.document_number,
                 p.current_supplier_name, p.supplier_snapshot->>'name'))) > 0) AS matches_search

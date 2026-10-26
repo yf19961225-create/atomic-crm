@@ -98,6 +98,7 @@ it("permits independent commercial and delivery snapshots while stripping lineag
       source_pi_id: "replace",
       formal_customer_id: "new",
       document_number: " RCI260920001 ",
+      document_name: "Tú 补货",
       total: 50,
       counterparty_snapshot: { name: "Independent" },
     }),
@@ -107,7 +108,7 @@ it("permits independent commercial and delivery snapshots while stripping lineag
     deposit_percent: 40,
     expected_delivery_at: null,
     formal_customer_id: "new",
-    document_number: "RCI260920001",
+    document_name: "Tú 补货",
     counterparty_snapshot: { name: "Independent" },
   });
   expect(

@@ -317,3 +317,35 @@ it.each(["direct", "website"] as const)(
     );
   },
 );
+
+it("changing internal document name leaves formal XLSX identity and template content unchanged", async () => {
+  const header = {
+    document_number: "RFQ261026001",
+    document_date: "2026-10-31",
+    counterparty_snapshot: { name: "Buyer", brand: "HISTORICAL BRAND" },
+  };
+  const rows = [
+    {
+      id: "name-test-line",
+      sku: "005",
+      customer_code: "BUYER-005",
+      quantity: 2,
+      unit_price: 5.5,
+      position: 1,
+      product_snapshot: { name: "Product" },
+      packing_snapshot: {},
+    },
+  ];
+  const before = normalizeQuoteExportModel(header, rows);
+  const after = normalizeQuoteExportModel(
+    { ...header, document_name: "Marianne 美甲灯 Tú" },
+    rows,
+  );
+  expect(after).toEqual(before);
+  const template = await fetch(templateUrl).then((r) => r.arrayBuffer());
+  const output = await renderQuoteXlsx(after, template);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(output);
+  expect(workbook.worksheets[0].getCell("H1").text).toContain("RFQ261026001");
+  expect(workbook.worksheets[0].getCell("H1").text).not.toContain("Marianne");
+});

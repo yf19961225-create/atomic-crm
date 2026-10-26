@@ -3,6 +3,7 @@ export type ProductionGroupView = "ongoing" | "received" | "cancelled" | "all";
 export type ProductionOrderGroup = {
   id: string;
   document_number: string;
+  document_name?: string | null;
   document_date: string;
   customer_name: string;
   matched_child_count?: number;

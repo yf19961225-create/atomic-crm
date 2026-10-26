@@ -52,7 +52,7 @@ it("shows the saved customer snapshot and edits only the document values", async
       onChange={onChange}
     />,
   );
-  await expect.element(screen.getByText("Salon A")).toBeVisible();
+  await expect.element(screen.getByText("Salon A")).not.toBeInTheDocument();
   await expect.element(screen.getByText("Madrid")).toBeVisible();
   await screen.rerender(
     <DocumentHeaderSummary
@@ -132,5 +132,49 @@ it.each(["pi", "order"] as const)(
     expect(
       screen.getByLabelText("表格类型 / 单据语言", { exact: true }).all(),
     ).toHaveLength(0);
+  },
+);
+
+it.each(["quote", "pi", "order"] as const)(
+  "%s name is independent of brand and number is readonly",
+  async (kind) => {
+    const onChange = vi.fn();
+    const values = {
+      document_number: "LEGACY-001",
+      document_name: "October Tú",
+      counterparty_snapshot: { brand: "KEEP" },
+    };
+    const screen = await render(
+      <DocumentHeaderSummary
+        kind={kind}
+        values={values}
+        editable
+        onChange={onChange}
+        customers={[]}
+      />,
+    );
+    await expect
+      .element(screen.getByLabelText("单据编号", { exact: true }))
+      .toHaveAttribute("readonly");
+    await screen
+      .getByLabelText("单据名称", { exact: true })
+      .fill("Marianne 美甲灯");
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...values,
+      document_name: "Marianne 美甲灯",
+    });
+    await screen.getByLabelText("单据名称", { exact: true }).fill("");
+    expect(onChange).toHaveBeenLastCalledWith({ ...values, document_name: "" });
+    await screen.rerender(
+      <DocumentHeaderSummary
+        kind={kind}
+        values={values}
+        editable={false}
+        onChange={onChange}
+      />,
+    );
+    await expect
+      .element(screen.getByText("October Tú", { exact: true }))
+      .toBeVisible();
   },
 );

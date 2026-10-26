@@ -15,7 +15,7 @@ type HeaderField = { key: string; label: string; orderOnly?: boolean };
 
 const customerFields: HeaderField[] = [
   { key: "counterparty_snapshot.name", label: "客户名称" },
-  { key: "counterparty_snapshot.brand", label: "品牌" },
+  { key: "document_name", label: "单据名称" },
   { key: "counterparty_snapshot.country", label: "国家/地区" },
   { key: "counterparty_snapshot.contact", label: "联系人" },
   { key: "counterparty_snapshot.whatsapp", label: "WhatsApp" },
@@ -40,7 +40,9 @@ const display = (value: unknown, key: string) => {
   const text = String(value);
   if (businessDateFieldKinds[key] === "datetime" && text.includes("T"))
     return localBusinessDateTime(text).slice(0, 10) || text;
-  return text.includes("T") ? text.slice(0, 10) : text;
+  return businessDateFieldKinds[key] && text.includes("T")
+    ? text.slice(0, 10)
+    : text;
 };
 
 /** Compact first-page, document-snapshot summary shared by Quote, PI and Order. */
@@ -174,6 +176,7 @@ export function DocumentHeaderSummary({
                   ) : (
                     <input
                       aria-label={field.label}
+                      readOnly={field.key === "document_number"}
                       className="h-8 w-full rounded border bg-background px-2 text-sm"
                       value={String(value ?? "")}
                       onChange={(event) =>

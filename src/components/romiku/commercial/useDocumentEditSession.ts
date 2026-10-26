@@ -39,7 +39,7 @@ const header = (value: Values) =>
       "currency",
       "fx_enabled",
       "usd_cny_rate",
-      "document_number",
+      "document_name",
       "document_language",
       "document_date",
       "valid_until",

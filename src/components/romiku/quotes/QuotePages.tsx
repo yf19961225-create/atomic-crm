@@ -1,3 +1,4 @@
+import { documentTitle } from "../commercial/documentIdentity";
 import { QuoteInquirySource } from "../inquiries/InquiryQuoteLinks";
 import websiteQuoteTemplateUrl from "@/assets/quote-templates/ROMIKU_报价单_网站询盘来源模板.xlsx?url";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
@@ -230,7 +231,7 @@ export function QuoteList() {
                     className="font-medium underline"
                     to={`/quotes/${record.id}`}
                   >
-                    {record.document_number}
+                    {documentTitle(record)}
                   </Link>
                 </td>
                 <td className="p-3">{record.counterparty_snapshot?.name}</td>
@@ -489,9 +490,14 @@ function QuoteEditor({
         返回报价单
       </Link>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold">
-          {record.document_number || "草稿报价单"}
-        </h1>
+        <div>
+          <h1 className="text-3xl font-semibold">
+            {documentTitle(record, "草稿报价单")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            正式编号：{record.document_number || "—"}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {session.editing ? (
             <div className="flex gap-2">

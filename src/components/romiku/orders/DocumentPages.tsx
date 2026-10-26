@@ -1,3 +1,4 @@
+import { documentTitle } from "../commercial/documentIdentity";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
@@ -257,7 +258,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                     className="underline"
                     to={`${config.path}/${record.id}`}
                   >
-                    {record.document_number}
+                    {documentTitle(record)}
                   </Link>
                   {record.archived_at && (
                     <span className="ml-2 text-muted-foreground">已归档</span>
@@ -658,9 +659,14 @@ function DocumentEditor({
         返回{config.plural}
       </Link>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold">
-          {record.document_number || `草稿${config.label}`}
-        </h1>
+        <div>
+          <h1 className="text-3xl font-semibold">
+            {documentTitle(record, `草稿${config.label}`)}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            正式编号：{record.document_number || "—"}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {session.editing ? (
             <div className="flex gap-2">

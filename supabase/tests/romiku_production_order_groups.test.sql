@@ -16,7 +16,7 @@ insert into public.romiku_suppliers(id,name) values ('fe260000-0000-0000-0000-00
 insert into public.romiku_orders(id,counterparty_snapshot,status)
 select ('fe261000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  jsonb_build_object('name','Buyer ' || n),'confirmed' from generate_series(1,4) n;
-update public.romiku_orders set document_number='QA-GROUP-' || right(id::text,1);
+update public.romiku_orders set document_name='QA-GROUP-' || right(id::text,1);
 insert into public.romiku_production_orders(name,order_id,supplier_id,status,factory_due_at,created_at)
 select 'QA-A-' || n,'fe261000-0000-0000-0000-000000000001','fe260000-0000-0000-0000-000000000002',
  case when n<=20 then 'scheduled' else 'received' end,'2026-10-31T15:59:59.999Z','2026-10-26'::timestamptz + n * interval '1 minute'
@@ -53,7 +53,7 @@ set local role authenticated;
 select is(public.romiku_list_production_order_groups('', 'all')->>'total','3','RLS-hidden only-child parent not leaked');
 select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'production_count','64','RLS-hidden child excluded counts');
 select is(public.romiku_list_production_order_groups((select document_number from hidden_child),'all')->>'total','0','RLS-hidden child not searchable');
-select is((select status from public.romiku_orders where document_number='QA-GROUP-1'),'confirmed','order status unchanged');
+select is((select status from public.romiku_orders where document_name='QA-GROUP-1'),'confirmed','order status unchanged');
 select is(public.romiku_list_production_order_groups('QA GROUP SUPPLIER','all')->'rows'->0->>'matched_child_count','64','visible matching child count is retained');
 select is(jsonb_array_length(public.romiku_list_production_order_groups('QA GROUP SUPPLIER','all')->'rows'->0->'matched_children'),50,'visible search child identities are returned');
 reset role;
