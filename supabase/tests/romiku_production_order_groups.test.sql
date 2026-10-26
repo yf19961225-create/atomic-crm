@@ -20,7 +20,7 @@ update public.romiku_orders set document_number='QA-GROUP-' || right(id::text,1)
 insert into public.romiku_production_orders(name,order_id,supplier_id,status,factory_due_at,created_at)
 select 'QA-A-' || n,'fe261000-0000-0000-0000-000000000001','fe260000-0000-0000-0000-000000000002',
  case when n<=20 then 'scheduled' else 'received' end,'2026-10-31T15:59:59.999Z','2026-10-26'::timestamptz + n * interval '1 minute'
-from generate_series(1,30) n;
+from generate_series(1,65) n;
 insert into public.romiku_production_orders(name,order_id,status) values
  ('QA-B-RECEIVED','fe261000-0000-0000-0000-000000000002','received'),
  ('QA-B-CANCELLED','fe261000-0000-0000-0000-000000000002','cancelled'),
@@ -30,8 +30,8 @@ select is(public.romiku_list_production_order_groups('', 'all')->>'total','4','a
 select is(public.romiku_list_production_order_groups('', 'ongoing')->>'total','2','ongoing includes any pending or scheduled');
 select is(public.romiku_list_production_order_groups('', 'received')->>'total','1','received with canceled child retained');
 select is(public.romiku_list_production_order_groups('', 'cancelled')->>'total','1','all-canceled separate');
-select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'production_count','30','child match aggregates ALL children beyond25');
-select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'received_count','10','whole visible history received count');
+select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'production_count','65','child match aggregates ALL children beyond25');
+select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'received_count','45','whole visible history received count');
 select is(public.romiku_list_production_order_groups('QA-GROUP-2','all')->'rows'->0->>'effective_count','1','canceled excluded denominator');
 select is(public.romiku_list_production_order_groups('QA-GROUP-2','all')->'rows'->0->>'cancelled_count','1','canceled counted separately');
 select is(public.romiku_list_production_order_groups('Buyer 3','all')->>'total','1','customer search');
@@ -46,11 +46,23 @@ select throws_ok($$select public.romiku_list_production_order_groups('', 'all',0
 select throws_ok($$select public.romiku_list_production_order_groups('', 'all',1,1000)$$,'22023',null,'page size bounded');
 select throws_ok($$select public.romiku_list_production_order_groups(repeat('x',201))$$,'22023',null,'search bounded');
 reset role;
+create temporary table hidden_child as select id,document_number from public.romiku_production_orders where name='QA-HIDDEN';
+grant select on hidden_child to authenticated;
 alter policy romiku_read on public.romiku_production_orders using(name not in ('QA-HIDDEN','QA-A-30'));
 set local role authenticated;
 select is(public.romiku_list_production_order_groups('', 'all')->>'total','3','RLS-hidden only-child parent not leaked');
-select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'production_count','29','RLS-hidden child excluded counts');
-select is(public.romiku_list_production_order_groups('QA-HIDDEN','all')->>'total','0','RLS-hidden child not searchable');
+select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'production_count','64','RLS-hidden child excluded counts');
+select is(public.romiku_list_production_order_groups((select document_number from hidden_child),'all')->>'total','0','RLS-hidden child not searchable');
 select is((select status from public.romiku_orders where document_number='QA-GROUP-1'),'confirmed','order status unchanged');
+select is(public.romiku_list_production_order_groups('QA GROUP SUPPLIER','all')->'rows'->0->>'matched_child_count','64','visible matching child count is retained');
+select is(jsonb_array_length(public.romiku_list_production_order_groups('QA GROUP SUPPLIER','all')->'rows'->0->'matched_children'),50,'visible search child identities are returned');
+reset role;
+alter policy romiku_read on public.romiku_orders using(id<>'fe261000-0000-0000-0000-000000000003'::uuid);
+alter policy romiku_read on public.romiku_suppliers using(name<>'QA GROUP SUPPLIER');
+set local role authenticated;
+select is(public.romiku_list_production_order_groups('', 'all')->>'total','2','RLS-hidden parent excluded even when children visible');
+select is(public.romiku_list_production_order_groups('Buyer 3','all')->>'total','0','RLS-hidden parent name not searchable');
+select is(public.romiku_list_production_order_groups('QA GROUP SUPPLIER','all')->>'total','0','RLS-hidden current supplier name not leaked by search');
+explain (analyze,buffers) select public.romiku_list_production_order_groups('', 'all');
 select * from finish();
 rollback;

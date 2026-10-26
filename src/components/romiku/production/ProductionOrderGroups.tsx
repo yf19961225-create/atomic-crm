@@ -61,6 +61,7 @@ export function ProductionOrderGroups() {
     query.data?.total,
     query.isPending || !!query.error,
     setPage,
+    100,
   );
   const onLoaded = useCallback(
     (id: string, rows: RaRecord[]) =>
@@ -133,7 +134,8 @@ export function ProductionOrderGroups() {
         ))}
       </div>
       <p className="text-sm text-muted-foreground">
-        按订单汇总全部可见生产子单；进度不含已取消子单。批量操作仅作用于勾选的生产子单。
+        按订单汇总全部可见生产子单；进度不含已取消子单。批量操作仅作用于勾选的生产子单。每批最多选择
+        100 张生产子单，可分批操作。
       </p>
       <BulkActions
         kind="production"
@@ -208,10 +210,33 @@ export function ProductionOrderGroups() {
               <p>{productionDueDateLabel(group.latest_factory_due_at)}</p>
             </div>
           </div>
+          {search.trim() && !!group.matched_child_count && (
+            <div
+              className="flex flex-wrap items-center gap-2 border-t p-3 text-sm"
+              aria-label={`${group.document_number} 搜索命中`}
+            >
+              <span>命中 {group.matched_child_count} 张生产子单：</span>
+              {(group.matched_children ?? []).map((child) => (
+                <Link
+                  key={child.id}
+                  className="rounded bg-muted px-2 py-1 underline"
+                  aria-label={`命中生产单 ${child.document_number}`}
+                  to={`/production/${child.id}`}
+                >
+                  {child.document_number}
+                </Link>
+              ))}
+              {group.matched_child_count >
+                (group.matched_children?.length ?? 0) && (
+                <span>仅列出前 50 条命中，可展开完整历史继续查看。</span>
+              )}
+            </div>
+          )}
           {expandedIds.includes(group.id) && (
             <ProductionChildren
               key={`${scope}:${group.id}`}
               group={group}
+              search={search}
               onLoaded={onLoaded}
               checkbox={selection.checkbox}
               onDeleted={selection.clear}
@@ -241,11 +266,13 @@ export function ProductionOrderGroups() {
 }
 function ProductionChildren({
   group,
+  search,
   onLoaded,
   checkbox,
   onDeleted,
 }: {
   group: ProductionOrderGroup;
+  search: string;
   onLoaded: (id: string, rows: RaRecord[]) => void;
   checkbox: (record: RaRecord) => React.ReactNode;
   onDeleted: () => void;
@@ -298,6 +325,24 @@ function ProductionChildren({
           <span>{checkbox(row)}</span>
           <Link className="underline" to={`/production/${row.id}`}>
             {row.document_number || "未编号生产单"}
+            {search.trim() &&
+              [
+                row.document_number,
+                row.supplier_snapshot?.name,
+                suppliers.data?.data.find((s) => s.id === row.supplier_id)
+                  ?.name,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase()
+                .includes(search.trim().toLowerCase()) && (
+                <span
+                  className="ml-2 rounded bg-muted px-1"
+                  aria-label={`搜索命中 ${row.document_number}`}
+                >
+                  命中
+                </span>
+              )}
           </Link>
           <span>
             {row.supplier_snapshot?.name ||

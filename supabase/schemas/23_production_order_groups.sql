@@ -23,7 +23,9 @@ BEGIN
     END IF;
 
     WITH visible_children AS MATERIALIZED (
-        SELECT p.*, s.name AS current_supplier_name
+        SELECT p.*, s.name AS current_supplier_name,
+            (btrim(p_search) <> '' AND position(lower(btrim(p_search)) IN lower(concat_ws(' ',
+                p.document_number, s.name, p.supplier_snapshot->>'name'))) > 0) AS child_search_hit
         FROM public.romiku_production_orders p
         LEFT JOIN public.romiku_suppliers s ON s.id = p.supplier_id
         WHERE p_order_id IS NULL OR p.order_id = p_order_id
@@ -34,6 +36,7 @@ BEGIN
                 nullif(o.counterparty_snapshot->>'name',''),
                 nullif(o.counterparty_snapshot->>'business_name',''), '未填写客户') AS customer_name,
             count(*) AS production_count,
+            count(*) FILTER (WHERE p.child_search_hit) AS matched_child_count,
             count(*) FILTER (WHERE p.status IN ('pending_send','scheduled')) AS ongoing_count,
             count(*) FILTER (WHERE p.status = 'received') AS received_count,
             count(*) FILTER (WHERE p.status = 'cancelled') AS cancelled_count,
@@ -56,7 +59,12 @@ BEGIN
             (p_view = 'cancelled' AND cancelled_count = production_count)
         )
     ), page_rows AS (
-        SELECT * FROM eligible ORDER BY latest_created_at DESC, id ASC
+        SELECT e.*, coalesce((SELECT jsonb_agg((to_jsonb(hit) - 'exact_rank') ORDER BY hit.exact_rank, hit.document_number, hit.id)
+            FROM (SELECT c.id, c.document_number,
+                CASE WHEN lower(c.document_number) = lower(btrim(p_search)) THEN 0 ELSE 1 END AS exact_rank
+                FROM visible_children c WHERE c.order_id = e.id AND c.child_search_hit
+                ORDER BY exact_rank, c.document_number, c.id LIMIT 50) hit), '[]'::jsonb) AS matched_children
+        FROM eligible e ORDER BY latest_created_at DESC, id ASC
         LIMIT p_page_size OFFSET ((p_page::bigint - 1) * p_page_size)
     )
     SELECT jsonb_build_object(
