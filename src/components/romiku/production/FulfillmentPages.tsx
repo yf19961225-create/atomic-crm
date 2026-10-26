@@ -1,3 +1,4 @@
+import { ProductionOrderGroups } from "./ProductionOrderGroups";
 import { packingContactSnapshot } from "../packing/packingExportSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { StatusHistoryPanel } from "../shared/StatusHistoryPanel";
@@ -63,6 +64,13 @@ const localDateTimeLabel = (value: unknown) => {
 };
 
 export function FulfillmentList({ kind }: { kind: FulfillmentKind }) {
+  return kind === "production" ? (
+    <ProductionOrderGroups />
+  ) : (
+    <FlatFulfillmentList kind={kind} />
+  );
+}
+function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
   const provider = useDataProvider();
   const config = fulfillmentConfig[kind],
     [params] = useSearchParams();

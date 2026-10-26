@@ -38,6 +38,28 @@ async function setup(
 ) {
   rpc.mockReset();
   rpc.mockResolvedValue({ data: { ok: true, id: "p" }, error: null });
+  if (list)
+    rpc.mockResolvedValue({
+      data: {
+        rows: [
+          {
+            id: "o",
+            document_number: "OD001",
+            document_date: "2026-10-04",
+            customer_name: "Historical Buyer",
+            production_count: 1,
+            ongoing_count: 1,
+            received_count: 0,
+            cancelled_count: 0,
+            effective_count: 1,
+            latest_factory_due_at: null,
+            latest_created_at: "2026-10-04",
+          },
+        ],
+        total: 1,
+      },
+      error: null,
+    });
   const provider = fakeRestDataProvider({
     romiku_orders: [
       {
@@ -278,7 +300,7 @@ it("stages creation, locks Order and opens the whole draft before any write", as
   expect(rpc).not.toHaveBeenCalled();
 });
 
-it("shows parent business numbers and saved customer in the global table with one parent batch", async () => {
+it("shows parent business numbers and saved customer from the aggregate without a redundant parent batch", async () => {
   const { screen, getMany } = await setup(false, false, true);
   await expect
     .element(screen.getByRole("link", { name: "OD001", exact: true }))
@@ -287,12 +309,12 @@ it("shows parent business numbers and saved customer in the global table with on
     .element(screen.getByText("Historical Buyer", { exact: true }))
     .toBeVisible();
   await expect
-    .element(screen.getByText("订单编号", { exact: true }))
+    .element(screen.getByText("1 张生产单", { exact: true }))
     .toBeVisible();
   expect(
     screen.getByRole("link", { name: "o", exact: true }).query(),
   ).toBeNull();
-  expect(getMany).toHaveBeenCalledOnce();
+  expect(getMany).not.toHaveBeenCalled();
 });
 it("shows all Order children and previews sync targets; cancellation does not invoke a write", async () => {
   const { screen } = await setup(false, true);
