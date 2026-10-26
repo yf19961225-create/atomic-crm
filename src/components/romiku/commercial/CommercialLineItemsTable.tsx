@@ -7,6 +7,7 @@ import {
   useState,
   type CSSProperties,
   type HTMLAttributes,
+  type KeyboardEvent,
 } from "react";
 import {
   DragDropContext,
@@ -120,13 +121,34 @@ export function CommercialLineItemsTable({
       editable && draftRows.some((row) => row.added === true),
     );
   }, [draftRows, editable, onBlankRowsDirtyChange]);
-  const draftSkuRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const draftSkuRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const nextDraftId = useRef(
+    Math.max(-1, ...draftRows.map((row) => row.id)) + 1,
+  );
+  const [focusTarget, setFocusTarget] = useState<string | null>(null);
+  const pendingFocus = useRef<string | null>(null);
   const rowSkuRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const rowNameRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const adapter = commercialItemAdapter(kind);
   const visibleRows = commercialDisplayRows(items, editable ? draftRows : []);
   const orderedItems = orderedCommercialItems(items);
   const nextPosition = () => nextCommercialPosition(items, draftRows);
+  useEffect(() => {
+    if (!focusTarget) return;
+    const element = focusTarget.startsWith("draft:")
+      ? draftSkuRefs.current[Number(focusTarget.slice(6))]
+      : rowSkuRefs.current[focusTarget.slice(5)];
+    if (!element) return;
+    element.focus();
+    pendingFocus.current = null;
+    setFocusTarget(null);
+  }, [focusTarget, draftRows, items]);
+  const requestFocus = (target: string) => {
+    pendingFocus.current = target;
+    setFocusTarget(target);
+  };
+  const isEntryKey = (event: KeyboardEvent<HTMLInputElement>) =>
+    !event.nativeEvent.isComposing && event.keyCode !== 229 && !event.repeat;
   const formatQuoteCbm = (packing: Record<string, unknown>) => {
     const value = cartonCbmFromPacking(packing);
     return value == null ? "" : value.toFixed(3);
@@ -202,7 +224,7 @@ export function CommercialLineItemsTable({
     setDraftRows((current) => [
       ...current,
       {
-        id: Math.max(-1, ...current.map((row) => row.id)) + 1,
+        id: nextDraftId.current++,
         position: nextPosition(),
         added: true,
       },
@@ -251,37 +273,35 @@ export function CommercialLineItemsTable({
       current.filter((row) => row.id !== draftRows[draftIndex].id),
     );
   };
-  const advanceDraft = (draftIndex: number, created: boolean) => {
-    draftRowsTouched.current = true;
-    if (created) {
-      setDraftRows((current) => [
-        ...current,
-        {
-          id: Math.max(-1, ...current.map((row) => row.id)) + 1,
-          position: nextPosition(),
-        },
-      ]);
-      setTimeout(() => draftSkuRefs.current[draftRows.length - 1]?.focus(), 0);
+  const advanceVisibleRow = (key: string) => {
+    if (pendingFocus.current) return;
+    const keyOf = (row: (typeof visibleRows)[number]) =>
+      row.kind === "item" ? `item:${row.item.id}` : `draft:${row.row.id}`;
+    const index = visibleRows.findIndex((row) => keyOf(row) === key);
+    if (index < 0) return;
+    const next = visibleRows[index + 1];
+    if (next) {
+      requestFocus(keyOf(next));
       return;
     }
-    if (draftIndex + 1 < draftRows.length)
-      draftSkuRefs.current[draftIndex + 1]?.focus();
-    else
-      setDraftRows((current) => [
-        ...current,
-        {
-          id: Math.max(-1, ...current.map((row) => row.id)) + 1,
-          position: nextPosition(),
-        },
-      ]);
-    if (draftIndex + 1 >= draftRows.length)
-      setTimeout(() => draftSkuRefs.current[draftIndex + 1]?.focus(), 0);
+    draftRowsTouched.current = true;
+    const id = nextDraftId.current++;
+    setDraftRows((current) => [
+      ...current,
+      {
+        id,
+        position: Math.max(
+          nextPosition(),
+          nextCommercialPosition(items, current),
+        ),
+      },
+    ]);
+    requestFocus(`draft:${id}`);
   };
-  const advanceRow = (index: number) => {
-    const next = orderedItems[index + 1];
-    if (next) rowSkuRefs.current[String(next.id)]?.focus();
-    else draftSkuRefs.current[0]?.focus();
-  };
+  const advanceDraft = (draftIndex: number) =>
+    advanceVisibleRow(`draft:${draftRows[draftIndex].id}`);
+  const advanceRow = (index: number) =>
+    advanceVisibleRow(`item:${orderedItems[index].id}`);
   const copy = async (item: CommercialItem) => {
     draftRowsTouched.current = true;
     const { id: _id, ...copyItem } = item;
@@ -446,7 +466,7 @@ export function CommercialLineItemsTable({
                             captureQuotePacking={kind === "quote"}
                             documentLanguage={documentLanguage}
                             inputRef={(element) => {
-                              draftSkuRefs.current[draftIndex] = element;
+                              draftSkuRefs.current[row.row.id] = element;
                             }}
                             onSelected={(snapshot) =>
                               void createDraft(draftIndex, snapshot)
@@ -465,11 +485,12 @@ export function CommercialLineItemsTable({
                               className="w-full bg-transparent p-1 text-muted-foreground"
                               placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
                               onKeyDown={(event) => {
-                                if (event.key !== "Enter") return;
+                                if (event.key !== "Enter" || !isEntryKey(event))
+                                  return;
                                 event.preventDefault();
                                 const sku = event.currentTarget.value.trim();
                                 if (sku) void createDraft(draftIndex, { sku });
-                                advanceDraft(draftIndex, Boolean(sku));
+                                advanceDraft(draftIndex);
                               }}
                             />
                             {row.row.added && (
@@ -1074,6 +1095,7 @@ export function CommercialLineItemsTable({
                                 }}
                                 onKeyDown={(event) => {
                                   if (event.key === "Enter") {
+                                    if (!isEntryKey(event)) return;
                                     event.preventDefault();
                                     advanceRow(index);
                                   } else if (
@@ -1108,6 +1130,15 @@ export function CommercialLineItemsTable({
                                   }))
                                 }
                                 onBlur={() => void commitQuoteCbm()}
+                                onKeyDown={(event) => {
+                                  if (
+                                    event.key !== "Enter" ||
+                                    !isEntryKey(event)
+                                  )
+                                    return;
+                                  event.preventDefault();
+                                  advanceRow(index);
+                                }}
                               />
                             </td>
                           )}
