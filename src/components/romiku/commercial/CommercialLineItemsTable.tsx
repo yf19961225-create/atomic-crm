@@ -147,8 +147,14 @@ export function CommercialLineItemsTable({
     pendingFocus.current = target;
     setFocusTarget(target);
   };
-  const isEntryKey = (event: KeyboardEvent<HTMLInputElement>) =>
-    !event.nativeEvent.isComposing && event.keyCode !== 229 && !event.repeat;
+  const isEntryKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return false;
+    if (event.repeat || pendingFocus.current) {
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  };
   const formatQuoteCbm = (packing: Record<string, unknown>) => {
     const value = cartonCbmFromPacking(packing);
     return value == null ? "" : value.toFixed(3);

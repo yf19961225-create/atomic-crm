@@ -114,7 +114,7 @@ it("focuses the next existing row instead of an earlier blank and ignores repeat
   await expect.poll(() => document.activeElement === inputs()[1]).toBe(true);
   await prices.nth(1).click();
   const before = inputs().length;
-  enter(prices.nth(1).element(), { repeat: true });
+  expect(enter(prices.nth(1).element(), { repeat: true })).toBe(false);
   enter(prices.nth(1).element(), { isComposing: true });
   expect(document.activeElement).toBe(prices.nth(1).element());
   expect(inputs()).toHaveLength(before);
