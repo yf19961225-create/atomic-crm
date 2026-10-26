@@ -510,3 +510,82 @@ it("does not allow receipts against an unsaved Order edit session", async () => 
     .element(screen.getByRole("button", { name: "添加收款" }))
     .not.toBeInTheDocument();
 });
+
+it.each(["pi", "order"] as const)(
+  "%s edited number survives save/reopen without changing UUID or lineage",
+  async (kind) => {
+    const id = kind === "order" ? "o" : "p";
+    const resource = kind === "order" ? "romiku_orders" : "romiku_pis";
+    const { screen, provider } = await setup(
+      `/${kind === "order" ? "orders" : "pi"}/${id}`,
+    );
+    const original = (await provider.getOne(resource, { id })).data;
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await screen
+      .getByLabelText("单据编号", { exact: true })
+      .fill("QA-RENAMED-20261026");
+    await screen.getByRole("button", { name: "保存", exact: true }).click();
+    await expect
+      .element(
+        screen.getByRole("heading", {
+          name: "QA-RENAMED-20261026",
+          exact: true,
+        }),
+      )
+      .toBeVisible();
+    const saved = (await provider.getOne(resource, { id })).data;
+    expect(saved.id).toBe(id);
+    expect(saved.document_number).toBe("QA-RENAMED-20261026");
+    expect(saved.source_pi_id).toBe(original.source_pi_id);
+    expect(saved.source_quote_id).toBe(original.source_quote_id);
+    await screen.rerender(
+      <MemoryRouter
+        key="fresh-reopen"
+        initialEntries={[`/${kind === "order" ? "orders" : "pi"}/${id}`]}
+      >
+        <CoreAdminContext dataProvider={provider}>
+          <Routes>{romikuRoutes}</Routes>
+        </CoreAdminContext>
+      </MemoryRouter>,
+    );
+    await expect
+      .element(
+        screen.getByRole("heading", {
+          name: "QA-RENAMED-20261026",
+          exact: true,
+        }),
+      )
+      .toBeVisible();
+    if (kind === "order") {
+      const { default: ExcelJS } = await import("exceljs");
+      let exported: Blob | undefined;
+      let filename = "";
+      const create = vi
+        .spyOn(URL, "createObjectURL")
+        .mockImplementation((blob) => {
+          exported = blob as Blob;
+          return "blob:local-order-number-test";
+        });
+      const click = vi
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          filename = this.download;
+        });
+      try {
+        await screen
+          .getByRole("button", { name: "导出 XLSX", exact: true })
+          .click();
+        await expect.poll(() => filename).toBe("QA-RENAMED-20261026.xlsx");
+        const book = new ExcelJS.Workbook();
+        await book.xlsx.load(await exported!.arrayBuffer());
+        expect(book.worksheets[0].getCell("J1").text).toContain(
+          "QA-RENAMED-20261026",
+        );
+        expect(book.worksheets[0].getCell("J1").text).not.toContain("SO-001");
+      } finally {
+        create.mockRestore();
+        click.mockRestore();
+      }
+    }
+  },
+);

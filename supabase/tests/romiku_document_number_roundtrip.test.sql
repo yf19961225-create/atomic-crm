@@ -1,0 +1,16 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select no_plan();
+insert into auth.users(id,email,raw_user_meta_data) values ('fe260000-0000-0000-0000-000000000010','number-qa@example.test','{}');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','fe260000-0000-0000-0000-000000000010',true);
+insert into public.romiku_orders(id) values ('fe262000-0000-0000-0000-000000000001'),('fe262000-0000-0000-0000-000000000002');
+insert into public.romiku_production_orders(id,order_id) values ('fe263000-0000-0000-0000-000000000001','fe262000-0000-0000-0000-000000000001');
+update public.romiku_orders set document_number='QA-RENAMED-20261026' where id='fe262000-0000-0000-0000-000000000001';
+select is((select document_number from public.romiku_orders where id='fe262000-0000-0000-0000-000000000001'),'QA-RENAMED-20261026','order business number updates through existing contract');
+select is((select order_id::text from public.romiku_production_orders where id='fe263000-0000-0000-0000-000000000001'),'fe262000-0000-0000-0000-000000000001','child identity remains UUID based');
+select throws_ok($$update public.romiku_orders set document_number='QA-RENAMED-20261026' where id='fe262000-0000-0000-0000-000000000002'$$,'23505',null,'duplicate document numbers rejected by existing unique constraint');
+select is((select document_number from public.romiku_orders where id='fe262000-0000-0000-0000-000000000001'),'QA-RENAMED-20261026','duplicate rejection does not alter original number');
+select * from finish();
+rollback;

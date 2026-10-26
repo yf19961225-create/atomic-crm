@@ -830,3 +830,36 @@ it("allows spaces while typing a cleaned Quote specification in the edit session
   await userEvent.keyboard("{End} 24LEDS");
   await expect.element(spec).toHaveValue("48W 24LEDS");
 });
+
+it("retains a renamed Quote number through save and fresh reopen without changing source identity", async () => {
+  const { screen, provider } = await setup("/quotes/q");
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen
+    .getByLabelText("单据编号", { exact: true })
+    .fill("QA-QUOTE-RENAMED");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .element(
+      screen.getByRole("heading", { name: "QA-QUOTE-RENAMED", exact: true }),
+    )
+    .toBeVisible();
+  expect(
+    (await provider.getOne("romiku_quotes", { id: "q" })).data,
+  ).toMatchObject({
+    id: "q",
+    document_number: "QA-QUOTE-RENAMED",
+    source_website_inquiry_id: "in",
+  });
+  await screen.rerender(
+    <MemoryRouter key="fresh-reopen" initialEntries={["/quotes/q"]}>
+      <CoreAdminContext dataProvider={provider}>
+        <Routes>{romikuRoutes}</Routes>
+      </CoreAdminContext>
+    </MemoryRouter>,
+  );
+  await expect
+    .element(
+      screen.getByRole("heading", { name: "QA-QUOTE-RENAMED", exact: true }),
+    )
+    .toBeVisible();
+});
