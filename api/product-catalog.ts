@@ -1,14 +1,13 @@
+import {
+  buildCatalogQuery,
+  catalogPageSize,
+  catalogSearchKey,
+  type CatalogFilter,
+} from "../shared/productCatalogQuery.js";
 const maxSearchLength = 200;
 const maxCursorLength = 500;
-const catalogPageSize = 50;
 const sanityCatalogEndpoint =
   "https://gxuvcyaa.api.sanity.io/v2025-07-05/data/query/production";
-type CatalogFilter = {
-  search: string;
-  includeUnpublished: boolean;
-  after?: { skuSort: string; id: string };
-};
-
 const reject = (status: number, error: string, headers?: HeadersInit) =>
   Response.json(
     { error },
@@ -20,27 +19,23 @@ const one = (params: URLSearchParams, key: string) => {
   return values.length > 1 ? null : (values[0] ?? "");
 };
 
-const buildCatalogQuery = (filter: CatalogFilter) => {
-  const after = filter.after
-    ? ' && (coalesce(sku, "") > $afterSku || (coalesce(sku, "") == $afterSku && _id > $afterId))'
-    : "";
-  const published = filter.includeUnpublished ? "" : " && isPublished == true";
-  return {
-    query: `*[_type == "product" && !(_id in path("drafts.**"))${published}${after} && (sku match $search || name.zh match $search || name.en match $search || name.es match $search || category->title.zh match $search || category->title.en match $search || category->title.es match $search)] | order(coalesce(sku, "") asc, _id asc)[0...$limit]{_id,sku,name,images[]{url},category->{_id,title,slug,parent->{_id,title,slug,parent->{_id,title,slug}}},parameters[]{label,value},moqQuantity,moqUnit,packaging,cartonQty,powerSupply,isPublished}`,
-    search: `*${filter.search}*`,
-    afterSku: filter.after?.skuSort ?? "",
-    afterId: filter.after?.id ?? "",
-    limit: catalogPageSize + 1,
-  };
-};
-
 const parseFilter = (url: URL): CatalogFilter | null => {
   const search = one(url.searchParams, "search");
   const includeUnpublished = one(url.searchParams, "includeUnpublished");
   const cursorSku = one(url.searchParams, "cursorSku");
   const cursorId = one(url.searchParams, "cursorId");
+  const cursorRank = one(url.searchParams, "cursorRank");
+  const cursorSearch = one(url.searchParams, "cursorSearch");
+  const hasCursor = [
+    "cursorSku",
+    "cursorId",
+    "cursorRank",
+    "cursorSearch",
+  ].some((key) => url.searchParams.has(key));
   const pageSize = one(url.searchParams, "pageSize");
   if (
+    cursorRank === null ||
+    cursorSearch === null ||
     search === null ||
     includeUnpublished === null ||
     cursorSku === null ||
@@ -53,15 +48,27 @@ const parseFilter = (url: URL): CatalogFilter | null => {
       includeUnpublished !== "true" &&
       includeUnpublished !== "false") ||
     (pageSize !== "" && pageSize !== String(catalogPageSize)) ||
-    Boolean(cursorSku) !== Boolean(cursorId)
+    (hasCursor &&
+      (!url.searchParams.has("cursorSku") ||
+        !cursorId ||
+        !/^[0-4]$/.test(cursorRank) ||
+        cursorSearch !==
+          catalogSearchKey(search, includeUnpublished === "true")))
   ) {
     return null;
   }
   return {
     search,
     includeUnpublished: includeUnpublished === "true",
-    ...(cursorSku && cursorId
-      ? { after: { skuSort: cursorSku, id: cursorId } }
+    ...(hasCursor
+      ? {
+          after: {
+            skuSort: cursorSku,
+            id: cursorId,
+            rank: Number(cursorRank),
+            searchKey: cursorSearch,
+          },
+        }
       : {}),
   };
 };
@@ -76,9 +83,12 @@ export default {
     const catalog = buildCatalogQuery(filter);
     const params = new URLSearchParams({
       query: catalog.query,
-      $search: JSON.stringify(catalog.search),
-      $afterSku: JSON.stringify(catalog.afterSku),
-      $afterId: JSON.stringify(catalog.afterId),
+      ...Object.fromEntries(
+        Object.entries(catalog.params).map(([key, value]) => [
+          `$${key}`,
+          JSON.stringify(value),
+        ]),
+      ),
       $limit: String(catalog.limit),
     });
     try {

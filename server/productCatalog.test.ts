@@ -75,3 +75,56 @@ describe("product catalog API", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+it("binds continuation to its search and rejects mismatches without upstream requests", async () => {
+  const upstream = vi.fn();
+  vi.stubGlobal("fetch", upstream);
+  try {
+    const response = await endpoint.fetch(
+      request(
+        "?search=ABC&cursorSku=ABC&cursorId=id&cursorRank=0&cursorSearch=published%3Aother",
+      ),
+    );
+    expect(response.status).toBe(400);
+    expect(upstream).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+it.each([
+  "?cursorId=id&cursorRank=0&cursorSearch=published%3A",
+  "?cursorSku=&cursorId=id&cursorRank=9&cursorSearch=published%3A",
+  "?search=A&search=B",
+])("rejects malformed bounded cursor/parameters %s", async (path) => {
+  const upstream = vi.fn();
+  vi.stubGlobal("fetch", upstream);
+  try {
+    expect((await endpoint.fetch(request(path))).status).toBe(400);
+    expect(upstream).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+it("accepts an empty stored SKU in a complete query-bound continuation", async () => {
+  const upstream = vi.fn().mockResolvedValue(Response.json({ result: [] }));
+  vi.stubGlobal("fetch", upstream);
+  try {
+    expect(
+      (
+        await endpoint.fetch(
+          request(
+            "?cursorSku=&cursorId=id&cursorRank=0&cursorSearch=published%3A",
+          ),
+        )
+      ).status,
+    ).toBe(200);
+    const p = new URL(upstream.mock.calls[0][0]).searchParams;
+    expect(p.get("$afterId")).toBe('"id"');
+    expect(p.get("$afterSku")).toBe('""');
+    expect(p.get("$limit")).toBe("51");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

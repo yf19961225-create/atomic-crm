@@ -18,11 +18,16 @@ describe("Sanity catalog source", () => {
     await createSanityCatalogSource().getPage({
       search: "收纳",
       includeUnpublished: false,
-      after: { skuSort: "RMK-100", id: "sanity-1" },
+      after: {
+        skuSort: "RMK-100",
+        id: "sanity-1",
+        rank: 4,
+        searchKey: "published:收纳",
+      },
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/product-catalog?search=%E6%94%B6%E7%BA%B3&includeUnpublished=false&cursorSku=RMK-100&cursorId=sanity-1&pageSize=50",
+      "/api/product-catalog?search=%E6%94%B6%E7%BA%B3&includeUnpublished=false&cursorSku=RMK-100&cursorId=sanity-1&cursorRank=4&cursorSearch=published%3A%E6%94%B6%E7%BA%B3&pageSize=50",
     );
   });
 
@@ -33,7 +38,9 @@ describe("Sanity catalog source", () => {
     });
     expect(query.query).toContain("isPublished == true");
     expect(query.query).toContain('!(_id in path("drafts.**"))');
-    expect(query.query).toContain('order(coalesce(sku, "") asc, _id asc)');
+    expect(query.query).toContain(
+      'order(_catalogRank asc, coalesce(sku, "") asc, _id asc)',
+    );
     expect(query.limit).toBe(51);
     expect(query.params.search).toBe("*收纳*");
   });
@@ -75,3 +82,18 @@ describe("Sanity catalog source", () => {
     expect(new Set(seen).size).toBe(1801);
   });
 });
+
+it.each(["XSUV-704", "XSUV704", "xsuv 704", "xsuv_704"])(
+  "canonicalizes query %s at the same boundary as stored SKU",
+  (search) => {
+    const result = buildCatalogQuery({ search, includeUnpublished: false });
+    expect(result.params).toMatchObject({
+      canonical: "xsuv704",
+      canonicalPartial: "*xsuv704*",
+    });
+    expect(result.query).toContain("string::split");
+    expect(result.query).toContain("array::join");
+    expect(result.query).toContain("_catalogRank asc");
+    expect(result.limit).toBe(51);
+  },
+);
