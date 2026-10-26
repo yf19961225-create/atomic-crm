@@ -45,6 +45,7 @@ async function setup(path: string, resource: string, count = 1) {
   const provider = fakeRestDataProvider({
     [resource]: Array.from({ length: count }, (_, i) => ({
       id: String(i + 1),
+      order_id: "parent-qa",
       document_number: `DELETE-${i + 1}`,
       name: `DELETE-${i + 1}`,
       status: "pending_quote",
@@ -56,6 +57,40 @@ async function setup(path: string, resource: string, count = 1) {
     romiku_outbound_contacts: [],
     romiku_outbound_followups: [],
   });
+  const aggregate = async () => {
+    const records = (
+      await provider.getList(resource, {
+        filter: {},
+        pagination: { page: 1, perPage: 100 },
+        sort: { field: "id", order: "ASC" },
+      })
+    ).data;
+    return {
+      data: {
+        rows: records.length
+          ? [
+              {
+                id: "parent-qa",
+                document_number: "ORDER-QA",
+                document_date: "2026-10-26",
+                customer_name: "QA Buyer",
+                production_count: records.length,
+                ongoing_count: records.length,
+                received_count: 0,
+                cancelled_count: 0,
+                effective_count: records.length,
+                latest_factory_due_at: null,
+                latest_created_at: "2026-10-26",
+              },
+            ]
+          : [],
+        total: records.length ? 1 : 0,
+      },
+      error: null,
+    };
+  };
+  if (resource === "romiku_production_orders")
+    rpc.mockImplementation(aggregate);
   const screen = await render(
     <MemoryRouter initialEntries={[path]}>
       <CoreAdminContext dataProvider={provider}>
@@ -63,12 +98,13 @@ async function setup(path: string, resource: string, count = 1) {
       </CoreAdminContext>
     </MemoryRouter>,
   );
-  return { screen, provider };
+  return { screen, provider, aggregate };
 }
 for (const [kind, path, resource] of cases) {
   it(`${kind}: confirms before RPC and refreshes list/count after success`, async () => {
-    const { screen, provider } = await setup(path, resource);
+    const { screen, provider, aggregate } = await setup(path, resource);
     rpc.mockImplementation(async (name, args) => {
+      if (name === "romiku_list_production_order_groups") return aggregate();
       if (kind === "order" && name === "romiku_order_delete_preflight")
         return orderPreflight("1", "DELETE-1");
       expect(name).toBe("romiku_delete_record");
@@ -76,18 +112,30 @@ for (const [kind, path, resource] of cases) {
       await provider.delete(resource, { id: "1" });
       return { data: { ok: true }, error: null };
     });
+    if (kind === "production")
+      await screen
+        .getByRole("button", { name: "展开 ORDER-QA", exact: true })
+        .click();
     await screen.getByRole("button", { name: "更多操作 DELETE-1" }).click();
     await screen.getByRole("menuitem", { name: "删除", exact: true }).click();
     await expect.element(screen.getByRole("dialog")).toBeVisible();
     expect(
       rpc.mock.calls.filter(
-        ([name]) => name !== "romiku_order_delete_preflight",
+        ([name]) =>
+          ![
+            "romiku_order_delete_preflight",
+            "romiku_list_production_order_groups",
+          ].includes(name),
       ),
     ).toHaveLength(0);
     await screen.getByRole("button", { name: "取消", exact: true }).click();
     expect(
       rpc.mock.calls.filter(
-        ([name]) => name !== "romiku_order_delete_preflight",
+        ([name]) =>
+          ![
+            "romiku_order_delete_preflight",
+            "romiku_list_production_order_groups",
+          ].includes(name),
       ),
     ).toHaveLength(0);
     await screen.getByRole("button", { name: "更多操作 DELETE-1" }).click();

@@ -34,6 +34,7 @@ async function setup(kind: WorkflowResource, count = 26) {
     name: `Buyer ${i + 1}`,
     customer_name: `Buyer ${i + 1}`,
     status: statusOptions(kind)[0].value,
+    order_id: `order-${i + 1}`,
     archived_at: null,
     currency: "USD",
     total: 10,
@@ -49,6 +50,32 @@ async function setup(kind: WorkflowResource, count = 26) {
     romiku_outbound_followups: [],
     romiku_website_inquiry_followups: [],
   });
+  if (kind === "production")
+    rpc.mockImplementation(async (_name, args) => {
+      const all = records
+        .slice()
+        .reverse()
+        .map((row) => ({
+          id: row.order_id,
+          document_number: `ORDER-${row.id}`,
+          customer_name: row.name,
+          document_date: "2026-10-26",
+          production_count: 1,
+          ongoing_count: 1,
+          received_count: 0,
+          cancelled_count: 0,
+          effective_count: 1,
+          latest_factory_due_at: null,
+          latest_created_at: "2026-10-26",
+        }));
+      return {
+        data: {
+          rows: all.slice((args.p_page - 1) * 25, args.p_page * 25),
+          total: all.length,
+        },
+        error: null,
+      };
+    });
   const screen = await render(
     <MemoryRouter>
       <CoreAdminContext dataProvider={provider}>
@@ -71,10 +98,31 @@ async function setup(kind: WorkflowResource, count = 26) {
       </CoreAdminContext>
     </MemoryRouter>,
   );
+  if (kind === "production") await expandProductionGroups(screen);
   await expect
     .element(screen.getByRole("checkbox", { name: "全选当前页" }))
     .toBeEnabled();
   return { screen, provider };
+}
+async function expandProductionGroups(
+  screen: Awaited<ReturnType<typeof render>>,
+) {
+  await expect
+    .poll(
+      () =>
+        document.querySelectorAll('button[aria-label^="展开 ORDER-"]').length,
+    )
+    .toBeGreaterThan(0);
+  const labels = Array.from(
+    document.querySelectorAll('button[aria-label^="展开 ORDER-"]'),
+  ).map((button) => button.getAttribute("aria-label")!);
+  for (const label of labels)
+    await screen.getByRole("button", { name: label, exact: true }).click();
+  await expect
+    .poll(
+      () => document.querySelectorAll('input[aria-label^="选择 DOC-"]').length,
+    )
+    .toBe(labels.length);
 }
 it.each(Object.keys(tables) as WorkflowResource[])(
   "%s current-page selection, deselect, filter/search/page resets and permitted toolbar",
@@ -113,41 +161,49 @@ it.each(Object.keys(tables) as WorkflowResource[])(
     await expect
       .element(screen.getByRole("button", { name: "取消选择" }))
       .not.toBeInTheDocument();
+    if (kind === "production") await expandProductionGroups(screen);
     await screen.getByRole("checkbox", { name: "全选当前页" }).click();
     await expect
       .element(screen.getByText("已选择 1 条（当前页）"))
       .toBeVisible();
-    await screen
-      .getByRole("combobox", {
-        name:
-          kind === "website_inquiry" || kind === "outbound"
-            ? "筛选状态"
-            : "状态",
-        exact: true,
-      })
-      .selectOptions(statusOptions(kind)[0].value);
+    if (kind === "production")
+      await screen.getByRole("tab", { name: "已收货", exact: true }).click();
+    else {
+      await screen
+        .getByRole("combobox", {
+          name:
+            kind === "website_inquiry" || kind === "outbound"
+              ? "筛选状态"
+              : "状态",
+          exact: true,
+        })
+        .selectOptions(statusOptions(kind)[0].value);
+    }
     await expect
       .element(screen.getByRole("button", { name: "取消选择" }))
       .not.toBeInTheDocument();
+    if (kind === "production") await expandProductionGroups(screen);
     await screen.getByRole("checkbox", { name: "全选当前页" }).click();
-    rpc.mockResolvedValue({
-      data: {
-        groups: [
-          {
-            resource_type: kind,
-            items: [],
-            total_count: 0,
-            has_more: false,
-            limit: 25,
-            offset: 0,
+    rpc.mockResolvedValue(
+      kind === "production"
+        ? { data: { rows: [], total: 0 }, error: null }
+        : {
+            data: {
+              groups: [
+                {
+                  resource_type: kind,
+                  items: [],
+                  total_count: 0,
+                  has_more: false,
+                  limit: 25,
+                  offset: 0,
+                },
+              ],
+            },
+            error: null,
           },
-        ],
-      },
-      error: null,
-    });
-    await screen
-      .getByRole("searchbox")
-      .fill("needle");
+    );
+    await screen.getByRole("searchbox").fill("needle");
     await expect
       .element(screen.getByRole("button", { name: "取消选择" }))
       .toBeVisible();
@@ -342,6 +398,28 @@ it.each(["production", "packing"] as const)(
       ],
       romiku_orders: [{ id: "parent-uuid", document_number: "OD261006999" }],
     });
+    if (kind === "production")
+      rpc.mockResolvedValue({
+        data: {
+          rows: [
+            {
+              id: "parent-uuid",
+              document_number: "OD261006999",
+              customer_name: "Buyer",
+              document_date: "2026-10-26",
+              production_count: 1,
+              ongoing_count: 1,
+              received_count: 0,
+              cancelled_count: 0,
+              effective_count: 1,
+              latest_factory_due_at: null,
+              latest_created_at: "2026-10-26",
+            },
+          ],
+          total: 1,
+        },
+        error: null,
+      });
     const screen = await render(
       <MemoryRouter>
         <CoreAdminContext dataProvider={provider}>
