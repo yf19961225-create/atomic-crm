@@ -290,7 +290,7 @@ function PaymentForm({
             { key: "amount", label: "收款金额", required: true },
             {
               key: "received_at",
-              label: "收款日期（ISO / 时区）",
+              label: "收款日期",
               required: true,
             },
             { key: "notes", label: "收款备注", type: "textarea" },

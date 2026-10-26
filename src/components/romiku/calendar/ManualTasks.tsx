@@ -1,3 +1,4 @@
+import { RomikuDateTimePicker } from "../shared/RomikuDatePicker";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { userDisplayName } from "@/lib/userDisplayName";
@@ -126,13 +127,6 @@ export function ManualTaskPage() {
     />
   );
 }
-function localInput(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
-}
 function TaskEditor({
   record,
   defaultOwner,
@@ -149,7 +143,7 @@ function TaskEditor({
   const navigate = useNavigate();
   const [values, setValues] = useState<Record<string, unknown>>(
     record
-      ? { ...record, due_at: localInput(record.due_at) }
+      ? { ...record }
       : {
           title: "",
           priority: "normal",
@@ -270,11 +264,10 @@ function TaskEditor({
         </label>
         <label className="block">
           截止日期
-          <input
-            className={inputClass}
-            type="datetime-local"
-            value={String(values.due_at || "")}
-            onChange={(e) => set("due_at", e.target.value)}
+          <RomikuDateTimePicker
+            label="截止日期"
+            value={values.due_at}
+            onChange={(value) => set("due_at", value)}
           />
         </label>
         <label className="block">

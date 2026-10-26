@@ -484,8 +484,8 @@ const termsFields: Field[] = [
   },
   { key: "bank_snapshot.details", label: "银行信息", type: "textarea" },
   { key: "discount", label: "折扣" },
-  { key: "deposit_due_at", label: "定金到期日（ISO / 时区）" },
-  { key: "balance_due_at", label: "尾款到期日（ISO / 时区）" },
+  { key: "deposit_due_at", label: "定金到期日" },
+  { key: "balance_due_at", label: "尾款到期日" },
 ];
 function DocumentEditor({
   kind,
@@ -607,7 +607,7 @@ function DocumentEditor({
       ? [
           {
             key: "terms_snapshot.valid_until",
-            label: "有效期至（YYYY-MM-DD）",
+            label: "有效期至",
           },
         ]
       : [{ key: "purchase_order_number", label: "客户 PO 编号" }]),
@@ -617,17 +617,17 @@ function DocumentEditor({
       ? [
           {
             key: "expected_delivery_at",
-            label: "预计交付（ISO / 时区）",
+            label: "预计交付",
           },
           {
             key: "actual_delivery_at",
-            label: "实际交付（ISO / 时区）",
+            label: "实际交付",
           },
         ]
       : [
           {
             key: "terms_snapshot.expected_delivery",
-            label: "预计交付（YYYY-MM-DD）",
+            label: "预计交付",
           },
         ];
   const tabs = [

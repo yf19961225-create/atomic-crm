@@ -140,7 +140,7 @@ it("opening a production item editor is clean and field edits/reverts are canoni
 
 it("packing header ignores metadata refetch, preserves edits, and clears after save", async () => {
   const provider = fakeRestDataProvider({
-    romiku_packing_lists: [{ id: "packing", name: "Original", notes: null }],
+    romiku_packing_lists: [{ id: "packing", name: "Original", notes: null, packing_at:"2026-10-26T00:00:00.000Z" }],
     romiku_packing_items: [],
     romiku_status_history: [],
   });

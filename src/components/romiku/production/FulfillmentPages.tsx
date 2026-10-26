@@ -383,7 +383,7 @@ const productionFields: Field[] = [
 const packingFields: Field[] = [
   { key: "name", label: "装箱名称" },
   { key: "batch_label", label: "批次" },
-  { key: "packing_at", label: "装箱日期（ISO / 时区）" },
+  { key: "packing_at", label: "装箱日期", required: true },
   { key: "shipping_mark", label: "装箱单唛头" },
   { key: "notes", label: "装箱备注", type: "textarea" },
 ];

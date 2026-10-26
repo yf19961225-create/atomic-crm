@@ -1,3 +1,4 @@
+import { RomikuDatePicker } from "../shared/RomikuDatePicker";
 import { productionDraftSnapshot } from "./productionDraftSnapshot";
 import {
   productionDueDateInput,
@@ -358,17 +359,12 @@ export function ProductionWorkbench({
               <div className="mb-3">
                 <label htmlFor="production-factory-due-date">工厂交期</label>
                 <div className="flex gap-2">
-                  <input
+                  <RomikuDatePicker
                     id="production-factory-due-date"
-                    type="date"
-                    aria-label="工厂交期"
-                    className="block w-full rounded border p-2"
+                    label="工厂交期"
                     value={productionDueDateInput(draft.factory_due_at)}
-                    onChange={(e) =>
-                      setDraft((d) => ({
-                        ...d,
-                        factory_due_at: e.target.value,
-                      }))
+                    onChange={(value) =>
+                      setDraft((d) => ({ ...d, factory_due_at: value }))
                     }
                   />
                   <Button

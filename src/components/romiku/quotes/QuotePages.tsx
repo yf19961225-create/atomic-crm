@@ -346,7 +346,7 @@ const buyerFields: Field[] = [
     required: true,
     choices: quoteStatusChoices,
   },
-  { key: "valid_until", label: "有效期至（YYYY-MM-DD）" },
+  { key: "valid_until", label: "有效期至" },
 ];
 const termsFields: Field[] = [
   { key: "price_term", label: "价格条款" },

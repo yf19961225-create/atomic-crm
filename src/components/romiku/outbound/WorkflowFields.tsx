@@ -1,3 +1,9 @@
+import { businessDateFieldKinds } from "../shared/businessDateFields";
+import { productionDueDateInput } from "../production/productionDueDate";
+import {
+  RomikuDatePicker,
+  RomikuDateTimePicker,
+} from "../shared/RomikuDatePicker";
 import { userDisplayName } from "@/lib/userDisplayName";
 import { useDataProvider } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +19,7 @@ import { readRelated } from "./workflow";
 export type Field = {
   key: string;
   label: string;
-  type?: "textarea" | "url" | "email" | "datetime-local" | "checkbox";
+  type?: "textarea" | "url" | "email" | "date" | "datetime-local" | "checkbox";
   required?: boolean;
   options?: string[];
   choices?: { id: string; label: string }[];
@@ -114,6 +120,12 @@ export function WorkflowFields({
     <div className="grid gap-4 sm:grid-cols-2">
       {fields.map((field) => {
         const value = valueAt(values, field.key);
+        const dateKind =
+          field.type === "date"
+            ? "date"
+            : field.type === "datetime-local"
+              ? "datetime"
+              : businessDateFieldKinds[field.key];
         const change = (next: unknown) =>
           onChange(setValue(values, field.key, next));
         return (
@@ -149,6 +161,26 @@ export function WorkflowFields({
                   </option>
                 ))}
               </select>
+            ) : Boolean(dateKind) ? (
+              dateKind !== "datetime" ? (
+                <RomikuDatePicker
+                  label={field.label}
+                  required={field.required}
+                  value={
+                    dateKind === "factory"
+                      ? productionDueDateInput(value)
+                      : value
+                  }
+                  onChange={change}
+                />
+              ) : (
+                <RomikuDateTimePicker
+                  label={field.label}
+                  required={field.required}
+                  value={value}
+                  onChange={change}
+                />
+              )
             ) : field.type === "checkbox" ? (
               <input
                 type="checkbox"

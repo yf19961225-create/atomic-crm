@@ -1,3 +1,8 @@
+import {
+  RomikuDatePicker,
+  RomikuDateTimePicker,
+} from "../shared/RomikuDatePicker";
+import { businessDateFieldKinds } from "../shared/businessDateFields";
 import type { Values } from "../outbound/WorkflowFields";
 import { setValue, valueAt } from "../outbound/WorkflowFields";
 import type { RaRecord } from "ra-core";
@@ -144,6 +149,25 @@ export function DocumentHeaderSummary({
                       <option value="en">English</option>
                       <option value="es">Español</option>
                     </select>
+                  ) : businessDateFieldKinds[field.key] ? (
+                    businessDateFieldKinds[field.key] === "date" ? (
+                      <RomikuDatePicker
+                        label={field.label}
+                        value={value}
+                        required={field.key === "document_date"}
+                        onChange={(next) =>
+                          onChange(setValue(values, field.key, next))
+                        }
+                      />
+                    ) : (
+                      <RomikuDateTimePicker
+                        label={field.label}
+                        value={value}
+                        onChange={(next) =>
+                          onChange(setValue(values, field.key, next))
+                        }
+                      />
+                    )
                   ) : (
                     <input
                       aria-label={field.label}

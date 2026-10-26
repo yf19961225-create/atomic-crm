@@ -1,6 +1,6 @@
 import { required } from "ra-core";
 import { BooleanInput } from "@/components/admin/boolean-input";
-import { DateInput } from "@/components/admin/date-input";
+import { RomikuBusinessDateInput as DateInput } from "../shared/RomikuBusinessDateInput";
 import { NumberInput } from "@/components/admin/number-input";
 import { ReferenceInput } from "@/components/admin/reference-input";
 import { SelectInput } from "@/components/admin/select-input";

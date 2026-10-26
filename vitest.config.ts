@@ -1,4 +1,6 @@
 import path from "node:path";
+import type { CDPSession } from "playwright";
+const timezoneSessions = new WeakMap<object, CDPSession>();
 import { defineConfig } from "vitest/config";
 import { playwright } from "@vitest/browser-playwright";
 import react from "@vitejs/plugin-react";
@@ -45,11 +47,16 @@ export default defineConfig({
               // Uses Chrome DevTools Protocol to override the timezone at runtime,
               // since process.env.TZ has no effect in a real browser environment.
               async setTimezone({ context, page }, timezoneId: string) {
-                const session = await context.newCDPSession(page);
+                // Detaching immediately removes Chrome's session-scoped override.
+                // Keep one session per page; browser context cleanup owns its lifetime.
+                let session = timezoneSessions.get(page);
+                if (!session) {
+                  session = await context.newCDPSession(page);
+                  timezoneSessions.set(page, session);
+                }
                 await session.send("Emulation.setTimezoneOverride", {
                   timezoneId,
                 });
-                await session.detach();
               },
             },
           },

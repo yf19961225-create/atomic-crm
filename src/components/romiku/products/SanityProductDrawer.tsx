@@ -1,3 +1,4 @@
+import { RomikuDatePicker } from "../shared/RomikuDatePicker";
 import { useAppDraft } from "../updates/drafts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -129,7 +130,7 @@ const costSourceValue = (value: FormDataEntryValue | null) => {
   const source = String(value ?? "manual");
   return source === "手动" ? "manual" : source;
 };
-const costSnapshot = (form: HTMLFormElement) => {
+const costSnapshot = (form: HTMLFormElement, dateOverride?: string) => {
   const values = new FormData(form);
   const cost = String(values.get("cost") ?? "");
   return JSON.stringify([
@@ -137,7 +138,7 @@ const costSnapshot = (form: HTMLFormElement) => {
     String(values.get("currency") ?? "")
       .trim()
       .toUpperCase(),
-    String(values.get("effective_date") ?? ""),
+    dateOverride ?? String(values.get("effective_date") ?? ""),
     costSourceValue(values.get("source_type")),
     hasInvalidNumericInput(form),
   ]);
@@ -207,6 +208,9 @@ const ProductDrawerSession = ({
   const loadVersion = useRef(0);
   const [message, setMessage] = useState("");
   const [costDirty, setCostDirty] = useState(false);
+  const [costDate, setCostDate] = useState<string | null>(null);
+  const costFormRef = useRef<HTMLFormElement | null>(null);
+  useEffect(() => { setCostDate(null); }, [open, product?.id]);
   useAppDraft(open && (supplierDirty || editDirty || replacementDirty || costDirty || notesDirty || packingDirty));
 
   const loadInternal = useCallback(
@@ -621,7 +625,7 @@ const ProductDrawerSession = ({
                 <div className="flex gap-2"><Button type="button" disabled={!replacementSupplierId} onClick={() => void replaceSupplier()}>确认更换供应商</Button><Button type="button" variant="outline" onClick={() => { setReplacingSupplier(null); setReplacementSupplierId(""); }}>取消更换</Button></div>
               </div>
             )}
-            <form
+            <form ref={costFormRef}
               onInput={(event) =>
                 setSupplierInvalid(hasInvalidNumericInput(event.currentTarget))
               }
@@ -713,13 +717,13 @@ const ProductDrawerSession = ({
             ) : (
               <p>—</p>
             )}
-            <form
+            <form ref={costFormRef}
               onInput={(event) =>
                 setCostDirty(
                   costSnapshot(event.currentTarget) !== emptyCostSnapshot,
                 )
               }
-              onReset={() => setCostDirty(false)}
+              onReset={() => { setCostDirty(false); setCostDate(null); }}
               onSubmit={submitCost}
               className="space-y-2"
             >
@@ -735,7 +739,11 @@ const ProductDrawerSession = ({
                 placeholder="参考成本"
               />
               <Input name="currency" defaultValue="USD" placeholder="币种" />
-              <Input name="effective_date" type="date" />
+              <RomikuDatePicker name="effective_date" label="成本生效日期" value={costDate} required
+                onChange={(value) => {
+                  setCostDate(value);
+                  if (costFormRef.current) setCostDirty(costSnapshot(costFormRef.current, value ?? "") !== emptyCostSnapshot);
+                }} />
               <Input
                 name="source_type"
                 defaultValue="手动"

@@ -207,17 +207,8 @@ export function RelatedRecords({
                 size="sm"
                 onClick={() => {
                   setEditing(record);
-                  setValues(
-                    followupKind
-                      ? {
-                          ...record,
-                          contacted_at: localDateTime(record.contacted_at),
-                          next_follow_up_at: record.next_follow_up_at
-                            ? localDateTime(record.next_follow_up_at)
-                            : "",
-                        }
-                      : record,
-                  );
+                  // Preserve the full saved instant, including seconds and DST offset.
+                  setValues(record);
                 }}
               >
                 编辑{record.name || noun}
