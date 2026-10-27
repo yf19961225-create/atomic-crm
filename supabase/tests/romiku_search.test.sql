@@ -34,15 +34,15 @@ insert into romiku_packing_items(packing_list_id,sku,quantity,product_snapshot,r
 update romiku_website_inquiries set document_number='SEARCHFIXTURE-INQ' where id=(select id from search_ids where kind='website_inquiry');
 -- Existing historical numbers fixture, local transaction only.
 reset role;
-alter table romiku_quotes disable trigger romiku_number;
-alter table romiku_pis disable trigger romiku_number;
-alter table romiku_orders disable trigger romiku_number;
+alter table romiku_quotes disable trigger romiku_document_number_immutable;
+alter table romiku_pis disable trigger romiku_document_number_immutable;
+alter table romiku_orders disable trigger romiku_document_number_immutable;
 update romiku_quotes set document_number='SEARCHFIXTURE-QUOTE' where id=(select id from search_ids where kind='quote');
 update romiku_pis set document_number='SEARCHFIXTURE-PI' where id=(select id from search_ids where kind='pi');
 update romiku_orders set document_number='SEARCHFIXTURE-ORDER' where id=(select id from search_ids where kind='order');
-alter table romiku_quotes enable trigger romiku_number;
-alter table romiku_pis enable trigger romiku_number;
-alter table romiku_orders enable trigger romiku_number;
+alter table romiku_quotes enable trigger romiku_document_number_immutable;
+alter table romiku_pis enable trigger romiku_document_number_immutable;
+alter table romiku_orders enable trigger romiku_document_number_immutable;
 set local role authenticated;
 create function pg_temp.search_group(q text,t text, lim integer default 25, off integer default 0, f jsonb default '{}') returns jsonb language sql as $$select public.romiku_global_search(q,array[t],lim,off,f)->'groups'->0$$;
 select is(jsonb_array_length(public.romiku_global_search('')->'groups'),8,'empty query preserves all eight groups');

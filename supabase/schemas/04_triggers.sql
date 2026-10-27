@@ -92,16 +92,16 @@ create trigger romiku_number before insert or update on public.romiku_website_in
 create trigger romiku_audit before insert or update on public.romiku_website_inquiry_items for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_website_inquiry_followups for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_quotes for each row execute function public.romiku_audit();
-create trigger romiku_number before insert or update on public.romiku_quotes for each row execute function public.romiku_assign_number('quote','RFQ');
+create trigger romiku_number before insert on public.romiku_quotes for each row execute function public.romiku_assign_number('quote','RFQ');
 create trigger romiku_quote_export_snapshot_default before insert on public.romiku_quotes for each row execute function public.romiku_quote_export_snapshot_default();
 create trigger romiku_audit before insert or update on public.romiku_quote_items for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_quote_versions for each row execute function public.romiku_audit();
 create trigger romiku_history before update or delete on public.romiku_quote_versions for each row execute function public.romiku_preserve_history();
 create trigger romiku_audit before insert or update on public.romiku_pis for each row execute function public.romiku_audit();
-create trigger romiku_number before insert or update on public.romiku_pis for each row execute function public.romiku_assign_number('pi','PI');
+create trigger romiku_number before insert on public.romiku_pis for each row execute function public.romiku_assign_number('pi','PI');
 create trigger romiku_audit before insert or update on public.romiku_pi_items for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_orders for each row execute function public.romiku_audit();
-create trigger romiku_number before insert or update on public.romiku_orders for each row execute function public.romiku_assign_number('order','OD');
+create trigger romiku_number before insert on public.romiku_orders for each row execute function public.romiku_assign_number('order','OD');
 create trigger romiku_audit before insert or update on public.romiku_order_items for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_payments for each row execute function public.romiku_audit();
 create trigger romiku_audit before insert or update on public.romiku_suppliers for each row execute function public.romiku_audit();
@@ -131,3 +131,9 @@ create trigger romiku_cost_identity before update of sku, sanity_product_id, sup
 create trigger romiku_parent_lock before insert on public.romiku_procurement_cost_history for each row execute function public.romiku_lock_document_parent('romiku_product_suppliers','product_supplier_id');
 create trigger romiku_payment_currency before update of currency on public.romiku_orders for each row execute function public.romiku_preserve_payment_currency();
 create trigger romiku_parent_lock before insert or update or delete on public.romiku_payments for each row execute function public.romiku_lock_document_parent('romiku_orders','order_id');
+
+create trigger romiku_document_number_immutable before update on public.romiku_quotes for each row execute function public.romiku_preserve_commercial_document_number();
+
+create trigger romiku_document_number_immutable before update on public.romiku_pis for each row execute function public.romiku_preserve_commercial_document_number();
+
+create trigger romiku_document_number_immutable before update on public.romiku_orders for each row execute function public.romiku_preserve_commercial_document_number();

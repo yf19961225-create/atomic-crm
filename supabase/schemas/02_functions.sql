@@ -542,13 +542,6 @@ DECLARE
   sequence_value text;
 BEGIN
   IF TG_OP = 'UPDATE' THEN
-    IF TG_ARGV[0] IN ('quote','pi','order') THEN
-      IF NEW.document_number IS DISTINCT FROM OLD.document_number THEN
-        RAISE EXCEPTION 'Formal document number cannot be changed' USING ERRCODE = '23514';
-      END IF;
-      -- Preserve legacy numbers verbatim, including on unrelated updates.
-      RETURN NEW;
-    END IF;
     NEW.document_number := btrim(coalesce(NEW.document_number,''));
     IF NEW.document_number = '' THEN
       RAISE EXCEPTION 'Document number is required' USING ERRCODE = '23514';
@@ -575,6 +568,19 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.romiku_preserve_commercial_document_number() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+  IF NEW.document_number IS DISTINCT FROM OLD.document_number THEN
+    RAISE EXCEPTION 'Formal document number cannot be changed' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 
 CREATE OR REPLACE FUNCTION "public"."romiku_assign_production_number"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
@@ -788,11 +794,12 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION "public"."romiku_convert_document"("source_kind" "text", "source_id" "uuid", "target_kind" "text") RETURNS "uuid"
-    LANGUAGE "plpgsql"
-    SET "search_path" TO ''
-    AS $_$
-DECLARE
+CREATE OR REPLACE FUNCTION public.romiku_convert_document(source_kind text, source_id uuid, target_kind text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare
   source_table text;
   target_table text;
   source_items text;
@@ -802,39 +809,38 @@ DECLARE
   lineage_column text;
   source_json jsonb;
   new_id uuid;
-BEGIN
-  IF source_kind = 'quote' AND target_kind IN ('pi','order') THEN
+begin
+  if source_kind = 'quote' and target_kind in ('pi','order') then
     source_table := 'romiku_quotes'; source_items := 'romiku_quote_items'; source_fk := 'quote_id';
     lineage_column := 'source_quote_item_id';
-  ELSIF source_kind = 'pi' AND target_kind = 'order' THEN
+  elsif source_kind = 'pi' and target_kind = 'order' then
     source_table := 'romiku_pis'; source_items := 'romiku_pi_items'; source_fk := 'pi_id';
     lineage_column := 'source_pi_item_id';
-  ELSE
-    RAISE EXCEPTION 'Unsupported document conversion' USING ERRCODE = '23514';
-  END IF;
-  IF target_kind = 'pi' THEN
+  else
+    raise exception 'Unsupported document conversion' using errcode = '23514';
+  end if;
+  if target_kind = 'pi' then
     target_table := 'romiku_pis'; target_items := 'romiku_pi_items'; target_fk := 'pi_id';
-  ELSE
+  else
     target_table := 'romiku_orders'; target_items := 'romiku_order_items'; target_fk := 'order_id';
-  END IF;
-  EXECUTE format('SELECT to_jsonb(s) FROM public.%I s WHERE id = $1 FOR UPDATE',source_table)
-    INTO source_json USING source_id;
-  IF source_json IS NULL THEN
-    RAISE EXCEPTION 'Source document not found' USING ERRCODE = 'P0002';
-  END IF;
-  -- Item writes also lock this header, preserving a coherent copy while converting.
-  source_json := source_json || jsonb_build_object('source_' || source_kind || '_id',source_id);
-  EXECUTE format('INSERT INTO public.%I (document_name,counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s)
-    SELECT document_name,counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s FROM jsonb_populate_record(NULL::public.%I,$1) RETURNING id',
-    target_table,CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,
-    CASE WHEN target_kind = 'order' THEN ',source_pi_id' ELSE '' END,target_table)
-    INTO new_id USING source_json;
-  EXECUTE format('INSERT INTO public.%I (%I,%I,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,unit_price_entered,requirement,customer_code,notes,position)
-    SELECT $1,id,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,unit_price_entered,requirement,customer_code,notes,position FROM public.%I WHERE %I=$2',
-    target_items,target_fk,lineage_column,source_items,source_fk) USING new_id,source_id;
-  RETURN new_id;
-END;
-$_$;
+  end if;
+  execute format('select to_jsonb(s) from public.%I s where id = $1 for update', source_table)
+    into source_json using source_id;
+  if source_json is null then
+    raise exception 'Source document not found' using errcode = 'P0002';
+  end if;
+  source_json := source_json || jsonb_build_object('source_' || source_kind || '_id', source_id);
+  execute format('insert into public.%I (document_name,counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s)
+    select document_name,counterparty_snapshot,bank_snapshot,terms_snapshot,currency,document_language,document_date,follow_up_at,due_at,freight,discount,other_expenses,deposit_percent,deposit_due_at,balance_due_at,price_term,shipment_method,notes,source_website_inquiry_id,outbound_company_id,formal_customer_id,source_quote_id%s from jsonb_populate_record(null::public.%I,$1) returning id',
+    target_table, case when target_kind = 'order' then ',source_pi_id' else '' end,
+    case when target_kind = 'order' then ',source_pi_id' else '' end, target_table)
+    into new_id using source_json;
+  execute format('insert into public.%I (%I,%I,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,unit_price_entered,requirement,customer_code,notes,position)
+    select $1,id,sanity_product_id,sku,product_snapshot,packing_snapshot,quantity,unit_price,unit_price_entered,requirement,customer_code,notes,position from public.%I where %I=$2',
+    target_items,target_fk,lineage_column,source_items,source_fk) using new_id,source_id;
+  return new_id;
+end;
+$function$;
 
 CREATE OR REPLACE FUNCTION "public"."romiku_publish_quote_version"("quote_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql"

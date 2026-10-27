@@ -324,3 +324,6 @@ revoke all on function public.romiku_delete_record(text,uuid) from public, anon;
 grant execute on function public.romiku_delete_record(text,uuid) to authenticated;
 
 revoke delete on public.romiku_payments from authenticated,anon;
+
+revoke all on function public.romiku_preserve_commercial_document_number() from public, anon;
+grant execute on function public.romiku_preserve_commercial_document_number() to authenticated, service_role;

@@ -101,11 +101,11 @@ select is(
   'Order counter self-heals after a stale-counter collision'
 );
 -- Privileged LOCAL fixture represents a pre-migration historical number.
-alter table romiku_orders disable trigger romiku_number;
+alter table romiku_orders disable trigger romiku_document_number_immutable;
 update romiku_orders
 set document_number='OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '005'
 where id=(select id from test_ids where kind='direct_order');
-alter table romiku_orders enable trigger romiku_number;
+alter table romiku_orders enable trigger romiku_document_number_immutable;
 update romiku_document_daily_counters
 set last_value=1
 where document_kind='order'

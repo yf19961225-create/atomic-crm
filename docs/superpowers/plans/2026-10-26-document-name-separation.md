@@ -44,3 +44,7 @@ Files: DocumentHeaderSummary, quoteWorkflow, QuotePages, DocumentPages, producti
 - [ ] Inspect Preview ledger, schema, RLS, current functions/triggers and migration dependencies; no mutation.
 - [ ] Report exact candidate, local results and preflight; wait for separate Preview migration authorization.
 - [ ] Real page/XLSX acceptance deferred until migration and deployment authorized.
+
+## 2026-10-27 compatibility amendment
+
+See `2026-10-27-document-name-function-compatibility-audit.md`. Preview function audit found historical allocator/schema divergence. Preserve both installed allocator functions byte-for-byte; commercial INSERT triggers retain their original arguments and UPDATE moves to a dedicated immutable-number guard. Converter has equivalent behavior in both audited baselines; add only the name projections and reject unreviewed definitions before DDL. Both local baseline suites must pass. Remote migration/deployment remains pending separate authorization.

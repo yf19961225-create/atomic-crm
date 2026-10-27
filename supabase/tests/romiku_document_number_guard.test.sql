@@ -1,0 +1,30 @@
+-- Dedicated UPDATE guard must not trim/reallocate legacy identities.
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select no_plan();
+insert into auth.users(id,email,raw_user_meta_data) values ('ac270000-0000-0000-0000-000000000099','number-guard@example.test','{}');
+-- Historical fixture setup only, privileged and transaction rolled back.
+alter table romiku_quotes disable trigger romiku_number;
+alter table romiku_pis disable trigger romiku_number;
+alter table romiku_orders disable trigger romiku_number;
+insert into romiku_quotes(id,document_number) values ('ac270000-0000-0000-0000-000000000001',' Legacy RFQ 1234567890 ');
+insert into romiku_pis(id,document_number) values ('ac270000-0000-0000-0000-000000000002',' Legacy PI 1234567890 ');
+insert into romiku_orders(id,document_number) values ('ac270000-0000-0000-0000-000000000003',' Legacy OD 1234567890 ');
+alter table romiku_quotes enable trigger romiku_number;
+alter table romiku_pis enable trigger romiku_number;
+alter table romiku_orders enable trigger romiku_number;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','ac270000-0000-0000-0000-000000000099',true);
+update romiku_quotes set document_name='Name' where id='ac270000-0000-0000-0000-000000000001';
+update romiku_pis set document_name='Name' where id='ac270000-0000-0000-0000-000000000002';
+update romiku_orders set document_name='Name' where id='ac270000-0000-0000-0000-000000000003';
+select is((select document_number from romiku_quotes where id='ac270000-0000-0000-0000-000000000001'),' Legacy RFQ 1234567890 ','legacy Quote verbatim');
+select is((select document_number from romiku_pis where id='ac270000-0000-0000-0000-000000000002'),' Legacy PI 1234567890 ','legacy PI verbatim');
+select is((select document_number from romiku_orders where id='ac270000-0000-0000-0000-000000000003'),' Legacy OD 1234567890 ','legacy Order verbatim');
+select throws_ok($$update romiku_quotes set document_number=btrim(document_number) where id='ac270000-0000-0000-0000-000000000001'$$,'23514',null,'even normalization of existing number blocked');
+select throws_ok($$update romiku_pis set document_number=null where id='ac270000-0000-0000-0000-000000000002'$$,'23514',null,'NULL replacement blocked');
+select throws_ok($$update romiku_orders set document_number='' where id='ac270000-0000-0000-0000-000000000003'$$,'23514',null,'blank replacement blocked');
+select lives_ok($$update romiku_orders set document_number=document_number,document_name=null where id='ac270000-0000-0000-0000-000000000003'$$,'same number and clear name accepted');
+select * from finish();
+rollback;
