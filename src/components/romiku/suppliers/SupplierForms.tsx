@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CreateBase, EditBase, Form } from "ra-core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormToolbar } from "@/components/atomic-crm/layout/FormToolbar";
@@ -33,13 +34,29 @@ export const SupplierCreate = () => (
   </CreateBase>
 );
 
-export const SupplierEdit = () => (
-  <EditBase resource="romiku_suppliers" redirect="/suppliers">
-    <SupplierFormCard title="编辑供应商">
-      <SupplierInputs />
-    </SupplierFormCard>
-  </EditBase>
-);
+export const SupplierEdit = () => {
+  const [saveFailed, setSaveFailed] = useState(false);
+  return (
+    <EditBase
+      resource="romiku_suppliers"
+      redirect="/suppliers"
+      mutationMode="pessimistic"
+      mutationOptions={{
+        onMutate: () => setSaveFailed(false),
+        onError: () => setSaveFailed(true),
+      }}
+    >
+      <SupplierFormCard title="编辑供应商">
+        {saveFailed && (
+          <p role="alert" className="text-destructive">
+            供应商保存失败，修改内容已保留，请重试。
+          </p>
+        )}
+        <SupplierInputs />
+      </SupplierFormCard>
+    </EditBase>
+  );
+};
 
 export const SupplierContactCreate = () => (
   <CreateBase
