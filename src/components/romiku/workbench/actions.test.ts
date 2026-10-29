@@ -222,3 +222,59 @@ it("rejects unsupported manual task relations and clears the previous relationsh
     ),
   ).toMatchObject({ quote_id: null, order_id: "new", due_at: null });
 });
+
+it.each([
+  ["unpaid", 2211, 7370, "deposit", 2211],
+  ["partial deposit", 1211, 6370, "deposit", 1211],
+  ["deposit complete", 0, 5159, "balance", 5159],
+  ["partial balance", 0, 3159, "balance", 3159],
+  ["100% prepayment", 7370, 7370, "deposit", 7370],
+  ["custom 40%", 2948, 7370, "deposit", 2948],
+  ["no deposit", 0, 7370, "balance", 7370],
+])(
+  "shows only the current payment stage: %s",
+  (_label, deposit, remaining, group, amount) => {
+    const actions = buildActions({
+      romiku_order_totals: [
+        {
+          id: "order-uuid",
+          document_number: "ELIO",
+          deposit_remaining: deposit,
+          remaining_amount: remaining,
+          currency: "CNY",
+          deposit_due_at: "2026-11-01",
+          balance_due_at: "2026-12-01",
+        },
+      ],
+    });
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({
+      source_id: "order-uuid",
+      source_table: "romiku_orders",
+      group,
+      amount,
+      due_at: group === "deposit" ? "2026-11-01" : "2026-12-01",
+    });
+  },
+);
+it("removes paid orders and keeps distinct UUIDs even with identical document labels", () => {
+  const actions = buildActions({
+    romiku_order_totals: [
+      { id: "paid", remaining_amount: 0, deposit_remaining: 20 },
+      {
+        id: "a",
+        document_number: "same",
+        remaining_amount: 100,
+        deposit_remaining: 30,
+      },
+      {
+        id: "b",
+        document_number: "same",
+        remaining_amount: 100,
+        deposit_remaining: 0,
+      },
+    ],
+  });
+  expect(actions).toHaveLength(2);
+  expect(actions.map((a) => a.source_id).sort()).toEqual(["a", "b"]);
+});

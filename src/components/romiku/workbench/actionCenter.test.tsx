@@ -137,7 +137,6 @@ it("separates Website and Outbound action counts and links every action to its s
     "待处理报价单",
     "待处理形式发票",
     "待收定金",
-    "待收尾款",
     "生产／到期事项",
     "装箱／发运",
   ]) {
@@ -145,6 +144,12 @@ it("separates Website and Outbound action counts and links every action to its s
       .element(screen.getByRole("button", { name: `${title}: 1`, exact: true }))
       .toBeVisible();
   }
+  await expect
+    .element(screen.getByRole("button", { name: "待收尾款: 0", exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByRole("link", { name: "O-deposit", exact: true }))
+    .toHaveAttribute("href", "/orders/O-deposit");
   await screen
     .getByRole("button", { name: "新网站询盘: 1", exact: true })
     .click();

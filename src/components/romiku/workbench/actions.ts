@@ -125,10 +125,10 @@ export function buildActions(data: ActionData, now = new Date()): Action[] {
         amount: deposit,
         currency: r.currency,
       });
-    const balance = Math.max(Number(r.remaining_amount) - deposit, 0);
-    if (balance > 0)
+    // Only the current unpaid stage is actionable; totals remain unchanged.
+    else
       add(r, "romiku_orders", "balance", r.balance_due_at, {
-        amount: balance,
+        amount: Number(r.remaining_amount),
         currency: r.currency,
       });
   }

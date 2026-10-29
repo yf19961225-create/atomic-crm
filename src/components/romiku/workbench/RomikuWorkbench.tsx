@@ -170,7 +170,7 @@ export function RomikuWorkbench() {
             </Button>
           )}
           <p className="text-xs text-muted-foreground">
-            数量按分类统计可处理记录。一张订单可能同时有待收定金和尾款；装箱单会保留在此处直到归档。已完成任务仍可在“日历
+            数量按分类统计可处理记录。每张订单仅显示当前未完成的收款阶段；装箱单会保留在此处直到归档。已完成任务仍可在“日历
             → 手动任务”中查看。
           </p>
         </>
