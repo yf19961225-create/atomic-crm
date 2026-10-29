@@ -21,6 +21,7 @@ import {
   ProductLibraryLookup,
   type DocumentLanguage,
 } from "./ProductLibraryLookup";
+import { OrderProductImage } from "./OrderProductImage";
 import { CommercialItemDrawer } from "./CommercialItemDrawer";
 import {
   calculateQuoteUsdUnitPrice,
@@ -779,7 +780,12 @@ export function CommercialLineItemsTable({
                             </div>
                           </td>
                           <td>
-                            {product.image_url ? (
+                            {orderTemplate ? (
+                              <OrderProductImage
+                                sku={item.sku}
+                                imageUrl={product.image_url}
+                              />
+                            ) : product.image_url ? (
                               <img
                                 className="h-9 w-9 object-cover"
                                 src={String(product.image_url)}

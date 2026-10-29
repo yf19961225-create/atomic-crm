@@ -147,3 +147,45 @@ it.each(["quote", "pi", "order"] as const)(
     ).toHaveLength(1);
   },
 );
+
+it("recovers order snapshot images in editable and reopened read-only rows without saving any fields", async () => {
+  const website = "https://romiku.com/images/products-local/st210_main.jpg";
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    async () => new Response(JSON.stringify({ images: { ST210: website } })),
+  );
+  const saved = {
+    ...item(1),
+    sku: "ST210",
+    product_snapshot: { image_url: "https://example.invalid/st210.png" },
+  };
+  const before = JSON.stringify(saved);
+  const onItemsChange = vi.fn();
+  const provider = fakeRestDataProvider({});
+  const update = vi.spyOn(provider, "update");
+  for (const editable of [true, false]) {
+    const screen = await render(
+      <CoreAdminContext dataProvider={provider}>
+        <CommercialLineItemsTable
+          kind="order"
+          documentId="qa"
+          items={[saved]}
+          currency="USD"
+          editable={editable}
+          onChanged={async () => {}}
+          onItemsChange={onItemsChange}
+        />
+      </CoreAdminContext>,
+    );
+    screen
+      .getByRole("img", { name: "ST210 图片" })
+      .element()
+      .dispatchEvent(new Event("error"));
+    await expect
+      .element(screen.getByRole("img", { name: "ST210 图片" }))
+      .toHaveAttribute("src", website);
+    expect(JSON.stringify(saved)).toBe(before);
+    expect(onItemsChange).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    await screen.unmount();
+  }
+});
