@@ -27,7 +27,7 @@ php -l website-production/existing-smtp-functions.php
 
 ## 前端 patch
 
-`app-source.sha256` 对应 2026-10-07 只读抓取正式 app.js。先备份现网 app.js、handler、相关 HTML/cache配置；本地运行：
+`app-source.sha256` 对应 2026-10-28 只读抓取正式 app.js?v=20261026081346。先备份现网 app.js、handler、相关 HTML/cache配置；本地运行：
 
 ```sh
 python3 website-production/prepare-app.py /private/backup/app.js /private/staging/app.js

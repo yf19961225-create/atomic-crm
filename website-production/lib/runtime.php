@@ -24,14 +24,17 @@ function production_dispatch(array $c,string $kind,array $mail): void {
  $mail['messageId']='romiku-'.$id.'-'.$kind.'@romiku.com';
  $path=$c['directory'].'/'.$id.'.'.$kind.'.delivery.json';$s=is_file($path)?json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR):['state'=>'unsent'];
  if($s['state']==='accepted')return;
- if($s['state']!=='unsent')throw new RuntimeException('Acceptance uncertain; reconcile before retry');
+ if($s['state']!=='unsent')throw new QaMailUncertain('Acceptance uncertain; reconcile before retry');
  qa_atomic($path,json_encode(['state'=>'attempting','messageId'=>$mail['messageId']],JSON_THROW_ON_ERROR));
- $accepted=($c['mailer'])($mail); // Exceptions deliberately leave attempting, never blindly resend.
+ try{$accepted=($c['mailer'])($mail);}catch(Throwable $e){throw new QaMailUncertain('Notification acceptance uncertain');} // Keep attempting: never blindly resend.
  qa_atomic($path,json_encode(['state'=>$accepted===true?'accepted':'unsent','messageId'=>$mail['messageId']],JSON_THROW_ON_ERROR));
  if($accepted!==true)throw new RuntimeException('Notification pending');
 }
 function production_process(array $c,array $input): array {
- return qa_process($input,qa_catalog($c['catalog']),$c['directory'],
+ $id=qa_uuid($input['submissionId']??'');
+ // Retries use the durably saved submission/receipt, never a changed catalogue.
+ $catalog=is_file($c['directory'].'/'.$id.'.json')?[]:qa_catalog($c['catalog']);
+ return qa_process($input,$catalog,$c['directory'],
  fn($p)=>json_decode(production_http($c,'/api/website-inquiries',$p),true,512,JSON_THROW_ON_ERROR),
  fn($r)=>production_http($c,'/api/website-inquiry-xlsx',['id'=>$r['id'],'submissionId'=>$r['normalizedSubmission']['submissionId']],true),
  fn($kind,$mail)=>production_dispatch($c,$kind,$mail));

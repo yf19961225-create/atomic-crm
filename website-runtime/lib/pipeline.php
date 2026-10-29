@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+class QaMailUncertain extends RuntimeException {}
+
 function qa_text($value, int $max = 2000): string {
     if (!is_string($value) && !is_numeric($value) && $value !== null) throw new InvalidArgumentException('Invalid text field');
     $text=trim((string)$value);
@@ -65,7 +67,7 @@ function qa_normalize(array $input,array $catalog): array {
         if ((!is_numeric($quantity)) || !preg_match('/^\d{1,11}(?:\.\d{1,4})?$/D',(string)$quantity) || (float)$quantity<=0) throw new InvalidArgumentException('Positive quantity with at most 4 decimals required');
         $image=qa_text($product['image']??'',1000);
         $image=preg_replace('~^(?:https://romiku\.com/|\./|/)~','',$image);
-        if (!preg_match('~^images/products-local/[A-Za-z0-9_/-]+\.(?i:jpe?g|png)$~D',$image) || str_contains($image,'..')) throw new InvalidArgumentException('Catalogue image must be a local PNG or JPEG product image');
+        if ($image!=='' && (!preg_match('~^images/products-local/[A-Za-z0-9_/-]+\.(?i:jpe?g|png)$~D',$image) || str_contains($image,'..'))) throw new InvalidArgumentException('Catalogue image must be a local PNG or JPEG product image');
         $spec=[];foreach (($product['parameters']??[]) as $parameter) {
             $value=qa_localized($parameter['value']??'');$label=qa_localized($parameter['label']??'');
             if($value!=='')$spec[]=($label!==''?$label.': ':'').$value;
@@ -76,7 +78,8 @@ function qa_normalize(array $input,array $catalog): array {
         $specification=qa_text(implode("\n",$spec),10000);
         $unit=qa_text($product['unit']??'',40);
         if ($unit==='' && preg_match('/\d\s+(PCS|SETS?|PAIRS?|BOTTLES?)\b/i',$product['moq']??'',$m))$unit=strtoupper($m[1]);
-        $items[]=['sku'=>$sku,'productName'=>$productName,'image'=>'https://romiku.com/'.$image,'specification'=>$specification,'quantity'=>(float)$quantity,'requirement'=>qa_text($selected['notes']??'',5000),'unit'=>$unit,...($carton!==null?['cartonQty'=>$carton]:[]),...($cbm!==null?['cartonCbm'=>$cbm]:[])];
+        $originalSku=qa_text($product['sku']??$selected['sku'],120);
+        $items[]=['sku'=>$originalSku,'productName'=>$productName,'image'=>$image===''?'':'https://romiku.com/'.$image,'specification'=>$specification,'quantity'=>(float)$quantity,'requirement'=>qa_text($selected['notes']??'',5000),'unit'=>$unit,...($carton!==null?['cartonQty'=>$carton]:[]),...($cbm!==null?['cartonCbm'=>$cbm]:[])];
     }
     $normalized=['submissionId'=>qa_uuid($input['submissionId']??''),'customerName'=>$name,'company'=>$company,'brand'=>$brand,'email'=>$email,'whatsapp'=>qa_text($customer['whatsapp']??'',100),'country'=>$country,'message'=>qa_text($customer['notes']??'',5000),'items'=>$items];
     qa_json_payload($normalized);
@@ -119,14 +122,14 @@ function qa_process(array $input,array $catalog,string $directory,callable $crm,
         }
         $receipt=$state['receipt'];
         foreach(['internal','customer']as$kind){
-            if($state['notifications'][$kind]==='sent')continue;
+            if(in_array($state['notifications'][$kind],['sent','review_required'],true))continue;
             try {
                 $bytes=null;
                 if($kind==='internal'){$bytes=$attachment($receipt);if(!is_string($bytes)||!str_starts_with($bytes,'PK'))throw new RuntimeException('Invalid workbook');}
                 $send($kind,qa_mail($kind,$receipt,$bytes));$state['notifications'][$kind]='sent';$save();
-            }catch(Throwable $e){$state['notifications'][$kind]='pending';$save();}
+            }catch(Throwable $e){$state['notifications'][$kind]=$e instanceof QaMailUncertain?'review_required':'pending';$save();}
         }
-        $complete=!in_array('pending',$state['notifications'],true);
-        return ['success'=>$complete,'crmSaved'=>true,'replay'=>$cached||($receipt['replay']??false),'document_number'=>$receipt['document_number'],'submitted_at'=>$receipt['submitted_at'],'notifications'=>$state['notifications'],'message'=>$complete?'Your inquiry has been received.':'Inquiry saved. Some notifications are pending; retry this same submission.'];
+        $complete=count(array_filter($state['notifications'],fn($status)=>$status!=='sent'))===0;
+        return ['success'=>$complete,'crmSaved'=>true,'replay'=>$cached||($receipt['replay']??false),'document_number'=>$receipt['document_number'],'submitted_at'=>$receipt['submitted_at'],'notifications'=>$state['notifications'],'message'=>$complete?'Your inquiry has been received.':(in_array('review_required',$state['notifications'],true)?'Inquiry saved. Notification acceptance is uncertain; support must review before resending.':'Inquiry saved. Some notifications are pending; retry this same submission.')];
     }finally{flock($lock,LOCK_UN);fclose($lock);}
 }

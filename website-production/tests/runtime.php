@@ -17,3 +17,16 @@ foreach(['https://crm.romiku.com/api/website-inquiries','https://preview.vercel.
 $c['mailer']=function($m){throw new RuntimeException('uncertain acknowledgement');};$cm['submissionId']='123e4567-e89b-42d3-a456-426614174001';
 try{production_dispatch($c,'customer',$cm);}catch(RuntimeException $e){}
 $c['mailer']=function($m){throw new LogicException('duplicate transport');};try{production_dispatch($c,'customer',$cm);}catch(RuntimeException $e){check(true,'uncertain acceptance blocks automatic resend');}
+$reviewInput=['submissionId'=>'123e4567-e89b-42d3-a456-426614174099','customer'=>['name'=>'QA','email'=>'qa@example.test','market'=>'UK'],'products'=>[['sku'=>'QA','qty'=>1]]];
+$reviewCatalog=['QA'=>['sku'=>'QA','name'=>'QA','image'=>'']];
+$attempts=0;$c['mailer']=function($m)use(&$attempts){$attempts++;throw new RuntimeException('unknown SMTP result');};
+$receipt=fn($p)=>['success'=>true,'id'=>'123e4567-e89b-42d3-a456-426614174098','document_number'=>'WI-99','submitted_at'=>'2026-10-28T00:00:00Z','normalizedSubmission'=>$p];
+$dispatch=fn($kind,$mail)=>production_dispatch($c,$kind,$mail);
+$r=qa_process($reviewInput,$reviewCatalog,$d,$receipt,fn()=>'PK test',$dispatch);
+check(!$r['success'] && $r['crmSaved'] && $r['notifications']['internal']==='review_required','uncertain SMTP explicitly requires review, not ordinary retry');
+qa_process($reviewInput,[],$d,fn()=>throw new LogicException('CRM repeated'),fn()=>'PK test',$dispatch);
+check($attempts===2,'uncertain internal and customer never automatically resent');
+// A persisted CRM receipt remains authoritative even if the live catalogue changes.
+$c['catalog']='/missing-catalog-for-retry-test.js';
+try{$retry=production_process($c,$reviewInput);check($retry['crmSaved']===true,'saved retry does not depend on current catalogue');}
+catch(Throwable $e){throw new RuntimeException('saved retry unnecessarily required current catalogue',0,$e);}

@@ -1,8 +1,68 @@
 --- app.js
 +++ app.js
-@@ -4193,0 +4194 @@
+@@ -3924,7 +3924,8 @@
+     id: product.id || product.productId || product.sku || product.name || "",
+     sku: product.sku || "SKU 待确认",
+     image: product.image || "",
+-    qty: Math.max(1, Number(product.qty) || 1),
++    qty: Number.isFinite(Number(product.qty)) && Number(product.qty) > 0 ? Number(product.qty) : 1,
++    notes: product.notes || "",
+     step: Math.max(1, Number(product.step) || 1),
+     unit: localizedQuantityUnit(product.unit || parseMOQUnit(product.moq)),
+     cartonQty: product.cartonQty || product.cartonQuantity || product.carton || product.moq || product.step || "",
+@@ -4146,8 +4147,8 @@
+ function normalizedQuantity(value, step = 1) {
+   const safeStep = Math.max(1, Number(step) || 1);
+   const numericValue = Number(String(value ?? "").replace(/[^\d.]/g, ""));
+-  if (!Number.isFinite(numericValue) || numericValue <= safeStep) return safeStep;
+-  return Math.ceil(numericValue / safeStep) * safeStep;
++  if (!Number.isFinite(numericValue) || numericValue <= 0) return safeStep;
++  return numericValue; // Do not round a customer request to carton/MOQ multiples.
+ }
+ 
+ function setQuantityInputValue(input, value) {
+@@ -4198,6 +4199,7 @@
+     customer: {
+       name: String(formData.get("name") || "").trim(),
+       company: String(formData.get("company") || "").trim(),
 +      brand: String(formData.get("brand") || "").trim(),
-@@ -4251,8 +4252,4 @@
+       email: String(formData.get("email") || "").trim(),
+       whatsapp: String(formData.get("whatsapp") || "").trim(),
+       market: String(formData.get("market") || "").trim(),
+@@ -4246,6 +4248,29 @@
+   updateInquiry();
+ }
+ 
++let inquirySubmitting = false;
++const inquiryModule = () => import("./romiku-inquiry-submission.mjs?v=crm-first-20261028");
++const inquiryRestore = inquiryForm ? restorePendingInquiry() : Promise.resolve();
++async function restorePendingInquiry() {
++  try {
++    const { readPendingInquiry } = await inquiryModule();
++    const pending = readPendingInquiry();
++    if (!pending) return;
++    selectedProducts.splice(0, selectedProducts.length, ...pending.products);
++    for (const [name, value] of Object.entries(pending.customer || {})) {
++      const field = inquiryForm.elements.namedItem(name);
++      if (field && "value" in field) field.value = value;
++    }
++    writeStoredProducts(selectedProducts);
++    updateInquiry();
++    setInquirySubmitState(false, "A previous inquiry is awaiting confirmation. Submit again to retry that same saved inquiry; it will not create a duplicate.");
++  } catch {
++    setInquirySubmitState(false, "Unable to recover the pending inquiry. Please keep this page and contact us before submitting again.");
++    throw new Error("Pending inquiry recovery failed");
++  }
++}
++// Prevent an unhandled rejection; submission still awaits the original promise.
++inquiryRestore.catch(() => {});
+ async function submitRfqInquiry(formData) {
+   await loadProductsForSelectedInquiry().catch((error) => console.warn("RFQ product catalog refresh failed", error));
+   const payload = generateRfqPayload(formData);
+@@ -4255,19 +4280,24 @@
+   }
+ 
+   setInquirySubmitState(true);
 -  const response = await fetch("./api/submit-rfq.php", {
 -    method: "POST",
 -    headers: { "Content-Type": "application/json" },
@@ -11,7 +71,81 @@
 -  const result = await response.json().catch(() => ({}));
 -
 -  if (!response.ok || !result.ok) {
-+  const { submitProductionInquiry } = await import("./romiku-inquiry-submission.mjs");
+-    throw new Error(result.message || "RFQ submit failed");
+-  }
+-
++  const { submitProductionInquiry, sameInquiryDraft } = await inquiryModule();
 +  const result = await submitProductionInquiry(payload);
-+
++  if (!result.crmSaved) {
++    throw new Error("Inquiry was not confirmed saved; retry the same submission.");
++  }
 +  if (!result.ok) {
++    setInquirySubmitState(false, Object.values(result.notifications || {}).includes("review_required")
++      ? "Inquiry saved in CRM. Email delivery needs manual review; please do not resubmit or create another inquiry."
++      : "Inquiry saved in CRM. Email notifications are not yet complete. Retry this same submission; confirmed notifications will not be sent again.");
++    return;
++  }
++
++  if (result.draftPreserved || !sameInquiryDraft(payload, generateRfqPayload(new FormData(inquiryForm)))) {
++    setInquirySubmitState(false, "Your previous inquiry was saved. Your newer edits remain in the cart and have NOT been submitted. Submit again only to create a separate new inquiry.");
++    return;
++  }
+   clearSubmittedInquiry();
+-  window.location.href = submissionUrl(result.reference || "");
++  window.location.href = submissionUrl(result.document_number);
+ }
+ 
+ function updateInquiry() {
+@@ -4333,7 +4363,7 @@
+           <small>${escapeHTML(product.sku)}</small>
+         <div class="quantity-control" aria-label="${escapeHTML(product.name)} ${escapeHTML(translate("订购数量"))}">
+           <button type="button" data-quantity="-1" aria-label="${escapeHTML(translate("减少数量"))}">−</button>
+-          <input data-quantity-input type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHTML(String(product.qty))}" aria-label="${escapeHTML(translate("订购数量"))}" />
++          <input data-quantity-input type="text" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,4})?" value="${escapeHTML(String(product.qty))}" aria-label="${escapeHTML(translate("订购数量"))}" />
+           <button type="button" data-quantity="1" aria-label="${escapeHTML(translate("增加数量"))}">+</button>
+           <em>${escapeHTML(product.unit || translate("件"))}</em>
+         </div>
+@@ -4410,11 +4440,11 @@
+         <div class="checkout-controls">
+           <span>${escapeHTML(translate("数量:"))}</span>
+           <button type="button" data-quantity="-1" aria-label="${escapeHTML(translate("减少数量"))}">−</button>
+-          <input data-quantity-input type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHTML(String(product.qty))}" aria-label="${escapeHTML(translate("订购数量"))}" />
++          <input data-quantity-input type="text" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,4})?" value="${escapeHTML(String(product.qty))}" aria-label="${escapeHTML(translate("订购数量"))}" />
+           <button type="button" data-quantity="1" aria-label="${escapeHTML(translate("增加数量"))}">+</button>
+           <span>${escapeHTML(product.unit || translate("件"))}</span>
+         </div>
+-        <input class="checkout-note" type="text" placeholder="${escapeHTML(translate("如需调整起订量、定制包装或其他需求，请在此说明"))}" />
++        <input class="checkout-note" type="text" value="${escapeHTML(product.notes || "")}" placeholder="${escapeHTML(translate("如需调整起订量、定制包装或其他需求，请在此说明"))}" />
+       </div>
+     `;
+ 
+@@ -4430,6 +4460,8 @@
+       });
+     });
+     bindQuantityInput(item.querySelector("[data-quantity-input]"), product, updateInquiry);
++    const note = item.querySelector(".checkout-note");
++    note.addEventListener("input", () => { product.notes = note.value; writeStoredProducts(selectedProducts); });
+     inquiryItems.appendChild(item);
+   });
+ 
+@@ -5511,13 +5543,15 @@
+     validatePhoneCountryCode(inquiryForm.querySelector("input[name=\"whatsapp\"]"));
+     if (!inquiryForm.reportValidity()) return;
+ 
+-    const data = new FormData(inquiryForm);
++    if (inquirySubmitting) return;
++    inquirySubmitting = true;
+     try {
+-      await submitRfqInquiry(data);
+-    } catch (error) {
+-      console.error(error);
++      await inquiryRestore;
++      await submitRfqInquiry(new FormData(inquiryForm));
++    } catch {
+       setInquirySubmitState(false, translate("提交失败，请稍后重试，或通过 WhatsApp 联系我们。"));
+-      openWhatsApp(buildInquiryWhatsAppMessage(data));
++    } finally {
++      inquirySubmitting = false;
+     }
+   });
+ }
