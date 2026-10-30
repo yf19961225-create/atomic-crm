@@ -316,7 +316,7 @@ describe("SanityProductDrawer", () => {
       .getByRole("img", { name: "RMK-100 产品图片" })
       .element()
       .dispatchEvent(new Event("error"));
-    await expect.element(screen.getByText("图片加载失败")).toBeVisible();
+    await expect.element(screen.getByText("暂无产品图片")).toBeVisible();
   });
 
   it("creates the minimum Extension then refreshes only the current product overlay", async () => {

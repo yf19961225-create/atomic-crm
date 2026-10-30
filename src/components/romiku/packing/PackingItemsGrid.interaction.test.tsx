@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { useState } from "react";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext, type RaRecord } from "ra-core";
@@ -207,3 +208,170 @@ it("lets the user save a legacy row whose stored quantity differs from its carto
       .quantity,
   ).toBe(160);
 });
+
+it("linked packing searches only imported rows and focuses their editable field", async () => {
+  const { screen, provider } = await fixture();
+  await screen.getByLabelText("搜索本单产品").fill("SUN");
+  await expect
+    .element(screen.getByRole("button", { name: /SUN5 · Historical lamp/ }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: /SUN5 · Historical lamp/ }).click();
+  expect(document.activeElement).toBe(
+    screen.getByLabelText("cartons SUN5").element(),
+  );
+  expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+  const records = await provider.getList("romiku_packing_items", {
+    filter: {},
+    pagination: { page: 1, perPage: 25 },
+    sort: { field: "id", order: "ASC" },
+  });
+  expect(records.data).toHaveLength(1);
+});
+
+it("linked packing Enter on the final row does not add an unrelated product", async () => {
+  const { screen } = await fixture();
+  const field = screen.getByLabelText("cartons SUN5").element();
+  const event = new KeyboardEvent("keydown", {
+    key: "Enter",
+    bubbles: true,
+    cancelable: true,
+  });
+  field.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+  expect(
+    document.querySelector('input[aria-label="搜索 SKU 或产品"]'),
+  ).toBeNull();
+});
+
+it("standalone packing Enter returns to catalog input without creating blank business rows", async () => {
+  const screen = await render(
+    <CoreAdminContext dataProvider={fakeRestDataProvider({})}>
+      <PackingItemsGrid
+        parent={{ id: "standalone" }}
+        items={[
+          {
+            id: "local",
+            sku: "NA255",
+            quantity: 1,
+            cartons: 1,
+            qty_per_carton: 1,
+          },
+        ]}
+        onSaved={async () => {}}
+      />
+    </CoreAdminContext>,
+  );
+  const field = screen.getByLabelText("cartons NA255").element();
+  field.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  expect(document.activeElement).toBe(
+    screen.getByLabelText("搜索 SKU 或产品").element(),
+  );
+  expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+});
+
+it("linked packing advances to next imported row and ignores repeat or IME", async () => {
+  const screen = await render(
+    <CoreAdminContext dataProvider={fakeRestDataProvider({})}>
+      <PackingItemsGrid
+        parent={{ id: "linked", order_id: "order" }}
+        items={["A", "B"].map((sku) => ({
+          id: sku,
+          sku,
+          quantity: 1,
+          cartons: 1,
+          qty_per_carton: 1,
+        }))}
+        onSaved={async () => {}}
+      />
+    </CoreAdminContext>,
+  );
+  const first = screen.getByLabelText("cartons A");
+  await first.click();
+  first.element().dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      repeat: true,
+    }),
+  );
+  expect(document.activeElement).toBe(first.element());
+  first.element().dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      isComposing: true,
+    }),
+  );
+  expect(document.activeElement).toBe(first.element());
+  first
+    .element()
+    .dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+  expect(document.activeElement).toBe(
+    screen.getByLabelText("cartons B").element(),
+  );
+  expect(document.querySelectorAll("tbody tr")).toHaveLength(2);
+});
+
+it("standalone selects two products entirely by keyboard through the next-row focus path", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      return new Response(
+        JSON.stringify(
+          url.startsWith("/api/product-catalog")
+            ? {
+                result: ["AAA", "BBB"].map((sku) => ({
+                  _id: sku,
+                  sku,
+                  isPublished: true,
+                  name: { zh: sku },
+                })),
+              }
+            : url.startsWith("/api/product-images")
+              ? { images: {}, powerSupplies: {} }
+              : [],
+        ),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }),
+  );
+  const screen = await render(
+    <CoreAdminContext dataProvider={fakeRestDataProvider({})}>
+      <PackingItemsGrid
+        parent={{ id: "standalone" }}
+        items={[]}
+        onSaved={async () => {}}
+      />
+    </CoreAdminContext>,
+  );
+  const search = screen.getByLabelText("搜索 SKU 或产品");
+  await search.fill("AAA");
+  await expect
+    .element(screen.getByRole("button", { name: /AAA · AAA/ }))
+    .toBeVisible();
+  await userEvent.keyboard("{Enter}");
+  await expect.element(screen.getByLabelText("cartons AAA")).toHaveFocus();
+  await userEvent.keyboard("2{Enter}");
+  await expect.element(search).toHaveFocus();
+  const input = search.element() as HTMLInputElement;
+  expect(input.selectionStart).toBe(0);
+  expect(input.selectionEnd).toBe(input.value.length);
+  await userEvent.keyboard("BBB");
+  await expect
+    .element(screen.getByRole("button", { name: /BBB · BBB/ }))
+    .toBeVisible();
+  await userEvent.keyboard("{ArrowDown}{Enter}");
+  await expect.element(screen.getByLabelText("cartons BBB")).toHaveFocus();
+  await expect.element(screen.getByLabelText("cartons AAA")).toHaveValue(2);
+});
+afterEach(() => vi.unstubAllGlobals());

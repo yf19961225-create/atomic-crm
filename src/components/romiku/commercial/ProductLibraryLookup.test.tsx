@@ -64,14 +64,65 @@ describe("Product Library item snapshots", () => {
       document.querySelectorAll('input[aria-label="搜索 SKU 或产品"]'),
     ).toHaveLength(1);
     expect(panel?.querySelector("input")).toBeNull();
-    expect(panel!.getBoundingClientRect().width).toBeCloseTo(
-      cellInput.element().getBoundingClientRect().width,
-      0,
-    );
+    await expect
+      .poll(() =>
+        Math.abs(
+          panel!.getBoundingClientRect().width -
+            cellInput.element().getBoundingClientRect().width,
+        ),
+      )
+      .toBeLessThan(1);
     expect(panel!.getBoundingClientRect().height).toBeLessThanOrEqual(320);
     expect(panel!.getBoundingClientRect().right).toBeLessThanOrEqual(
       window.innerWidth - 12,
     );
+  });
+
+  it("realigns the portal when its table cell resizes without a window resize", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (input: string) =>
+          new Response(
+            JSON.stringify(
+              input.startsWith("/api/product-catalog")
+                ? {
+                    result: [
+                      { _id: "resize", sku: "RESIZE", isPublished: true },
+                    ],
+                  }
+                : { images: {}, powerSupplies: {} },
+            ),
+          ),
+      ),
+    );
+    const screen = await render(
+      <div data-testid="resize-cell" style={{ width: 400 }}>
+        <ProductLibraryLookup
+          wideCommercial
+          onSelected={vi.fn()}
+          onManualSku={vi.fn()}
+        />
+      </div>,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").fill("RESIZE");
+    await screen.getByRole("button", { name: "搜索", exact: true }).click();
+    await expect
+      .element(screen.getByRole("button", { name: /RESIZE ·/ }))
+      .toBeVisible();
+    const input = screen.getByLabelText("搜索 SKU 或产品").element();
+    const panel = document.querySelector<HTMLElement>(
+      '[aria-label="产品搜索结果"]',
+    )!;
+    (input as HTMLInputElement).style.width = "360px";
+    await expect
+      .poll(() =>
+        Math.abs(
+          panel.getBoundingClientRect().width -
+            input.getBoundingClientRect().width,
+        ),
+      )
+      .toBeLessThan(1);
   });
 
   it("scrolls compact 40px rows with 30px same-SKU thumbnails inside 320px", async () => {
@@ -271,7 +322,7 @@ describe("Product Library item snapshots", () => {
       transform: "translateY(-100%)",
     });
   });
-  it("uses the Sanity image in the shared selector and falls back only to the same SKU website image", async () => {
+  it("uses the exact website thumbnail first and falls back to its own Sanity image", async () => {
     const primary = new URL("/appIcon/152.png", location.href).href;
     const fallback = new URL("/appIcon/144.png", location.href).href;
     const onSelected = vi.fn();
@@ -308,17 +359,31 @@ describe("Product Library item snapshots", () => {
       .element(screen.getByRole("button", { name: /IMG-1 · 测试产品/ }))
       .toBeVisible();
     const image = screen.container.querySelector("ul img") as HTMLImageElement;
-    expect(image.src).toBe(primary);
+    expect(image.src).toBe(fallback);
     image.dispatchEvent(new Event("error"));
     await expect
       .poll(
         () =>
           (screen.container.querySelector("ul img") as HTMLImageElement)?.src,
       )
-      .toBe(fallback);
+      .toBe(primary);
+    await expect
+      .poll(
+        () =>
+          (screen.container.querySelector("ul img") as HTMLImageElement)
+            ?.naturalWidth,
+      )
+      .toBeGreaterThan(0);
+    await expect
+      .poll(
+        () =>
+          (screen.container.querySelector("ul img") as HTMLImageElement)
+            ?.className,
+      )
+      .toContain("opacity-100");
     await screen.getByRole("button", { name: /IMG-1 · 测试产品/ }).click();
     expect(onSelected.mock.calls[0]?.[0]?.product_snapshot?.image_url).toBe(
-      fallback,
+      primary,
     );
   });
   it("captures the selected catalog product and website image without master linkage writes", () => {
@@ -861,4 +926,226 @@ describe("Product Library item snapshots", () => {
     );
     expect(onManualSku).not.toHaveBeenCalled();
   });
+});
+
+describe("live product lookup", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+  const record = (sku: string) => ({
+    _id: sku,
+    sku,
+    isPublished: true,
+    name: { zh: `产品 ${sku}` },
+  });
+  const reply = (result: unknown[]) => new Response(JSON.stringify({ result }));
+
+  it("searches after typing without a second action and does not wait for website metadata", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        url.startsWith("/api/product-catalog")
+          ? Promise.resolve(reply([record("NA255")]))
+          : new Promise(() => {}),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        onSelected={vi.fn()}
+        onManualSku={vi.fn()}
+        wideCommercial
+      />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").fill("NA25");
+    await expect
+      .element(screen.getByRole("button", { name: /NA255 · 产品 NA255/ }))
+      .toBeVisible();
+  });
+
+  it("reports no matching products", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(reply([]))),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        onSelected={vi.fn()}
+        onManualSku={vi.fn()}
+        wideCommercial
+      />,
+    );
+    await screen.getByLabelText("搜索 SKU 或产品").fill("NOT-FOUND");
+    await expect.element(screen.getByText("未找到匹配产品")).toBeVisible();
+  });
+
+  it("Escape cancels delayed results instead of reopening the list", async () => {
+    let finish: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        url.startsWith("/api/product-catalog")
+          ? new Promise<Response>((resolve) => {
+              finish = resolve;
+            })
+          : Promise.resolve(new Response("{}")),
+      ),
+    );
+    const screen = await render(
+      <ProductLibraryLookup
+        onSelected={vi.fn()}
+        onManualSku={vi.fn()}
+        wideCommercial
+      />,
+    );
+    const input = screen.getByLabelText("搜索 SKU 或产品");
+    await input.fill("NA25");
+    await expect.poll(() => typeof finish).toBe("function");
+    await userEvent.keyboard("{Escape}");
+    finish!(reply([record("NA255")]));
+    await input.click();
+    await expect
+      .element(screen.getByRole("button", { name: /NA255 · 产品 NA255/ }))
+      .not.toBeInTheDocument();
+  });
+
+  it("does not allow old suggestions after editing the query", async () => {
+    let finishOld: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (!url.startsWith("/api/product-catalog"))
+          return Promise.resolve(new Response("{}"));
+        if (new URL(url, location.href).searchParams.get("search") === "OLD")
+          return new Promise<Response>((resolve) => {
+            finishOld = resolve;
+          });
+        return Promise.resolve(reply([record("NEW")]));
+      }),
+    );
+    const selected = vi.fn();
+    const screen = await render(
+      <ProductLibraryLookup
+        onSelected={selected}
+        onManualSku={vi.fn()}
+        wideCommercial
+      />,
+    );
+    const input = screen.getByLabelText("搜索 SKU 或产品");
+    await input.fill("OLD");
+    await expect.poll(() => typeof finishOld).toBe("function");
+    await input.fill("NEW");
+    await expect
+      .element(screen.getByRole("button", { name: /NEW · 产品 NEW/ }))
+      .toBeVisible();
+    finishOld!(reply([record("OLD")]));
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => selected.mock.calls[0]?.[0]?.sku).toBe("NEW");
+    expect(selected).toHaveBeenCalledTimes(1);
+  });
+});
+
+it("suppresses IME queries until composition completes", async () => {
+  const fetcher = vi.fn(() =>
+    Promise.resolve(new Response(JSON.stringify({ result: [] }))),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const screen = await render(
+    <ProductLibraryLookup
+      onSelected={vi.fn()}
+      onManualSku={vi.fn()}
+      wideCommercial
+    />,
+  );
+  const input = screen.getByLabelText("搜索 SKU 或产品");
+  input
+    .element()
+    .dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+  await input.fill("美甲");
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  expect(fetcher).not.toHaveBeenCalled();
+  input
+    .element()
+    .dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+  await expect.element(screen.getByText("未找到匹配产品")).toBeVisible();
+  vi.unstubAllGlobals();
+});
+
+it("cancels a product selection awaiting metadata when the user changes SKU", async () => {
+  let finish!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string) => {
+      if (url.startsWith("/api/product-catalog"))
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              result: [
+                {
+                  _id: "old",
+                  sku: "OLD",
+                  isPublished: true,
+                  name: { zh: "旧产品" },
+                },
+              ],
+            }),
+          ),
+        );
+      return new Promise<Response>((resolve) => {
+        finish = resolve;
+      });
+    }),
+  );
+  const selected = vi.fn();
+  const manual = vi.fn();
+  const screen = await render(
+    <ProductLibraryLookup
+      onSelected={selected}
+      onManualSku={manual}
+      wideCommercial
+    />,
+  );
+  const input = screen.getByLabelText("搜索 SKU 或产品");
+  await input.fill("OLD");
+  await expect
+    .element(screen.getByRole("button", { name: /OLD · 旧产品/ }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: /OLD · 旧产品/ }).click();
+  expect(manual).not.toHaveBeenCalled();
+  await input.fill("NEW");
+  finish(new Response("{}"));
+  await userEvent.keyboard("{Escape}");
+  expect(selected).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
+});
+
+it("finishes selecting visible catalog results when optional website metadata stalls", async () => {
+  const selected = vi.fn();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string) =>
+      url.startsWith("/api/product-catalog")
+        ? Promise.resolve(
+            new Response(
+              JSON.stringify({
+                result: [{ _id: "bounded", sku: "BOUNDED", isPublished: true }],
+              }),
+            ),
+          )
+        : new Promise<Response>(() => {}),
+    ),
+  );
+  const screen = await render(
+    <ProductLibraryLookup onSelected={selected} onManualSku={vi.fn()} />,
+  );
+  await screen.getByLabelText("搜索 SKU 或产品").fill("BOUNDED");
+  await expect
+    .element(screen.getByRole("button", { name: /BOUNDED ·/ }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: /BOUNDED ·/ }).click();
+  await expect
+    .poll(() => selected.mock.calls.length, { timeout: 4500 })
+    .toBe(1);
+  expect(selected.mock.calls[0][0].sku).toBe("BOUNDED");
+  vi.unstubAllGlobals();
 });

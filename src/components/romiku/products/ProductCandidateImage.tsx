@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Props = {
   sku: string;
@@ -9,6 +9,10 @@ type Props = {
   emptyLabel?: string;
   onLoaded?: (url: string) => void;
   onSelect?: (url: string) => void;
+  onExhausted?: () => void;
+  pending?: boolean;
+  timeoutMs?: number;
+  sizePx?: number;
 };
 
 const reportLoad = (
@@ -39,39 +43,105 @@ const CandidateImage = ({
   emptyLabel = "暂无图片",
   onLoaded,
   onSelect,
+  onExhausted,
+  pending = false,
+  timeoutMs = 10_000,
+  sizePx,
 }: Props) => {
-  const [index, setIndex] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [startedAt, setStartedAt] = useState(() => Date.now());
-  const url = candidates[index];
+  const [failed, setFailed] = useState<Set<string>>(() => new Set());
+  const failedRef = useRef(failed);
+  const [loadedUrl, setLoadedUrl] = useState<string>();
+  const candidatesUnique = [...new Set(candidates)];
+  const url = candidatesUnique.find((candidate) => !failed.has(candidate));
+  const mounted = useRef(true);
+  const currentUrl = useRef(url);
+  currentUrl.current = url;
+  const startedAt = useRef(Date.now());
+  const loaded = !!url && loadedUrl === url;
   const source = url === websiteUrl ? "website" : "sanity";
+  const fail = useCallback(() => {
+    if (
+      !mounted.current ||
+      !url ||
+      currentUrl.current !== url ||
+      failedRef.current.has(url)
+    )
+      return;
+    reportLoad(sku, source, "failed", Date.now() - startedAt.current);
+    const next = new Set(failedRef.current).add(url);
+    failedRef.current = next;
+    setFailed(next);
+  }, [sku, source, url]);
+  useEffect(() => {
+    if (!url || loaded) return;
+    startedAt.current = Date.now();
+    const timer = setTimeout(fail, timeoutMs);
+    return () => clearTimeout(timer);
+  }, [url, loaded, fail, timeoutMs]);
+  useEffect(() => {
+    if (!url) onExhausted?.();
+  }, [url, onExhausted]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const content = !url ? (
-    <span className="text-xs text-muted-foreground">
-      {candidates.length ? "图片加载失败" : emptyLabel}
-    </span>
+    pending ? (
+      <span
+        className={`inline-block bg-muted ${sizeClassName}`}
+        aria-label="图片加载中"
+      />
+    ) : (
+      <span className="text-xs text-muted-foreground">{emptyLabel}</span>
+    )
   ) : (
-    <span className={`relative inline-block overflow-hidden ${sizeClassName}`}>
+    <span
+      className={`relative inline-block overflow-hidden ${sizeClassName}`}
+      style={
+        sizePx == null
+          ? undefined
+          : {
+              display: "inline-block",
+              flexShrink: 0,
+              width: sizePx,
+              height: sizePx,
+            }
+      }
+    >
       {!loaded && (
         <span className="absolute inset-0 bg-muted" aria-label="图片加载中" />
       )}
       <img
         key={url}
         className={`h-full w-full object-cover ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={{
+          width: sizePx ?? "100%",
+          height: sizePx ?? "100%",
+          objectFit: "cover",
+        }}
         src={url}
         alt={alt}
         onLoad={(event) => {
-          if (event.currentTarget.getAttribute("src") !== url) return;
-          reportLoad(sku, source, "loaded", Date.now() - startedAt);
-          setLoaded(true);
+          if (
+            !mounted.current ||
+            currentUrl.current !== url ||
+            failedRef.current.has(url)
+          )
+            return;
+          if (
+            event.currentTarget.naturalWidth <= 0 ||
+            event.currentTarget.naturalHeight <= 0
+          ) {
+            fail();
+            return;
+          }
+          reportLoad(sku, source, "loaded", Date.now() - startedAt.current);
+          setLoadedUrl(url);
           onLoaded?.(url);
         }}
-        onError={(event) => {
-          if (event.currentTarget.getAttribute("src") !== url) return;
-          reportLoad(sku, source, "failed", Date.now() - startedAt);
-          setLoaded(false);
-          setStartedAt(Date.now());
-          setIndex((current) => current + 1);
-        }}
+        onError={fail}
       />
     </span>
   );
@@ -94,8 +164,5 @@ const CandidateImage = ({
 };
 
 export const ProductCandidateImage = (props: Props) => (
-  <CandidateImage
-    key={`${props.sku}\u0000${props.candidates.join("\u0000")}`}
-    {...props}
-  />
+  <CandidateImage key={props.sku} {...props} />
 );

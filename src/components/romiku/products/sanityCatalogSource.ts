@@ -66,7 +66,7 @@ export const mapCatalogPage = (
 };
 
 export const createSanityCatalogSource = () => ({
-  async getPage(filter: CatalogFilter) {
+  async getPage(filter: CatalogFilter, signal?: AbortSignal) {
     const params = new URLSearchParams({
       search: filter.search,
       includeUnpublished: String(filter.includeUnpublished),
@@ -80,7 +80,8 @@ export const createSanityCatalogSource = () => ({
         : {}),
       pageSize: String(catalogPageSize),
     });
-    const response = await fetch(`/api/product-catalog?${params}`);
+    const url = `/api/product-catalog?${params}`;
+    const response = await (signal ? fetch(url, { signal }) : fetch(url));
     if (!response.ok)
       throw new Error(`Sanity catalog request failed: ${response.status}`);
     const body = (await response.json()) as { result?: SanityCatalogRecord[] };

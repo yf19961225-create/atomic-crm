@@ -5,11 +5,12 @@ import {
   loadProductProcurementOverlay,
   type ProductOverlay,
 } from "../products/productProcurementOverlay";
+import { ProductCandidateImage } from "../products/ProductCandidateImage";
 import type { SanityCatalogProduct } from "../products/sanityCatalogSource";
 import { createSanityCatalogSource } from "../products/sanityCatalogSource";
 import { createSupabaseProcurementOverlayClient } from "../products/supabaseProcurementOverlayClient";
 import {
-  catalogProductImageCandidates,
+  catalogThumbnailImageCandidates,
   loadWebsiteProductDetails,
 } from "../products/websiteProductImages";
 
@@ -175,6 +176,41 @@ export function createItemSnapshot(
   };
 }
 
+// Optional website enrichment must not leave a visible product unselectable.
+function boundedWebsiteDetails(
+  products: SanityCatalogProduct[],
+  signal: AbortSignal,
+) {
+  return new Promise<
+    Awaited<ReturnType<typeof loadWebsiteProductDetails>> | undefined
+  >((resolve) => {
+    const controller = new AbortController();
+    let settled = false;
+    const finish = (
+      value?: Awaited<ReturnType<typeof loadWebsiteProductDetails>>,
+    ) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal.removeEventListener("abort", cancel);
+      resolve(value);
+    };
+    const cancel = () => {
+      controller.abort();
+      finish();
+    };
+    const timer = setTimeout(cancel, 3000);
+    signal.addEventListener("abort", cancel, { once: true });
+    if (signal.aborted) {
+      cancel();
+      return;
+    }
+    loadWebsiteProductDetails(products, controller.signal).then(finish, () =>
+      finish(),
+    );
+  });
+}
+
 export function ProductLibraryLookup({
   sku = "",
   onSelected,
@@ -203,10 +239,20 @@ export function ProductLibraryLookup({
   wideCommercial?: boolean;
 }) {
   const [search, setSearch] = useState(sku);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<{ text: string; version: number } | null>(
+    null,
+  );
+  const generation = useRef(0);
+  const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const composing = useRef(false);
+  const selecting = useRef(false);
+  const detailsPending = useRef<
+    ReturnType<typeof boundedWebsiteDetails> | undefined
+  >(undefined);
+  const [searchError, setSearchError] = useState(false);
   const [products, setProducts] = useState<SanityCatalogProduct[]>([]);
   const [images, setImages] = useState<Map<string, string>>(new Map());
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const loadedImages = useRef<Map<string, string>>(new Map());
   const [localizedPowerSupplies, setLocalizedPowerSupplies] = useState<
     Map<string, Record<string, string>>
   >(new Map());
@@ -232,52 +278,94 @@ export function ProductLibraryLookup({
       );
     };
     updatePosition();
+    const observer = new ResizeObserver(updatePosition);
+    if (triggerRef.current) observer.observe(triggerRef.current);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [wideCommercial, searchPanelOpen]);
-  useEffect(() => {
-    let cancelled = false;
-    if (!query.trim()) {
-      setProducts([]);
-      return;
-    }
+  const invalidateSearch = () => {
+    generation.current += 1;
+    clearTimeout(debounce.current);
+    setQuery(null);
+    setProducts([]);
+    setImages(new Map());
+    loadedImages.current.clear();
+    setLocalizedPowerSupplies(new Map());
+    detailsPending.current = undefined;
+    setActiveIndex(-1);
+    setLoading(false);
+    setSearchError(false);
+    selecting.current = false;
+  };
+  const searchProducts = (value: string, immediate = false) => {
+    invalidateSearch();
+    const text = value.trim();
+    if (!text || composing.current) return;
+    const version = generation.current;
+    setSearchPanelOpen(true);
     setLoading(true);
+    if (immediate) setQuery({ text, version });
+    else debounce.current = setTimeout(() => setQuery({ text, version }), 250);
+  };
+  useEffect(
+    () => () => {
+      generation.current += 1;
+      clearTimeout(debounce.current);
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!query) return;
+    const controller = new AbortController();
+    const current = () =>
+      !controller.signal.aborted && generation.current === query.version;
     createSanityCatalogSource()
-      .getPage({ search: query, includeUnpublished: false })
+      .getPage(
+        { search: query.text, includeUnpublished: false },
+        controller.signal,
+      )
       .then(async (page) => {
-        const details = await loadWebsiteProductDetails(page.products).catch(
-          () => ({
-            images: new Map<string, string>(),
-            localizedPowerSupplies: new Map<string, Record<string, string>>(),
-          }),
-        );
-        if (!cancelled) {
-          setProducts(page.products);
+        if (!current()) return;
+        const pending = boundedWebsiteDetails(page.products, controller.signal);
+        detailsPending.current = pending;
+        setProducts(page.products);
+        setActiveIndex(page.products.length ? 0 : -1);
+        setLoading(false);
+        // Text candidates do not wait for optional website image/packing metadata.
+        const details = await pending.catch(() => undefined);
+        if (current() && details) {
           setImages(details.images);
-          setFailedImages(new Set());
           setLocalizedPowerSupplies(details.localizedPowerSupplies);
-          setActiveIndex(page.products.length ? 0 : -1);
         }
       })
       .catch(() => {
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (current()) {
+          setProducts([]);
+          setLoading(false);
+          setSearchError(true);
+        }
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [query]);
   useEffect(() => {
     if (activeIndex >= 0)
       optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
   const select = async (product: SanityCatalogProduct) => {
+    if (
+      selecting.current ||
+      !products.some((candidate) => candidate.id === product.id)
+    )
+      return;
+    selecting.current = true;
+    const version = generation.current;
+    const pendingDetails = detailsPending.current;
+    clearTimeout(debounce.current);
     const importMachineSpecifications =
       specificationMode === "machines-only" &&
       shouldImportProductSpecifications("quote", product);
@@ -290,16 +378,21 @@ export function ProductLibraryLookup({
             .then((overlay) => overlay.get(product.id))
             .catch(() => undefined)
         : undefined;
+    const selectedDetails = await pendingDetails?.catch(() => undefined);
+    if (generation.current !== version) return;
     onSelected(
       createItemSnapshot(
         product,
-        catalogProductImageCandidates(product, images.get(product.id)).find(
-          (url) => !failedImages.has(url),
-        ),
+        loadedImages.current.get(product.id) ??
+          catalogThumbnailImageCandidates(
+            product,
+            selectedDetails?.images.get(product.id) ?? images.get(product.id),
+          )[0],
         {
           documentLanguage,
           localizedPowerSupply: importMachineSpecifications
-            ? localizedPowerSupplies.get(product.id)
+            ? (selectedDetails?.localizedPowerSupplies.get(product.id) ??
+              localizedPowerSupplies.get(product.id))
             : undefined,
           includeSpecification:
             specificationMode === "all" || importMachineSpecifications,
@@ -310,48 +403,44 @@ export function ProductLibraryLookup({
       ),
     );
     setSearch(product.sku ?? "");
-    setQuery("");
-    setProducts([]);
-    setActiveIndex(-1);
+    invalidateSearch();
     setSearchPanelOpen(false);
   };
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      composing.current
+    )
+      return;
+    if (event.key === "Enter") event.preventDefault();
+    if (event.repeat && event.key === "Enter") return;
     if (event.key === "ArrowDown" && products.length) {
       event.preventDefault();
       setActiveIndex((index) => Math.min(index + 1, products.length - 1));
     } else if (event.key === "ArrowUp" && products.length) {
       event.preventDefault();
       setActiveIndex((index) => Math.max(index - 1, 0));
-    } else if (
-      event.key === "Enter" &&
-      (event.nativeEvent.isComposing || event.keyCode === 229)
-    ) {
-      return;
-    } else if (event.key === "Enter" && search.trim() !== query) {
-      event.preventDefault();
-      setQuery(search.trim());
-      setActiveIndex(-1);
-    } else if (event.key === "Enter" && activeIndex >= 0) {
-      event.preventDefault();
+    } else if (event.key === "Enter" && search.trim() !== query?.text) {
+      searchProducts(search, true);
+    } else if (event.key === "Enter" && activeIndex >= 0 && searchPanelOpen) {
       void select(products[activeIndex]);
     } else if (event.key === "Escape") {
       event.preventDefault();
-      setProducts([]);
-      setActiveIndex(-1);
+      invalidateSearch();
       setSearchPanelOpen(false);
     }
   };
   const commitManualSku = () => {
     const next = search.trim();
-    if (next && next !== sku) onManualSku(next);
+    if (!selecting.current && next && next !== sku) onManualSku(next);
   };
   const searchButton = (
     <button
       type="button"
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => {
-        setQuery(search.trim());
-        setActiveIndex(-1);
+        searchProducts(search, true);
       }}
     >
       搜索
@@ -363,68 +452,69 @@ export function ProductLibraryLookup({
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => {
         setSearch("");
-        setQuery("");
-        setProducts([]);
-        setActiveIndex(-1);
+        invalidateSearch();
+        setSearchPanelOpen(false);
       }}
     >
       清空
     </button>
   );
-  const results = (loading || products.length > 0) && (
-    <ul
-      className="max-h-80 w-full overflow-y-auto rounded border bg-background shadow-md"
-      style={{ maxHeight: 320, overflowY: "auto" }}
-    >
-      {loading && <li className="p-2">正在搜索产品…</li>}
-      {products.map((product, index) => {
-        const image = catalogProductImageCandidates(
-          product,
-          images.get(product.id),
-        ).find((url) => !failedImages.has(url));
-        return (
-          <li key={product.id}>
-            <button
-              type="button"
-              ref={(element) => {
-                optionRefs.current[index] = element;
-              }}
-              aria-selected={activeIndex === index}
-              className={`flex h-10 w-full items-center gap-2 px-2 py-1 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
-              style={{ height: 40, boxSizing: "border-box" }}
-              onMouseEnter={() => setActiveIndex(index)}
-              onMouseDown={(event) => {
-                // Keep focus in the lookup until click selects the catalog
-                // product. Otherwise blur commits it as a manual SKU.
-                event.preventDefault();
-              }}
-              onClick={() => void select(product)}
-            >
-              {image ? (
-                <img
-                  className="h-[30px] w-[30px] shrink-0 object-cover"
-                  style={{ width: 30, height: 30 }}
-                  src={image}
-                  alt=""
-                  onError={() =>
-                    setFailedImages((current) => new Set(current).add(image))
-                  }
-                />
-              ) : (
-                <span className="h-[30px] w-[30px] shrink-0 text-xs">
-                  暂无图片
-                </span>
-              )}
-              <span className="min-w-0 flex-1 truncate whitespace-nowrap">
-                <strong>{product.sku}</strong> ·{" "}
-                {product.name?.zh ?? product.name?.en ?? "未命名产品"}
-              </span>
-            </button>
+  const results = searchPanelOpen &&
+    (loading || query || products.length > 0) && (
+      <ul
+        className="max-h-80 w-full overflow-y-auto rounded border bg-background shadow-md"
+        style={{ maxHeight: 320, overflowY: "auto" }}
+      >
+        {loading && <li className="p-2">正在搜索产品…</li>}
+        {!loading && !products.length && (
+          <li className="p-2">
+            {searchError ? "产品搜索失败，请重试" : "未找到匹配产品"}
           </li>
-        );
-      })}
-    </ul>
-  );
+        )}
+        {products.map((product, index) => {
+          return (
+            <li key={product.id}>
+              <button
+                type="button"
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                aria-selected={activeIndex === index}
+                className={`flex h-10 w-full items-center gap-2 px-2 py-1 text-left hover:bg-muted ${activeIndex === index ? "bg-muted" : ""}`}
+                style={{ height: 40, boxSizing: "border-box" }}
+                onMouseEnter={() => setActiveIndex(index)}
+                onMouseDown={(event) => {
+                  // Keep focus in the lookup until click selects the catalog
+                  // product. Otherwise blur commits it as a manual SKU.
+                  event.preventDefault();
+                }}
+                onClick={() => void select(product)}
+              >
+                <ProductCandidateImage
+                  sku={product.sku ?? product.id}
+                  candidates={catalogThumbnailImageCandidates(
+                    product,
+                    images.get(product.id),
+                  )}
+                  websiteUrl={images.get(product.id)}
+                  alt=""
+                  sizeClassName="shrink-0"
+                  sizePx={30}
+                  onLoaded={(url) => {
+                    if (generation.current === query?.version)
+                      loadedImages.current.set(product.id, url);
+                  }}
+                />
+                <span className="min-w-0 flex-1 truncate whitespace-nowrap">
+                  <strong>{product.sku}</strong> ·{" "}
+                  {product.name?.zh ?? product.name?.en ?? "未命名产品"}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
   return (
     <div
       className={
@@ -440,13 +530,23 @@ export function ProductLibraryLookup({
         }}
         className="w-full rounded border p-1"
         value={search}
-        onFocus={wideCommercial ? () => setSearchPanelOpen(true) : undefined}
+        onFocus={() => setSearchPanelOpen(true)}
         onChange={(event) => {
           setSearch(event.target.value);
+          searchProducts(event.target.value);
+        }}
+        onCompositionStart={() => {
+          composing.current = true;
+          invalidateSearch();
+        }}
+        onCompositionEnd={(event) => {
+          composing.current = false;
+          searchProducts(event.currentTarget.value);
         }}
         onKeyDown={handleInputKeyDown}
         onBlur={() => {
           commitManualSku();
+          if (!selecting.current) invalidateSearch();
           setSearchPanelOpen(false);
         }}
         placeholder="SKU / 产品名称"

@@ -21,7 +21,7 @@ import {
   ProductLibraryLookup,
   type DocumentLanguage,
 } from "./ProductLibraryLookup";
-import { OrderProductImage } from "./OrderProductImage";
+import { ProductSnapshotImage } from "../products/ProductSnapshotImage";
 import { CommercialItemDrawer } from "./CommercialItemDrawer";
 import {
   calculateQuoteUsdUnitPrice,
@@ -496,7 +496,8 @@ export function CommercialLineItemsTable({
                                   return;
                                 event.preventDefault();
                                 const sku = event.currentTarget.value.trim();
-                                if (sku) void createDraft(draftIndex, { sku });
+                                if (!sku) return;
+                                void createDraft(draftIndex, { sku });
                                 advanceDraft(draftIndex);
                               }}
                             />
@@ -780,20 +781,10 @@ export function CommercialLineItemsTable({
                             </div>
                           </td>
                           <td>
-                            {orderTemplate ? (
-                              <OrderProductImage
-                                sku={item.sku}
-                                imageUrl={product.image_url}
-                              />
-                            ) : product.image_url ? (
-                              <img
-                                className="h-9 w-9 object-cover"
-                                src={String(product.image_url)}
-                                alt=""
-                              />
-                            ) : (
-                              "暂无图片"
-                            )}
+                            <ProductSnapshotImage
+                              sku={item.sku}
+                              imageUrl={product.image_url}
+                            />
                           </td>
                           {orderTemplate && (
                             <td>
@@ -1023,6 +1014,15 @@ export function CommercialLineItemsTable({
                                     }
                                   }}
                                   onBlur={() => void commitQuoteCnyPrice()}
+                                  onKeyDown={(event) => {
+                                    if (
+                                      event.key !== "Enter" ||
+                                      !isEntryKey(event)
+                                    )
+                                      return;
+                                    event.preventDefault();
+                                    advanceRow(index);
+                                  }}
                                 />
                               </td>
                               <td>

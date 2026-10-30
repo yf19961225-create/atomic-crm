@@ -31,6 +31,7 @@ export const catalogThumbnailImageCandidates = (
 
 export const loadWebsiteProductDetails = async (
   products: SanityCatalogProduct[],
+  signal?: AbortSignal,
 ) => {
   const skus = [
     ...new Set(
@@ -42,9 +43,8 @@ export const loadWebsiteProductDetails = async (
       images: new Map<string, string>(),
       localizedPowerSupplies: new Map<string, Record<string, string>>(),
     };
-  const response = await fetch(
-    `/api/product-images?${new URLSearchParams({ skus: skus.join(",") })}`,
-  );
+  const url = `/api/product-images?${new URLSearchParams({ skus: skus.join(",") })}`;
+  const response = await (signal ? fetch(url, { signal }) : fetch(url));
   if (!response.ok) throw new Error("website image request failed");
   const body = (await response.json()) as {
     images?: Record<string, string>;

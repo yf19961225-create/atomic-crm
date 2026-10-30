@@ -151,7 +151,14 @@ it.each(["quote", "pi", "order"] as const)(
 it("recovers order snapshot images in editable and reopened read-only rows without saving any fields", async () => {
   const website = "https://romiku.com/images/products-local/st210_main.jpg";
   vi.spyOn(globalThis, "fetch").mockImplementation(
-    async () => new Response(JSON.stringify({ images: { ST210: website } })),
+    async (input) =>
+      new Response(
+        JSON.stringify(
+          String(input).startsWith("/api/product-catalog")
+            ? { result: [] }
+            : { images: { ST210: website } },
+        ),
+      ),
   );
   const saved = {
     ...item(1),
@@ -188,4 +195,41 @@ it("recovers order snapshot images in editable and reopened read-only rows witho
     expect(update).not.toHaveBeenCalled();
     await screen.unmount();
   }
+});
+
+it.each(["quote", "pi", "order"] as const)(
+  "%s empty draft Enter does not create another blank",
+  async (kind) => {
+    const { screen } = await setup(kind, 0);
+    const blank = screen.getByLabelText("草稿 SKU 1", { exact: true });
+    const before = inputs().length;
+    await blank.click();
+    await userEvent.keyboard("{Enter}{Enter}{Enter}");
+    expect(inputs()).toHaveLength(before);
+  },
+);
+
+it("Quote CNY price Enter advances without submitting the form", async () => {
+  const submit = vi.fn((event: React.FormEvent) => event.preventDefault());
+  const screen = await render(
+    <CoreAdminContext dataProvider={fakeRestDataProvider({})}>
+      <form onSubmit={submit}>
+        <CommercialLineItemsTable
+          kind="quote"
+          documentId="fx"
+          items={[item(1)]}
+          currency="USD"
+          quoteFxEnabled
+          quoteFxRate={7.2}
+          onChanged={async () => {}}
+          onItemsChange={() => {}}
+        />
+        <button type="submit">整单保存</button>
+      </form>
+    </CoreAdminContext>,
+  );
+  await screen.getByLabelText("人民币单价").click();
+  await userEvent.keyboard("{Enter}");
+  await expect.poll(() => document.activeElement === inputs()[1]).toBe(true);
+  expect(submit).not.toHaveBeenCalled();
 });

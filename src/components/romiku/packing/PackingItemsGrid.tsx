@@ -1,7 +1,9 @@
 import { useAppDraft } from "../updates/drafts";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { canonicalSkuSearch } from "../../../../shared/productCatalogQuery";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { Button } from "@/components/ui/button";
+import { ProductSnapshotImage } from "../products/ProductSnapshotImage";
 import { ProductLibraryLookup } from "../commercial/ProductLibraryLookup";
 import {
   packingQuantity,
@@ -113,6 +115,12 @@ export function PackingItemsGrid({
   onSaved: () => Promise<unknown>;
 }) {
   const provider = useDataProvider();
+  const nextProductRef = useRef<HTMLInputElement>(null);
+  const pendingFocus = useRef<string | null>(null);
+  const rowInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [locateText, setLocateText] = useState("");
+  const [locateOpen, setLocateOpen] = useState(false);
+  const [locateIndex, setLocateIndex] = useState(0);
   const [draft, setDraft] = useState<Row[]>(items.map((item) => ({ ...item })));
   const [baseline, setBaseline] = useState(items);
   const hasUnsavedChanges =
@@ -127,6 +135,57 @@ export function PackingItemsGrid({
       setBaseline(items);
     }
   }, [items, hasUnsavedChanges]);
+  useEffect(() => {
+    const id = pendingFocus.current;
+    if (id && rowInputRefs.current[id]) {
+      rowInputRefs.current[id]?.focus();
+      pendingFocus.current = null;
+    }
+  }, [draft]);
+  const matches = locateText.trim()
+    ? draft
+        .filter((item) => {
+          const sku = String(item.sku || "");
+          const name = String((item.product_snapshot as Row)?.name || "");
+          return (
+            canonicalSkuSearch(sku).includes(canonicalSkuSearch(locateText)) ||
+            name.toLowerCase().includes(locateText.trim().toLowerCase())
+          );
+        })
+        .sort(
+          (a, b) =>
+            Number(
+              String(b.sku).toLowerCase() === locateText.trim().toLowerCase(),
+            ) -
+            Number(
+              String(a.sku).toLowerCase() === locateText.trim().toLowerCase(),
+            ),
+        )
+    : [];
+  const locate = (id: string) => {
+    rowInputRefs.current[id]?.focus();
+    rowInputRefs.current[id]?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+    setLocateOpen(false);
+  };
+  const advance = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (
+      event.key !== "Enter" ||
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229
+    )
+      return;
+    event.preventDefault();
+    if (event.repeat || saving) return;
+    const next = draft[index + 1];
+    if (next) locate(String(next.id));
+    else if (!parent.order_id) {
+      nextProductRef.current?.focus();
+      nextProductRef.current?.select();
+    }
+  };
   const edited = hasUnsavedChanges;
   const dirty =
     edited ||
@@ -184,11 +243,13 @@ export function PackingItemsGrid({
       )
     )
       return;
+    const id = `catalog-${values.sanity_product_id || values.sku}-${draft.length}`;
+    pendingFocus.current = id;
     setDraft((current) => [
       ...current,
       {
         ...values,
-        id: `catalog-${values.sanity_product_id || values.sku}-${current.length}`,
+        id,
         source_order_item_id: null,
       },
     ]);
@@ -266,13 +327,83 @@ export function PackingItemsGrid({
         </div>
       </div>
       {parent.order_id ? (
-        <p className="text-sm text-muted-foreground">
-          已在创建时自动导入此订单全部剩余产品。
-        </p>
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">
+            已在创建时自动导入此订单全部剩余产品。
+          </p>
+          <div className="relative w-64 max-w-full">
+            <input
+              aria-label="搜索本单产品"
+              placeholder="查找本单 SKU / 产品名称"
+              className="w-full rounded border p-1"
+              value={locateText}
+              onChange={(event) => {
+                setLocateText(event.target.value);
+                setLocateOpen(true);
+                setLocateIndex(0);
+              }}
+              onFocus={() => setLocateOpen(true)}
+              onBlur={() => setLocateOpen(false)}
+              onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing || event.keyCode === 229)
+                  return;
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setLocateOpen(false);
+                }
+                if (event.key === "ArrowDown") {
+                  event.preventDefault();
+                  setLocateIndex((i) => Math.min(i + 1, matches.length - 1));
+                }
+                if (event.key === "ArrowUp") {
+                  event.preventDefault();
+                  setLocateIndex((i) => Math.max(i - 1, 0));
+                }
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  if (!event.repeat && locateOpen && matches[locateIndex])
+                    locate(String(matches[locateIndex].id));
+                }
+              }}
+            />
+            {locateOpen && locateText.trim() && (
+              <ul
+                role="listbox"
+                aria-label="本单产品结果"
+                className="absolute z-20 max-h-80 w-full overflow-y-auto rounded border bg-background shadow-md"
+              >
+                {!matches.length && <li className="p-2">未找到本单产品</li>}
+                {matches.map((item, index) => (
+                  <li key={String(item.id)}>
+                    <button
+                      type="button"
+                      aria-selected={locateIndex === index}
+                      className={`flex h-10 w-full items-center gap-2 px-2 text-left hover:bg-muted ${locateIndex === index ? "bg-muted" : ""}`}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => locate(String(item.id))}
+                    >
+                      <ProductSnapshotImage
+                        sku={String(item.sku || "")}
+                        imageUrl={(item.product_snapshot as Row)?.image_url}
+                        sizeClassName="h-[30px] w-[30px] shrink-0"
+                      />
+                      <span className="min-w-0 truncate">
+                        <strong>{String(item.sku)}</strong> ·{" "}
+                        {String((item.product_snapshot as Row)?.name || "")}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="flex items-center gap-2">
           <span className="text-sm">从产品库添加产品</span>
           <ProductLibraryLookup
+            wideCommercial
+            inputRef={nextProductRef}
             capturePacking
             includeUnit
             onManualSku={() => undefined}
@@ -320,6 +451,14 @@ export function PackingItemsGrid({
               const input = (key: string) => (
                 <input
                   aria-label={`${key} ${item.sku}`}
+                  ref={
+                    key === "cartons"
+                      ? (element) => {
+                          rowInputRefs.current[String(item.id)] = element;
+                        }
+                      : undefined
+                  }
+                  onKeyDown={(event) => advance(event, index)}
                   className="block w-full min-w-0 rounded border p-1 text-right"
                   type="number"
                   min="0"
@@ -345,13 +484,11 @@ export function PackingItemsGrid({
                     {String((item.product_snapshot as any)?.name || "")}
                   </td>
                   <td className="p-2">
-                    {(item.product_snapshot as any)?.image_url && (
-                      <img
-                        className="h-8 w-8 object-cover"
-                        src={(item.product_snapshot as any).image_url}
-                        alt=""
-                      />
-                    )}
+                    <ProductSnapshotImage
+                      sku={String(item.sku || "")}
+                      imageUrl={(item.product_snapshot as Row)?.image_url}
+                      sizeClassName="h-8 w-8"
+                    />
                   </td>
                   <td className="break-words p-2">
                     {String(
@@ -363,6 +500,7 @@ export function PackingItemsGrid({
                   <td className="min-w-0 p-1">
                     <input
                       aria-label={`unit ${item.sku}`}
+                      onKeyDown={(event) => advance(event, index)}
                       className="block w-full min-w-0 rounded border p-1"
                       value={String((item.product_snapshot as Row)?.unit || "")}
                       onChange={(event) =>
