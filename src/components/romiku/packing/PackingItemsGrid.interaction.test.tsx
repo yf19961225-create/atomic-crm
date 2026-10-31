@@ -262,6 +262,10 @@ it("standalone packing Enter returns to catalog input without creating blank bus
       />
     </CoreAdminContext>,
   );
+  const lookup = screen.getByLabelText("搜索 SKU 或产品").element();
+  expect(lookup.closest("tr")?.previousElementSibling?.textContent).toContain(
+    "NA255",
+  );
   const field = screen.getByLabelText("cartons NA255").element();
   field.dispatchEvent(
     new KeyboardEvent("keydown", {
@@ -273,7 +277,12 @@ it("standalone packing Enter returns to catalog input without creating blank bus
   expect(document.activeElement).toBe(
     screen.getByLabelText("搜索 SKU 或产品").element(),
   );
-  expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+  expect(document.querySelectorAll("tbody tr")).toHaveLength(2);
+  await userEvent.keyboard("{Enter}{Enter}{Enter}");
+  expect(document.querySelectorAll("tbody tr")).toHaveLength(2);
+  expect(
+    document.querySelectorAll('input[aria-label^="cartons "]'),
+  ).toHaveLength(1);
 });
 
 it("linked packing advances to next imported row and ignores repeat or IME", async () => {

@@ -398,19 +398,7 @@ export function PackingItemsGrid({
             )}
           </div>
         </div>
-      ) : (
-        <div className="flex items-center gap-2">
-          <span className="text-sm">从产品库添加产品</span>
-          <ProductLibraryLookup
-            wideCommercial
-            inputRef={nextProductRef}
-            capturePacking
-            includeUnit
-            onManualSku={() => undefined}
-            onSelected={addCatalogProduct}
-          />
-        </div>
-      )}
+      ) : null}
       <div className="w-full min-w-0 overflow-x-auto">
         <table className="w-full min-w-[1440px] table-fixed text-sm">
           <colgroup>
@@ -568,6 +556,25 @@ export function PackingItemsGrid({
                 </tr>
               );
             })}
+            {!parent.order_id && (
+              <tr className="border-t bg-muted/20" aria-label="下一条装箱产品">
+                <td className="p-2">{draft.length + 1}</td>
+                <td colSpan={2} className="p-1">
+                  <ProductLibraryLookup
+                    key={draft.length}
+                    wideCommercial
+                    inputRef={nextProductRef}
+                    capturePacking
+                    includeUnit
+                    onManualSku={() => undefined}
+                    onSelected={addCatalogProduct}
+                  />
+                </td>
+                <td colSpan={14} className="p-2 text-muted-foreground">
+                  从产品库添加产品
+                </td>
+              </tr>
+            )}
           </tbody>
           <tfoot>
             <tr className="border-t font-semibold">
