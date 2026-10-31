@@ -215,6 +215,7 @@ export function ProductLibraryLookup({
   sku = "",
   onSelected,
   onManualSku,
+  onAdvance,
   inputRef,
   specificationMode = "all",
   documentLanguage = "zh",
@@ -226,6 +227,7 @@ export function ProductLibraryLookup({
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
   onManualSku: (sku: string) => void;
+  onAdvance?: () => void;
   inputRef?: Ref<HTMLInputElement>;
   specificationMode?: ProductSpecificationMode;
   documentLanguage?: DocumentLanguage;
@@ -413,8 +415,21 @@ export function ProductLibraryLookup({
       composing.current
     )
       return;
-    if (event.key === "Enter") event.preventDefault();
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (event.repeat && event.key === "Enter") return;
+    if (
+      event.key === "Enter" &&
+      !query &&
+      sku.trim() &&
+      search.trim() === sku.trim() &&
+      onAdvance
+    ) {
+      onAdvance();
+      return;
+    }
     if (event.key === "ArrowDown" && products.length) {
       event.preventDefault();
       setActiveIndex((index) => Math.min(index + 1, products.length - 1));

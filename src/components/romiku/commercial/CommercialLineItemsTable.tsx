@@ -138,7 +138,9 @@ export function CommercialLineItemsTable({
     if (!focusTarget) return;
     const element = focusTarget.startsWith("draft:")
       ? draftSkuRefs.current[Number(focusTarget.slice(6))]
-      : rowSkuRefs.current[focusTarget.slice(5)];
+      : focusTarget.startsWith("name:")
+        ? rowNameRefs.current[focusTarget.slice(5)]
+        : rowSkuRefs.current[focusTarget.slice(5)];
     if (!element) return;
     element.focus();
     pendingFocus.current = null;
@@ -148,7 +150,7 @@ export function CommercialLineItemsTable({
     pendingFocus.current = target;
     setFocusTarget(target);
   };
-  const isEntryKey = (event: KeyboardEvent<HTMLInputElement>) => {
+  const isEntryKey = (event: KeyboardEvent<HTMLElement>) => {
     if (event.nativeEvent.isComposing || event.keyCode === 229) return false;
     if (event.repeat || pendingFocus.current) {
       event.preventDefault();
@@ -240,13 +242,15 @@ export function CommercialLineItemsTable({
   const createDraft = async (
     draftIndex: number,
     data: Record<string, unknown>,
+    focusName = false,
   ) => {
     draftRowsTouched.current = true;
     if (onItemsChange) {
+      const id = newDraftCommercialItemId();
       onItemsChange([
         ...items,
         {
-          id: newDraftCommercialItemId(),
+          id,
           sku: "MANUAL",
           quantity: 1,
           unit_price: 0,
@@ -260,6 +264,7 @@ export function CommercialLineItemsTable({
       setDraftRows((current) =>
         current.filter((row) => row.id !== draftRows[draftIndex].id),
       );
+      if (focusName) requestFocus(`name:${id}`);
       return;
     }
     await provider.create(adapter.resource, {
@@ -476,7 +481,7 @@ export function CommercialLineItemsTable({
                               draftSkuRefs.current[row.row.id] = element;
                             }}
                             onSelected={(snapshot) =>
-                              void createDraft(draftIndex, snapshot)
+                              void createDraft(draftIndex, snapshot, true)
                             }
                             onManualSku={(sku) =>
                               void createDraft(draftIndex, { sku })
@@ -639,6 +644,21 @@ export function CommercialLineItemsTable({
                         <tr
                           className="border-t"
                           ref={drag.innerRef}
+                          onKeyDown={(event) => {
+                            const field = event.target;
+                            if (
+                              event.defaultPrevented ||
+                              event.key !== "Enter" ||
+                              !(field instanceof HTMLInputElement) ||
+                              field.disabled ||
+                              field.readOnly ||
+                              !["text", "number", "search"].includes(field.type)
+                            )
+                              return;
+                            if (!isEntryKey(event)) return;
+                            event.preventDefault();
+                            advanceRow(index);
+                          }}
                           {...({
                             ...drag.draggableProps,
                             style: drag.draggableProps.style as CSSProperties,
@@ -660,6 +680,7 @@ export function CommercialLineItemsTable({
                               <ProductLibraryLookup
                                 wideCommercial
                                 sku={item.sku}
+                                onAdvance={() => advanceRow(index)}
                                 inputRef={(element) => {
                                   rowSkuRefs.current[String(item.id)] = element;
                                 }}
@@ -723,10 +744,6 @@ export function CommercialLineItemsTable({
                                       name: event.target.value,
                                     },
                                   });
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter")
-                                    event.preventDefault();
                                 }}
                               />
                               {compactQuote && editable && (
@@ -863,10 +880,6 @@ export function CommercialLineItemsTable({
                                       },
                                     });
                                 }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter")
-                                    event.preventDefault();
-                                }}
                               />
                             </td>
                           )}
@@ -917,10 +930,6 @@ export function CommercialLineItemsTable({
                                     event.target.value,
                                   );
                               }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter")
-                                  event.preventDefault();
-                              }}
                             />
                           </td>
                           {!compactQuote && !orderTemplate && (
@@ -943,10 +952,6 @@ export function CommercialLineItemsTable({
                                       "cartons",
                                       event.target.value,
                                     );
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter")
-                                    event.preventDefault();
                                 }}
                               />
                             </td>
@@ -977,10 +982,6 @@ export function CommercialLineItemsTable({
                                         quantity_manual: true,
                                       },
                                     });
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter")
-                                    event.preventDefault();
                                 }}
                               />
                             </td>
