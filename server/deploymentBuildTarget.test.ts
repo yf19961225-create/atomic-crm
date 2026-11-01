@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { assertDeploymentBuildTarget } from "./deploymentBuildTarget";
 
 const refs = {
@@ -64,4 +64,51 @@ describe("deployment build target", () => {
   it("allows ordinary local builds without a Vercel deployment target", () => {
     expect(assertDeploymentBuildTarget({})).toBeNull();
   });
+});
+
+describe("strict Production URL evidence", () => {
+  it("emits complete evidence only for exact URLs without exposing values", () => {
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      assertDeploymentBuildTarget(vars("production"));
+      expect(log.mock.calls.map(([message]) => message)).toEqual([
+        "PRODUCTION_URL_GUARD START",
+        "VITE_SUPABASE_URL PASS",
+        "SUPABASE_URL PASS",
+        "PRODUCTION_URL_GUARD PASS",
+      ]);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it.each(["VITE_SUPABASE_URL", "SUPABASE_URL"])(
+    "rejects normalization and placeholders for %s without leaking values",
+    (key) => {
+      const log = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        for (const value of [
+          vars("production")[key as "SUPABASE_URL"] + "/",
+          "[SENSITIVE]",
+          " https://vddjodsbmuarshnytyvb.supabase.co",
+          undefined,
+        ]) {
+          log.mockClear();
+          expect(() =>
+            assertDeploymentBuildTarget({
+              ...vars("production"),
+              [key]: value,
+            }),
+          ).toThrow();
+          const messages = log.mock.calls.map(([message]) => message);
+          expect(messages).toContain(key + " FAIL");
+          expect(messages).not.toContain("PRODUCTION_URL_GUARD PASS");
+          expect(messages.join("\n")).not.toContain("supabase.co");
+          expect(messages.join("\n")).not.toContain("[SENSITIVE]");
+        }
+      } finally {
+        log.mockRestore();
+      }
+    },
+  );
 });

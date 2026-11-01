@@ -43,6 +43,17 @@ export function assertDeploymentBuildTarget(env: Environment): {
       "Vercel build blocked: deployment environment declarations disagree",
     );
   }
+  if (deployment === "production") {
+    console.warn("PRODUCTION_URL_GUARD START");
+    const exactUrl = `https://${expectedRefs.production}.supabase.co`;
+    for (const key of ["VITE_SUPABASE_URL", "SUPABASE_URL"] as const) {
+      const matches = env[key] === exactUrl;
+      console.warn(`${key} ${matches ? "PASS" : "FAIL"}`);
+      if (!matches) {
+        throw new Error("Production URL Guard failed: exact URL mismatch");
+      }
+    }
+  }
   const expected = expectedRefs[deployment];
   if (
     exactSupabaseRef(env.VITE_SUPABASE_URL) !== expected ||
@@ -52,5 +63,6 @@ export function assertDeploymentBuildTarget(env: Environment): {
       `Vercel ${deployment} build blocked: frontend/server Supabase targets must both be ${expected}`,
     );
   }
+  if (deployment === "production") console.warn("PRODUCTION_URL_GUARD PASS");
   return { environment: deployment, projectRef: expected };
 }
