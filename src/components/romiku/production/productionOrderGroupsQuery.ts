@@ -5,6 +5,7 @@ export type ProductionOrderGroup = {
   document_number: string;
   document_name?: string | null;
   document_date: string;
+  expected_delivery_at?: string | null;
   customer_name: string;
   matched_child_count?: number;
   matched_children?: Array<{ id: string; document_number: string }>;

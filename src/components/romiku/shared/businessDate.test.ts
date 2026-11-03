@@ -52,3 +52,13 @@ it("rejects DST gaps and offers both instants for ambiguous times", async () => 
     resolveBusinessDateTime("2026-11-01", "01:30", "2026-11-01T09:30:12.345Z"),
   ).toEqual(["2026-11-01T09:30:12.345Z"]);
 });
+
+it("formats order delivery dates in the existing editor timezone, including month boundaries", async () => {
+  const { orderDeliveryDateLabel } = await import("./businessDate");
+  await commands.setTimezone("Asia/Shanghai");
+  expect(orderDeliveryDateLabel("2026-10-31T16:00:00Z")).toBe("2026-11-01");
+  expect(orderDeliveryDateLabel("2026-12-31T16:00:00Z")).toBe("2027-01-01");
+  expect(orderDeliveryDateLabel(null)).toBe("—");
+  expect(orderDeliveryDateLabel("invalid")).toBe("—");
+  expect(orderDeliveryDateLabel("2026-11-10")).toBe("2026-11-10");
+});

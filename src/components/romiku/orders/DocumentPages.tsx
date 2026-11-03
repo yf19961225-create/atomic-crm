@@ -1,3 +1,4 @@
+import { orderDeliveryDateLabel } from "../shared/businessDate";
 import { documentTitle } from "../commercial/documentIdentity";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
@@ -236,9 +237,9 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
               {[
                 config.label,
                 "采购方",
-                "来源",
-                "状态",
-                "日期",
+                ...(kind === "order"
+                  ? ["状态", "送货日期", "订单日期"]
+                  : ["来源", "状态", "日期"]),
                 "合计",
                 ...(kind === "order" ? ["待收款"] : []),
               ].map((label) => (
@@ -265,9 +266,11 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                   )}
                 </td>
                 <td className="p-3">{record.counterparty_snapshot?.name}</td>
-                <td className="p-3">
-                  <DocumentSources record={record} />
-                </td>
+                {kind !== "order" && (
+                  <td className="p-3">
+                    <DocumentSources record={record} />
+                  </td>
+                )}
                 <td className="p-3">
                   {record.status === "voided" ? (
                     <span>已作废</span>
@@ -285,6 +288,11 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                     />
                   )}
                 </td>
+                {kind === "order" && (
+                  <td className="p-3 whitespace-nowrap">
+                    {orderDeliveryDateLabel(record.expected_delivery_at)}
+                  </td>
+                )}
                 <td className="p-3">{record.document_date}</td>
                 <td className="p-3">
                   {record.currency} {Number(record.total).toFixed(2)}

@@ -200,3 +200,29 @@ it("reveals the matching child beyond the first 100 without hiding full history"
     .element(screen.getByLabelText("搜索命中 ZZ-LAST", { exact: true }))
     .toBeVisible();
 });
+
+it("reads delivery by parent UUID, removes the summary due block and preserves child factory due", async () => {
+  const { screen, provider } = await setup();
+  await provider.update("romiku_orders", {
+    id: "o",
+    data: { expected_delivery_at: "2026-11-10T12:00:00Z" },
+    previousData: { id: "o" },
+  });
+  await screen.getByRole("tab", { name: "全部", exact: true }).click();
+  await expect
+    .element(screen.getByText("2026-11-10", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("送货日期", { exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByText("订单日期", { exact: true }))
+    .not.toBeInTheDocument();
+  await expect
+    .element(screen.getByText("最近工厂交期", { exact: true }))
+    .not.toBeInTheDocument();
+  await screen.getByRole("button", { name: "展开 OD-QA", exact: true }).click();
+  await expect
+    .element(screen.getByText("工厂交期：—", { exact: true }).first())
+    .toBeVisible();
+});

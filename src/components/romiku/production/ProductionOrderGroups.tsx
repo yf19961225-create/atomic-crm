@@ -1,3 +1,4 @@
+import { orderDeliveryDateLabel } from "../shared/businessDate";
 import { documentTitle } from "../commercial/documentIdentity";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -28,6 +29,7 @@ const localDate = (value: unknown) =>
     ? new Date(String(value)).toLocaleString("zh-CN", { hour12: false })
     : "—";
 export function ProductionOrderGroups() {
+  const provider = useDataProvider();
   const [params] = useSearchParams();
   const orderId = params.get("order");
   const [viewState, setView] = useState<{
@@ -47,7 +49,26 @@ export function ProductionOrderGroups() {
   const [loaded, setLoaded] = useState<Record<string, RaRecord[]>>({});
   const query = useQuery({
     queryKey: ["production-order-groups", search, view, page, orderId],
-    queryFn: () => readProductionOrderGroups(search, view, page, orderId),
+    queryFn: async () => {
+      const result = await readProductionOrderGroups(
+        search,
+        view,
+        page,
+        orderId,
+      );
+      if (!result.rows.length) return result;
+      const { data: orders } = await provider.getMany("romiku_orders", {
+        ids: result.rows.map((group) => group.id),
+      });
+      return {
+        ...result,
+        rows: result.rows.map((group) => ({
+          ...group,
+          expected_delivery_at: orders.find((order) => order.id === group.id)
+            ?.expected_delivery_at,
+        })),
+      };
+    },
   });
   const groups = query.data?.rows ?? [];
   const expandedIds =
@@ -161,7 +182,7 @@ export function ProductionOrderGroups() {
       )}
       {groups.map((group) => (
         <article key={group.id} className="rounded border">
-          <div className="flex flex-wrap items-start gap-3 p-3 md:grid md:grid-cols-[minmax(200px,2fr)_1fr_2fr_auto]">
+          <div className="grid items-start gap-3 p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,2fr)] [&>div]:min-w-0 [&>div]:break-words">
             <div>
               <Button
                 variant="ghost"
@@ -191,7 +212,8 @@ export function ProductionOrderGroups() {
               <p className="mt-1">{group.customer_name}</p>
             </div>
             <div className="text-sm">
-              订单日期<p>{group.document_date || "—"}</p>
+              <p>送货日期</p>
+              <p>{orderDeliveryDateLabel(group.expected_delivery_at)}</p>
               <p>{group.production_count} 张生产单</p>
             </div>
             <div className="text-sm">
@@ -208,10 +230,6 @@ export function ProductionOrderGroups() {
                 value={group.received_count}
                 className="mt-1 w-full"
               />
-            </div>
-            <div className="text-sm">
-              最近工厂交期
-              <p>{productionDueDateLabel(group.latest_factory_due_at)}</p>
             </div>
           </div>
           {search.trim() && !!group.matched_child_count && (

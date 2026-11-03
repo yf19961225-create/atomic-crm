@@ -73,3 +73,10 @@ export function businessDateLabel(value: unknown) {
   const [y, m, d] = parts(text)!;
   return `${y}年${m}月${d}日`;
 }
+
+/** Same local calendar semantics as the existing order delivery date editor. */
+export function orderDeliveryDateLabel(value: unknown) {
+  const text = String(value ?? "");
+  if (validBusinessDate(text)) return text;
+  return localBusinessDateTime(text).slice(0, 10) || "—";
+}
