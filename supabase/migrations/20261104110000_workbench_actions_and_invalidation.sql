@@ -183,12 +183,6 @@ begin
  return r;
 end $$;
 
--- Ownership is changed only after granting temporary schema CREATE; revoked below.
-grant create on schema public to romiku_workbench_executor;
-alter function public.romiku_workbench_action(text,uuid,bigint,uuid,jsonb,text) owner to romiku_workbench_executor;
-alter function public.romiku_wb_invalidate(uuid,text,uuid) owner to romiku_workbench_executor;
-alter function public.romiku_wb_financial_change() owner to romiku_workbench_executor;
-revoke create on schema public from romiku_workbench_executor;
 revoke all on function public.romiku_workbench_action(text,uuid,bigint,uuid,jsonb,text),public.romiku_workbench_order_snapshot(uuid),public.romiku_workbench_verification_list(integer,integer),public.romiku_wb_invalidate(uuid,text,uuid),public.romiku_wb_financial_change(),public.romiku_wb_due_guard() from public,anon,authenticated;
 grant execute on function public.romiku_workbench_action(text,uuid,bigint,uuid,jsonb,text),public.romiku_workbench_order_snapshot(uuid),public.romiku_workbench_verification_list(integer,integer) to authenticated;
 
@@ -224,9 +218,6 @@ begin
  values(req,1,kind,old.id,'source_deleted',auth.uid(),case when auth.uid() is null then 'system' else 'user' end,jsonb_build_object('id',old.id),'{}','Existing controlled source deletion');
  return old;
 end $$;
-grant create on schema public to romiku_workbench_executor;
-alter function public.romiku_wb_source_deleted() owner to romiku_workbench_executor;
-revoke create on schema public from romiku_workbench_executor;
 revoke all on function public.romiku_wb_source_deleted() from public,anon,authenticated;
 create trigger wb_order_deleted before delete on public.romiku_orders for each row execute function public.romiku_wb_source_deleted();
 create trigger wb_production_deleted before delete on public.romiku_production_orders for each row execute function public.romiku_wb_source_deleted();
@@ -354,3 +345,40 @@ begin
   end loop;
  end if;
 end $$;
+
+-- Run this migration in one transaction as the audited postgres session.
+-- Finish ACL/trigger setup while postgres still owns the functions. PostgreSQL 16+
+-- gives role creators ADMIN without SET/INHERIT. Preserve that bootstrap grant;
+-- add and remove only the temporary membership granted by postgres itself.
+-- Supabase: /kb/troubleshooting/cant-revoke-a-role-membership-granted-by-supabase_admin
+DO $ownership_gate$
+BEGIN
+ if current_user <> 'postgres' or session_user <> 'postgres' then
+  raise exception 'WORKBENCH_MIGRATION_EXECUTOR_MISMATCH';
+ end if;
+ if pg_has_role('postgres','romiku_workbench_executor','SET')
+    or pg_has_role('postgres','romiku_workbench_executor','USAGE')
+    or has_schema_privilege('romiku_workbench_executor','public','CREATE')
+    or exists(select 1 from pg_auth_members where roleid='romiku_workbench_executor'::regrole
+      and member='postgres'::regrole and grantor='postgres'::regrole) then
+  raise exception 'WORKBENCH_TEMPORARY_PRIVILEGE_BASELINE_CHANGED';
+ end if;
+END $ownership_gate$;
+grant romiku_workbench_executor to postgres with admin false, inherit false, set true granted by postgres;
+grant create on schema public to romiku_workbench_executor;
+alter function public.romiku_workbench_action(text,uuid,bigint,uuid,jsonb,text) owner to romiku_workbench_executor;
+alter function public.romiku_wb_invalidate(uuid,text,uuid) owner to romiku_workbench_executor;
+alter function public.romiku_wb_financial_change() owner to romiku_workbench_executor;
+alter function public.romiku_wb_source_deleted() owner to romiku_workbench_executor;
+revoke create on schema public from romiku_workbench_executor;
+revoke romiku_workbench_executor from postgres granted by postgres;
+DO $ownership_verified$
+BEGIN
+ if pg_has_role('postgres','romiku_workbench_executor','SET')
+    or pg_has_role('postgres','romiku_workbench_executor','USAGE')
+    or has_schema_privilege('romiku_workbench_executor','public','CREATE')
+    or exists(select 1 from pg_auth_members where roleid='romiku_workbench_executor'::regrole
+      and member='postgres'::regrole and grantor='postgres'::regrole) then
+  raise exception 'WORKBENCH_TEMPORARY_PRIVILEGE_NOT_REVOKED';
+ end if;
+END $ownership_verified$;

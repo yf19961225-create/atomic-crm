@@ -1,6 +1,13 @@
+> 2026-11-04 role ownership amendment: the previous candidate M2 hash is superseded.
+> Latest read-only Preview audit: 2026-11-04 13:24:58 Asia/Shanghai; ledger 68;
+> session_user=current_user=postgres (not superuser), target executor absent.
+> No remote M1/M2 executed. Revised M2 requires fresh explicit approval.
+> Authoritative new hashes, tests and permission lifecycle:
+> `2026-11-04-owner-transfer-verification.md`.
+
 # 工作台 Preview 实施计划（待单独授权）
 
-## 当前状态
+## 原计划编写时的历史状态（以下连接问题已由后续只读审计解决）
 本轮仅本地实施。Preview ledger/schema **未取得本轮实际读数**：Chrome 浏览器绑定 Preview SQL Editor 两次返回 `Cannot read properties of undefined (reading timeoutMs)`；无可用 Supabase 管理连接器。没有执行 Preview migration，不能把历史 ledger 或本地 ledger=0 当成当前远端证据。
 
 授权申请与执行 Gate 分开：可以审阅本地候选并授权后续流程，但真正执行前必须取得本节的只读证据。若不能读取，停止，不猜测。
@@ -16,7 +23,7 @@
 - M1 `supabase/migrations/20261104100000_workbench_state_and_audit.sql`
 - M2 `supabase/migrations/20261104110000_workbench_actions_and_invalidation.sql`
 
-最终哈希见同目录 `2026-11-04-ui-local-verification.md`。只能逐份单事务执行，ledger 记录与该份事务绑定。禁止全量 push，禁止重复执行旧 migration。
+最终哈希见同目录 `2026-11-04-owner-transfer-verification.md`；旧 UI 验收报告哈希仅作历史证据。只能逐份单事务执行，ledger 记录与该份事务绑定。禁止全量 push，禁止重复执行旧 migration。
 
 M1：核验五新表、NOLOGIN/NOBYPASSRLS 执行角色、非客户端成员、FORCE RLS、只读审计权限及旧业务指纹不变。失败即停止。
 M2：核验动作/快照/feed RPC、同事务失效、普通交期 UPDATE 拒绝、生产新建 INSERT 兼容补丁、仅新增状态表加入已有 Realtime publication；核对旧函数其他部分未变化、旧记录指纹不变。失败停止，不发布依赖前端，不猜测修复或删审计。

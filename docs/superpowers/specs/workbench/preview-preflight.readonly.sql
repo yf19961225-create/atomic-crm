@@ -1,6 +1,20 @@
 -- READ ONLY. Intended ONLY for ciwaibtotispazfviims after checking project identity.
 -- No migration execution, no business rows or credentials returned.
 begin read only;
+-- Required again before executing the revised M2; these are queries, never grants.
+select session_user,current_user,current_database(),current_setting('server_version'),
+ current_setting('transaction_read_only'),current_setting('createrole_self_grant',true);
+select datname,pg_get_userbyid(datdba) as owner from pg_database where datname=current_database();
+select rolname,rolsuper,rolcreaterole,rolinherit,rolbypassrls,rolcanlogin from pg_roles
+where rolname in ('postgres','romiku_workbench_executor');
+select pg_get_userbyid(roleid) as role,pg_get_userbyid(member) as member,
+ pg_get_userbyid(grantor) as grantor,admin_option,inherit_option,set_option
+from pg_auth_members where member='postgres'::regrole
+ or roleid in (select oid from pg_roles where rolname='romiku_workbench_executor')
+order by 1,2,3;
+select nspname,pg_get_userbyid(nspowner) as owner,nspacl,
+ has_schema_privilege(current_user,oid,'CREATE') as caller_create
+from pg_namespace where nspname in ('public','auth');
 select count(*) as ledger_count,array_agg(version order by version) as ledger_versions from supabase_migrations.schema_migrations;
 select table_name,column_name,data_type,is_nullable,column_default from information_schema.columns
 where table_schema='public' and table_name in ('romiku_orders','romiku_order_items','romiku_payments','romiku_production_orders','sales') order by table_name,ordinal_position;
