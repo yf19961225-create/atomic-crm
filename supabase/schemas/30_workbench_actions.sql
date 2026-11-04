@@ -36,7 +36,7 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(p_request::text,0));
  select * into prior from public.romiku_workbench_requests where request_id=p_request;
  if found then
-  if prior.actor_id is distinct from auth.uid() or prior.payload_hash<>h then raise exception 'REQUEST_CONFLICT' using errcode='40001'; end if;
+  if prior.actor_id is distinct from auth.uid() or prior.payload_hash<>h then raise exception 'REQUEST_CONFLICT' using errcode='PT409'; end if;
   return prior.result;
  end if;
  if entity='order' then
@@ -44,7 +44,7 @@ begin
   if not found then raise exception 'NOT_FOUND' using errcode='42501'; end if;
   insert into public.romiku_order_collection_state(order_id) values(p_id) on conflict do nothing;
   select * into s from public.romiku_order_collection_state where order_id=p_id for update;
-  if s.revision<>p_revision then raise exception 'STALE_REVISION' using errcode='40001'; end if;
+  if s.revision<>p_revision then raise exception 'STALE_REVISION' using errcode='PT409'; end if;
   oldstate:=to_jsonb(s);
   if p_action='customer_confirmation' then
    if p_payload->>'state' not in ('unknown','unconfirmed','confirmed') or p_payload->>'state' is null then raise exception 'INVALID_STATE'; end if;
@@ -52,7 +52,7 @@ begin
    if s.customer_confirmation<>'confirmed' and s.deposit_override='accepted' then s.deposit_override:='invalidated'; end if;
   elsif p_action='deposit_accept' then
    snap:=public.romiku_workbench_order_snapshot(p_id);
-   if snap->>'fingerprint' is distinct from p_payload->>'fingerprint' then raise exception 'STALE_EVIDENCE' using errcode='40001'; end if;
+   if snap->>'fingerprint' is distinct from p_payload->>'fingerprint' then raise exception 'STALE_EVIDENCE' using errcode='PT409'; end if;
    if s.customer_confirmation<>'confirmed' or snap->'amounts'->>'status' in ('draft','voided','cancelled')
     or snap->'amounts'->>'archived_at' is not null or (snap->'amounts'->>'deposit_percent')::numeric not between 0.00001 and 99.99999
     or (snap->'amounts'->>'deposit_remaining')::numeric<=0 or jsonb_array_length(snap->'payments')=0 then raise exception 'DEPOSIT_NOT_ELIGIBLE' using errcode='23514'; end if;
@@ -74,7 +74,7 @@ begin
   insert into public.romiku_production_due_state(production_order_id,due_classification)
    values(p_id,case when actual_due is null then 'unclassified' else 'confirmed' end) on conflict do nothing;
   select * into d from public.romiku_production_due_state where production_order_id=p_id for update;
-  if d.revision<>p_revision then raise exception 'STALE_REVISION' using errcode='40001'; end if;
+  if d.revision<>p_revision then raise exception 'STALE_REVISION' using errcode='PT409'; end if;
   oldstate:=to_jsonb(d)||jsonb_build_object('factory_due_at',actual_due);
   if p_payload->>'classification' not in ('unclassified','needs_confirmation','confirmed','not_required') or p_payload->>'classification' is null then raise exception 'INVALID_STATE'; end if;
   if p_payload->>'date_mode'='keep' then next_due:=actual_due;

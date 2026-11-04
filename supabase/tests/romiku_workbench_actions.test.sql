@@ -19,8 +19,8 @@ select is(romiku_workbench_verification_list(1,0)->'potential_receivables'->0->>
 select lives_ok($$select romiku_workbench_action('customer_confirmation','ea041000-0000-0000-0000-000000000001',0,'ea044000-0000-0000-0000-000000000001','{"state":"confirmed"}','Customer QA confirmed')$$,'customer confirmation accepted');
 select lives_ok($$select romiku_workbench_action('customer_confirmation','ea041000-0000-0000-0000-000000000001',0,'ea044000-0000-0000-0000-000000000001','{"state":"confirmed"}','Customer QA confirmed')$$,'same request retry returns first result');
 select is((select revision::int from romiku_order_collection_state),1,'retry does not increment revision');
-select throws_ok($$select romiku_workbench_action('customer_confirmation','ea041000-0000-0000-0000-000000000001',0,'ea044000-0000-0000-0000-000000000001','{"state":"unknown"}','Customer QA confirmed')$$,'40001','REQUEST_CONFLICT','same ID different payload refused');
-select throws_ok($$select romiku_workbench_action('deposit_accept','ea041000-0000-0000-0000-000000000001',1,gen_random_uuid(),'{"fingerprint":"stale"}','QA')$$,'40001','STALE_EVIDENCE','stale preview refused');
+select throws_ok($$select romiku_workbench_action('customer_confirmation','ea041000-0000-0000-0000-000000000001',0,'ea044000-0000-0000-0000-000000000001','{"state":"unknown"}','Customer QA confirmed')$$,'PT409','REQUEST_CONFLICT','same ID different payload refused');
+select throws_ok($$select romiku_workbench_action('deposit_accept','ea041000-0000-0000-0000-000000000001',1,gen_random_uuid(),'{"fingerprint":"stale"}','QA')$$,'PT409','STALE_EVIDENCE','stale preview refused');
 select lives_ok($$select romiku_workbench_action('deposit_accept','ea041000-0000-0000-0000-000000000001',1,'ea044000-0000-0000-0000-000000000002',jsonb_build_object('fingerprint',romiku_workbench_order_snapshot('ea041000-0000-0000-0000-000000000001')->>'fingerprint'),'2913 accepted,87 retained')$$,'deposit completion with actual receipt');
 select is((select deposit_override from romiku_order_collection_state),'accepted','override accepted');
 select is((select remaining_amount::text from romiku_order_totals where id='ea041000-0000-0000-0000-000000000001'),'7087.00','balance still contains 87 difference');
@@ -96,7 +96,7 @@ select throws_ok($$update romiku_production_orders set factory_due_at='2026-11-1
 select lives_ok($$update romiku_production_orders set notes='QA ordinary edit',factory_due_at=null where id='ea045000-0000-0000-0000-000000000001'$$,'unchanged date ordinary edit allowed');
 select lives_ok($$select romiku_workbench_action('production_due','ea045000-0000-0000-0000-000000000001',0,gen_random_uuid(),'{"classification":"confirmed","date_mode":"set","date":"2026-11-10","needs_follow_up":false}','QA due')$$,'controlled date change succeeds');
 select is((select factory_due_at at time zone 'Asia/Shanghai' from romiku_production_orders where id='ea045000-0000-0000-0000-000000000001'),'2026-11-10 23:59:59.999'::timestamp,'Shanghai date preserved');
-select throws_ok($$select romiku_workbench_action('production_due','ea045000-0000-0000-0000-000000000001',0,gen_random_uuid(),'{"classification":"confirmed","date_mode":"set","date":"2026-11-11","needs_follow_up":false}','QA stale')$$,'40001','STALE_REVISION','stale due revision rejected');
+select throws_ok($$select romiku_workbench_action('production_due','ea045000-0000-0000-0000-000000000001',0,gen_random_uuid(),'{"classification":"confirmed","date_mode":"set","date":"2026-11-11","needs_follow_up":false}','QA stale')$$,'PT409','STALE_REVISION','stale due revision rejected');
 
 select is(romiku_save_production_workspace(null,o.id,'{"factory_due_at":"2026-12-01T15:59:59.999Z"}',
  jsonb_build_array(jsonb_build_object('source_order_item_id','ea042000-0000-0000-0000-000000000001','quantity',1,'product_snapshot','{}'::jsonb,'packaging_snapshot','{}'::jsonb)),
