@@ -1,0 +1,15 @@
+{
+  "maintenance": true,
+  "existingOrderReadable": true,
+  "incompatibleControlsAbsent": true,
+  "legacyDatePatch": {
+    "status": 403,
+    "code": "42501",
+    "unchanged": true
+  },
+  "remote": 1,
+  "blockedHosts": [
+    "atomic-crm-telemetry.marmelab.com"
+  ],
+  "errors": []
+}

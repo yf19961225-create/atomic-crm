@@ -300,7 +300,7 @@ it("stages creation, locks Order and opens the whole draft before any write", as
   expect(rpc).not.toHaveBeenCalled();
 });
 
-it("shows parent business numbers and saved customer from the aggregate without a redundant parent batch", async () => {
+it("shows parent business numbers and saved customer from the aggregate with one parent batch for the actual delivery date", async () => {
   const { screen, getMany } = await setup(false, false, true);
   await expect
     .element(screen.getByRole("link", { name: "OD001", exact: true }))
@@ -314,7 +314,7 @@ it("shows parent business numbers and saved customer from the aggregate without 
   expect(
     screen.getByRole("link", { name: "o", exact: true }).query(),
   ).toBeNull();
-  expect(getMany).not.toHaveBeenCalled();
+  expect(getMany).toHaveBeenCalledWith("romiku_orders", { ids: ["o"] });
 });
 it("shows all Order children and previews sync targets; cancellation does not invoke a write", async () => {
   const { screen } = await setup(false, true);
@@ -529,29 +529,61 @@ it("returns shared requirements to read-only summary after a successful save", a
     .toBeVisible();
 });
 
-it("saves the chosen factory calendar date without browser timezone input and clears it to null", async () => {
+it("saves and clears existing factory dates only through the versioned control", async () => {
   const { screen } = await setup();
-  await expect.element(screen.getByText("工厂交期：—")).toBeVisible();
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
-  expect(hasAppDraft()).toBe(false);
-  const date = screen.getByLabelText("工厂交期", { exact: true });
-  await expect.element(date).toHaveAttribute("type", "date");
-  await date.fill("2026-10-25");
-  expect(hasAppDraft()).toBe(true);
-  await screen.getByRole("button", { name: "保存", exact: true }).click();
-  await expect.poll(() => rpc.mock.calls.length).toBe(1);
-  expect(rpc.mock.calls[0][1].header.factory_due_at).toBe(
-    "2026-10-25T15:59:59.999Z",
-  );
-  await expect.poll(hasAppDraft).toBe(false);
-
-  await screen.getByRole("button", { name: "编辑", exact: true }).click();
-  await date.fill("2026-10-30");
-  await screen.getByRole("button", { name: "清空" }).click();
-  await expect.element(date).toHaveValue("");
-  await screen.getByRole("button", { name: "保存", exact: true }).click();
-  await expect.poll(() => rpc.mock.calls.length).toBe(2);
-  expect(rpc.mock.calls[1][1].header.factory_due_at).toBeNull();
+  await expect
+    .element(screen.getByLabelText("工厂交期", { exact: true }))
+    .toHaveAttribute("readonly");
+  let due: string | null = null,
+    revision = 0;
+  rpc.mockImplementation(async (name, args) => {
+    if (name === "romiku_workbench_due_snapshot")
+      return {
+        data: {
+          id: "p",
+          document_number: "OD001-P01",
+          factory_due_at: due,
+          classification: due ? "confirmed" : "unclassified",
+          revision,
+          needs_follow_up: false,
+          next_follow_up_on: null,
+        },
+        error: null,
+      };
+    expect(name).toBe("romiku_workbench_action");
+    expect(args.p_revision).toBe(revision);
+    due =
+      args.p_payload.date_mode === "clear"
+        ? null
+        : args.p_payload.date + "T15:59:59.999Z";
+    revision++;
+    return { data: { ok: true }, error: null };
+  });
+  await screen.getByRole("button", { name: "管理工厂交期" }).click();
+  await screen
+    .getByLabelText("交期分类", { exact: true })
+    .selectOptions("confirmed");
+  await screen.getByLabelText("日期操作", { exact: true }).selectOptions("set");
+  await screen
+    .getByLabelText("工厂交期", { exact: true })
+    .last()
+    .fill("2026-10-25");
+  await screen.getByLabelText("交期操作原因").fill("QA factory confirmed");
+  await screen.getByRole("button", { name: "保存交期管理" }).click();
+  await expect.poll(() => due).toBe("2026-10-25T15:59:59.999Z");
+  await screen.getByRole("button", { name: "管理工厂交期" }).click();
+  await screen
+    .getByLabelText("日期操作", { exact: true })
+    .selectOptions("clear");
+  await screen.getByLabelText("交期操作原因").fill("QA clear");
+  await screen.getByRole("button", { name: "保存交期管理" }).click();
+  await expect.poll(() => due).toBeNull();
+  expect(
+    rpc.mock.calls.filter(
+      ([name]) => name === "romiku_save_production_workspace",
+    ),
+  ).toHaveLength(0);
 });
 
 it("rejects an invalid factory due date before sending a partial workspace", async () => {

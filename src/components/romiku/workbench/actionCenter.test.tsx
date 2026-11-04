@@ -1,3 +1,8 @@
+import { vi } from "vitest";
+const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
+vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
+  getSupabaseClient: () => ({ rpc }),
+}));
 import { render } from "vitest-browser-react";
 import { CoreAdminContext, type AuthProvider } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -127,50 +132,88 @@ async function setup(path = "/") {
   );
   return { screen, provider };
 }
-it("separates Website and Outbound action counts and links every action to its source", async () => {
-  const { screen } = await setup();
-  for (const title of [
-    "新网站询盘",
-    "待处理网站询盘／跟进",
-    "外贸开发跟进",
-    "逾期外贸开发跟进",
-    "待处理报价单",
-    "待处理形式发票",
-    "待收定金",
-    "生产／到期事项",
-    "装箱／发运",
-  ]) {
-    await expect
-      .element(screen.getByRole("button", { name: `${title}: 1`, exact: true }))
-      .toBeVisible();
-  }
+it("uses snapshot counts, filters sources and keeps links to original records", async () => {
+  const rows = [
+    {
+      id: "c",
+      kind: "collection",
+      source_table: "romiku_orders",
+      source_id: "O-deposit",
+      title: "O-deposit",
+      status: "deposit",
+      amount: 30,
+      currency: "USD",
+    },
+    {
+      id: "i",
+      kind: "inquiry",
+      source_table: "romiku_website_inquiries",
+      source_id: "WI-new",
+      title: "WI-new",
+      status: "pending_screening",
+    },
+    {
+      id: "o",
+      kind: "outbound_follow_up",
+      source_table: "romiku_outbound_companies",
+      source_id: "OUT-old",
+      title: "OUT-old",
+      status: "following_up",
+    },
+    {
+      id: "q",
+      kind: "quote",
+      source_table: "romiku_quotes",
+      source_id: "Q-open",
+      title: "Q-open",
+      status: "sent",
+    },
+  ];
+  rpc.mockImplementation(async (name, args) => {
+    expect(name).toBe("romiku_workbench_feed");
+    const filtered = rows.filter((r) => !args.p_kind || r.kind === args.p_kind);
+    return {
+      data: {
+        rows: filtered,
+        total: filtered.length,
+        counts: { all: 4, recent: 4, arrange: 0, collection: 1 },
+        unknown_total: 2,
+        potential_receivables: [{ currency: "CNY", amount: 7087 }],
+        raw_count: 4,
+      },
+      error: null,
+    };
+  });
+  const { screen } = await setup("/");
   await expect
-    .element(screen.getByRole("button", { name: "待收尾款: 0", exact: true }))
+    .element(screen.getByRole("button", { name: "待收款 1", exact: true }))
     .toBeVisible();
+  await expect.element(screen.getByText(/潜在应收：CNY 7087.00/)).toBeVisible();
   await expect
     .element(screen.getByRole("link", { name: "O-deposit", exact: true }))
     .toHaveAttribute("href", "/orders/O-deposit");
   await screen
-    .getByRole("button", { name: "新网站询盘: 1", exact: true })
-    .click();
+    .getByLabelText("来源类型", { exact: true })
+    .selectOptions("inquiry");
   await expect
     .element(screen.getByRole("link", { name: "WI-new", exact: true }))
     .toHaveAttribute("href", "/website-inquiries?record=WI-new");
   await expect
     .element(screen.getByRole("link", { name: "OUT-old", exact: true }))
     .not.toBeInTheDocument();
-  await screen.getByRole("button", { name: "全部待办", exact: true }).click();
+  await screen.getByRole("button", { name: /全部待办/ }).click();
   await expect
     .element(screen.getByRole("link", { name: "Q-open", exact: true }))
     .toHaveAttribute("href", "/quotes/Q-open");
   await expect
     .element(screen.getByRole("link", { name: "Q-closed", exact: true }))
     .not.toBeInTheDocument();
-  const links = [
-    ...screen.getByRole("table").element().querySelectorAll("tbody a"),
-  ].map((a) => a.textContent);
+  const links = Array.from(document.querySelectorAll("article a")).map(
+    (a) => a.textContent,
+  );
   expect(links.indexOf("O-deposit")).toBeLessThan(links.indexOf("WI-new"));
 });
+
 it("shows date aggregation with owner and only-mine filters using auth UUID mapping", async () => {
   const { screen } = await setup("/calendar");
   await expect.element(screen.getByText("日历", { exact: true })).toBeVisible();

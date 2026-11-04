@@ -1,3 +1,6 @@
+import { CollectionControls } from "../workbench/CollectionControls";
+import { safeRollbackEnabled } from "../workbench/rollbackPolicy";
+import { useWorkbenchRefresh } from "../workbench/useWorkbenchRefresh";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { LifecycleDialog } from "../shared/LifecycleDialog";
@@ -27,6 +30,7 @@ export function OrderPayments({
   total: number;
   editable?: boolean;
 }) {
+  useWorkbenchRefresh();
   const cache = useQueryClient();
   const [voiding, setVoiding] = useState<RaRecord | null>(null);
   const provider = useDataProvider();
@@ -65,6 +69,9 @@ export function OrderPayments({
   };
   return (
     <div className="space-y-4">
+      {editable && !safeRollbackEnabled() && (
+        <CollectionControls orderId={String(order.id)} />
+      )}
       <p className="text-muted-foreground text-sm">
         收款使用订单币种（{order.currency}
         ）。记录收款后币种不可更改。分类待收金额

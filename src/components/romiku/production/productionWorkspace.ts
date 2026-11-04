@@ -1,3 +1,7 @@
+import {
+  productionHeaderForMode,
+  safeRollbackEnabled,
+} from "../workbench/rollbackPolicy";
 import { normalizeBarcode, validateBarcode } from "./barcode";
 import type { AllocationIssue } from "./productionAllocation";
 import type { RaRecord } from "ra-core";
@@ -88,7 +92,7 @@ export async function saveProductionWorkspace(
     {
       production_id: isNew ? null : record.id,
       source_order_id: record.order_id,
-      header,
+      header: productionHeaderForMode(header, safeRollbackEnabled(), isNew),
       items: payload,
       expected,
     },

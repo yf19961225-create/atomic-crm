@@ -44,7 +44,11 @@ async function setup(kind: WorkflowResource, count = 26) {
   }));
   const provider = fakeRestDataProvider({
     [tables[kind]]: records,
-    romiku_orders: [],
+    romiku_orders: records.map((r) => ({
+      id: r.order_id,
+      document_number: `ORDER-${r.id}`,
+      expected_delivery_at: null,
+    })),
     sales: [],
     romiku_outbound_contacts: [],
     romiku_outbound_followups: [],

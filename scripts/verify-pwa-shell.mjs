@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const worker = readFileSync(new URL("../dist/sw.js", import.meta.url), "utf8");
+const worker = readFileSync(
+  process.argv[2] ? `${process.argv[2]}/sw.js` : new URL("../dist/sw.js", import.meta.url),
+  "utf8",
+);
 assert.match(worker, /precacheAndRoute\(/, "PWA precache route is missing");
 assert.equal(
   /\{url:"index\.html",revision:/.test(worker),

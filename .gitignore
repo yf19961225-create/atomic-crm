@@ -57,4 +57,10 @@ node_modules/
 /playwright/.auth/
 
 *.lock
- 
+
+# Local workbench validation artifacts
+.superpowers/
+dist-workbench-rollback/
+workbench-safe-rollback.tar.gz*
+
+/.vitest-attachments/

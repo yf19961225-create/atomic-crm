@@ -1,3 +1,8 @@
+import { ProductionDueControls } from "../workbench/ProductionDueControls";
+import {
+  safeRollbackEnabled,
+  mayEditFactoryDue,
+} from "../workbench/rollbackPolicy";
 import { RomikuDatePicker } from "../shared/RomikuDatePicker";
 import { productionDraftSnapshot } from "./productionDraftSnapshot";
 import {
@@ -358,10 +363,16 @@ export function ProductionWorkbench({
             <div>
               <div className="mb-3">
                 <label htmlFor="production-factory-due-date">工厂交期</label>
+                {!mayEditFactoryDue(safeRollbackEnabled(), isNew) && (
+                  <p role="status">
+                    已有生产单交期通过独立受控操作保存，不随普通表单保存。
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <RomikuDatePicker
                     id="production-factory-due-date"
                     label="工厂交期"
+                    readOnly={!mayEditFactoryDue(safeRollbackEnabled(), isNew)}
                     value={productionDueDateInput(draft.factory_due_at)}
                     onChange={(value) =>
                       setDraft((d) => ({ ...d, factory_due_at: value }))
@@ -370,7 +381,10 @@ export function ProductionWorkbench({
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={!productionDueDateInput(draft.factory_due_at)}
+                    disabled={
+                      !mayEditFactoryDue(safeRollbackEnabled(), isNew) ||
+                      !productionDueDateInput(draft.factory_due_at)
+                    }
                     onClick={() =>
                       setDraft((d) => ({ ...d, factory_due_at: null }))
                     }
@@ -379,6 +393,9 @@ export function ProductionWorkbench({
                   </Button>
                 </div>
               </div>
+              {!isNew && !safeRollbackEnabled() && (
+                <ProductionDueControls productionId={String(record.id)} />
+              )}
               <details>
                 <summary>生产单详情</summary>
                 <div className="grid gap-3 py-3 md:grid-cols-2">

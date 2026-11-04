@@ -471,6 +471,7 @@ function FulfillmentEditor({
           throw new Error("请输入有效日期。");
         data[dateKey] = date.toISOString();
       }
+      if (kind === "production") delete data.factory_due_at;
       const result = await provider.update(config.resource, {
         id: record.id,
         data,

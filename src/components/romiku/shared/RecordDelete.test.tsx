@@ -53,6 +53,13 @@ async function setup(path: string, resource: string, count = 1) {
       total: 0,
       created_at: String(i).padStart(3, "0"),
     })),
+    romiku_orders: [
+      {
+        id: "parent-qa",
+        document_number: "ORDER-QA",
+        expected_delivery_at: null,
+      },
+    ],
     sales: [],
     romiku_outbound_contacts: [],
     romiku_outbound_followups: [],
@@ -212,6 +219,49 @@ it("Workbench deletes only manual tasks and keeps derived sources", async () => 
     romiku_manual_tasks: [{ id: "t", title: "DELETE-TASK", quote_id: "q" }],
   });
   rpc.mockImplementation(async (name, args) => {
+    if (name === "romiku_workbench_feed") {
+      const tasks = (
+        await provider.getList("romiku_manual_tasks", {
+          filter: {},
+          pagination: { page: 1, perPage: 100 },
+          sort: { field: "id", order: "ASC" },
+        })
+      ).data;
+      const rows = [
+        {
+          id: "q",
+          source_id: "q",
+          source_table: "romiku_quotes",
+          title: "KEEP-QUOTE",
+          kind: "quote",
+          status: "pending_quote",
+        },
+        ...tasks.map((t) => ({
+          id: t.id,
+          source_id: t.id,
+          source_table: "romiku_manual_tasks",
+          title: t.title,
+          kind: "task",
+          status: "pending",
+        })),
+      ];
+      return {
+        data: {
+          rows: args.p_tab === "recent" ? [] : rows,
+          total: args.p_tab === "recent" ? 0 : rows.length,
+          counts: {
+            all: rows.length,
+            recent: 0,
+            arrange: rows.length,
+            collection: 0,
+          },
+          unknown_total: 0,
+          potential_receivables: [],
+          raw_count: rows.length,
+        },
+        error: null,
+      };
+    }
     expect(name).toBe("romiku_delete_record");
     expect(args).toEqual({ kind: "manual_task", record_id: "t" });
     await provider.delete("romiku_manual_tasks", { id: "t" });
@@ -224,17 +274,23 @@ it("Workbench deletes only manual tasks and keeps derived sources", async () => 
       </CoreAdminContext>
     </MemoryRouter>,
   );
-  await expect.element(screen.getByText("2 项待办")).toBeVisible();
+  await screen.getByRole("button", { name: /全部待办/ }).click();
+  await expect.element(screen.getByText(/^2 项待办/)).toBeVisible();
   await expect
     .element(screen.getByRole("button", { name: "更多操作 KEEP-QUOTE" }))
     .not.toBeInTheDocument();
   await expect
-    .element(screen.getByRole("link", { name: "打开来源" }))
+    .element(
+      screen
+        .getByRole("article")
+        .filter({ hasText: "KEEP-QUOTE" })
+        .getByRole("link", { name: "打开来源" }),
+    )
     .toHaveAttribute("href", "/quotes/q");
   await screen.getByRole("button", { name: "更多操作 DELETE-TASK" }).click();
   await screen.getByRole("menuitem", { name: "删除", exact: true }).click();
   await screen.getByRole("button", { name: "确认删除", exact: true }).click();
-  await expect.element(screen.getByText("1 项待办")).toBeVisible();
+  await expect.element(screen.getByText(/^1 项待办/)).toBeVisible();
   expect(
     (await provider.getOne("romiku_quotes", { id: "q" })).data.document_number,
   ).toBe("KEEP-QUOTE");

@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -45,3 +45,7 @@ it("keeps payment defaults clean and clears numeric/text reverts, cancel and sav
     .toBeVisible();
   expect(hasAppDraft()).toBe(false);
 });
+
+vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
+  getSupabaseClient: () => ({ rpc: vi.fn() }),
+}));

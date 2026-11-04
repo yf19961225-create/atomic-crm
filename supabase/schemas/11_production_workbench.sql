@@ -34,7 +34,7 @@ begin
    message:='订单默认值已变化，请返回产品选择步骤重新载入。'; code:='STALE'; raise exception 'invalid';
   end if;
   saved:=o.production_defaults_snapshot || jsonb_build_object('source',jsonb_build_object('kind','order','id',o.id,'copied_at',now()),'initialized_at',now());
-  insert into public.romiku_production_orders(order_id,status,marking_snapshot) values(o.id,'pending_send',saved) returning * into p;
+  insert into public.romiku_production_orders(order_id,status,marking_snapshot,factory_due_at) values(o.id,'pending_send',saved,nullif(header->>'factory_due_at','')::timestamptz) returning * into p;
   target:=p.id;
  end if;
  saved:=coalesce(header->'marking_snapshot',p.marking_snapshot);
