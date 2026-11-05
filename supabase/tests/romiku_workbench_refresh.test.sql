@@ -1,0 +1,70 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select no_plan();
+select has_table('public','romiku_workbench_refresh','minimal refresh tokens exist');
+select columns_are('public','romiku_workbench_refresh',array['order_id','revision'],'no financial/customer payload columns');
+
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('ef050000-0000-0000-0000-000000000001','refresh-a@example.test','{}'),
+ ('ef050000-0000-0000-0000-000000000002','refresh-disabled@example.test','{}');
+insert into sales(user_id,email,administrator,disabled) values
+ ('ef050000-0000-0000-0000-000000000001','refresh-a@example.test',false,false),
+ ('ef050000-0000-0000-0000-000000000002','refresh-disabled@example.test',false,true)
+ on conflict(user_id) do update set disabled=excluded.disabled;
+set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
+select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000001',true);
+insert into romiku_orders(id,status,freight,currency) values('ef051000-0000-0000-0000-000000000001','confirmed',10000,'CNY');
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),1::bigint,'new order emits token');
+insert into romiku_payments(id,order_id,kind,amount) values('ef052000-0000-0000-0000-000000000001','ef051000-0000-0000-0000-000000000001','deposit',2913);
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),2::bigint,'receipt insert emits without deposit override');
+update romiku_payments set amount=2912 where id='ef052000-0000-0000-0000-000000000001';
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),3::bigint,'ordinary correction emits');
+update romiku_payments set amount=2912 where id='ef052000-0000-0000-0000-000000000001';
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),3::bigint,'no-op emits nothing');
+savepoint receipt;
+update romiku_payments set amount=2000 where id='ef052000-0000-0000-0000-000000000001';
+rollback to receipt;
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),3::bigint,'rollback removes token increment');
+select throws_ok($$update romiku_payments set amount=-1 where id='ef052000-0000-0000-0000-000000000001'$$,null,null,'invalid receipt rejected');
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),3::bigint,'rejected write emits nothing');
+update romiku_orders set freight=10001 where id='ef051000-0000-0000-0000-000000000001';
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),4::bigint,'order total update emits');
+insert into romiku_order_items(id,order_id,sku,quantity,unit_price) values('ef053000-0000-0000-0000-000000000001','ef051000-0000-0000-0000-000000000001','QA',1,1);
+update romiku_order_items set quantity=2 where id='ef053000-0000-0000-0000-000000000001';
+delete from romiku_order_items where id='ef053000-0000-0000-0000-000000000001';
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),7::bigint,'item insert/update/delete emit');
+savepoint payment_lifecycle;
+update romiku_payments set notes='QA correction' where id='ef052000-0000-0000-0000-000000000001';
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),8::bigint,'receipt metadata correction emits');
+select is((select amount from romiku_payments where id='ef052000-0000-0000-0000-000000000001'),2912::numeric,'notification does not alter receipt amount');
+select is(romiku_void_payment('ef052000-0000-0000-0000-000000000001','QA void')->>'ok','true','controlled receipt void succeeds');
+select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),9::bigint,'controlled void emits');
+select throws_ok($$delete from romiku_payments where id='ef052000-0000-0000-0000-000000000001'$$,null,null,'protected receipt cannot be physically deleted');
+rollback to payment_lifecycle;
+select throws_ok($$update romiku_workbench_refresh set revision=999$$,'42501',null,'cannot forge token');
+select throws_ok($$delete from romiku_workbench_refresh$$,'42501',null,'cannot create unprotected DELETE event');
+select throws_ok($$select romiku_wb_notify_financial_change()$$,'42501',null,'trigger cannot be invoked as RPC');
+select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000002',true);
+select is((select count(*)::int from romiku_workbench_refresh),0,'disabled sees no token');
+select throws_ok($$update romiku_payments set amount=2500 where id='ef052000-0000-0000-0000-000000000001'$$,'42501','FORBIDDEN','disabled cannot mutate financial data');
+select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000099',true);
+select is((select count(*)::int from romiku_workbench_refresh),0,'unregistered sees no token');
+reset role;
+alter policy romiku_read on romiku_orders using(false);
+set local role authenticated;
+select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000001',true);
+select is((select count(*)::int from romiku_workbench_refresh),0,'parent RLS filters token per order');
+reset role;
+alter policy romiku_read on romiku_orders using(true);
+set local role anon;
+select throws_ok($$select * from romiku_workbench_refresh$$,'42501',null,'anonymous cannot read tokens');
+reset role;
+select is((select count(*)::int from pg_publication_tables where pubname='supabase_realtime' and tablename='romiku_payments'),0,'raw receipts remain unpublished');
+select is((select count(*)::int from pg_publication_tables where pubname='supabase_realtime' and tablename='romiku_workbench_refresh'),1,'only minimal token table added');
+select is(pg_has_role('postgres','romiku_workbench_executor','SET'),false,'temporary SET revoked');
+select is(has_schema_privilege('romiku_workbench_executor','public','CREATE'),false,'temporary CREATE revoked');
+select is(has_function_privilege('postgres','romiku_wb_notify_financial_change()','EXECUTE'),false,'temporary EXECUTE revoked');
+select * from finish();
+rollback;

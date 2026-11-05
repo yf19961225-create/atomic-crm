@@ -1,3 +1,4 @@
+import { refreshWorkbench } from "../workbench/workbenchApi";
 import { CollectionControls } from "../workbench/CollectionControls";
 import { safeRollbackEnabled } from "../workbench/rollbackPolicy";
 import { useWorkbenchRefresh } from "../workbench/useWorkbenchRefresh";
@@ -210,7 +211,7 @@ export function OrderPayments({
             payment={editing}
             onCancel={() => setEditing(undefined)}
             onSaved={async () => {
-              await cache.invalidateQueries();
+              await refreshWorkbench(cache);
               setEditing(undefined);
             }}
           />
