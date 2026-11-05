@@ -74,7 +74,9 @@ export function useWorkbenchRefresh() {
       clearInterval(timer);
       window.removeEventListener("focus", refresh);
       broadcast?.close();
-      if (channel) void client.removeChannel(channel);
+      // Unsubscribe removes this channel without closing the shared socket.
+      // removeChannel disconnects the last channel and races a route remount.
+      if (channel) void channel.unsubscribe();
     };
   }, [cache]);
 }

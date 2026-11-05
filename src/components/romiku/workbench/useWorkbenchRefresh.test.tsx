@@ -3,7 +3,11 @@ import { render } from "vitest-browser-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useWorkbenchRefresh } from "./useWorkbenchRefresh";
 const { channel, removeChannel } = vi.hoisted(() => {
-  const channel = { on: vi.fn(), subscribe: vi.fn() };
+  const channel = {
+    on: vi.fn(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn().mockResolvedValue("ok"),
+  };
   return { channel, removeChannel: vi.fn() };
 });
 vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
@@ -32,7 +36,8 @@ it("releases subscription, timer, broadcast and focus listener on unmount", asyn
   window.dispatchEvent(new Event("focus"));
   expect(refresh).toHaveBeenCalledTimes(1);
   await screen.unmount();
-  expect(removeChannel).toHaveBeenCalledWith(channel);
+  expect(channel.unsubscribe).toHaveBeenCalledTimes(1);
+  expect(removeChannel).not.toHaveBeenCalled();
   expect(clear).toHaveBeenCalled();
   expect(close).toHaveBeenCalled();
   window.dispatchEvent(new Event("focus"));
