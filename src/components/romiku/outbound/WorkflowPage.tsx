@@ -280,8 +280,8 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
     setParams(next);
   };
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="ds-page ds-workflow space-y-4">
+      <div className="ds-page-heading flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold">{config.title}</h1>
         {config.createLabel && (
           <Button onClick={() => open("new")}>{config.createLabel}</Button>
@@ -404,7 +404,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="ds-table-scroll overflow-x-auto rounded-md border">
         <table
           className={`w-full text-left text-sm ${config.kind === "inquiry" ? "table-fixed" : ""}`}
         >
@@ -634,7 +634,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           <p className="p-6 text-center text-sm">未找到记录。</p>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="ds-pagination flex flex-wrap items-center gap-3">
         <Button
           variant="outline"
           disabled={page === 1}
@@ -660,7 +660,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         }}
       >
         <SheetContent
-          className={`w-full overflow-y-auto ${config.kind === "customer" ? "sm:max-w-5xl" : "sm:max-w-3xl"}`}
+          className={`ds-detail-drawer w-full overflow-y-auto ${config.kind === "customer" ? "sm:max-w-5xl" : "sm:max-w-3xl"}`}
         >
           <SheetHeader>
             <SheetTitle>

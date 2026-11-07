@@ -32,7 +32,7 @@ import {
 const RomikuPlaceholder = ({ label }: { label: string }) => (
   <section
     aria-labelledby="placeholder-heading"
-    className="max-w-3xl space-y-2"
+    className="ds-page ds-surface max-w-3xl space-y-2 p-6"
   >
     <h1
       id="placeholder-heading"

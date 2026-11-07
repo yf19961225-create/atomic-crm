@@ -82,3 +82,23 @@ describe("RomikuLayout", () => {
       .toBeVisible();
   });
 });
+
+for (const [path, enabled] of [
+  ["/", true],
+  ["/orders", true],
+  ["/orders/new", true],
+  ["/orders/qa-id", true],
+  ["/quotes", true],
+  ["/production", true],
+] as const) {
+  it(`applies design system at ${path}`, async () => {
+    await render(
+      <MemoryRouter initialEntries={[path]}>
+        <RomikuLayout>
+          <p>CRM</p>
+        </RomikuLayout>
+      </MemoryRouter>,
+    );
+    expect(document.querySelector(".romiku-ds") !== null).toBe(enabled);
+  });
+}

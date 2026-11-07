@@ -139,8 +139,8 @@ export function QuoteList() {
     setPage,
   );
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between">
+    <section className="ds-quote-list ds-page space-y-4">
+      <div className="ds-page-heading flex items-center justify-between">
         <h1 className="text-3xl font-semibold">报价单</h1>
         <Button asChild>
           <Link to="/quotes/new">新建报价单</Link>
@@ -149,7 +149,7 @@ export function QuoteList() {
       <p className="text-muted-foreground">
         独立报价单保留来源历史，并可编辑采购方、产品和商务快照。
       </p>
-      <div className="flex flex-wrap gap-4">
+      <div className="ds-list-toolbar flex flex-wrap gap-4">
         <SearchInput
           label={"搜索报价单"}
           value={searchInput}
@@ -201,7 +201,7 @@ export function QuoteList() {
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded border">
+      <div className="ds-table-scroll overflow-x-auto rounded border">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted">
             <tr>
@@ -478,7 +478,7 @@ function QuoteEditor({
     }
   };
   return (
-    <section className="max-w-6xl space-y-4">
+    <section className="ds-order-editor ds-page space-y-4">
       <Link
         to="/quotes"
         className="underline"
@@ -489,7 +489,7 @@ function QuoteEditor({
       >
         返回报价单
       </Link>
-      <div className="flex items-center justify-between gap-3">
+      <div className="ds-page-heading flex items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">
             {documentTitle(record, "草稿报价单")}

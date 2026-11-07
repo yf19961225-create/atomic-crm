@@ -1,0 +1,707 @@
+/* ROMIKU DS 2.0: shared CRM scope; no business or document-export styles. */
+:root {
+  --ds-canvas: #f5f7fb;
+  --ds-surface: #fff;
+  --ds-ink: #172338;
+  --ds-muted: #59677b;
+  --ds-line: #e2e8f0;
+  --ds-blue: #2455d6;
+  --ds-blue-soft: #edf3ff;
+  --ds-font:
+    "Inter Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+    system-ui, sans-serif;
+}
+.romiku-ds {
+  --background: var(--ds-canvas);
+  --foreground: var(--ds-ink);
+  --card: var(--ds-surface);
+  --card-foreground: var(--ds-ink);
+  --primary: var(--ds-blue);
+  --primary-foreground: #fff;
+  --muted: #f1f4f9;
+  --muted-foreground: var(--ds-muted);
+  --accent: var(--ds-blue-soft);
+  --accent-foreground: #1e429f;
+  --border: var(--ds-line);
+  --input: #cbd5e1;
+  --ring: #3b68dc;
+  --sidebar: #fff;
+  --sidebar-foreground: #43516a;
+  --sidebar-accent: var(--ds-blue-soft);
+  --sidebar-accent-foreground: #214abb;
+  --sidebar-width: 224px !important;
+  font-family: var(--ds-font);
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--ds-canvas);
+  color: var(--ds-ink);
+}
+.romiku-ds #main-content {
+  padding: 24px;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+.romiku-ds h1 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.romiku-ds h2 {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+.romiku-ds p {
+  overflow-wrap: anywhere;
+}
+.romiku-ds a {
+  text-underline-offset: 3px;
+}
+.romiku-ds a.underline {
+  color: var(--ds-blue);
+  text-decoration: none;
+}
+.romiku-ds a.underline:hover {
+  text-decoration: underline;
+}
+.romiku-ds [data-slot="sidebar-inner"] {
+  border-color: var(--ds-line);
+  box-shadow: none;
+}
+.romiku-ds [data-slot="sidebar-header"] {
+  padding: 20px 12px 16px;
+}
+.romiku-ds [data-slot="sidebar-header"] img {
+  width: 112px;
+  margin-bottom: 8px;
+}
+.romiku-ds [data-slot="sidebar-header"] a {
+  font-size: 13px;
+  letter-spacing: 0.015em;
+}
+.romiku-ds [data-slot="sidebar-menu-button"] {
+  height: 40px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.romiku-ds [data-slot="sidebar-menu-button"][data-active="true"] {
+  box-shadow: inset 3px 0 var(--ds-blue);
+  font-weight: 600;
+}
+.romiku-ds [data-slot="button"] {
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 8px;
+  min-height: 36px;
+  box-shadow: none;
+}
+.romiku-ds [data-slot="button"].border {
+  background: var(--ds-surface);
+}
+.romiku-ds [data-slot="button"]:disabled {
+  opacity: 0.48;
+}
+.romiku-ds :is(input, select, textarea) {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  border-color: #cbd5e1;
+  border-radius: 8px;
+  background-color: #fff;
+  color: var(--ds-ink);
+}
+.romiku-ds :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: 36px;
+  padding-inline: 10px;
+}
+.romiku-ds :is(input, select, textarea):focus-visible {
+  outline: 2px solid #7d9de8;
+  outline-offset: 2px;
+  border-color: var(--ds-blue);
+}
+.romiku-ds :is(input, textarea):read-only {
+  background: #f5f7fa;
+}
+.romiku-ds input[type="checkbox"] {
+  accent-color: var(--ds-blue);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.romiku-ds input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.romiku-ds :is(table, dl) {
+  font-variant-numeric: tabular-nums;
+}
+.romiku-ds [role="alert"] {
+  color: #9e241c;
+  border: 1px solid #f3c9c5;
+  background: #fff5f3;
+  padding: 12px;
+  border-radius: 8px;
+}
+.romiku-ds [role="status"] {
+  color: var(--ds-muted);
+  font-size: 13px;
+}
+.romiku-ds .ds-page-heading {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.romiku-ds .ds-page-heading > div {
+  min-width: 0;
+}
+.romiku-ds .ds-page-heading > div:last-child {
+  flex-wrap: wrap;
+}
+.romiku-ds .ds-page-heading p {
+  margin-top: 4px;
+  font-size: 12px;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] {
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] > button {
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] > button:hover {
+  border-color: #9ab2ed;
+  background: #fafcff;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] > button > span:last-child {
+  font-size: 28px;
+  line-height: 36px;
+  margin-top: 4px;
+}
+.romiku-ds .ds-task-panel,
+.romiku-ds [aria-label="业务提醒"] > section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+.romiku-ds .ds-task-row {
+  padding-block: 14px;
+}
+.romiku-ds .ds-task-row:hover {
+  background: #fafcff;
+}
+.romiku-ds .ds-task-row p {
+  margin-top: 4px;
+  color: var(--ds-muted);
+  font-size: 12px;
+}
+.romiku-ds .ds-task-row a {
+  font-size: 13px;
+}
+.romiku-ds .ds-task-row a.font-semibold {
+  font-size: 14px;
+  color: var(--ds-ink);
+}
+.romiku-ds [aria-label="业务提醒"] h2 {
+  font-size: 16px;
+}
+.romiku-ds .ds-task-panel > p {
+  font-size: 12px;
+  color: var(--ds-muted);
+  margin-block: 12px;
+}
+.romiku-ds .ds-list-toolbar {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.romiku-ds .ds-list-toolbar > :first-child {
+  flex: 1;
+  min-width: min(320px, 100%);
+}
+.romiku-ds .ds-list-toolbar label {
+  font-size: 12px;
+  color: var(--ds-muted);
+}
+.romiku-ds .ds-data-table {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 100%;
+}
+.romiku-ds .ds-data-table table {
+  min-width: 980px;
+}
+.romiku-ds table:not(.fc table):not([data-slot="calendar"] table) {
+  font-size: 14px;
+}
+.romiku-ds th:not(.fc th):not([data-slot="calendar"] th) {
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  color: #53627a;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.romiku-ds
+  :is(th, td):not(
+    .fc th,
+    .fc td,
+    [data-slot="calendar"] th,
+    [data-slot="calendar"] td
+  ) {
+  padding: 12px;
+  vertical-align: middle;
+}
+.romiku-ds tbody tr:not(.fc tr):hover {
+  background: #f8faff;
+}
+.romiku-ds .ds-order-list .ds-data-table td:nth-child(2) {
+  min-width: 180px;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.romiku-ds .ds-order-list .ds-data-table td:nth-child(3) {
+  min-width: 140px;
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+.romiku-ds
+  .ds-order-list
+  .ds-data-table
+  :is(th, td):nth-child(n + 7):nth-child(-n + 8) {
+  text-align: right;
+  white-space: nowrap;
+}
+.romiku-ds .ds-order-list .ds-data-table td:nth-child(4) select {
+  font-size: 12px;
+  min-width: 100px;
+  background: #f8fafc;
+}
+.romiku-ds .ds-order-create {
+  max-width: 880px;
+}
+.romiku-ds .ds-order-create form {
+  background: #fff;
+  padding: 24px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+}
+.romiku-ds .ds-order-create > p {
+  color: var(--ds-muted);
+  font-size: 13px;
+}
+.romiku-ds .ds-order-editor {
+  width: 100%;
+  min-width: 0;
+}
+.romiku-ds .ds-order-editor > .flex {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.romiku-ds .ds-order-editor [aria-label="单据摘要"] {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+.romiku-ds .ds-order-editor [aria-label="单据摘要"] dt {
+  font-size: 12px;
+  color: var(--ds-muted);
+}
+.romiku-ds .ds-order-editor [aria-label="单据摘要"] dd {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.romiku-ds .ds-order-editor > .rounded {
+  background: #fff;
+  border-radius: 12px;
+}
+.romiku-ds .commercial-lines {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  max-width: 100%;
+}
+.romiku-ds .commercial-lines :is(td, th) {
+  padding: 8px;
+}
+.romiku-ds .commercial-lines input {
+  min-height: 34px;
+}
+.romiku-ds .commercial-lines textarea {
+  min-height: 36px;
+  padding: 6px 8px;
+}
+.romiku-ds [data-slot="tabs-list"] {
+  background: #eaf0f7;
+  padding: 4px;
+  border-radius: 8px;
+}
+.romiku-ds [data-slot="tabs-trigger"] {
+  font-size: 13px;
+  min-height: 32px;
+}
+body:has(.romiku-ds)
+  :is(
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"]
+  ) {
+  font-family: var(--ds-font);
+  font-size: 14px;
+  background: #fff;
+  color: var(--ds-ink);
+  border-color: var(--ds-line);
+  border-radius: 12px;
+}
+@media (max-width: 767px) {
+  .romiku-ds #main-content {
+    padding: 16px;
+  }
+  .romiku-ds {
+    font-size: 14px;
+  }
+  .romiku-ds h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .romiku-ds [data-slot="button"] {
+    min-height: 44px;
+  }
+  .romiku-ds :is(input:not([type="checkbox"]), select) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .romiku-ds .ds-page-heading {
+    gap: 12px;
+  }
+  .romiku-ds .ds-task-panel,
+  .romiku-ds [aria-label="业务提醒"] > section {
+    padding: 16px;
+  }
+  .romiku-ds .ds-list-toolbar {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+  .romiku-ds .ds-list-toolbar > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .romiku-ds .ds-workbench [aria-label="业务概览"] > button {
+    padding: 12px;
+  }
+  .romiku-ds .ds-order-create form {
+    padding: 16px;
+  }
+  .romiku-ds .ds-order-editor [aria-label="单据摘要"] {
+    padding: 16px;
+  }
+}
+
+/* Tabs are flex children: allow the product scroller to shrink within the page. */
+.romiku-ds .ds-order-editor :is([data-slot="tabs"], [role="tabpanel"]) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Full-site semantic surfaces. Tables scroll inside their module, never the page. */
+.romiku-ds .ds-page,
+.romiku-ds :is([data-slot="tabs"], [role="tabpanel"]) {
+  min-width: 0;
+  max-width: 100%;
+}
+.romiku-ds .ds-page {
+  width: 100%;
+}
+.romiku-ds
+  :is(.ds-surface, .ds-production-group, .ds-table-scroll, .ds-resource-table) {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+.romiku-ds :is(.ds-table-scroll, .ds-resource-table) {
+  overflow-x: auto;
+}
+.romiku-ds .ds-table-scroll > table {
+  min-width: 760px;
+}
+.romiku-ds .ds-catalog > table {
+  min-width: 1080px;
+}
+.romiku-ds .ds-table-scroll td {
+  overflow-wrap: anywhere;
+}
+.romiku-ds .ds-resource-title {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+}
+.romiku-ds .ds-resource-filters:has(input) {
+  padding: 12px 16px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  background: var(--ds-surface);
+}
+.romiku-ds .ds-resource-filters form {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.romiku-ds .ds-pagination {
+  padding: 8px 0;
+  font-size: 13px;
+}
+.romiku-ds :is(.ds-form-page, .ds-create-page, .ds-detail-page) {
+  min-width: 0;
+}
+.romiku-ds :is(.ds-create-page, .ds-detail-page) > form,
+.romiku-ds .ds-form-page:not([data-slot="card"]) > form {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+}
+.romiku-ds [data-slot="card"] {
+  border-color: var(--ds-line);
+  border-radius: 12px;
+  box-shadow: none;
+}
+.romiku-ds [data-slot="card-title"] {
+  font-size: 18px;
+  line-height: 26px;
+}
+.romiku-ds [data-slot="badge"] {
+  font-size: 12px;
+  line-height: 20px;
+  border-radius: 6px;
+}
+.romiku-ds [data-slot="select-trigger"] {
+  font-size: 14px;
+  min-height: 36px;
+  border-radius: 8px;
+}
+.romiku-ds [data-slot="tabs-list"] {
+  max-width: 100%;
+  height: auto;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.romiku-ds :is(.ds-detail-page, .ds-create-page) > .flex {
+  flex-wrap: wrap;
+}
+.romiku-ds .ds-production-group {
+  overflow: clip;
+}
+.romiku-ds .ds-production-group > div:first-child {
+  padding: 16px;
+}
+.romiku-ds .ds-production-group progress {
+  height: 8px;
+  accent-color: var(--ds-blue);
+}
+.romiku-ds .ds-packing-lines {
+  min-width: 0;
+}
+.romiku-ds .ds-packing-lines > .flex {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.romiku-ds .ds-packing-lines :is(th, td) {
+  padding: 8px;
+}
+.romiku-ds .ds-calendar .fc {
+  --fc-border-color: var(--ds-line);
+  --fc-button-bg-color: var(--ds-blue);
+  --fc-button-border-color: var(--ds-blue);
+  --fc-button-hover-bg-color: #1e429f;
+  --fc-button-active-bg-color: #17357e;
+  --fc-today-bg-color: #edf3ff;
+  background: white;
+  padding: 16px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  font-size: 13px;
+}
+.romiku-ds .ds-calendar .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.romiku-ds .ds-calendar .fc-toolbar-title {
+  font-size: 18px;
+}
+.romiku-ds .ds-calendar .fc-button {
+  min-height: 36px;
+  font-size: 13px;
+  box-shadow: none;
+}
+/* Portal content lives outside SidebarProvider; inherit the same controls and tokens. */
+body:has(.romiku-ds)
+  :is(
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="alert-dialog-content"],
+    [data-slot="popover-content"],
+    [data-slot="select-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-sonner-toaster]
+  ) {
+  --primary: var(--ds-blue);
+  --primary-foreground: #fff;
+  --foreground: var(--ds-ink);
+  --muted-foreground: var(--ds-muted);
+  --border: var(--ds-line);
+  --accent: var(--ds-blue-soft);
+  font-family: var(--ds-font);
+  font-size: 14px;
+}
+body:has(.romiku-ds)
+  :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+body:has(.romiku-ds) .ds-detail-drawer {
+  gap: 16px;
+}
+body:has(.romiku-ds)
+  :is(.ds-detail-drawer, [data-slot="dialog-content"])
+  :is(input, textarea, select, [data-slot="select-trigger"]) {
+  font-family: var(--ds-font);
+  font-size: 14px;
+  border-radius: 8px;
+}
+body:has(.romiku-ds)
+  :is(.ds-detail-drawer, [data-slot="dialog-content"])
+  [data-slot="button"] {
+  font-size: 13px;
+  min-height: 36px;
+  border-radius: 8px;
+}
+body:has(.romiku-ds) .ds-detail-drawer :is(dl, dd, form, [role="tabpanel"]) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+body:has(.romiku-ds)
+  .ds-detail-drawer
+  :is([role="tablist"], [data-slot="tabs-list"]) {
+  flex-wrap: wrap;
+  height: auto;
+  gap: 4px;
+}
+body:has(.romiku-ds) .ds-detail-drawer .ds-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--ds-line);
+  border-radius: 8px;
+}
+body:has(.romiku-ds) .ds-detail-drawer .ds-table-scroll table {
+  min-width: 720px;
+}
+body:has(.romiku-ds) .ds-detail-drawer :is(th, td) {
+  padding: 8px;
+  vertical-align: top;
+}
+body:has(.romiku-ds) .ds-detail-drawer th {
+  background: #f8fafc;
+  font-size: 13px;
+}
+@media (max-width: 767px) {
+  .romiku-ds :is(.ds-create-page, .ds-detail-page) > form {
+    padding: 12px;
+  }
+  .romiku-ds .ds-calendar .fc {
+    padding: 8px;
+  }
+  .romiku-ds .ds-calendar .fc-toolbar-chunk {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .romiku-ds .ds-calendar .fc-toolbar-title {
+    font-size: 16px;
+  }
+  .romiku-ds .ds-resource-filters form {
+    display: grid;
+  }
+  .romiku-ds [data-slot="select-trigger"],
+  body:has(.romiku-ds)
+    :is(.ds-detail-drawer, [data-slot="dialog-content"])
+    :is(
+      input:not([type="checkbox"]),
+      select,
+      [data-slot="button"],
+      [data-slot="select-trigger"]
+    ) {
+    min-height: 44px;
+  }
+  body:has(.romiku-ds)
+    :is(.ds-detail-drawer, [data-slot="dialog-content"])
+    :is(input, textarea, select) {
+    font-size: 16px;
+  }
+}
+/* Inquiry fixed columns need enough room for Shanghai dates and contact values. */
+.romiku-ds .ds-workflow .ds-table-scroll table.table-fixed {
+  min-width: 1240px;
+}
+.romiku-ds .ds-workflow .ds-table-scroll table.table-fixed td:nth-child(4) {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.romiku-ds .ds-search-input > label {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: min(240px, 100%);
+}
+.romiku-ds .ds-search-input input {
+  width: 100%;
+}
+.romiku-ds .ds-workflow td select {
+  min-width: 96px;
+}
+.romiku-ds .ds-workflow .ds-table-scroll:not(:has(table.table-fixed)) td {
+  min-width: 80px;
+}
+.romiku-ds
+  .ds-workflow
+  .ds-table-scroll:not(:has(table.table-fixed))
+  td:first-child {
+  min-width: 40px;
+}
+.romiku-ds .ds-quote-list td:nth-child(n + 6):nth-child(-n + 8),
+.romiku-ds .ds-pi-list td:nth-child(n + 6):nth-child(-n + 7),
+.romiku-ds .ds-order-list td:nth-child(n + 5):nth-child(-n + 8) {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.romiku-ds .ds-quote-list td:nth-child(8),
+.romiku-ds .ds-pi-list td:nth-child(7) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.romiku-ds .ds-production > .ds-search-input,
+.romiku-ds .ds-search > .ds-search-input,
+.romiku-ds .ds-catalog > .ds-search-input {
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+}
+
+/* Preserve the packing grid’s 17-column editing surface within its scrollport. */
+.romiku-ds .ds-packing-lines .ds-table-scroll > table {
+  min-width: 1440px;
+}

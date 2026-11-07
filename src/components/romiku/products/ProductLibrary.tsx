@@ -64,7 +64,10 @@ const ReferenceCostsList = () => (
 );
 
 export const ProductLibrary = () => (
-  <section aria-labelledby="product-library-heading" className="space-y-4">
+  <section
+    aria-labelledby="product-library-heading"
+    className="ds-page ds-product-library space-y-4"
+  >
     <div>
       <h1
         id="product-library-heading"
@@ -83,7 +86,9 @@ export const ProductLibrary = () => (
         <TabsTrigger value="suppliers">产品供应商</TabsTrigger>
         <TabsTrigger value="costs">参考成本</TabsTrigger>
       </TabsList>
-      <TabsContent value="catalog"><SanityCatalogList /></TabsContent>
+      <TabsContent value="catalog">
+        <SanityCatalogList />
+      </TabsContent>
       <TabsContent value="extensions">
         <ProductExtensionsList />
       </TabsContent>

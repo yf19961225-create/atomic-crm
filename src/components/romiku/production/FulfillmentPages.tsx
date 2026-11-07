@@ -127,8 +127,8 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
     setPage,
   );
   return (
-    <section className="space-y-4">
-      <div className="flex justify-between">
+    <section className="ds-page space-y-4">
+      <div className="ds-page-heading flex flex-wrap justify-between">
         <h1 className="text-3xl font-semibold">{config.plural}</h1>
         <Button asChild>
           <Link
@@ -138,40 +138,42 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
           </Link>
         </Button>
       </div>
-      <SearchInput
-        label={`搜索${config.plural}`}
-        value={searchInput}
-        onChange={setSearchInput}
-        onSubmit={(next) => {
-          if (next === committedSearch && page === 1) void query.refetch();
-          setCommittedSearch(next);
-          setPage(1);
-        }}
-        onClear={() => {
-          setSearchInput("");
-          setCommittedSearch("");
-          setPage(1);
-        }}
-        busy={query.isFetching}
-      />
-      <label>
-        状态{" "}
-        <select
-          className="rounded border p-2"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+      <div className="ds-list-toolbar flex gap-3">
+        <SearchInput
+          label={`搜索${config.plural}`}
+          value={searchInput}
+          onChange={setSearchInput}
+          onSubmit={(next) => {
+            if (next === committedSearch && page === 1) void query.refetch();
+            setCommittedSearch(next);
             setPage(1);
           }}
-        >
-          <option value="">全部状态</option>
-          {statusOptions(kind).map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
+          onClear={() => {
+            setSearchInput("");
+            setCommittedSearch("");
+            setPage(1);
+          }}
+          busy={query.isFetching}
+        />
+        <label>
+          状态{" "}
+          <select
+            className="rounded border p-2"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">全部状态</option>
+            {statusOptions(kind).map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <BulkActions
         kind={kind}
         ids={selection.ids}
@@ -198,7 +200,7 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
           <Button onClick={() => query.refetch()}>重试</Button>
         </p>
       )}
-      <div className="overflow-auto rounded border">
+      <div className="ds-table-scroll overflow-auto rounded border">
         <table className="w-full text-left text-sm">
           <thead>
             <tr>
@@ -578,7 +580,7 @@ function FulfillmentEditor({
     );
   }
   return (
-    <section className="w-full min-w-0 space-y-5">
+    <section className="ds-detail-page ds-page w-full min-w-0 space-y-5">
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>

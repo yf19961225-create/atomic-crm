@@ -87,8 +87,8 @@ function ControlledWorkbench() {
     setPage(0);
   }
   return (
-    <section className="space-y-4 min-w-0">
-      <div className="flex flex-wrap justify-between gap-3">
+    <section className="ds-workbench space-y-4 min-w-0">
+      <div className="ds-page-heading flex flex-wrap justify-between gap-3">
         <h1 className="text-3xl font-semibold">工作台</h1>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
@@ -139,7 +139,7 @@ function ControlledWorkbench() {
             : "grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)]"
         }
       >
-        <div className="min-w-0 rounded-lg border bg-background p-4">
+        <div className="ds-task-panel min-w-0 rounded-lg border bg-background p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">
               {detailed ? tabs[tab] : "近期需要处理"}
@@ -249,7 +249,7 @@ function ControlledWorkbench() {
               <div className="divide-y">
                 {data.rows.map((item) => (
                   <article
-                    className="min-w-0 py-3 first:pt-0 last:pb-0"
+                    className="ds-task-row min-w-0 py-3 first:pt-0 last:pb-0"
                     key={item.id}
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">

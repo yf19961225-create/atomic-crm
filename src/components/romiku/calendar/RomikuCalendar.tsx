@@ -81,8 +81,8 @@ export function RomikuCalendar() {
       `/calendar/tasks/new?due=${encodeURIComponent(localDateTime(arg.date))}`,
     );
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="ds-page ds-calendar space-y-4">
+      <div className="ds-page-heading flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold">日历</h1>
         <div className="flex gap-2">
           <Button asChild variant="outline">

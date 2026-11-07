@@ -154,8 +154,14 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
     setPage,
   );
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between">
+    <section
+      className={
+        kind === "order"
+          ? "ds-order-list ds-page space-y-4"
+          : "ds-pi-list ds-page space-y-4"
+      }
+    >
+      <div className="ds-page-heading flex items-center justify-between">
         <h1 className="text-3xl font-semibold">{config.plural}</h1>
         <Button asChild>
           <Link to={`${config.path}/new`}>新建{config.label}</Link>
@@ -177,7 +183,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           显示已归档订单
         </label>
       )}
-      <div className="flex gap-4">
+      <div className="ds-list-toolbar flex gap-4">
         <SearchInput
           label={`搜索${config.plural}`}
           value={searchInput}
@@ -229,7 +235,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           <Button onClick={() => refetch()}>重试</Button>
         </p>
       )}
-      <div className="overflow-auto rounded border">
+      <div className="ds-data-table overflow-auto rounded border">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted">
             <tr>
@@ -384,7 +390,7 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
     }
   }
   return (
-    <section className="max-w-3xl space-y-4">
+    <section className={"ds-order-create ds-page space-y-4"}>
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>
@@ -655,7 +661,7 @@ function DocumentEditor({
     },
   ];
   return (
-    <section className="max-w-6xl space-y-4">
+    <section className={"ds-order-editor ds-page space-y-4"}>
       <Link
         className="underline"
         to={config.path}
@@ -666,7 +672,7 @@ function DocumentEditor({
       >
         返回{config.plural}
       </Link>
-      <div className="flex items-center justify-between gap-3">
+      <div className="ds-page-heading flex items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">
             {documentTitle(record, `草稿${config.label}`)}

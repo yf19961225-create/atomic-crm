@@ -56,7 +56,7 @@ function GroupResults({ group, query }: { group: SearchGroup; query: string }) {
   }
   return (
     <section
-      className="space-y-2 rounded border p-4"
+      className="ds-surface space-y-2 rounded border p-4"
       aria-label={searchLabels[group.resource_type]}
     >
       <h2 className="font-semibold">
@@ -137,7 +137,7 @@ export function GlobalSearch() {
   }
   const shown = query ? lastResult.current : null;
   return (
-    <section className="space-y-4">
+    <section className="ds-page ds-search space-y-4">
       <h1 className="text-3xl font-semibold">全局搜索</h1>
       <SearchInput
         value={value}

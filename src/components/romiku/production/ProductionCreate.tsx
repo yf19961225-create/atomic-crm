@@ -109,7 +109,7 @@ export function ProductionCreate() {
       />
     );
   return (
-    <section className="space-y-4">
+    <section className="ds-page ds-create-page space-y-4">
       <Link
         className="underline"
         to={lockedOrder ? `/orders/${lockedOrder}` : "/production"}
