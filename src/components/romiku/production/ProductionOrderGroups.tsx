@@ -473,22 +473,26 @@ function ProductionListDue({ row }: { row: RaRecord }) {
     <div className="min-w-0">
       {editing && !readOnly ? (
         <ProductionDueControls
+          openCalendar
           productionId={String(row.id)}
           onCancel={() => setEditing(false)}
         />
       ) : (
         <>
-          <span>工厂交期：{productionDueDateLabel(row.factory_due_at)}</span>
-          {!readOnly && (
+          {readOnly ? (
+            <span>工厂交期：{productionDueDateLabel(row.factory_due_at)}</span>
+          ) : (
             <Button
               type="button"
-              variant="link"
+              variant="ghost"
               size="sm"
-              className="px-1"
-              aria-label={`修改日期 ${row.document_number}`}
+              className="px-1 font-normal tabular-nums"
+              aria-label={`${row.factory_due_at ? "工厂交期" : "设置交期"} ${row.document_number}`}
               onClick={() => setEditing(true)}
             >
-              修改日期
+              {row.factory_due_at
+                ? productionDueDateLabel(row.factory_due_at)
+                : "设置交期"}
             </Button>
           )}
         </>

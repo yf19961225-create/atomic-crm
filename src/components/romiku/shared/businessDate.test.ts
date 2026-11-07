@@ -62,3 +62,11 @@ it("formats order delivery dates in the existing editor timezone, including mont
   expect(orderDeliveryDateLabel("invalid")).toBe("—");
   expect(orderDeliveryDateLabel("2026-11-10")).toBe("2026-11-10");
 });
+
+it("keeps order delivery dates in Shanghai even in an overseas browser", async () => {
+  await commands.setTimezone("America/Los_Angeles");
+  const { orderDeliveryDateLabel } = await import("./businessDate");
+  expect(orderDeliveryDateLabel("2026-11-20T00:00:00+08:00")).toBe(
+    "2026-11-20",
+  );
+});

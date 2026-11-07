@@ -76,7 +76,7 @@ it("shows exactly the requested order columns, separate delivery/order dates and
   const emptyRow = Array.from(document.querySelectorAll("tbody tr")).find(
     (row) => row.textContent?.includes("OD-EMPTY"),
   );
-  expect(emptyRow?.querySelectorAll("td")[4].textContent).toBe("—");
+  expect(emptyRow?.querySelectorAll("td")[4].textContent).toBe("设置日期");
   await expect
     .element(screen.getByRole("combobox", { name: "订单状态" }).first())
     .toBeVisible();

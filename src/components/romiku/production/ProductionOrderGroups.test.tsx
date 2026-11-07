@@ -223,7 +223,7 @@ it("reads delivery by parent UUID, removes the summary due block and preserves c
     .not.toBeInTheDocument();
   await screen.getByRole("button", { name: "展开 OD-QA", exact: true }).click();
   await expect
-    .element(screen.getByText("工厂交期：—", { exact: true }).first())
+    .element(screen.getByRole("button", { name: "设置交期 PO-0", exact: true }))
     .toBeVisible();
 });
 
@@ -279,11 +279,14 @@ it("opens the shared inline editor without navigation, cancels without writing a
   );
   await screen.getByRole("button", { name: "展开 OD-QA", exact: true }).click();
   await screen
-    .getByRole("button", { name: "修改日期 PO-1", exact: true })
+    .getByRole("button", { name: "设置交期 PO-1", exact: true })
     .click();
-  await screen
-    .getByLabelText("工厂交货日期", { exact: true })
-    .fill("2026-12-01");
+  await expect
+    .element(screen.getByLabelText("日历月份", { exact: true }))
+    .toBeVisible();
+  await screen.getByLabelText("日历年份").selectOptions("2026");
+  await screen.getByLabelText("日历月份").selectOptions("12");
+  await screen.getByRole("button", { name: "2026-12-01", exact: true }).click();
   await screen.getByRole("button", { name: "取消", exact: true }).click();
   expect(rpc.mock.calls.some(([n]) => n === "romiku_workbench_action")).toBe(
     false,
@@ -292,7 +295,7 @@ it("opens the shared inline editor without navigation, cancels without writing a
     .getByRole("button", { name: "已收货（1）· 展开查看", exact: true })
     .click();
   await expect
-    .element(screen.getByRole("button", { name: "修改日期 PO-0", exact: true }))
+    .element(screen.getByRole("button", { name: "设置交期 PO-0", exact: true }))
     .not.toBeInTheDocument();
   await expect
     .element(screen.getByRole("link", { name: "PO-0", exact: true }))

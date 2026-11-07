@@ -705,3 +705,51 @@ body:has(.romiku-ds) .ds-detail-drawer th {
 .romiku-ds .ds-packing-lines .ds-table-scroll > table {
   min-width: 1440px;
 }
+
+/* Inquiry tools share one compact row; freshness is subordinate, not a column. */
+.romiku-ds .ds-inquiry-toolbar {
+  align-items: end;
+  gap: 8px;
+  padding: 12px;
+}
+.romiku-ds .ds-inquiry-toolbar .ds-search-input {
+  order: 0;
+  flex: 1 1 440px;
+  align-items: end;
+}
+.romiku-ds .ds-inquiry-toolbar .ds-search-input > label {
+  flex: 1 1 230px;
+  min-width: 0;
+}
+.romiku-ds .ds-inquiry-toolbar input[type="search"] {
+  width: 100%;
+}
+.romiku-ds .ds-inquiry-toolbar > label {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.romiku-ds .ds-inquiry-refresh {
+  order: 2;
+}
+.romiku-ds .ds-inquiry-freshness {
+  order: 3;
+  flex-basis: 100%;
+  text-align: right;
+}
+.romiku-ds .ds-inquiry-new {
+  order: 4;
+  flex-basis: 100%;
+}
+@media (max-width: 639px) {
+  .romiku-ds .ds-inquiry-toolbar .ds-search-input {
+    flex-basis: 100%;
+  }
+  .romiku-ds .ds-inquiry-toolbar .ds-search-input > label {
+    flex-basis: 100%;
+  }
+  .romiku-ds .ds-inquiry-toolbar > label {
+    flex: 1;
+  }
+}

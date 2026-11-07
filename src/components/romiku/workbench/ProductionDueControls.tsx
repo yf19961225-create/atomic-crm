@@ -21,7 +21,9 @@ const dateOf = (snapshot: DueSnapshot) =>
 export function ProductionDueControls({
   productionId,
   onCancel,
+  openCalendar = false,
 }: {
+  openCalendar?: boolean;
   productionId: string;
   onCancel?: () => void;
 }) {
@@ -49,6 +51,7 @@ export function ProductionDueControls({
   return (
     <DueForm
       key={productionId}
+      openCalendar={openCalendar}
       snapshot={query.data}
       reload={async () => {
         const r = await query.refetch();
@@ -61,9 +64,11 @@ export function ProductionDueControls({
 }
 function DueForm({
   snapshot,
+  openCalendar,
   reload,
   onCancel,
 }: {
+  openCalendar?: boolean;
   snapshot: DueSnapshot;
   reload: () => Promise<DueSnapshot>;
   onCancel?: () => void;
@@ -186,6 +191,7 @@ function DueForm({
         <label className="min-w-0 flex-1 basis-40">
           工厂交货日期
           <RomikuDatePicker
+            defaultOpen={openCalendar}
             label="工厂交货日期"
             value={date}
             onChange={(v) => {

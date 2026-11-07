@@ -294,10 +294,12 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
             : "实际业务建立后，请手动创建客户档案。"}{" "}
         状态变更需手动操作。
       </p>
-      <div className="ds-list-toolbar flex flex-wrap gap-3">
+      <div
+        className={`ds-list-toolbar flex flex-wrap gap-3 ${config.kind === "inquiry" ? "ds-inquiry-toolbar" : ""}`}
+      >
         {config.kind === "inquiry" && (
           <>
-            <span className="self-center text-sm text-muted-foreground">
+            <span className="ds-inquiry-freshness self-center text-xs text-muted-foreground">
               最后刷新：
               {freshness.lastSuccess ? (
                 <time dateTime={new Date(freshness.lastSuccess).toISOString()}>
@@ -310,11 +312,15 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
               )}
               {isFetching ? " · 正在刷新…" : ""}
             </span>
-            <Button variant="outline" onClick={() => void freshness.refresh()}>
+            <Button
+              className="ds-inquiry-refresh"
+              variant="outline"
+              onClick={() => void freshness.refresh()}
+            >
               刷新
             </Button>
             {freshness.newCount > 0 && (
-              <span role="status">
+              <span className="ds-inquiry-new" role="status">
                 有 {freshness.newCount} 条新询盘{" "}
                 <Button
                   variant="outline"

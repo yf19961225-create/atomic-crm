@@ -1,3 +1,4 @@
+import { businessDate } from "../workbench/businessWindow";
 const pad = (n: number, length = 2) => String(n).padStart(length, "0");
 const parts = (value: string) =>
   /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)?.slice(1).map(Number);
@@ -25,10 +26,23 @@ export function calendarDates(year: number, month: number) {
     utcText(new Date(start.getTime() + i * 86400000)),
   );
 }
-export function localBusinessDateTime(value: string) {
+export function localBusinessDateTime(
+  value: string,
+  timeZone?: "Asia/Shanghai",
+) {
   if (!value) return "";
   const d = new Date(value);
   if (!Number.isFinite(d.getTime())) return "";
+  if (timeZone) {
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hourCycle: "h23",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(d);
+    return `${businessDate(d)}T${time}.${pad(d.getUTCMilliseconds(), 3)}`;
+  }
   return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
 }
 /** Return zero, one, or two matching instants; never silently normalize DST gaps. */
@@ -36,6 +50,7 @@ export function resolveBusinessDateTime(
   date: string,
   time: string,
   previous?: string,
+  timeZone?: "Asia/Shanghai",
 ): string[] {
   if (!validBusinessDate(date)) return [];
   const match = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/.exec(time);
@@ -47,7 +62,7 @@ export function resolveBusinessDateTime(
     Number((match[4] ?? "").padEnd(3, "0")),
   ];
   if (h > 23 || m > 59 || s > 59) return [];
-  const old = previous ? localBusinessDateTime(previous) : "";
+  const old = previous ? localBusinessDateTime(previous, timeZone) : "";
   if (
     old.slice(0, 10) === date &&
     (old.slice(11) === time ||
@@ -58,11 +73,15 @@ export function resolveBusinessDateTime(
   const candidate = new Date(0);
   candidate.setFullYear(y, month - 1, day);
   candidate.setHours(h, m, s, ms);
+  if (timeZone) {
+    candidate.setUTCFullYear(y, month - 1, day);
+    candidate.setUTCHours(h - 8, m, s, ms);
+  }
   const wanted = `${date}T${pad(h)}:${pad(m)}:${pad(s)}.${pad(ms, 3)}`;
   const values = new Set<string>();
   for (let offset = -180; offset <= 180; offset += 15) {
     const d = new Date(candidate.getTime() + offset * 60000);
-    if (localBusinessDateTime(d.toISOString()) === wanted)
+    if (localBusinessDateTime(d.toISOString(), timeZone) === wanted)
       values.add(d.toISOString());
   }
   return [...values].sort();
@@ -74,9 +93,9 @@ export function businessDateLabel(value: unknown) {
   return `${y}年${m}月${d}日`;
 }
 
-/** Same local calendar semantics as the existing order delivery date editor. */
+/** Customer delivery dates use the Shanghai business day on every page. */
 export function orderDeliveryDateLabel(value: unknown) {
   const text = String(value ?? "");
   if (validBusinessDate(text)) return text;
-  return localBusinessDateTime(text).slice(0, 10) || "—";
+  return businessDate(new Date(text)) || "—";
 }
