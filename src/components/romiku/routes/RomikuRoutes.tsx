@@ -2,7 +2,14 @@ import { Route } from "react-router";
 import { GlobalSearch } from "../search/GlobalSearch";
 import { RomikuCalendar } from "../calendar/RomikuCalendar";
 import { ManualTaskList, ManualTaskPage } from "../calendar/ManualTasks";
-import { ProductLibrary } from "../products";
+import {
+  ProductLibrary,
+  ProductExtensionCreate,
+  ProductExtensionEdit,
+  ProductSupplierCreate,
+  ProductSupplierEdit,
+  ProcurementCostCreate,
+} from "../products";
 import {
   SupplierContactEdit,
   SupplierContactList,
@@ -176,5 +183,30 @@ export const romikuRoutes = [
     key="/product-library"
     path="/product-library"
     element={<ProductLibrary />}
+  />,
+  <Route
+    key="/romiku_product_extensions/create"
+    path="/romiku_product_extensions/create"
+    element={<ProductExtensionCreate />}
+  />,
+  <Route
+    key="/romiku_product_extensions/:id"
+    path="/romiku_product_extensions/:id"
+    element={<ProductExtensionEdit />}
+  />,
+  <Route
+    key="/romiku_product_suppliers/create"
+    path="/romiku_product_suppliers/create"
+    element={<ProductSupplierCreate />}
+  />,
+  <Route
+    key="/romiku_product_suppliers/:id"
+    path="/romiku_product_suppliers/:id"
+    element={<ProductSupplierEdit />}
+  />,
+  <Route
+    key="/romiku_procurement_cost_history/create"
+    path="/romiku_procurement_cost_history/create"
+    element={<ProcurementCostCreate />}
   />,
 ];
