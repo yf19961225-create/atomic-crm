@@ -82,3 +82,23 @@ describe("RomikuLayout", () => {
       .toBeVisible();
   });
 });
+
+for (const [path, enabled] of [
+  ["/", true],
+  ["/orders", true],
+  ["/orders/new", true],
+  ["/orders/qa-id", true],
+  ["/quotes", false],
+  ["/production", false],
+] as const) {
+  it(`scopes design system pilot at ${path}`, async () => {
+    await render(
+      <MemoryRouter initialEntries={[path]}>
+        <RomikuLayout>
+          <p>Pilot</p>
+        </RomikuLayout>
+      </MemoryRouter>,
+    );
+    expect(document.querySelector(".romiku-ds") !== null).toBe(enabled);
+  });
+}

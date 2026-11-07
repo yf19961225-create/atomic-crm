@@ -1,0 +1,401 @@
+/* ROMIKU DS 2.0: opt-in pilot; no business or document-export styles. */
+:root {
+  --ds-canvas: #f5f7fb;
+  --ds-surface: #fff;
+  --ds-ink: #172338;
+  --ds-muted: #59677b;
+  --ds-line: #e2e8f0;
+  --ds-blue: #2455d6;
+  --ds-blue-soft: #edf3ff;
+  --ds-font:
+    "Inter Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+    system-ui, sans-serif;
+}
+.romiku-ds {
+  --background: var(--ds-canvas);
+  --foreground: var(--ds-ink);
+  --card: var(--ds-surface);
+  --card-foreground: var(--ds-ink);
+  --primary: var(--ds-blue);
+  --primary-foreground: #fff;
+  --muted: #f1f4f9;
+  --muted-foreground: var(--ds-muted);
+  --accent: var(--ds-blue-soft);
+  --accent-foreground: #1e429f;
+  --border: var(--ds-line);
+  --input: #cbd5e1;
+  --ring: #3b68dc;
+  --sidebar: #fff;
+  --sidebar-foreground: #43516a;
+  --sidebar-accent: var(--ds-blue-soft);
+  --sidebar-accent-foreground: #214abb;
+  --sidebar-width: 224px !important;
+  font-family: var(--ds-font);
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--ds-canvas);
+  color: var(--ds-ink);
+}
+.romiku-ds #main-content {
+  padding: 24px;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+.romiku-ds h1 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.romiku-ds h2 {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+.romiku-ds p {
+  overflow-wrap: anywhere;
+}
+.romiku-ds a {
+  text-underline-offset: 3px;
+}
+.romiku-ds a.underline {
+  color: var(--ds-blue);
+  text-decoration: none;
+}
+.romiku-ds a.underline:hover {
+  text-decoration: underline;
+}
+.romiku-ds [data-slot="sidebar-inner"] {
+  border-color: var(--ds-line);
+  box-shadow: none;
+}
+.romiku-ds [data-slot="sidebar-header"] {
+  padding: 20px 12px 16px;
+}
+.romiku-ds [data-slot="sidebar-header"] img {
+  width: 112px;
+  margin-bottom: 8px;
+}
+.romiku-ds [data-slot="sidebar-header"] a {
+  font-size: 13px;
+  letter-spacing: 0.015em;
+}
+.romiku-ds [data-slot="sidebar-menu-button"] {
+  height: 40px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.romiku-ds [data-slot="sidebar-menu-button"][data-active="true"] {
+  box-shadow: inset 3px 0 var(--ds-blue);
+  font-weight: 600;
+}
+.romiku-ds [data-slot="button"] {
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 8px;
+  min-height: 36px;
+  box-shadow: none;
+}
+.romiku-ds [data-slot="button"].border {
+  background: var(--ds-surface);
+}
+.romiku-ds [data-slot="button"]:disabled {
+  opacity: 0.48;
+}
+.romiku-ds :is(input, select, textarea) {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  border-color: #cbd5e1;
+  border-radius: 8px;
+  background-color: #fff;
+  color: var(--ds-ink);
+}
+.romiku-ds :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: 36px;
+  padding-inline: 10px;
+}
+.romiku-ds :is(input, select, textarea):focus-visible {
+  outline: 2px solid #7d9de8;
+  outline-offset: 2px;
+  border-color: var(--ds-blue);
+}
+.romiku-ds :is(input, textarea):read-only {
+  background: #f5f7fa;
+}
+.romiku-ds input[type="checkbox"] {
+  accent-color: var(--ds-blue);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.romiku-ds input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.romiku-ds :is(table, dl) {
+  font-variant-numeric: tabular-nums;
+}
+.romiku-ds [role="alert"] {
+  color: #9e241c;
+  border: 1px solid #f3c9c5;
+  background: #fff5f3;
+  padding: 12px;
+  border-radius: 8px;
+}
+.romiku-ds [role="status"] {
+  color: var(--ds-muted);
+  font-size: 13px;
+}
+.romiku-ds .ds-page-heading {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.romiku-ds .ds-page-heading > div {
+  min-width: 0;
+}
+.romiku-ds .ds-page-heading > div:last-child {
+  flex-wrap: wrap;
+}
+.romiku-ds .ds-page-heading p {
+  margin-top: 4px;
+  font-size: 12px;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] {
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] > button {
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] > button:hover {
+  border-color: #9ab2ed;
+  background: #fafcff;
+}
+.romiku-ds .ds-workbench [aria-label="业务概览"] > button > span:last-child {
+  font-size: 28px;
+  line-height: 36px;
+  margin-top: 4px;
+}
+.romiku-ds .ds-task-panel,
+.romiku-ds [aria-label="业务提醒"] > section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+.romiku-ds .ds-task-row {
+  padding-block: 14px;
+}
+.romiku-ds .ds-task-row:hover {
+  background: #fafcff;
+}
+.romiku-ds .ds-task-row p {
+  margin-top: 4px;
+  color: var(--ds-muted);
+  font-size: 12px;
+}
+.romiku-ds .ds-task-row a {
+  font-size: 13px;
+}
+.romiku-ds .ds-task-row a.font-semibold {
+  font-size: 14px;
+  color: var(--ds-ink);
+}
+.romiku-ds [aria-label="业务提醒"] h2 {
+  font-size: 16px;
+}
+.romiku-ds .ds-task-panel > p {
+  font-size: 12px;
+  color: var(--ds-muted);
+  margin-block: 12px;
+}
+.romiku-ds .ds-list-toolbar {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.romiku-ds .ds-list-toolbar > :first-child {
+  flex: 1;
+  min-width: min(320px, 100%);
+}
+.romiku-ds .ds-list-toolbar label {
+  font-size: 12px;
+  color: var(--ds-muted);
+}
+.romiku-ds .ds-data-table {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 100%;
+}
+.romiku-ds .ds-data-table table {
+  min-width: 980px;
+}
+.romiku-ds table {
+  font-size: 14px;
+}
+.romiku-ds th {
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  color: #53627a;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.romiku-ds :is(th, td) {
+  padding: 12px;
+  vertical-align: middle;
+}
+.romiku-ds tbody tr:hover {
+  background: #f8faff;
+}
+.romiku-ds .ds-data-table td:nth-child(2) {
+  min-width: 180px;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.romiku-ds .ds-data-table td:nth-child(3) {
+  min-width: 140px;
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+.romiku-ds .ds-data-table :is(th, td):nth-child(n + 7):nth-child(-n + 8) {
+  text-align: right;
+  white-space: nowrap;
+}
+.romiku-ds .ds-data-table td:nth-child(4) select {
+  font-size: 12px;
+  min-width: 100px;
+  background: #f8fafc;
+}
+.romiku-ds .ds-order-create {
+  max-width: 880px;
+}
+.romiku-ds .ds-order-create form {
+  background: #fff;
+  padding: 24px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+}
+.romiku-ds .ds-order-create > p {
+  color: var(--ds-muted);
+  font-size: 13px;
+}
+.romiku-ds .ds-order-editor {
+  width: 100%;
+  min-width: 0;
+}
+.romiku-ds .ds-order-editor > .flex {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.romiku-ds .ds-order-editor [aria-label="单据摘要"] {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
+.romiku-ds .ds-order-editor [aria-label="单据摘要"] dt {
+  font-size: 12px;
+  color: var(--ds-muted);
+}
+.romiku-ds .ds-order-editor [aria-label="单据摘要"] dd {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.romiku-ds .ds-order-editor > .rounded {
+  background: #fff;
+  border-radius: 12px;
+}
+.romiku-ds .commercial-lines {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  max-width: 100%;
+}
+.romiku-ds .commercial-lines :is(td, th) {
+  padding: 8px;
+}
+.romiku-ds .commercial-lines input {
+  min-height: 34px;
+}
+.romiku-ds .commercial-lines textarea {
+  min-height: 36px;
+  padding: 6px 8px;
+}
+.romiku-ds [data-slot="tabs-list"] {
+  background: #eaf0f7;
+  padding: 4px;
+  border-radius: 8px;
+}
+.romiku-ds [data-slot="tabs-trigger"] {
+  font-size: 13px;
+  min-height: 32px;
+}
+body:has(.romiku-ds)
+  :is(
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"]
+  ) {
+  font-family: var(--ds-font);
+  font-size: 14px;
+  background: #fff;
+  color: var(--ds-ink);
+  border-color: var(--ds-line);
+  border-radius: 12px;
+}
+@media (max-width: 767px) {
+  .romiku-ds #main-content {
+    padding: 16px;
+  }
+  .romiku-ds {
+    font-size: 14px;
+  }
+  .romiku-ds h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .romiku-ds [data-slot="button"] {
+    min-height: 44px;
+  }
+  .romiku-ds :is(input:not([type="checkbox"]), select) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .romiku-ds .ds-page-heading {
+    gap: 12px;
+  }
+  .romiku-ds .ds-task-panel,
+  .romiku-ds [aria-label="业务提醒"] > section {
+    padding: 16px;
+  }
+  .romiku-ds .ds-list-toolbar {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+  .romiku-ds .ds-list-toolbar > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .romiku-ds .ds-workbench [aria-label="业务概览"] > button {
+    padding: 12px;
+  }
+  .romiku-ds .ds-order-create form {
+    padding: 16px;
+  }
+  .romiku-ds .ds-order-editor [aria-label="单据摘要"] {
+    padding: 16px;
+  }
+}

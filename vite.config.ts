@@ -71,7 +71,7 @@ export default defineConfig({
           },
         ],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        globIgnores: ["index.html"],
+        globIgnores: ["index.html", "**/noto-sans-sc-*"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
       },
       manifest: false, // Use existing manifest.json from public/

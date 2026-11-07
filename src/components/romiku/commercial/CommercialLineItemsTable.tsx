@@ -373,7 +373,7 @@ export function CommercialLineItemsTable({
     }
   };
   return (
-    <section className="space-y-3 overflow-x-auto">
+    <section className="commercial-lines space-y-3 overflow-x-auto">
       {!compactQuote && (
         <label className="flex items-center gap-2">
           <input
