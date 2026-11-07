@@ -1,3 +1,5 @@
+import { ProductionDueControls } from "../workbench/ProductionDueControls";
+import { safeRollbackEnabled } from "../workbench/rollbackPolicy";
 import { orderDeliveryDateLabel } from "../shared/businessDate";
 import { documentTitle } from "../commercial/documentIdentity";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -258,6 +260,7 @@ export function ProductionOrderGroups() {
             <ProductionChildren
               key={`${scope}:${group.id}`}
               group={group}
+              view={view}
               search={search}
               onLoaded={onLoaded}
               checkbox={selection.checkbox}
@@ -288,18 +291,21 @@ export function ProductionOrderGroups() {
 }
 function ProductionChildren({
   group,
+  view,
   search,
   onLoaded,
   checkbox,
   onDeleted,
 }: {
   group: ProductionOrderGroup;
+  view: ProductionGroupView;
   search: string;
   onLoaded: (id: string, rows: RaRecord[]) => void;
   checkbox: (record: RaRecord) => React.ReactNode;
   onDeleted: () => void;
 }) {
   const provider = useDataProvider();
+  const [showReceived, setShowReceived] = useState(false);
   const query = useInfiniteQuery({
     queryKey: ["production-group-children", group.id],
     initialPageParam: 1,
@@ -319,9 +325,31 @@ function ProductionChildren({
     () => query.data?.pages.flatMap((p) => p.data) ?? [],
     [query.data],
   );
+  const activeRows = useMemo(
+    () =>
+      rows.filter(
+        (row) =>
+          view === "all" ||
+          (view === "ongoing"
+            ? row.status !== "received" && row.status !== "cancelled"
+            : row.status === view),
+      ),
+    [rows, view],
+  );
+  const receivedRows = useMemo(
+    () => rows.filter((row) => row.status === "received"),
+    [rows],
+  );
+  const visibleRows = useMemo(
+    () =>
+      view === "ongoing" && showReceived
+        ? [...activeRows, ...receivedRows]
+        : activeRows,
+    [activeRows, receivedRows, view, showReceived],
+  );
   useEffect(() => {
-    onLoaded(group.id, rows);
-  }, [group.id, rows, onLoaded]);
+    onLoaded(group.id, visibleRows);
+  }, [group.id, visibleRows, onLoaded]);
   const supplierIds = [
     ...new Set(rows.map((row) => row.supplier_id).filter(Boolean)),
   ];
@@ -330,6 +358,63 @@ function ProductionChildren({
     queryFn: () => provider.getMany("romiku_suppliers", { ids: supplierIds }),
     enabled: supplierIds.length > 0,
   });
+  const renderRow = (row: RaRecord) => (
+    <div
+      className="grid gap-2 border-b py-3 text-sm md:grid-cols-[auto_2fr_2fr_2fr_2fr_2fr_auto] md:items-center"
+      key={row.id}
+    >
+      <span>{checkbox(row)}</span>
+      <Link className="underline" to={`/production/${row.id}`}>
+        {row.document_number || "未编号生产单"}
+        {search.trim() &&
+          [
+            row.document_number,
+            row.supplier_snapshot?.name,
+            suppliers.data?.data.find((s) => s.id === row.supplier_id)?.name,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(search.trim().toLowerCase()) && (
+            <span
+              className="ml-2 rounded bg-muted px-1"
+              aria-label={`搜索命中 ${row.document_number}`}
+            >
+              命中
+            </span>
+          )}
+      </Link>
+      <span>
+        {row.supplier_snapshot?.name ||
+          suppliers.data?.data.find((s) => s.id === row.supplier_id)?.name ||
+          "未指定供应商"}
+      </span>
+      <InlineStatusSelect
+        resource="romiku_production_orders"
+        recordId={String(row.id)}
+        recordLabel={row.document_number}
+        status={row.status}
+        label="生产状态"
+        choices={productionStatusChoices.map((c) => ({
+          value: c.id,
+          label: c.label,
+        }))}
+      />
+      <ProductionListDue row={row} />
+      <span>生成：{localDate(row.created_at)}</span>
+      <span className="flex gap-2">
+        <Link className="underline" to={`/production/${row.id}`}>
+          查看 / 编辑
+        </Link>
+        <RecordDelete
+          kind="production"
+          id={String(row.id)}
+          label={row.document_number || String(row.id)}
+          onDeleted={onDeleted}
+        />
+      </span>
+    </div>
+  );
   return (
     <div className="ml-3 border-t border-l bg-muted/20 p-3 md:ml-8">
       {query.isPending && <p>正在加载生产子单…</p>}
@@ -339,65 +424,30 @@ function ProductionChildren({
           <Button onClick={() => query.refetch()}>重试</Button>
         </p>
       )}
-      {rows.map((row) => (
-        <div
-          className="grid gap-2 border-b py-3 text-sm md:grid-cols-[auto_2fr_2fr_2fr_2fr_2fr_auto] md:items-center"
-          key={row.id}
-        >
-          <span>{checkbox(row)}</span>
-          <Link className="underline" to={`/production/${row.id}`}>
-            {row.document_number || "未编号生产单"}
-            {search.trim() &&
-              [
-                row.document_number,
-                row.supplier_snapshot?.name,
-                suppliers.data?.data.find((s) => s.id === row.supplier_id)
-                  ?.name,
-              ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase()
-                .includes(search.trim().toLowerCase()) && (
-                <span
-                  className="ml-2 rounded bg-muted px-1"
-                  aria-label={`搜索命中 ${row.document_number}`}
-                >
-                  命中
-                </span>
+      {activeRows.map(renderRow)}
+      {view === "ongoing" && group.received_count > 0 && (
+        <div className="mt-2 border-t pt-2">
+          <Button
+            variant="ghost"
+            aria-expanded={showReceived}
+            onClick={() => setShowReceived((v) => !v)}
+          >
+            已收货（{group.received_count}）·{" "}
+            {showReceived ? "收起" : "展开查看"}
+          </Button>
+          {showReceived && (
+            <div aria-label="已收货生产子单">
+              {receivedRows.map(renderRow)}
+              {receivedRows.length < group.received_count && (
+                <p className="text-xs text-muted-foreground">
+                  已加载 {receivedRows.length} / {group.received_count}{" "}
+                  张已收货子单，请使用下方加载更多查看其余记录。
+                </p>
               )}
-          </Link>
-          <span>
-            {row.supplier_snapshot?.name ||
-              suppliers.data?.data.find((s) => s.id === row.supplier_id)
-                ?.name ||
-              "未指定供应商"}
-          </span>
-          <InlineStatusSelect
-            resource="romiku_production_orders"
-            recordId={String(row.id)}
-            recordLabel={row.document_number}
-            status={row.status}
-            label="生产状态"
-            choices={productionStatusChoices.map((c) => ({
-              value: c.id,
-              label: c.label,
-            }))}
-          />
-          <span>工厂交期：{productionDueDateLabel(row.factory_due_at)}</span>
-          <span>生成：{localDate(row.created_at)}</span>
-          <span className="flex gap-2">
-            <Link className="underline" to={`/production/${row.id}`}>
-              查看 / 编辑
-            </Link>
-            <RecordDelete
-              kind="production"
-              id={String(row.id)}
-              label={row.document_number || String(row.id)}
-              onDeleted={onDeleted}
-            />
-          </span>
+            </div>
+          )}
         </div>
-      ))}
+      )}
       <p className="mt-2 text-sm text-muted-foreground">
         已加载 {rows.length} / {group.production_count} 张生产单
       </p>
@@ -408,6 +458,40 @@ function ProductionChildren({
         >
           加载更多生产子单
         </Button>
+      )}
+    </div>
+  );
+}
+
+function ProductionListDue({ row }: { row: RaRecord }) {
+  const [editing, setEditing] = useState(false);
+  const readOnly =
+    safeRollbackEnabled() ||
+    row.status === "received" ||
+    row.status === "cancelled";
+  return (
+    <div className="min-w-0">
+      {editing && !readOnly ? (
+        <ProductionDueControls
+          productionId={String(row.id)}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <>
+          <span>工厂交期：{productionDueDateLabel(row.factory_due_at)}</span>
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="px-1"
+              aria-label={`修改日期 ${row.document_number}`}
+              onClick={() => setEditing(true)}
+            >
+              修改日期
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

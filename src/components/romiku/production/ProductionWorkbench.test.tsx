@@ -17,16 +17,23 @@ import {
 } from "react-router";
 import { FulfillmentDetail, FulfillmentList } from "./FulfillmentPages";
 import { ProductionCreate } from "./ProductionCreate";
-const { rpc, readAllocations } = vi.hoisted(() => ({
+const { rpc, readAllocations, dueRpc } = vi.hoisted(() => ({
   rpc: vi.fn(),
   readAllocations: vi.fn(),
-}));
-vi.mock("./productionAllocation", async (original) => ({
-  ...(await original<typeof import("./productionAllocation")>()),
-  readProductionAllocations: readAllocations,
+  dueRpc: vi.fn(),
 }));
 vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
-  getSupabaseClient: () => ({ rpc }),
+  getSupabaseClient: () => ({
+    rpc: (name: string, args: unknown) => {
+      if (name === "romiku_workbench_due_snapshot") return dueRpc(args);
+      if (name === "romiku_production_allocations")
+        return readAllocations(args).then((data: unknown) => ({
+          data,
+          error: null,
+        }));
+      return rpc(name, args);
+    },
+  }),
 }));
 async function setup(
   create = false,
@@ -36,6 +43,19 @@ async function setup(
   replaceOnly = false,
   allocated = false,
 ) {
+  dueRpc.mockReset();
+  dueRpc.mockResolvedValue({
+    data: {
+      id: "p",
+      document_number: "OD001-P01",
+      factory_due_at: null,
+      classification: "unclassified",
+      revision: 0,
+      needs_follow_up: false,
+      next_follow_up_on: null,
+    },
+    error: null,
+  });
   rpc.mockReset();
   rpc.mockResolvedValue({ data: { ok: true, id: "p" }, error: null });
   if (list)
@@ -531,26 +551,21 @@ it("returns shared requirements to read-only summary after a successful save", a
 
 it("saves and clears existing factory dates only through the versioned control", async () => {
   const { screen } = await setup();
-  await screen.getByRole("button", { name: "编辑", exact: true }).click();
-  await expect
-    .element(screen.getByLabelText("工厂交期", { exact: true }))
-    .toHaveAttribute("readonly");
   let due: string | null = null,
     revision = 0;
+  dueRpc.mockImplementation(async () => ({
+    data: {
+      id: "p",
+      document_number: "OD001-P01",
+      factory_due_at: due,
+      classification: due ? "confirmed" : "unclassified",
+      revision,
+      needs_follow_up: false,
+      next_follow_up_on: null,
+    },
+    error: null,
+  }));
   rpc.mockImplementation(async (name, args) => {
-    if (name === "romiku_workbench_due_snapshot")
-      return {
-        data: {
-          id: "p",
-          document_number: "OD001-P01",
-          factory_due_at: due,
-          classification: due ? "confirmed" : "unclassified",
-          revision,
-          needs_follow_up: false,
-          next_follow_up_on: null,
-        },
-        error: null,
-      };
     expect(name).toBe("romiku_workbench_action");
     expect(args.p_revision).toBe(revision);
     due =
@@ -560,24 +575,14 @@ it("saves and clears existing factory dates only through the versioned control",
     revision++;
     return { data: { ok: true }, error: null };
   });
-  await screen.getByRole("button", { name: "管理工厂交期" }).click();
   await screen
-    .getByLabelText("交期分类", { exact: true })
-    .selectOptions("confirmed");
-  await screen.getByLabelText("日期操作", { exact: true }).selectOptions("set");
-  await screen
-    .getByLabelText("工厂交期", { exact: true })
-    .last()
+    .getByLabelText("工厂交货日期", { exact: true })
     .fill("2026-10-25");
-  await screen.getByLabelText("交期操作原因").fill("QA factory confirmed");
-  await screen.getByRole("button", { name: "保存交期管理" }).click();
+  await screen.getByRole("button", { name: "保存日期", exact: true }).click();
   await expect.poll(() => due).toBe("2026-10-25T15:59:59.999Z");
-  await screen.getByRole("button", { name: "管理工厂交期" }).click();
-  await screen
-    .getByLabelText("日期操作", { exact: true })
-    .selectOptions("clear");
-  await screen.getByLabelText("交期操作原因").fill("QA clear");
-  await screen.getByRole("button", { name: "保存交期管理" }).click();
+  await screen.getByText("更多设置", { exact: true }).click();
+  await screen.getByRole("button", { name: "清除已保存日期", exact: true }).click();
+  await screen.getByRole("button", { name: "确认清除日期", exact: true }).click();
   await expect.poll(() => due).toBeNull();
   expect(
     rpc.mock.calls.filter(

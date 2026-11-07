@@ -22,7 +22,7 @@ const group = {
   latest_factory_due_at: null,
   latest_created_at: "2026-10-26T00:00:00Z",
 };
-async function setup(path = "/production") {
+async function setup(path = "/production", statuses: string[] = []) {
   rpc
     .mockReset()
     .mockResolvedValue({ data: { rows: [group], total: 26 }, error: null });
@@ -31,7 +31,7 @@ async function setup(path = "/production") {
       id: `p-${n}`,
       order_id: "o",
       document_number: `PO-${n}`,
-      status: "scheduled",
+      status: statuses[n] ?? "scheduled",
       created_at: `2026-10-26T00:${String(n % 60).padStart(2, "0")}:00Z`,
     })),
     romiku_orders: [{ id: "o", document_number: "OD-QA" }],
@@ -224,5 +224,77 @@ it("reads delivery by parent UUID, removes the summary due block and preserves c
   await screen.getByRole("button", { name: "展开 OD-QA", exact: true }).click();
   await expect
     .element(screen.getByText("工厂交期：—", { exact: true }).first())
+    .toBeVisible();
+});
+
+it("folds received children in ongoing view and excludes cancelled children from visible selection", async () => {
+  const { screen } = await setup("/production", [
+    "received",
+    "cancelled",
+    "partial_received",
+    "in_production",
+  ]);
+  await screen.getByRole("button", { name: "展开 OD-QA", exact: true }).click();
+  await expect
+    .element(screen.getByRole("link", { name: "PO-2", exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByRole("link", { name: "PO-0", exact: true }))
+    .not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("link", { name: "PO-1", exact: true }))
+    .not.toBeInTheDocument();
+  await screen
+    .getByRole("button", { name: "已收货（1）· 展开查看", exact: true })
+    .click();
+  await expect
+    .element(screen.getByRole("link", { name: "PO-0", exact: true }))
+    .toBeVisible();
+  await screen
+    .getByRole("button", { name: "已收货（1）· 收起", exact: true })
+    .click();
+  await expect
+    .element(screen.getByRole("link", { name: "PO-0", exact: true }))
+    .not.toBeInTheDocument();
+});
+
+it("opens the shared inline editor without navigation, cancels without writing and keeps received rows readonly", async () => {
+  const { screen } = await setup("/production", ["received", "scheduled"]);
+  const original = rpc.getMockImplementation()!;
+  rpc.mockImplementation(async (name, args) =>
+    name === "romiku_workbench_due_snapshot"
+      ? {
+          data: {
+            id: args.p_id,
+            document_number: "PO-1",
+            factory_due_at: null,
+            classification: "unclassified",
+            revision: 3,
+            needs_follow_up: false,
+            next_follow_up_on: null,
+          },
+          error: null,
+        }
+      : original(name, args),
+  );
+  await screen.getByRole("button", { name: "展开 OD-QA", exact: true }).click();
+  await screen
+    .getByRole("button", { name: "修改日期 PO-1", exact: true })
+    .click();
+  await screen
+    .getByLabelText("工厂交货日期", { exact: true })
+    .fill("2026-12-01");
+  await screen.getByRole("button", { name: "取消", exact: true }).click();
+  expect(rpc.mock.calls.some(([n]) => n === "romiku_workbench_action")).toBe(
+    false,
+  );
+  await screen
+    .getByRole("button", { name: "已收货（1）· 展开查看", exact: true })
+    .click();
+  await expect
+    .element(screen.getByRole("button", { name: "修改日期 PO-0", exact: true }))
+    .not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("link", { name: "PO-0", exact: true }))
     .toBeVisible();
 });

@@ -192,6 +192,10 @@ it("uses snapshot counts, filters sources and keeps links to original records", 
   await expect
     .element(screen.getByRole("link", { name: "O-deposit", exact: true }))
     .toHaveAttribute("href", "/orders/O-deposit");
+  await expect
+    .element(screen.getByRole("complementary", { name: "业务提醒" }))
+    .toBeVisible();
+  await screen.getByRole("button", { name: "查看全部", exact: true }).click();
   await screen
     .getByLabelText("来源类型", { exact: true })
     .selectOptions("inquiry");
@@ -201,7 +205,7 @@ it("uses snapshot counts, filters sources and keeps links to original records", 
   await expect
     .element(screen.getByRole("link", { name: "OUT-old", exact: true }))
     .not.toBeInTheDocument();
-  await screen.getByRole("button", { name: /全部待办/ }).click();
+  await screen.getByRole("button", { name: "全部待办", exact: true }).click();
   await expect
     .element(screen.getByRole("link", { name: "Q-open", exact: true }))
     .toHaveAttribute("href", "/quotes/Q-open");

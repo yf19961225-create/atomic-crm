@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { RomikuDatePicker } from "../shared/RomikuDatePicker";
@@ -14,99 +14,146 @@ export const dueLabels: Record<string, string> = {
   confirmed: "已确认交期",
   not_required: "无需设置交期",
 };
+const dateOf = (snapshot: DueSnapshot) =>
+  snapshot.factory_due_at
+    ? businessDate(new Date(snapshot.factory_due_at))
+    : null;
 export function ProductionDueControls({
   productionId,
+  onCancel,
 }: {
   productionId: string;
+  onCancel?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [opening, setOpening] = useState(false);
   const query = useQuery({
     queryKey: ["workbench-due", productionId],
     queryFn: () =>
       workbenchRpc<DueSnapshot>("romiku_workbench_due_snapshot", {
         p_id: productionId,
       }),
-    enabled: false,
   });
+  if (!query.data)
+    return (
+      <div>
+        {query.error ? (
+          <p role="alert">
+            {query.error.message}
+            <Button onClick={() => query.refetch()}>重试</Button>
+          </p>
+        ) : (
+          <p role="status">正在读取交期…</p>
+        )}
+        {onCancel && <Button onClick={onCancel}>取消</Button>}
+      </div>
+    );
   return (
-    <div>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={opening}
-        onClick={async () => {
-          if (open) {
-            setOpen(false);
-            return;
-          }
-          setOpening(true);
-          setOpen(true);
-          try {
-            await query.refetch();
-          } finally {
-            setOpening(false);
-          }
-        }}
-      >
-        管理工厂交期
-      </Button>
-      {open && (
-        <div className="my-3 rounded border p-3">
-          {opening || query.isPending ? (
-            <p>正在读取交期…</p>
-          ) : query.error ? (
-            <p role="alert">{query.error.message}</p>
-          ) : (
-            <DueForm snapshot={query.data} close={() => setOpen(false)} />
-          )}
-        </div>
-      )}
-    </div>
+    <DueForm
+      key={productionId}
+      snapshot={query.data}
+      reload={async () => {
+        const r = await query.refetch();
+        if (r.error) throw r.error;
+        return r.data!;
+      }}
+      onCancel={onCancel}
+    />
   );
 }
 function DueForm({
   snapshot,
-  close,
+  reload,
+  onCancel,
 }: {
   snapshot: DueSnapshot;
-  close: () => void;
+  reload: () => Promise<DueSnapshot>;
+  onCancel?: () => void;
 }) {
-  const [base] = useState(snapshot),
-    [classification, setClass] = useState(snapshot.classification),
-    [mode, setMode] = useState("keep"),
-    [date, setDate] = useState<string | null>(
-      snapshot.factory_due_at
-        ? businessDate(new Date(snapshot.factory_due_at))
-        : null,
-    ),
-    [ack, setAck] = useState(false),
-    [follow, setFollow] = useState(snapshot.needs_follow_up),
-    [followDate, setFollowDate] = useState(snapshot.next_follow_up_on),
-    [reason, setReason] = useState(""),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+  const [base, setBase] = useState(snapshot);
+  const [date, setDate] = useState(dateOf(snapshot));
+  const [classification, setClass] = useState(snapshot.classification);
+  const [follow, setFollow] = useState(snapshot.needs_follow_up);
+  const [followDate, setFollowDate] = useState(snapshot.next_follow_up_on);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [confirmation, setConfirmation] = useState<
+    "date" | "clear" | "settings" | null
+  >(null);
   const cache = useQueryClient(),
-    pending = useRef(false),
-    request = useRef<{ key: string; id: string } | null>(null);
-  async function submit() {
-    if (pending.current || !reason.trim()) return;
+    pending = useRef(false);
+  const request = useRef<{ key: string; id: string } | null>(null);
+  const dirty =
+    date !== dateOf(base) ||
+    classification !== base.classification ||
+    follow !== base.needs_follow_up ||
+    followDate !== base.next_follow_up_on;
+  function accept(next: DueSnapshot) {
+    setBase(next);
+    setDate(dateOf(next));
+    setClass(next.classification);
+    setFollow(next.needs_follow_up);
+    setFollowDate(next.next_follow_up_on);
+  }
+  useEffect(() => {
+    // Refresh clean forms, but never silently rebase a user's pending revision.
+    if (!dirty && !busy && !error && snapshot.revision !== base.revision) {
+      setBase(snapshot);
+      setDate(dateOf(snapshot));
+      setClass(snapshot.classification);
+      setFollow(snapshot.needs_follow_up);
+      setFollowDate(snapshot.next_follow_up_on);
+    }
+  }, [snapshot, base.revision, dirty, busy, error]);
+  async function submit(
+    intent: "date" | "clear" | "settings",
+    acknowledged = false,
+  ) {
+    if (pending.current) return;
+    if (intent === "date" && !date) return;
+    if (
+      !acknowledged &&
+      (intent === "clear" ||
+        (intent === "date" && base.classification === "not_required") ||
+        (intent === "settings" &&
+          classification === "not_required" &&
+          base.factory_due_at))
+    ) {
+      setConfirmation(intent);
+      return;
+    }
     pending.current = true;
     setBusy(true);
     setError("");
+    setMessage("");
     const args = {
       p_action: "production_due",
       p_id: base.id,
       p_revision: base.revision,
       p_payload: {
-        classification,
-        date_mode: mode,
-        date,
-        ack_retained_date: ack,
-        needs_follow_up: follow,
-        next_follow_up_on: followDate,
+        classification:
+          intent === "date"
+            ? "confirmed"
+            : intent === "clear"
+              ? base.classification === "not_required"
+                ? "not_required"
+                : "needs_confirmation"
+              : classification,
+        date_mode:
+          intent === "date" ? "set" : intent === "clear" ? "clear" : "keep",
+        date: intent === "date" ? date : null,
+        ack_retained_date: acknowledged,
+        needs_follow_up: intent === "settings" ? follow : base.needs_follow_up,
+        next_follow_up_on:
+          intent === "settings" ? followDate : base.next_follow_up_on,
       },
-      p_reason: reason.trim(),
+      p_reason:
+        note.trim() ||
+        (intent === "date"
+          ? "调整工厂交期"
+          : intent === "clear"
+            ? "清除工厂交期"
+            : "调整工厂交期管理设置"),
     };
     const key = JSON.stringify(args);
     if (request.current?.key !== key)
@@ -116,8 +163,13 @@ function DueForm({
         ...args,
         p_request: request.current.id,
       });
+      // The successful write is followed by an authoritative snapshot; refresh failures
+      // keep the same idempotency key rather than submitting a second mutation.
       await refreshWorkbench(cache);
-      close();
+      accept(await reload());
+      setConfirmation(null);
+      setNote("");
+      setMessage(intent === "settings" ? "设置已保存" : "日期已保存");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -126,102 +178,185 @@ function DueForm({
     }
   }
   return (
-    <div className="space-y-3">
-      <p>
-        {base.document_number} · 当前交期{" "}
-        {base.factory_due_at
-          ? businessDate(new Date(base.factory_due_at))
-          : "—"}
+    <section
+      aria-label={`工厂交期 ${base.document_number}`}
+      className="min-w-0 space-y-2 text-sm"
+    >
+      <div className="flex min-w-0 flex-wrap items-end gap-2">
+        <label className="min-w-0 flex-1 basis-40">
+          工厂交货日期
+          <RomikuDatePicker
+            label="工厂交货日期"
+            value={date}
+            onChange={(v) => {
+              setDate(v);
+              setMessage("");
+              setConfirmation(null);
+            }}
+            disabled={busy}
+          />
+        </label>
+        <Button
+          type="button"
+          disabled={
+            busy ||
+            !date ||
+            (date === dateOf(base) && base.classification === "confirmed")
+          }
+          onClick={() => submit("date")}
+        >
+          {busy ? "保存中…" : "保存日期"}
+        </Button>
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={onCancel}
+          >
+            取消
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {dueLabels[base.classification]} · 已保存日期：{dateOf(base) || "—"}
+        {dirty && (
+          <span className="ml-2 font-medium text-foreground">未保存</span>
+        )}
       </p>
-      <label className="block">
-        交期分类
-        <select
-          aria-label="交期分类"
-          value={classification}
-          disabled={busy}
-          onChange={(e) => setClass(e.target.value)}
-        >
-          {Object.entries(dueLabels).map(([k, v]) => (
-            <option value={k} key={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block">
-        日期操作
-        <select
-          aria-label="日期操作"
-          value={mode}
-          disabled={busy}
-          onChange={(e) => {
-            setMode(e.target.value);
-            if (e.target.value === "clear" && classification === "confirmed")
-              setClass("needs_confirmation");
-          }}
-        >
-          <option value="keep">保留原日期</option>
-          <option value="set">设置交期</option>
-          <option value="clear">清空交期</option>
-        </select>
-      </label>
-      {mode === "set" && (
-        <RomikuDatePicker
-          label="工厂交期"
-          value={date}
-          onChange={setDate}
-          disabled={busy}
-        />
+      {message && <p role="status">{message}</p>}
+      {error && (
+        <div role="alert">
+          <p>{error} 输入已保留，请读取最新版本后再次确认。</p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={async () => {
+              if (pending.current) return;
+              pending.current = true;
+              setBusy(true);
+              try {
+                setBase(await reload());
+                setError("");
+                setConfirmation(null);
+                setMessage("已读取最新版本，输入保留，请核对后保存。");
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                pending.current = false;
+                setBusy(false);
+              }
+            }}
+          >
+            读取最新版本，保留输入
+          </Button>
+        </div>
       )}
-      {classification === "not_required" &&
-        (mode === "set" || (mode === "keep" && base.factory_due_at)) && (
+      {confirmation && (
+        <div
+          role="alertdialog"
+          aria-label="确认交期变更"
+          className="rounded border p-2"
+        >
+          <p>
+            {confirmation === "clear"
+              ? "确认清除已保存日期？生产单将按原规则转为需要确认交期（无需交期分类保持）。"
+              : confirmation === "date"
+                ? "此生产单原为无需设置交期，保存后将改为已确认交期。"
+                : "确认保留日期但不生成交期催办？"}
+          </p>
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => submit(confirmation, true)}
+          >
+            {confirmation === "clear"
+              ? "确认清除日期"
+              : confirmation === "date"
+                ? "确认设置交期"
+                : "确认无需交期"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => setConfirmation(null)}
+          >
+            返回修改
+          </Button>
+        </div>
+      )}
+      <details>
+        <summary className="cursor-pointer text-xs text-muted-foreground">
+          更多设置
+        </summary>
+        <div className="mt-2 space-y-2 rounded border p-3">
+          <label className="block">
+            交期分类{" "}
+            <select
+              aria-label="交期分类"
+              className="max-w-full rounded border p-1"
+              value={classification}
+              disabled={busy}
+              onChange={(e) => {
+                setClass(e.target.value);
+                setConfirmation(null);
+              }}
+            >
+              {Object.entries(dueLabels).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block">
             <input
               type="checkbox"
-              checked={ack}
-              onChange={(e) => setAck(e.target.checked)}
+              checked={follow}
               disabled={busy}
-            />
-            确认保留日期但不生成交期催办
+              onChange={(e) => setFollow(e.target.checked)}
+            />{" "}
+            需要跟进交期
           </label>
-        )}
-      <label className="block">
-        <input
-          type="checkbox"
-          checked={follow}
-          onChange={(e) => setFollow(e.target.checked)}
-          disabled={busy}
-        />
-        需要跟进交期
-      </label>
-      <RomikuDatePicker
-        label="下次交期跟进日期"
-        value={followDate}
-        onChange={setFollowDate}
-        disabled={busy}
-      />
-      <label className="block">
-        交期操作原因
-        <input
-          aria-label="交期操作原因"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          maxLength={2000}
-          disabled={busy}
-          className="max-w-full rounded border p-2"
-        />
-      </label>
-      {error && <p role="alert">{error} 请取消后重新打开以读取最新版本。</p>}
-      <Button
-        type="button"
-        onClick={submit}
-        disabled={busy || !reason.trim() || (mode === "set" && !date)}
-      >
-        保存交期管理
-      </Button>
-      <Button type="button" variant="outline" onClick={close} disabled={busy}>
-        取消
-      </Button>
-    </div>
+          <RomikuDatePicker
+            label="下次交期跟进日期"
+            value={followDate}
+            onChange={setFollowDate}
+            disabled={busy}
+          />
+          <label className="block">
+            备注（可选）
+            <input
+              aria-label="交期备注"
+              className="w-full min-w-0 rounded border p-2"
+              value={note}
+              maxLength={2000}
+              disabled={busy}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={
+              busy || (classification === "confirmed" && !base.factory_due_at)
+            }
+            onClick={() => submit("settings")}
+          >
+            保存更多设置
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy || !base.factory_due_at}
+            onClick={() => submit("clear")}
+          >
+            清除已保存日期
+          </Button>
+        </div>
+      </details>
+    </section>
   );
 }

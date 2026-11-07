@@ -242,9 +242,12 @@ export function ProductionWorkbench({
                 {productionStatusLabel(record.status)}
               </p>
             )}
-            {!isNew && (
-              <p>工厂交期：{productionDueDateLabel(record.factory_due_at)}</p>
-            )}
+            {!isNew &&
+              (safeRollbackEnabled() ? (
+                <p>工厂交期：{productionDueDateLabel(record.factory_due_at)}</p>
+              ) : (
+                <ProductionDueControls productionId={String(record.id)} />
+              ))}
           </div>
           <div className="flex gap-2">
             {editing ? (
@@ -361,40 +364,41 @@ export function ProductionWorkbench({
           </section>
           {editing && (
             <div>
-              <div className="mb-3">
-                <label htmlFor="production-factory-due-date">工厂交期</label>
-                {!mayEditFactoryDue(safeRollbackEnabled(), isNew) && (
-                  <p role="status">
-                    已有生产单交期通过独立受控操作保存，不随普通表单保存。
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <RomikuDatePicker
-                    id="production-factory-due-date"
-                    label="工厂交期"
-                    readOnly={!mayEditFactoryDue(safeRollbackEnabled(), isNew)}
-                    value={productionDueDateInput(draft.factory_due_at)}
-                    onChange={(value) =>
-                      setDraft((d) => ({ ...d, factory_due_at: value }))
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={
-                      !mayEditFactoryDue(safeRollbackEnabled(), isNew) ||
-                      !productionDueDateInput(draft.factory_due_at)
-                    }
-                    onClick={() =>
-                      setDraft((d) => ({ ...d, factory_due_at: null }))
-                    }
-                  >
-                    清空
-                  </Button>
+              {(isNew || safeRollbackEnabled()) && (
+                <div className="mb-3">
+                  <label htmlFor="production-factory-due-date">工厂交期</label>
+                  {!mayEditFactoryDue(safeRollbackEnabled(), isNew) && (
+                    <p role="status">
+                      已有生产单交期通过独立受控操作保存，不随普通表单保存。
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <RomikuDatePicker
+                      id="production-factory-due-date"
+                      label="工厂交期"
+                      readOnly={
+                        !mayEditFactoryDue(safeRollbackEnabled(), isNew)
+                      }
+                      value={productionDueDateInput(draft.factory_due_at)}
+                      onChange={(value) =>
+                        setDraft((d) => ({ ...d, factory_due_at: value }))
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={
+                        !mayEditFactoryDue(safeRollbackEnabled(), isNew) ||
+                        !productionDueDateInput(draft.factory_due_at)
+                      }
+                      onClick={() =>
+                        setDraft((d) => ({ ...d, factory_due_at: null }))
+                      }
+                    >
+                      清空
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              {!isNew && !safeRollbackEnabled() && (
-                <ProductionDueControls productionId={String(record.id)} />
               )}
               <details>
                 <summary>生产单详情</summary>
