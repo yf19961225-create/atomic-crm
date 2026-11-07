@@ -438,6 +438,10 @@ body:has(.romiku-ds)
 .romiku-ds .ds-table-scroll > table {
   min-width: 760px;
 }
+.romiku-ds .ds-catalog {
+  /* Contain absolutely positioned accessible labels in the scrollport. */
+  position: relative;
+}
 .romiku-ds .ds-catalog > table {
   min-width: 1080px;
 }
