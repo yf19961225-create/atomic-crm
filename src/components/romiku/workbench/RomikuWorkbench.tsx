@@ -358,7 +358,7 @@ function ControlledWorkbench() {
               </Button>
               <Button
                 variant="ghost"
-                className="h-auto max-w-full whitespace-normal px-0 text-xs"
+                className="flex h-auto max-w-full whitespace-normal px-0 text-xs"
                 onClick={() => choose("all", "deferred")}
               >
                 查看客户未确认 / 草稿有余额

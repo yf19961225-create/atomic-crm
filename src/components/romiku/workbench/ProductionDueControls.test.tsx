@@ -100,12 +100,16 @@ it("retains dirty date after realtime refresh and stale save; explicit refresh k
   await expect
     .element(screen.getByLabelText("工厂交货日期", { exact: true }))
     .toHaveValue("2026-12-02");
+  cache.setQueryData(["production-children", "order"], { date: "old" });
   await screen
     .getByRole("button", { name: "读取最新版本，保留输入", exact: true })
     .click();
   await expect
     .element(screen.getByLabelText("工厂交货日期", { exact: true }))
     .toHaveValue("2026-12-02");
+  expect(
+    cache.getQueryState(["production-children", "order"])?.isInvalidated,
+  ).toBe(true);
   await screen.getByRole("button", { name: "保存日期", exact: true }).click();
   expect(
     rpc.mock.calls.filter(([n]) => n === "romiku_workbench_action").at(-1)?.[1]

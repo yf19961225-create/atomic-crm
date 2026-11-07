@@ -237,6 +237,7 @@ function DueForm({
               pending.current = true;
               setBusy(true);
               try {
+                await refreshWorkbench(cache);
                 setBase(await reload());
                 setError("");
                 setConfirmation(null);
