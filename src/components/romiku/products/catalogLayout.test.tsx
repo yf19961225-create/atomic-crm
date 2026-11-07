@@ -51,3 +51,33 @@ it("keeps offscreen accessible catalog labels inside the mobile table scrollport
     await page.viewport(1440, 900);
   }
 });
+
+it("allows a fieldset with a wide product table to shrink to the mobile form", async () => {
+  await page.viewport(390, 900);
+  const screen = await render(
+    <div className="romiku-ds" style={{ width: 358 }}>
+      <style>{designSystem}</style>
+      <fieldset>
+        <section>统一生产要求</section>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ minWidth: 760 }}>
+            <tbody>
+              <tr>
+                <td>生产产品明细</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </fieldset>
+    </div>,
+  );
+  try {
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+    expect(
+      document.querySelector("fieldset")!.getBoundingClientRect().width,
+    ).toBeLessThanOrEqual(358);
+  } finally {
+    await screen.unmount();
+    await page.viewport(1440, 900);
+  }
+});

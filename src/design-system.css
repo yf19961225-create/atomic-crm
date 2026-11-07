@@ -715,3 +715,8 @@ body:has(.romiku-ds) .ds-detail-drawer th {
 .romiku-ds :is(.ds-quote-list, .ds-pi-list, .ds-order-list) td:nth-child(3) {
   min-width: 160px;
 }
+
+/* Let existing form fieldsets shrink around their own table scrollports. */
+.romiku-ds fieldset {
+  min-width: 0;
+}
