@@ -296,7 +296,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         状态变更需手动操作。
       </p>
       <div
-        className={`flex flex-wrap gap-3 ${config.kind === "inquiry" ? "romiku-inquiry-toolbar" : ""}`}
+        className={`flex flex-wrap gap-3 ${config.kind === "inquiry" ? "romiku-inquiry-toolbar" : "ds-list-toolbar"}`}
       >
         {config.kind === "inquiry" && (
           <>
