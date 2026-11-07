@@ -279,8 +279,8 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
     setParams(next);
   };
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="ds-page ds-workflow space-y-4">
+      <div className="ds-page-heading flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold">{config.title}</h1>
         {config.createLabel && (
           <Button onClick={() => open("new")}>{config.createLabel}</Button>
@@ -294,7 +294,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
             : "实际业务建立后，请手动创建客户档案。"}{" "}
         状态变更需手动操作。
       </p>
-      <div className="flex flex-wrap gap-3">
+      <div className="ds-list-toolbar flex flex-wrap gap-3">
         {config.kind === "inquiry" && (
           <>
             <span className="self-center text-sm text-muted-foreground">
@@ -390,14 +390,14 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           {committedSearch
             ? "搜索失败，当前显示上次成功的数据。"
             : config.kind === "inquiry" && freshness.lastSuccess
-            ? "刷新失败，当前显示上次成功的数据。"
-            : "无法加载记录。"}{" "}
+              ? "刷新失败，当前显示上次成功的数据。"
+              : "无法加载记录。"}{" "}
           <Button variant="outline" onClick={() => refetch()}>
             重试
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-md border">
+      <div className="ds-table-scroll overflow-x-auto rounded-md border">
         <table
           className={`w-full text-left text-sm ${config.kind === "inquiry" ? "table-fixed" : ""}`}
         >
@@ -627,7 +627,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           <p className="p-6 text-center text-sm">未找到记录。</p>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="ds-pagination flex flex-wrap items-center gap-3">
         <Button
           variant="outline"
           disabled={page === 1}
@@ -653,7 +653,7 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
         }}
       >
         <SheetContent
-          className={`w-full overflow-y-auto ${config.kind === "customer" ? "sm:max-w-5xl" : "sm:max-w-3xl"}`}
+          className={`ds-detail-drawer w-full overflow-y-auto ${config.kind === "customer" ? "sm:max-w-5xl" : "sm:max-w-3xl"}`}
         >
           <SheetHeader>
             <SheetTitle>

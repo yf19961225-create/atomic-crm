@@ -98,8 +98,8 @@ export function ProductionOrderGroups() {
     setPage(1);
   }, [orderId]);
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <section className="ds-production ds-page space-y-4">
+      <div className="ds-page-heading flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-3xl font-semibold">生产管理</h1>
         <Button asChild>
           <Link
@@ -183,7 +183,7 @@ export function ProductionOrderGroups() {
         <p>未找到记录。</p>
       )}
       {groups.map((group) => (
-        <article key={group.id} className="rounded border">
+        <article key={group.id} className="ds-production-group rounded border">
           <div className="grid items-start gap-3 p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,2fr)] [&>div]:min-w-0 [&>div]:break-words">
             <div>
               <Button

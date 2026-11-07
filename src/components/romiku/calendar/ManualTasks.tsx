@@ -34,7 +34,7 @@ export function ManualTaskList() {
       (completed || !t.completed_at),
   );
   return (
-    <section className="space-y-4">
+    <section className="ds-page space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">手动任务</h1>
         <Button asChild>
@@ -217,7 +217,7 @@ function TaskEditor({
     (key) => record?.[key],
   ) as TaskSource | undefined;
   return (
-    <section className="max-w-3xl space-y-4">
+    <section className="ds-page ds-form-page max-w-3xl space-y-4">
       <h1 className="text-3xl font-semibold">
         {record ? "编辑手动任务" : "新建手动任务"}
       </h1>

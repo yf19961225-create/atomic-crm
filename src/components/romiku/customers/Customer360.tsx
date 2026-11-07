@@ -83,7 +83,7 @@ export function Customer360({
   });
   const summary = summaryQuery.data?.summary;
   return (
-    <div className="space-y-5">
+    <div className="ds-customer-detail space-y-5">
       <div className="space-y-1">
         <p>状态：{record.status === "inactive" ? "停用" : "启用"}</p>
         <h2 className="text-2xl font-semibold">

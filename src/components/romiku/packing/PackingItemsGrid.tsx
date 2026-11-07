@@ -255,7 +255,7 @@ export function PackingItemsGrid({
     ]);
   };
   return (
-    <section className="space-y-3">
+    <section className="ds-packing-lines space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">装箱产品项</h2>
         <div className="flex gap-2">
@@ -399,7 +399,7 @@ export function PackingItemsGrid({
           </div>
         </div>
       ) : null}
-      <div className="w-full min-w-0 overflow-x-auto">
+      <div className="ds-table-scroll w-full min-w-0 overflow-x-auto">
         <table className="w-full min-w-[1440px] table-fixed text-sm">
           <colgroup>
             {packingColumnKeys.map((key, index) => (

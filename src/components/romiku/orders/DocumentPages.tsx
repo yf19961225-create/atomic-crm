@@ -155,7 +155,11 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
   );
   return (
     <section
-      className={kind === "order" ? "ds-order-list space-y-4" : "space-y-4"}
+      className={
+        kind === "order"
+          ? "ds-order-list ds-page space-y-4"
+          : "ds-pi-list ds-page space-y-4"
+      }
     >
       <div className="ds-page-heading flex items-center justify-between">
         <h1 className="text-3xl font-semibold">{config.plural}</h1>
@@ -386,11 +390,7 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
     }
   }
   return (
-    <section
-      className={
-        kind === "order" ? "ds-order-create space-y-4" : "max-w-3xl space-y-4"
-      }
-    >
+    <section className={"ds-order-create ds-page space-y-4"}>
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>
@@ -427,9 +427,12 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
 export function DocumentDetail({ kind }: { kind: DocumentKind }) {
   const { id = "" } = useParams(),
     config = documentConfig[kind];
-  const { data, isPending, error, refetch } = useGetOne(config.resource, {
-    id,
-  });
+  const { data, isPending, isSuccess, isFetching, error, refetch } = useGetOne(
+    config.resource,
+    {
+      id,
+    },
+  );
   if (isPending) return <p>正在加载{config.label}…</p>;
   if (error || !data)
     return (
@@ -445,6 +448,7 @@ export function DocumentDetail({ kind }: { kind: DocumentKind }) {
       key={`${kind}:${id}`}
       kind={kind}
       record={data}
+      headerReady={isSuccess && !isFetching && !error}
       onSaved={refetch}
     />
   );
@@ -505,10 +509,12 @@ const termsFields: Field[] = [
 function DocumentEditor({
   kind,
   record,
+  headerReady,
   onSaved,
 }: {
   kind: DocumentKind;
   record: RaRecord;
+  headerReady: boolean;
   onSaved: () => Promise<unknown>;
 }) {
   const cache = useQueryClient();
@@ -522,7 +528,13 @@ function DocumentEditor({
     queryKey: [`${kind}-items`, record.id],
     queryFn: () => readCommercialItems(provider, kind, String(record.id)),
   });
-  const session = useDocumentEditSession(record, items.data);
+  const readyForEdit =
+    headerReady &&
+    items.isSuccess &&
+    !items.isFetching &&
+    !items.isPlaceholderData &&
+    Array.isArray(items.data);
+  const session = useDocumentEditSession(record, items.data, { readyForEdit });
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const totals = quoteTotals(session.items, session.values);
   const exportOrder = async (allowBlankCustomerCodes = false) => {
@@ -661,11 +673,7 @@ function DocumentEditor({
     },
   ];
   return (
-    <section
-      className={
-        kind === "order" ? "ds-order-editor space-y-4" : "max-w-6xl space-y-4"
-      }
-    >
+    <section className={"ds-order-editor ds-page space-y-4"}>
       <Link
         className="underline"
         to={config.path}
@@ -701,7 +709,11 @@ function DocumentEditor({
               </Button>
             </div>
           ) : (
-            <Button type="button" onClick={session.start}>
+            <Button
+              type="button"
+              disabled={!readyForEdit}
+              onClick={session.start}
+            >
               编辑
             </Button>
           )}

@@ -16,7 +16,7 @@ export function SearchInput({
   label?: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-wrap items-end gap-2">
+    <div className="ds-search-input flex min-w-0 flex-wrap items-end gap-2">
       <label>
         {label}{" "}
         <input

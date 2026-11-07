@@ -52,7 +52,7 @@ export function PackingCreate() {
     }
   }
   return (
-    <section className="space-y-4">
+    <section className="ds-page ds-create-page space-y-4">
       <Link className="underline" to="/packing-shipping">
         返回装箱与发运
       </Link>

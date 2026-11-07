@@ -77,7 +77,7 @@ export function QuoteCreate() {
     }
   };
   return (
-    <section className="max-w-4xl space-y-5">
+    <section className="ds-order-create ds-page space-y-5">
       <Link to="/quotes" className="underline">
         返回报价单
       </Link>

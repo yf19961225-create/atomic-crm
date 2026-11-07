@@ -13,7 +13,7 @@ const SupplierFormCard = ({
   children: React.ReactNode;
   title: string;
 }) => (
-  <Card className="max-w-4xl">
+  <Card className="ds-form-page max-w-4xl">
     <CardHeader>
       <CardTitle>{title}</CardTitle>
     </CardHeader>

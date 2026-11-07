@@ -4,7 +4,7 @@ const { single, match, getSession } = vi.hoisted(() => ({
   match: vi.fn(),
   getSession: vi.fn(),
 }));
-vi.mock("./supabase", () => ({
+vi.mock("@/components/atomic-crm/providers/supabase/supabase", () => ({
   getSupabaseClient: () => ({
     auth: { getSession },
     from: () => ({ select: () => ({ match }) }),

@@ -47,42 +47,44 @@ function OriginalSubmission({ record }: { record: RaRecord }) {
       <h3 className="font-medium">原始需求商品</h3>
       {isPending && <p>正在加载原始商品…</p>}
       {error && <p role="alert">无法加载原始商品。</p>}
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr>
-            <th>SKU</th>
-            <th>产品名称</th>
-            <th>图片</th>
-            <th>产品规格</th>
-            <th>询价数量</th>
-            <th>需求</th>
-            <th>商品匹配</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id} className="border-t">
-              <td className="py-3">{item.sku}</td>
-              <td>{item.display.name || "—"}</td>
-              <td>
-                {item.display.imageUrl && (
-                  <img
-                    src={item.display.imageUrl}
-                    alt={item.display.name || item.sku}
-                    className="h-12 w-12 object-contain"
-                  />
-                )}
-              </td>
-              <td className="whitespace-pre-wrap">
-                {item.display.specification || "—"}
-              </td>
-              <td>{item.quantity}</td>
-              <td className="whitespace-pre-wrap">{item.requirement}</td>
-              <td>商品匹配：{relationshipStatusLabel(item.match_status)}</td>
+      <div className="ds-table-scroll">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>产品名称</th>
+              <th>图片</th>
+              <th>产品规格</th>
+              <th>询价数量</th>
+              <th>需求</th>
+              <th>商品匹配</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.id} className="border-t">
+                <td className="py-3">{item.sku}</td>
+                <td>{item.display.name || "—"}</td>
+                <td>
+                  {item.display.imageUrl && (
+                    <img
+                      src={item.display.imageUrl}
+                      alt={item.display.name || item.sku}
+                      className="h-12 w-12 object-contain"
+                    />
+                  )}
+                </td>
+                <td className="whitespace-pre-wrap">
+                  {item.display.specification || "—"}
+                </td>
+                <td>{item.quantity}</td>
+                <td className="whitespace-pre-wrap">{item.requirement}</td>
+                <td>商品匹配：{relationshipStatusLabel(item.match_status)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <details>
         <summary className="cursor-pointer">网站原始载荷</summary>
         <pre className="overflow-x-auto whitespace-pre-wrap rounded border p-3 text-xs">

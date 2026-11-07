@@ -88,14 +88,14 @@ for (const [path, enabled] of [
   ["/orders", true],
   ["/orders/new", true],
   ["/orders/qa-id", true],
-  ["/quotes", false],
-  ["/production", false],
+  ["/quotes", true],
+  ["/production", true],
 ] as const) {
-  it(`scopes design system pilot at ${path}`, async () => {
+  it(`applies design system at ${path}`, async () => {
     await render(
       <MemoryRouter initialEntries={[path]}>
         <RomikuLayout>
-          <p>Pilot</p>
+          <p>CRM</p>
         </RomikuLayout>
       </MemoryRouter>,
     );

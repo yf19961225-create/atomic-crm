@@ -171,7 +171,7 @@ it.each(Object.keys(tables) as WorkflowResource[])(
       .element(screen.getByText("已选择 1 条（当前页）"))
       .toBeVisible();
     if (kind === "production")
-      await screen.getByRole("tab", { name: "已收货", exact: true }).click();
+      await screen.getByRole("tab", { name: "全部", exact: true }).click();
     else {
       await screen
         .getByRole("combobox", {

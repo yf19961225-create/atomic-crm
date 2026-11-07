@@ -1,6 +1,6 @@
 import { type ReactNode, Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { Link, useLocation } from "react-router";
+import { Link } from "react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -14,13 +14,8 @@ import { RomikuPrimaryNavigation } from "./RomikuPrimaryNavigation";
 import { romikuBrand } from "../branding/brand";
 
 export const RomikuLayout = ({ children }: { children: ReactNode }) => {
-  const { pathname } = useLocation();
-  const pilot =
-    pathname === "/" ||
-    pathname === "/orders" ||
-    pathname.startsWith("/orders/");
   return (
-    <SidebarProvider className={pilot ? "romiku-ds" : undefined}>
+    <SidebarProvider className="romiku-ds">
       <Sidebar variant="floating" collapsible="icon">
         <SidebarHeader>
           <Link

@@ -274,7 +274,7 @@ it("Workbench deletes only manual tasks and keeps derived sources", async () => 
       </CoreAdminContext>
     </MemoryRouter>,
   );
-  await screen.getByRole("button", { name: /全部待办/ }).click();
+  await screen.getByRole("button", { name: "查看全部", exact: true }).click();
   await expect.element(screen.getByText(/^2 项待办/)).toBeVisible();
   await expect
     .element(screen.getByRole("button", { name: "更多操作 KEEP-QUOTE" }))
