@@ -705,3 +705,9 @@ body:has(.romiku-ds) .ds-detail-drawer th {
 .romiku-ds .ds-packing-lines .ds-table-scroll > table {
   min-width: 1440px;
 }
+
+/* Keep document identifiers and buyer names readable inside mobile scrollports. */
+.romiku-ds :is(.ds-quote-list, .ds-pi-list, .ds-order-list) td:nth-child(2),
+.romiku-ds :is(.ds-quote-list, .ds-pi-list, .ds-order-list) td:nth-child(3) {
+  min-width: 160px;
+}
