@@ -1,5 +1,5 @@
 import "@/index.css";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { useState } from "react";
 import { render } from "vitest-browser-react";
 import { WorkflowFields } from "../outbound/WorkflowFields";
@@ -162,3 +162,64 @@ it.each([
     expect(value[key]).toBe("2026-10-31T12:34:56.789Z");
   },
 );
+
+it("edits customer delivery on the Shanghai day in an overseas browser without changing other fields", async () => {
+  const { commands } = await import("vitest/browser");
+  await commands.setTimezone("America/Los_Angeles");
+  const changes: Values[] = [];
+  const screen = await render(
+    <WorkflowFields
+      fields={[
+        {
+          key: "expected_delivery_at",
+          label: "送货日期",
+          type: "datetime-local",
+        },
+      ]}
+      values={{
+        expected_delivery_at: "2026-11-20T00:00:00+08:00",
+        document_date: "2026-10-01",
+      }}
+      onChange={(v) => changes.push(v)}
+    />,
+  );
+  await expect
+    .element(screen.getByLabelText("送货日期", { exact: true }))
+    .toHaveValue("2026-11-20T00:00");
+  await screen
+    .getByRole("button", { name: "打开送货日期日历", exact: true })
+    .click();
+  await screen.getByLabelText("日历月份").selectOptions("12");
+  await screen.getByRole("button", { name: "2026-12-01", exact: true }).click();
+  expect(changes.at(-1)).toEqual({
+    expected_delivery_at: "2026-11-30T16:00:00.000Z",
+    document_date: "2026-10-01",
+  });
+  await commands.setTimezone("Asia/Shanghai");
+});
+
+it("Shanghai delivery Today uses the Shanghai day across month boundaries", async () => {
+  const { commands } = await import("vitest/browser");
+  const { RomikuDatePicker } = await import("./RomikuDatePicker");
+  await commands.setTimezone("America/Los_Angeles");
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-30T16:30:00Z"));
+  const changes: unknown[] = [];
+  try {
+    const screen = await render(
+      <RomikuDatePicker
+        timeZone="Asia/Shanghai"
+        value={null}
+        label="QA"
+        onChange={(v) => changes.push(v)}
+        defaultOpen
+      />,
+    );
+    await expect.element(screen.getByLabelText("日历月份")).toHaveValue("12");
+    await screen.getByRole("button", { name: "今天", exact: true }).click();
+    expect(changes).toEqual(["2026-12-01"]);
+  } finally {
+    vi.useRealTimers();
+    await commands.setTimezone("Asia/Shanghai");
+  }
+});

@@ -1,4 +1,4 @@
-import { orderDeliveryDateLabel } from "../shared/businessDate";
+import { InlineOrderDeliveryDate } from "./InlineOrderDeliveryDate";
 import { documentTitle } from "../commercial/documentIdentity";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
@@ -290,7 +290,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
                 </td>
                 {kind === "order" && (
                   <td className="p-3 whitespace-nowrap">
-                    {orderDeliveryDateLabel(record.expected_delivery_at)}
+                    <InlineOrderDeliveryDate record={record} />
                   </td>
                 )}
                 <td className="p-3">{record.document_date}</td>

@@ -1,3 +1,4 @@
+import "./inquiry-toolbar.css";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useInquiryFreshness } from "../inquiries/useInquiryFreshness";
@@ -294,10 +295,12 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
             : "实际业务建立后，请手动创建客户档案。"}{" "}
         状态变更需手动操作。
       </p>
-      <div className="flex flex-wrap gap-3">
+      <div
+        className={`flex flex-wrap gap-3 ${config.kind === "inquiry" ? "romiku-inquiry-toolbar" : ""}`}
+      >
         {config.kind === "inquiry" && (
           <>
-            <span className="self-center text-sm text-muted-foreground">
+            <span className="inquiry-freshness self-center text-xs text-muted-foreground">
               最后刷新：
               {freshness.lastSuccess ? (
                 <time dateTime={new Date(freshness.lastSuccess).toISOString()}>
@@ -310,11 +313,15 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
               )}
               {isFetching ? " · 正在刷新…" : ""}
             </span>
-            <Button variant="outline" onClick={() => void freshness.refresh()}>
+            <Button
+              className="inquiry-refresh"
+              variant="outline"
+              onClick={() => void freshness.refresh()}
+            >
               刷新
             </Button>
             {freshness.newCount > 0 && (
-              <span role="status">
+              <span className="inquiry-new" role="status">
                 有 {freshness.newCount} 条新询盘{" "}
                 <Button
                   variant="outline"
@@ -390,8 +397,8 @@ export function WorkflowPage({ config }: { config: WorkflowConfig }) {
           {committedSearch
             ? "搜索失败，当前显示上次成功的数据。"
             : config.kind === "inquiry" && freshness.lastSuccess
-            ? "刷新失败，当前显示上次成功的数据。"
-            : "无法加载记录。"}{" "}
+              ? "刷新失败，当前显示上次成功的数据。"
+              : "无法加载记录。"}{" "}
           <Button variant="outline" onClick={() => refetch()}>
             重试
           </Button>

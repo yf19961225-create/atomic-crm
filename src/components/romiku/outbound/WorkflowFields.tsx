@@ -2,6 +2,7 @@ import { businessDateFieldKinds } from "../shared/businessDateFields";
 import { productionDueDateInput } from "../production/productionDueDate";
 import {
   RomikuDatePicker,
+  RomikuDeliveryDatePicker,
   RomikuDateTimePicker,
 } from "../shared/RomikuDatePicker";
 import { userDisplayName } from "@/lib/userDisplayName";
@@ -161,6 +162,13 @@ export function WorkflowFields({
                   </option>
                 ))}
               </select>
+            ) : field.key === "expected_delivery_at" ? (
+              <RomikuDeliveryDatePicker
+                label={field.label}
+                required={field.required}
+                value={value}
+                onChange={change}
+              />
             ) : Boolean(dateKind) ? (
               dateKind !== "datetime" ? (
                 <RomikuDatePicker

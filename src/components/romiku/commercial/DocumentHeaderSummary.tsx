@@ -1,9 +1,13 @@
 import {
   RomikuDatePicker,
+  RomikuDeliveryDatePicker,
   RomikuDateTimePicker,
 } from "../shared/RomikuDatePicker";
 import { businessDateFieldKinds } from "../shared/businessDateFields";
-import { localBusinessDateTime } from "../shared/businessDate";
+import {
+  localBusinessDateTime,
+  orderDeliveryDateLabel,
+} from "../shared/businessDate";
 import type { Values } from "../outbound/WorkflowFields";
 import { setValue, valueAt } from "../outbound/WorkflowFields";
 import type { RaRecord } from "ra-core";
@@ -36,6 +40,7 @@ const documentFields: HeaderField[] = [
 ];
 
 const display = (value: unknown, key: string) => {
+  if (key === "expected_delivery_at") return orderDeliveryDateLabel(value);
   if (!value) return "—";
   const text = String(value);
   if (businessDateFieldKinds[key] === "datetime" && text.includes("T"))
@@ -154,6 +159,14 @@ export function DocumentHeaderSummary({
                       <option value="en">English</option>
                       <option value="es">Español</option>
                     </select>
+                  ) : field.key === "expected_delivery_at" ? (
+                    <RomikuDeliveryDatePicker
+                      label={field.label}
+                      value={value}
+                      onChange={(next) =>
+                        onChange(setValue(values, field.key, next))
+                      }
+                    />
                   ) : businessDateFieldKinds[field.key] ? (
                     businessDateFieldKinds[field.key] === "date" ? (
                       <RomikuDatePicker

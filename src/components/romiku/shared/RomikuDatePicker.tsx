@@ -15,6 +15,10 @@ import {
 } from "./businessDate";
 export type RomikuDatePickerProps = {
   inputRef?: Ref<HTMLInputElement>;
+  defaultOpen?: boolean;
+  timeZone?: "Asia/Shanghai";
+  buttonLabel?: string;
+  emptyLabel?: string;
   value: unknown;
   onChange: (value: string | null) => void;
   label: string;
@@ -29,11 +33,19 @@ export type RomikuDatePickerProps = {
 export function RomikuDatePicker(props: RomikuDatePickerProps) {
   return <CalendarInput {...props} datetime={false} />;
 }
+/** Customer delivery uses Shanghai time; preserve existing time and precision. */
+export function RomikuDeliveryDatePicker(props: RomikuDatePickerProps) {
+  return <RomikuDateTimePicker {...props} timeZone="Asia/Shanghai" />;
+}
 export function RomikuDateTimePicker(props: RomikuDatePickerProps) {
   return <CalendarInput {...props} datetime />;
 }
 function CalendarInput({
   inputRef,
+  defaultOpen = false,
+  timeZone,
+  buttonLabel,
+  emptyLabel = "设置日期",
   value,
   onChange,
   label,
@@ -47,13 +59,13 @@ function CalendarInput({
   datetime,
 }: RomikuDatePickerProps & { datetime: boolean }) {
   const raw = String(value ?? "");
-  const local = datetime ? localBusinessDateTime(raw) : raw;
+  const local = datetime ? localBusinessDateTime(raw, timeZone) : raw;
   const date = local.slice(0, 10);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [month, setMonth] = useState(() =>
     validBusinessDate(date)
       ? date.slice(0, 7)
-      : localBusinessDateTime(new Date().toISOString()).slice(0, 7),
+      : localBusinessDateTime(new Date().toISOString(), timeZone).slice(0, 7),
   );
   const [error, setError] = useState("");
   const [ambiguous, setAmbiguous] = useState<string[]>([]);
@@ -75,7 +87,10 @@ function CalendarInput({
       setMonth(
         validBusinessDate(date)
           ? date.slice(0, 7)
-          : localBusinessDateTime(new Date().toISOString()).slice(0, 7),
+          : localBusinessDateTime(new Date().toISOString(), timeZone).slice(
+              0,
+              7,
+            ),
       );
       setError("");
       setAmbiguous([]);
@@ -96,7 +111,7 @@ function CalendarInput({
       } else setError("请选择有效日期。");
       return;
     }
-    const options = resolveBusinessDateTime(day, time, raw);
+    const options = resolveBusinessDateTime(day, time, raw, timeZone);
     if (options.length === 1) {
       onChange(options[0]);
       setOpen(false);
@@ -122,55 +137,72 @@ function CalendarInput({
     <Popover open={open} onOpenChange={show}>
       <PopoverAnchor asChild>
         <span className="flex w-full min-w-0 items-center gap-1">
-          <input
-            ref={inputRef}
-            id={id}
-            name={name}
-            aria-label={label}
-            type={datetime ? "datetime-local" : "date"}
-            step={datetime ? "0.001" : undefined}
-            className={
-              className ??
-              "h-9 min-w-0 w-full rounded border bg-background px-2 text-sm"
-            }
-            value={local}
-            required={required}
-            disabled={disabled}
-            readOnly={readOnly}
-            onBlur={onBlur}
-            onClick={(e) => {
-              if (!disabled && !readOnly) {
-                e.preventDefault();
-                show(true);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown" && !disabled && !readOnly) {
-                e.preventDefault();
-                show(true);
-              }
-            }}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (!next) {
-                onChange(null);
-                return;
-              }
-              if (datetime) commit(next.slice(0, 10), next.slice(11));
-              else commit(next);
-            }}
-          />
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              disabled={disabled || readOnly}
-              aria-label={`打开${label}日历`}
-            >
-              <CalendarDays className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
+          {buttonLabel ? (
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 justify-start px-2 font-normal tabular-nums"
+                aria-label={buttonLabel}
+                disabled={disabled || readOnly}
+              >
+                {date || emptyLabel}
+                <CalendarDays className="ml-1 h-4 w-4 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+          ) : (
+            <>
+              <input
+                ref={inputRef}
+                id={id}
+                name={name}
+                aria-label={label}
+                type={datetime ? "datetime-local" : "date"}
+                step={datetime ? "0.001" : undefined}
+                className={
+                  className ??
+                  "h-9 min-w-0 w-full rounded border bg-background px-2 text-sm"
+                }
+                value={local}
+                required={required}
+                disabled={disabled}
+                readOnly={readOnly}
+                onBlur={onBlur}
+                onClick={(e) => {
+                  if (!disabled && !readOnly) {
+                    e.preventDefault();
+                    show(true);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown" && !disabled && !readOnly) {
+                    e.preventDefault();
+                    show(true);
+                  }
+                }}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (!next) {
+                    onChange(null);
+                    return;
+                  }
+                  if (datetime) commit(next.slice(0, 10), next.slice(11));
+                  else commit(next);
+                }}
+              />
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={disabled || readOnly}
+                  aria-label={`打开${label}日历`}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+            </>
+          )}
         </span>
       </PopoverAnchor>
       <PopoverContent
@@ -268,7 +300,8 @@ function CalendarInput({
               onChange={(e) => commit(date, e.target.value)}
             />
             <span className="mt-1 block text-xs text-muted-foreground">
-              时区：{Intl.DateTimeFormat().resolvedOptions().timeZone}
+              时区：
+              {timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone}
             </span>
           </label>
         )}
@@ -279,7 +312,10 @@ function CalendarInput({
             size="sm"
             onClick={() =>
               commit(
-                localBusinessDateTime(new Date().toISOString()).slice(0, 10),
+                localBusinessDateTime(new Date().toISOString(), timeZone).slice(
+                  0,
+                  10,
+                ),
               )
             }
           >

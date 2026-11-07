@@ -1,0 +1,55 @@
+/* Scoped to website inquiries; other module toolbars keep their current layout. */
+.romiku-inquiry-toolbar {
+  align-items: end;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  font-size: 14px;
+}
+.romiku-inquiry-toolbar > div {
+  order: 0;
+  flex: 1 1 440px;
+  align-items: end;
+}
+.romiku-inquiry-toolbar > div > label {
+  flex: 1 1 230px;
+  min-width: 0;
+}
+.romiku-inquiry-toolbar input[type="search"] {
+  width: 100%;
+}
+.romiku-inquiry-toolbar input,
+.romiku-inquiry-toolbar select,
+.romiku-inquiry-toolbar button {
+  height: 36px;
+  font-size: 14px;
+}
+.romiku-inquiry-toolbar > label {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.romiku-inquiry-toolbar .inquiry-refresh {
+  order: 2;
+}
+.romiku-inquiry-toolbar .inquiry-freshness {
+  order: 3;
+  flex-basis: 100%;
+  text-align: right;
+}
+.romiku-inquiry-toolbar .inquiry-new {
+  order: 4;
+  flex-basis: 100%;
+}
+@media (max-width: 639px) {
+  .romiku-inquiry-toolbar > div,
+  .romiku-inquiry-toolbar > div > label {
+    flex-basis: 100%;
+  }
+  .romiku-inquiry-toolbar > label {
+    flex: 1;
+  }
+}
