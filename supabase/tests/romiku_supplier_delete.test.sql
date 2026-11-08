@@ -13,6 +13,8 @@ select is((select array_agg(conrelid::regclass::text order by conrelid::regclass
   array['romiku_manual_tasks','romiku_production_orders','romiku_product_suppliers','romiku_supplier_contacts'],
   'dependency audit includes every direct supplier FK');
 set local role authenticated;
+-- Match the role claim supplied by real PostgREST authenticated sessions.
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_supplier(gen_random_uuid())->>'code','UNAUTHENTICATED','delete requires a logged-in user');
 select set_config('request.jwt.claim.sub','de500000-0000-0000-0000-000000000001',true);
 select is(romiku_delete_supplier(gen_random_uuid())->>'code','NOT_FOUND','missing supplier is safe');

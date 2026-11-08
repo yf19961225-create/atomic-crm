@@ -21,6 +21,7 @@ export const ProcurementCostInputs = () => (
     <NumberInput
       source="cost"
       label="成本"
+      step={0.0001}
       min={0}
       validate={required()}
       helperText={false}

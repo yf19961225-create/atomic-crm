@@ -16,6 +16,8 @@ insert into auth.users(id, email, raw_user_meta_data) values
 ('10000000-0000-0000-0000-000000000001','romiku-one@example.test','{}'),
 ('10000000-0000-0000-0000-000000000002','romiku-two@example.test','{}');
 set local role authenticated;
+-- Match the role claim supplied by real PostgREST authenticated sessions.
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 insert into romiku_outbound_companies(id,name) values ('20000000-0000-0000-0000-000000000001','Outbound only');
 select is((select owner_id::text from romiku_outbound_companies limit 1),'10000000-0000-0000-0000-000000000001','business owner defaults to actor');

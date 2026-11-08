@@ -17,6 +17,8 @@ select ok(not has_function_privilege('anon','public.romiku_replace_product_suppl
 insert into auth.users(id,email,raw_user_meta_data)
 values ('de820000-0000-0000-0000-000000000001','product-supplier-management-qa@example.test','{}');
 set local role authenticated;
+-- Match the role claim supplied by real PostgREST authenticated sessions.
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','',true);
 select is(public.romiku_delete_product_supplier(gen_random_uuid())->>'code','UNAUTHENTICATED',
   'a missing session cannot delete a relation');
