@@ -182,3 +182,16 @@ it("validates receipts and excludes currency/order reassignment from payment upd
     paymentWrite({ kind: "balance", amount: 10, received_at: "invalid" }),
   ).toThrow("日期");
 });
+
+it("accepts the unpaid order stage without altering financial facts or allowing it on PI", () => {
+  expect(
+    documentHeaderWrite("order", {
+      status: "awaiting_payment",
+      total: 10000,
+      paid: 2913,
+    }),
+  ).toEqual({ status: "awaiting_payment" });
+  expect(() =>
+    documentHeaderWrite("pi", { status: "awaiting_payment" }),
+  ).toThrow("有效的单据状态");
+});

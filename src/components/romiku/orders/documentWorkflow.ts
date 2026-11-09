@@ -32,15 +32,9 @@ export const documentConfig = {
     items: "romiku_order_items",
     totals: "romiku_order_totals",
     foreignKey: "order_id",
-    statuses: [
-      "draft",
-      "confirmed",
-      "in_production",
-      "ready_to_ship",
-      "shipped",
-      "completed",
-      "cancelled",
-    ],
+    statuses: statusOptions("order")
+      .filter(({ value }) => value !== "voided")
+      .map(({ value }) => value),
   },
 };
 type ConversionRpc = {

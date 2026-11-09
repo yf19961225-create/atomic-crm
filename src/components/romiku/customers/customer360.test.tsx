@@ -1,3 +1,4 @@
+import { CustomerBusinessHistory } from "./CustomerBusinessHistory";
 import { hasAppDraft } from "../updates/drafts";
 import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
@@ -315,3 +316,22 @@ it("keeps opening and previewing archive defaults clean, and tracks reverted use
     .click();
   expect(hasAppDraft()).toBe(false);
 });
+
+it.each([
+  ["draft", "待确认"],
+  ["awaiting_payment", "待收款"],
+  ["shipped", "已送货"],
+])(
+  "renders order history stage %s with its unchanged balance",
+  async (status, label) => {
+    const screen = await mount(
+      <CustomerBusinessHistory
+        orders={[{ ...card("STATUS-QA"), resource_type: "order", status }]}
+      />,
+    );
+    await expect
+      .element(screen.getByText(`2026-10-04 · ${label}`, { exact: true }))
+      .toBeInTheDocument();
+    await expect.element(screen.getByText(/余额.*150/)).toBeInTheDocument();
+  },
+);

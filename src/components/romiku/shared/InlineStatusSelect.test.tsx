@@ -1,3 +1,4 @@
+import { statusOptions } from "./workflowStatus";
 import { useState } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { expect, it, vi } from "vitest";
@@ -138,4 +139,49 @@ it("invalidates Production detail, list and Order child caches after a status mu
     .element(screen.getByRole("status"))
     .toHaveTextContent("状态已保存");
   expect(cache.getQueryState(detailKey)?.isInvalidated).toBe(true);
+});
+
+it("shows the seven order stages and saves awaiting payment without changing other order fields", async () => {
+  const original = {
+    id: "order-status",
+    status: "confirmed",
+    total: 10000,
+    paid: 2913,
+    expected_delivery_at: "2026-11-20",
+  };
+  const provider = fakeRestDataProvider({ romiku_orders: [original] });
+  const screen = await render(
+    <CoreAdminContext dataProvider={provider}>
+      <InlineStatusSelect
+        resource="romiku_orders"
+        recordId={original.id}
+        status={original.status}
+        choices={statusOptions("order")}
+      />
+    </CoreAdminContext>,
+  );
+  for (const label of [
+    "待确认",
+    "已确认",
+    "已排产",
+    "待发货",
+    "已送货",
+    "待收款",
+    "已完成",
+    "已取消",
+    "已作废",
+  ]) {
+    await expect
+      .element(screen.getByRole("option", { name: label, exact: true }))
+      .toBeInTheDocument();
+  }
+  await screen
+    .getByLabelText("状态 order-status", { exact: true })
+    .selectOptions("awaiting_payment");
+  await expect
+    .element(screen.getByRole("status"))
+    .toHaveTextContent("状态已保存");
+  expect(
+    (await provider.getOne("romiku_orders", { id: original.id })).data,
+  ).toEqual({ ...original, status: "awaiting_payment" });
 });

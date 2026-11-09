@@ -14,7 +14,7 @@ import {
 
 it("maps stored commercial enum identifiers to Chinese display labels without changing their values", () => {
   expect(quoteStatusLabel("quoted")).toBe("已报价");
-  expect(documentStatusLabel("ready_to_ship")).toBe("待发运");
+  expect(documentStatusLabel("ready_to_ship")).toBe("待发货");
   expect(paymentKindLabel("deposit")).toBe("定金");
   expect(productionStatusLabel("scheduled")).toBe("已排产");
   expect(supplierStatusLabel("paused")).toBe("暂停");
@@ -22,7 +22,7 @@ it("maps stored commercial enum identifiers to Chinese display labels without ch
   expect(quoteStatusChoices).toContainEqual({ id: "quoted", label: "已报价" });
   expect(documentStatusChoices).toContainEqual({
     id: "ready_to_ship",
-    label: "待发运",
+    label: "待发货",
   });
   expect(paymentKindChoices).toContainEqual({ id: "deposit", label: "定金" });
   expect(productionStatusChoices).toContainEqual({
@@ -41,4 +41,9 @@ it("exposes exactly the final six Quote statuses", () => {
     { id: "won", label: "已成交" },
     { id: "invalid", label: "无效" },
   ]);
+});
+
+it("keeps order-only stages readable in workbench filters while retaining generic document draft", () => {
+  expect(documentStatusLabel("awaiting_payment")).toBe("待收款");
+  expect(documentStatusLabel("draft")).toBe("草稿");
 });

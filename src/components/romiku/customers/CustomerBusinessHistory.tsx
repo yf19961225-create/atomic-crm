@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { searchPath, searchLabels } from "../search/search";
-import { documentStatusLabel } from "../commercialLabels";
+import { statusLabel } from "../shared/workflowStatus";
 import {
   type BusinessKind,
   type DocumentLink,
@@ -65,7 +65,7 @@ export function CustomerBusinessHistory({ orders }: { orders: OrderCard[] }) {
           <div className="flex flex-wrap justify-between gap-2">
             <BusinessLink kind="order" record={o} />
             <span>
-              {o.document_date} · {documentStatusLabel(o.status || "")}
+              {o.document_date} · {statusLabel("order", o.status || "")}
               {o.archived_at && " · 已归档"}
             </span>
           </div>

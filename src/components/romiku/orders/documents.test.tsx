@@ -19,11 +19,11 @@ const list = {
 afterEach(() => vi.unstubAllGlobals());
 async function setup(
   path: string,
-  options?: { orderCustomerCodeVisible?: boolean },
+  options?: { orderCustomerCodeVisible?: boolean; status?: string },
 ) {
   await page.viewport(1440, 1200);
   const header = {
-    status: "draft",
+    status: options?.status ?? "draft",
     currency: "USD",
     deposit_percent: 30,
     counterparty_snapshot: { name: "Original buyer" },
@@ -594,3 +594,28 @@ it.each(["pi", "order"] as const)(
     }
   },
 );
+
+it("filters awaiting-payment orders and retains their actual receivable", async () => {
+  const { screen } = await setup("/orders", { status: "awaiting_payment" });
+  await screen
+    .getByRole("combobox", { name: "状态", exact: true })
+    .selectOptions("awaiting_payment");
+  await expect
+    .element(screen.getByRole("link", { name: "SO-001", exact: true }))
+    .toBeVisible();
+  await expect
+    .element(screen.getByRole("cell", { name: "USD 650.00", exact: true }))
+    .toBeVisible();
+  await screen
+    .getByRole("combobox", { name: "状态", exact: true })
+    .selectOptions("shipped");
+  await expect
+    .element(screen.getByRole("link", { name: "SO-001", exact: true }))
+    .not.toBeInTheDocument();
+  await screen
+    .getByRole("combobox", { name: "状态", exact: true })
+    .selectOptions("");
+  await expect
+    .element(screen.getByRole("link", { name: "SO-001", exact: true }))
+    .toBeVisible();
+});

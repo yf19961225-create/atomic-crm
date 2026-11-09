@@ -15,15 +15,10 @@ export const quoteStatusLabel = (value: unknown) =>
   labelFor(quoteStatusLabels, value);
 
 export const documentStatusLabels = {
+  ...workflowStatusLabels.order,
+  // Generic document/workbench draft must not rename PI or packing drafts.
   draft: "草稿",
   sent: "已发送",
-  confirmed: "已确认",
-  in_production: "生产中",
-  ready_to_ship: "待发运",
-  shipped: "已发运",
-  completed: "已完成",
-  cancelled: "已取消",
-  voided: "已作废",
 };
 export const documentStatusChoices = workflowChoicesFor(documentStatusLabels);
 export const documentStatusLabel = (value: unknown) =>
