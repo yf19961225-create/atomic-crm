@@ -462,6 +462,11 @@ function QuoteEditor({
     }
   };
   const exportQuote = async () => {
+    if (!quoteReadyForEdit) {
+      setFailed(true);
+      setMessage("请等待报价单及产品明细加载完成后再导出。");
+      return;
+    }
     if (session.editing) {
       setFailed(true);
       setMessage("请先保存当前 Quote，再导出已保存的快照。");
@@ -559,7 +564,7 @@ function QuoteEditor({
         <Button
           type="button"
           variant="outline"
-          disabled={session.editing}
+          disabled={session.editing || !quoteReadyForEdit}
           onClick={() => void exportQuote()}
         >
           导出 XLSX
