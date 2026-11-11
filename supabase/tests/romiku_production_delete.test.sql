@@ -5,6 +5,7 @@ select no_plan();
 insert into auth.users(id,email,raw_user_meta_data) values ('de300000-0000-0000-0000-000000000001','production-delete-test@example.test','{}');
 select ok(not has_function_privilege('anon','public.romiku_delete_record(text,uuid)','execute'),'anon cannot call production delete RPC');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_record('production',gen_random_uuid())->>'code','UNAUTHENTICATED','production delete requires user');
 select set_config('request.jwt.claim.sub','de300000-0000-0000-0000-000000000001',true);
 select is(romiku_delete_record('production',gen_random_uuid())->>'code','NOT_FOUND','production kind is supported and missing record is safe');
@@ -28,6 +29,7 @@ delete from romiku_production_followups where production_order_id=(select id fro
 create function public.production_delete_test_fail() returns trigger language plpgsql as $$ begin raise exception 'private production foreign key details'; end $$;
 create trigger production_delete_test_fail before delete on romiku_production_orders for each row execute function public.production_delete_test_fail();
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_record('production',(select id from production_delete_ids where kind='production'))->>'code','DELETE_FAILED','late failure returns structured failure');
 select ok(position('private production' in (romiku_delete_record('production',(select id from production_delete_ids where kind='production'))->>'message'))=0,'raw PostgreSQL details not exposed');
 select is((select count(*) from romiku_production_items where production_order_id=(select id from production_delete_ids where kind='production')),1::bigint,'late failure restores deleted items');
@@ -35,6 +37,7 @@ select ok(exists(select 1 from romiku_manual_tasks where id=(select id from prod
 reset role;
 drop trigger production_delete_test_fail on romiku_production_orders;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_record('production',(select id from production_delete_ids where kind='production')),'{"ok":true}'::jsonb,'production with no followups is deleted');
 select is((select count(*) from romiku_production_orders where id=(select id from production_delete_ids where kind='production')),0::bigint,'header removed');
 select is((select count(*) from romiku_production_items where production_order_id=(select id from production_delete_ids where kind='production')),0::bigint,'own items removed');
@@ -45,6 +48,7 @@ select is((select unallocated_quantity from romiku_order_item_remaining where id
 reset role;
 select is((select last_value from romiku_production_order_counters where order_id=(select id from production_delete_ids where kind='order')),1,'production numbering counter retained');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 insert into romiku_production_orders(order_id) select id from production_delete_ids where kind='order';
 select ok(exists(select 1 from romiku_production_orders where order_id=(select id from production_delete_ids where kind='order') and document_number like '%-P02'),'deleted production number is never recycled');
 select * from finish();

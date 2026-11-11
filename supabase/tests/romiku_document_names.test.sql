@@ -11,6 +11,7 @@ select has_column('public','romiku_orders','document_name','Order independent na
 select is((select count(*)::int from information_schema.columns where table_schema='public' and table_name in ('romiku_quotes','romiku_pis','romiku_orders') and column_name='document_name' and is_nullable='YES' and column_default is null),3,'all names nullable without default');
 insert into auth.users(id,email,raw_user_meta_data) values ('fe260000-0000-0000-0000-000000000099','names-qa@example.test','{}');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','fe260000-0000-0000-0000-000000000099',true);
 insert into romiku_quotes(id,document_name,counterparty_snapshot) values ('fe269000-0000-0000-0000-000000000001','Marianne 美甲灯 Tú','{"brand":"Original brand","name":"Buyer"}');
 create temporary table saved_quote as select * from romiku_quotes where id='fe269000-0000-0000-0000-000000000001';
@@ -59,6 +60,7 @@ select is((select document_name from romiku_orders where id=(select id from conv
 reset role;
 alter policy romiku_read on romiku_orders using (id not in (select id from converted));
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is((select count(*)::int from romiku_business_search_hits('Same name',array['order'])),0,'name search honors RLS');
 select * from finish();
 rollback;

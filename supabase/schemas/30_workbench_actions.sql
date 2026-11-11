@@ -258,7 +258,7 @@ begin
    count(*) filter(where c.classification in ('unclassified','needs_confirmation')) arrange_count,
    bool_or(c.needs_follow_up or c.next_follow_up_on<=(now() at time zone 'Asia/Shanghai')::date) urgent,
    jsonb_agg(to_jsonb(c) order by c.document_number,c.id) children
-  from children c join public.romiku_orders o on o.id=c.order_id group by o.id
+  from children c join orders o on o.id=c.order_id group by o.id,o.document_number,o.document_name
  ), tasks as (
   select 'collection:'||c.id id,'collection'::text kind,'romiku_orders'::text source_table,c.id source_id,
    coalesce(nullif(c.document_name,''),c.document_number) title,c.document_number,c.phase status,
@@ -296,7 +296,7 @@ begin
   from public.romiku_manual_tasks t where t.completed_at is null
   union all
   select e.id,e.event_type,e.source_table,e.source_id,e.title,null,e.status,(e.due_at at time zone 'Asia/Shanghai')::date,e.event_type='production_anomaly',false,'{}'
-  from public.romiku_workbench e where e.event_type in ('outbound_follow_up','order_delivery','production_anomaly') and (e.event_type<>'order_delivery' or e.status not in ('cancelled','voided'))
+  from public.romiku_workbench e where e.event_type in ('outbound_follow_up','order_delivery','production_anomaly') and (e.event_type<>'order_delivery' or e.status in ('confirmed','in_production','ready_to_ship'))
  ), classified as (
   select t.*, (urgent or kind<>'collection' and due < (now() at time zone 'Asia/Shanghai')::date+7) and kind not in ('verification','deferred') recent
   from tasks t

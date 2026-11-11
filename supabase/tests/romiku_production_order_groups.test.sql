@@ -9,6 +9,7 @@ select ok(has_function_privilege('authenticated','public.romiku_list_production_
 select ok((select not prosecdef and provolatile='s' from pg_proc where oid='public.romiku_list_production_order_groups(text,text,integer,integer,uuid)'::regprocedure),'stable security invoker');
 insert into auth.users(id,email,raw_user_meta_data) values ('fe260000-0000-0000-0000-000000000001','five-feature-local@example.test','{}');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','',true);
 select throws_ok($$select public.romiku_list_production_order_groups()$$,'42501',null,'missing session denied');
 select set_config('request.jwt.claim.sub','fe260000-0000-0000-0000-000000000001',true);
@@ -50,6 +51,7 @@ create temporary table hidden_child as select id,document_number from public.rom
 grant select on hidden_child to authenticated;
 alter policy romiku_read on public.romiku_production_orders using(name not in ('QA-HIDDEN','QA-A-30'));
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(public.romiku_list_production_order_groups('', 'all')->>'total','3','RLS-hidden only-child parent not leaked');
 select is(public.romiku_list_production_order_groups((select document_number from public.romiku_production_orders where name='QA-A-1'),'all')->'rows'->0->>'production_count','64','RLS-hidden child excluded counts');
 select is(public.romiku_list_production_order_groups((select document_number from hidden_child),'all')->>'total','0','RLS-hidden child not searchable');
@@ -60,6 +62,7 @@ reset role;
 alter policy romiku_read on public.romiku_orders using(id<>'fe261000-0000-0000-0000-000000000003'::uuid);
 alter policy romiku_read on public.romiku_suppliers using(name<>'QA GROUP SUPPLIER');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(public.romiku_list_production_order_groups('', 'all')->>'total','2','RLS-hidden parent excluded even when children visible');
 select is(public.romiku_list_production_order_groups('Buyer 3','all')->>'total','0','RLS-hidden parent name not searchable');
 select is(public.romiku_list_production_order_groups('QA GROUP SUPPLIER','all')->>'total','0','RLS-hidden current supplier name not leaked by search');

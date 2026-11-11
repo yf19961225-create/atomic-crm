@@ -37,6 +37,7 @@ reset role;
 insert into auth.users(id,email) values('bdb96dfb-e4eb-48f8-839c-85e5200f0003','final-chain@example.test');
 grant select on final_first to authenticated;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','bdb96dfb-e4eb-48f8-839c-85e5200f0003',true);
 create temp table final_quote as select romiku_quote_from_inquiry((select id from final_first),(select array_agg(id order by sku) from romiku_website_inquiry_items where inquiry_id=(select id from final_first))) id;
 select is((select status from romiku_quotes where id=(select id from final_quote)),'pending_quote','created Quote pending quote');

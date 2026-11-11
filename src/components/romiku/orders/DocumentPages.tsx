@@ -427,11 +427,14 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
 export function DocumentDetail({ kind }: { kind: DocumentKind }) {
   const { id = "" } = useParams(),
     config = documentConfig[kind];
-  const { data, isPending, error, refetch } = useGetOne(config.resource, {
-    id,
-  });
+  const { data, isPending, isSuccess, isFetching, error, refetch } = useGetOne(
+    config.resource,
+    {
+      id,
+    },
+  );
   if (isPending) return <p>正在加载{config.label}…</p>;
-  if (error || !data)
+  if (!data)
     return (
       <p role="alert">
         无法加载此{config.label}。{" "}
@@ -446,6 +449,8 @@ export function DocumentDetail({ kind }: { kind: DocumentKind }) {
       kind={kind}
       record={data}
       onSaved={refetch}
+      headerReady={isSuccess && !isFetching && !error}
+      headerError={!!error}
     />
   );
 }
@@ -506,10 +511,14 @@ function DocumentEditor({
   kind,
   record,
   onSaved,
+  headerReady,
+  headerError,
 }: {
   kind: DocumentKind;
   record: RaRecord;
   onSaved: () => Promise<unknown>;
+  headerReady: boolean;
+  headerError: boolean;
 }) {
   const cache = useQueryClient();
   const config = documentConfig[kind],
@@ -522,11 +531,19 @@ function DocumentEditor({
     queryKey: [`${kind}-items`, record.id],
     queryFn: () => readCommercialItems(provider, kind, String(record.id)),
   });
-  const session = useDocumentEditSession(record, items.data);
+  const itemsReady =
+    headerReady &&
+    items.isSuccess &&
+    !items.isFetching &&
+    !items.isPlaceholderData &&
+    Array.isArray(items.data);
+  const session = useDocumentEditSession(record, items.data, {
+    readyForEdit: itemsReady,
+  });
   const confirmDiscard = useUnsavedDocumentGuard(session.dirty);
   const totals = quoteTotals(session.items, session.values);
   const exportOrder = async (allowBlankCustomerCodes = false) => {
-    if (kind !== "order") return;
+    if (kind !== "order" || !itemsReady) return;
     if (session.editing) {
       setFailed(true);
       setMessage("请先保存当前 Order，再导出已保存的快照。");
@@ -555,7 +572,7 @@ function DocumentEditor({
     }
   };
   const exportPi = async () => {
-    if (kind !== "pi") return;
+    if (kind !== "pi" || !itemsReady) return;
     if (session.editing) {
       setFailed(true);
       setMessage("请先保存当前 PI，再导出已保存的快照。");
@@ -697,7 +714,11 @@ function DocumentEditor({
               </Button>
             </div>
           ) : (
-            <Button type="button" onClick={session.start}>
+            <Button
+              type="button"
+              disabled={!itemsReady}
+              onClick={session.start}
+            >
               编辑
             </Button>
           )}
@@ -711,6 +732,18 @@ function DocumentEditor({
         </div>
       </div>
 
+      {headerError && (
+        <p role="alert">
+          单据数据刷新失败，当前修改已保留。
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void onSaved()}
+          >
+            重试加载单据
+          </Button>
+        </p>
+      )}
       <DocumentSources record={record} />
       {kind === "order" && !session.editing && (
         <OrderCustomerArchive record={record} />
@@ -729,7 +762,7 @@ function DocumentEditor({
           <Button
             type="button"
             variant="outline"
-            disabled={session.editing}
+            disabled={session.editing || !itemsReady}
             onClick={() => void exportOrder()}
           >
             导出 XLSX
@@ -765,7 +798,7 @@ function DocumentEditor({
           <Button
             type="button"
             variant="outline"
-            disabled={session.editing}
+            disabled={session.editing || !itemsReady}
             onClick={() => void exportPi()}
           >
             导出 XLSX

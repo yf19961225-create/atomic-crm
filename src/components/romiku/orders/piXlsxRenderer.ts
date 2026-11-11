@@ -168,6 +168,7 @@ export async function renderPiXlsx(
     sheet.getCell(row, 5).value = item.specification;
     sheet.getCell(row, 6).value = item.cartons;
     sheet.getCell(row, 7).value = item.qtyPerCarton;
+    sheet.getCell(row, 7).numFmt = "#,##0.####";
     sheet.getCell(row, 8).value = item.quantity;
     sheet.getCell(row, 9).value = item.unitPrice;
     sheet.getCell(row, 10).value = item.amount;

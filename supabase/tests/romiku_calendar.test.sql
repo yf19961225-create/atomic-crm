@@ -7,6 +7,7 @@ insert into auth.users(id,email,raw_user_meta_data) values
 ('81000000-0000-0000-0000-000000000001','calendar-one@example.test','{}'),
 ('81000000-0000-0000-0000-000000000002','calendar-two@example.test','{}');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','81000000-0000-0000-0000-000000000001',true);
 insert into romiku_website_inquiries(id,customer_name,next_follow_up_at,owner_id) values
 ('82000000-0000-0000-0000-000000000001','Calendar inquiry','2026-09-17T10:00:00Z','81000000-0000-0000-0000-000000000001');
@@ -14,7 +15,7 @@ insert into romiku_outbound_companies(id,name,next_follow_up_at,owner_id) values
 ('82000000-0000-0000-0000-000000000002','Calendar outbound','2026-09-17T11:00:00Z','81000000-0000-0000-0000-000000000002');
 insert into romiku_quotes(id,follow_up_at,due_at) values ('82000000-0000-0000-0000-000000000003','2026-09-17T12:00:00Z','2026-09-18T12:00:00Z');
 insert into romiku_pis(id,follow_up_at,due_at) values ('82000000-0000-0000-0000-000000000004','2026-09-17T13:00:00Z','2026-09-18T13:00:00Z');
-insert into romiku_orders(id,expected_delivery_at) values ('82000000-0000-0000-0000-000000000005','2026-09-19T12:00:00Z');
+insert into romiku_orders(id,expected_delivery_at,status) values ('82000000-0000-0000-0000-000000000005','2026-09-19T12:00:00Z','confirmed');
 insert into romiku_suppliers(id,name) values ('82000000-0000-0000-0000-000000000006','Calendar supplier');
 insert into romiku_production_orders(id,order_id,supplier_id,factory_due_at) values ('82000000-0000-0000-0000-000000000007','82000000-0000-0000-0000-000000000005','82000000-0000-0000-0000-000000000006','2026-09-18T10:00:00Z');
 insert into romiku_packing_lists(id,order_id,packing_at) values ('82000000-0000-0000-0000-000000000008','82000000-0000-0000-0000-000000000005','2026-09-19T10:00:00Z');

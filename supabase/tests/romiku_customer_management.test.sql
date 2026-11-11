@@ -25,6 +25,7 @@ select throws_ok($$select public.romiku_delete_record('formal_customer',gen_rand
 select throws_ok($$delete from public.romiku_formal_customers where false$$,'42501',null,'anon table delete denied');
 reset role;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select throws_ok($$delete from romiku_formal_customers where false$$,'42501',null,'authenticated direct DELETE denied');
 select is(romiku_delete_record('formal_customer',gen_random_uuid())->>'code','UNAUTHENTICATED','no auth uid denied');
 select set_config('request.jwt.claim.sub','fc110000-0000-0000-0000-000000000001',true);
@@ -57,6 +58,7 @@ reset role;
 create function pg_temp.fail_customer_delete() returns trigger language plpgsql as $$begin raise exception 'injected failure'; end$$;
 create trigger qa_customer_fail before delete on romiku_formal_customers for each row when (old.name='QA-rollback') execute function pg_temp.fail_customer_delete();
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_record('formal_customer',(select id from customer_ids where label='rollback'))->>'code','DELETE_FAILED','safe error on deletion failure');
 select is((select count(*) from romiku_customer_contacts where formal_customer_id=(select id from customer_ids where label='rollback')),1::bigint,'child deletion rolled back');
 select is((select count(*) from romiku_formal_customers where id=(select id from customer_ids where label='rollback')),1::bigint,'parent retained on failure');

@@ -9,6 +9,7 @@ create temporary table instruction_ids(kind text primary key,id uuid default gen
 insert into instruction_ids(kind) values ('customer'),('order'),('order2'),('item'),('production'),('production2'),('line'),('line2'),('quote');
 grant all on instruction_ids to authenticated;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de500000-0000-0000-0000-000000000001',true);
 insert into romiku_formal_customers(id,name,marking_profile) select id,'Instructions customer','{"version":1,"front_mark":{"mode":"image","image_asset":{"bucket":"romiku-marking-assets","path":"old/front.png"}},"small_label":{"mode":"text","text":"Made in China"},"production_requirements":"Protect cartons"}'::jsonb from instruction_ids where kind='customer';
 insert into romiku_orders(id,formal_customer_id,notes) select id,(select id from instruction_ids where kind='customer'),'Saved Order note' from instruction_ids where kind='order';

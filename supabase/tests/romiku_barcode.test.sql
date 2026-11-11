@@ -14,6 +14,7 @@ create temporary table ws_result(value jsonb); grant all on ws_result to authent
 create function pg_temp.ws_expected(pid uuid) returns jsonb language sql as $$select jsonb_build_object('header_updated_at',p.updated_at,'items',(select coalesce(jsonb_agg(jsonb_build_object('id',i.id,'updated_at',i.updated_at)),'[]') from romiku_production_items i where i.production_order_id=p.id)) from romiku_production_orders p where p.id=pid$$;
 create function pg_temp.ws_items(pid uuid) returns jsonb language sql as $$select jsonb_agg(jsonb_build_object('id',i.id,'source_order_item_id',i.source_order_item_id,'quantity',i.quantity,'product_snapshot',jsonb_build_object('specification',i.product_snapshot->>'specification'),'packaging_snapshot','{}'::jsonb,'marking_override',i.marking_override)) from romiku_production_items i where i.production_order_id=pid$$;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
 insert into romiku_orders(id,notes) select id,'Original saved Order' from ws_ids where kind in ('order','other');
 insert into romiku_order_items(id,order_id,sku,quantity,product_snapshot,packing_snapshot) select i.id,o.id,'SUN5',100,'{"name":"Saved lamp","unit":"PCS","specification":"Original"}','{"cartons":2,"material":"Paper"}' from ws_ids i cross join ws_ids o where i.kind='source' and o.kind='order';
@@ -56,6 +57,7 @@ select is((select prosecdef from pg_proc where oid='public.romiku_production_bar
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
 create policy barcode_deny_read on romiku_order_items as restrictive for select to authenticated using(false);
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_production_barcode((select id from ws_ids where kind='source'),true)->>'ok','false','source RLS enforced');
 reset role;drop policy barcode_deny_read on romiku_order_items;
 select * from finish();rollback;

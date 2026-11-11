@@ -7,6 +7,7 @@ select ok(has_function_privilege('authenticated','public.romiku_order_delete_pre
 select ok(not has_function_privilege('anon','public.romiku_order_delete_preflight(uuid[])','execute'),'anon cannot preflight');
 select ok(not has_function_privilege('anon','public.romiku_batch_delete_orders(uuid[])','execute'),'anon cannot batch');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_order_delete_preflight(array[gen_random_uuid()])->>'code','UNAUTHENTICATED','preflight requires uid');
 select is(romiku_batch_delete_orders(array[gen_random_uuid()])->>'code','UNAUTHENTICATED','batch requires uid');
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
@@ -54,6 +55,7 @@ select is((select last_value from romiku_production_order_counters where order_i
 create function public.cascade_test_failure() returns trigger language plpgsql as $$ begin if old.id=(select id from cases where label='rollback') then raise exception 'private FK details'; end if; return old; end $$;
 create trigger cascade_test_failure before delete on romiku_orders for each row execute function public.cascade_test_failure();
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_record('order',(select id from cases where label='rollback'))->>'code','DELETE_FAILED','late Order failure is structured');
 select is((select count(*) from romiku_production_orders where order_id=(select id from cases where label='rollback')),2::bigint,'late failure rolls back both production deletes');
 select is((select count(*) from romiku_production_items where order_id=(select id from cases where label='rollback')),1::bigint,'rollback restores production items');
@@ -69,6 +71,7 @@ select throws_ok($$select public.romiku_order_delete_preflight(array[gen_random_
 select throws_ok($$select public.romiku_batch_delete_orders(array[gen_random_uuid()])$$,'42501',null,'anon execution actually denied');
 reset role;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_order_delete_preflight(array[null::uuid])->>'code','INVALID_ARGUMENT','null id rejected');
 select is(romiku_order_delete_preflight(array[gen_random_uuid()])->'blocked'->0->>'code','NOT_FOUND','missing Order structured');
 select is(jsonb_array_length(romiku_order_delete_preflight(array[(select id from cases where label='mixed'),(select id from cases where label='mixed')])->'blocked'),1,'duplicate IDs deduplicated');
@@ -101,6 +104,7 @@ insert into romiku_production_items(production_order_id,order_id,source_order_it
 reset role;
 create temporary table saved_counter as select * from romiku_document_daily_counters;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_delete_record('order',(select id from cases where label='sources')),'{"ok":true}'::jsonb,'safe cascade with upstream chain succeeds');
 select ok(exists(select 1 from romiku_quotes where id=(select id from source_ids where kind='quote')),'Quote retained');
 select ok(exists(select 1 from romiku_pis where id=(select id from source_ids where kind='pi')),'PI retained');

@@ -4,6 +4,7 @@ set search_path=public,extensions;
 select no_plan();
 insert into auth.users(id,email,raw_user_meta_data) values ('fe260000-0000-0000-0000-000000000010','number-qa@example.test','{}');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','fe260000-0000-0000-0000-000000000010',true);
 insert into public.romiku_orders(id) values ('fe262000-0000-0000-0000-000000000001'),('fe262000-0000-0000-0000-000000000002');
 insert into public.romiku_production_orders(id,order_id) values ('fe263000-0000-0000-0000-000000000001','fe262000-0000-0000-0000-000000000001');

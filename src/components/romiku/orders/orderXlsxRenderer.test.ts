@@ -482,3 +482,25 @@ it("changing internal document name leaves formal XLSX identity and template con
   expect(workbook.worksheets[0].getCell("J1").text).toContain("OD261026001");
   expect(workbook.worksheets[0].getCell("J1").text).not.toContain("Marianne");
 });
+
+it("preserves fractional quantity display in exported XLSX", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const model = normalizeOrderExportModel({}, [
+    {
+      id: "fraction",
+      sku: "FRACTION",
+      quantity: 0.25,
+      unit_price: 8,
+      product_snapshot: {},
+      packing_snapshot: { qty_per_carton: 0.25 },
+    },
+  ]);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await renderOrderXlsx(model, template));
+  const sheet = workbook.getWorksheet("ORDER")!;
+  expect(sheet.getCell("H10").value).toBe(0.25);
+  expect(sheet.getCell("H10").numFmt || "General").toBe("General");
+  expect(sheet.getCell("G10").numFmt).toBe("#,##0.####");
+});

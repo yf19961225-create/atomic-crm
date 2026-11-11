@@ -361,3 +361,49 @@ it("checks Order remaining capacity against the computed carton quantity", async
     1,
   );
 });
+
+it.each([false, true])(
+  "reports residual IDs when cleanup fails (partial items=%s)",
+  async (partial) => {
+    const p = setup();
+    const create = p.create.bind(p);
+    let packingId: unknown;
+    let itemId: unknown;
+    if (partial)
+      await p.update("romiku_order_item_remaining", {
+        id: "done",
+        data: { remaining_quantity: 12 },
+        previousData: { id: "done" },
+      });
+    p.create = async (resource, params) => {
+      if (
+        resource === "romiku_packing_items" &&
+        (!partial || itemId !== undefined)
+      )
+        throw new Error("import failed");
+      const result = await create(resource, params);
+      if (resource === "romiku_packing_lists") packingId = result.data.id;
+      if (resource === "romiku_packing_items") itemId = result.data.id;
+      return result;
+    };
+    p.delete = async () => {
+      throw new Error("cleanup denied");
+    };
+    let message = "";
+    try {
+      await createOrderPackingList(p, "o");
+    } catch (error) {
+      message = String(error);
+    }
+    expect(message).not.toContain("已撤销");
+    expect(message).toContain("清理未完成");
+    expect(message).toContain(`装箱单 ID：${packingId}`);
+    if (partial) expect(message).toContain(`产品项 ID：${itemId}`);
+    expect(message).toContain("cleanup denied");
+    expect(message).toContain("import failed");
+    expect(await readRelated(p, "romiku_packing_lists", {})).toHaveLength(4);
+    expect(await readRelated(p, "romiku_packing_items", {})).toHaveLength(
+      partial ? 2 : 1,
+    );
+  },
+);

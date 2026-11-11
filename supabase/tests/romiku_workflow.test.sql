@@ -8,6 +8,7 @@ select ok(not has_function_privilege('anon','romiku_void_payment(uuid,text)','ex
 select ok(not has_function_privilege('anon','romiku_batch_status(text,uuid[],text)','execute'),'anon bulk status denied');
 select ok(not has_function_privilege('anon','romiku_delete_preflight(text,uuid[])','execute'),'anon preflight denied');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_void_payment(gen_random_uuid(),'reason')->>'code','UNAUTHENTICATED','void requires uid');
 select is(romiku_batch_status('quote',array[gen_random_uuid()],'won')->>'code','UNAUTHENTICATED','batch requires uid');
 select set_config('request.jwt.claim.sub','de610000-0000-0000-0000-000000000001',true);

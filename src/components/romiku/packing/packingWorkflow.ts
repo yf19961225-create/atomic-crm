@@ -211,15 +211,28 @@ export async function createOrderPackingList(
       created.push(result.data);
     }
   } catch (cause) {
-    for (const item of created.reverse())
-      await provider
-        .delete("romiku_packing_items", { id: item.id })
-        .catch(() => undefined);
-    await provider
-      .delete("romiku_packing_lists", { id: packing.id })
-      .catch(() => undefined);
+    const cleanupFailures: string[] = [];
+    for (const item of created.reverse()) {
+      try {
+        await provider.delete("romiku_packing_items", { id: item.id });
+      } catch (error) {
+        cleanupFailures.push(
+          `产品项 ID：${item.id}（${error instanceof Error ? error.message : String(error)}）`,
+        );
+      }
+    }
+    try {
+      await provider.delete("romiku_packing_lists", { id: packing.id });
+    } catch (error) {
+      cleanupFailures.push(
+        `装箱单 ID：${packing.id}（${error instanceof Error ? error.message : String(error)}）`,
+      );
+    }
+    const cleanupMessage = cleanupFailures.length
+      ? `清理未完成，请核查装箱单 ID：${packing.id}。以下记录删除失败，可能仍有残留：${cleanupFailures.join("；")}。请核查后再重试。`
+      : "已撤销本次创建。";
     throw new Error(
-      `创建装箱单时无法完整导入订单产品，已撤销本次创建。${cause instanceof Error ? cause.message : String(cause)}`,
+      `创建装箱单时无法完整导入订单产品，${cleanupMessage}${cause instanceof Error ? cause.message : String(cause)}`,
     );
   }
   return packing;

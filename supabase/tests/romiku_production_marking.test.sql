@@ -11,6 +11,7 @@ create temporary table marking_ids(kind text primary key,id uuid default gen_ran
 insert into marking_ids(kind) values ('customer'),('order'),('item'),('production');
 grant all on marking_ids to authenticated;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de400000-0000-0000-0000-000000000001',true);
 insert into romiku_formal_customers(id,name,marking_profile) select id,'Marking customer','{"version":1,"front_mark":{"mode":"text","text":"ORIGINAL FRONT"}}'::jsonb from marking_ids where kind='customer';
 insert into romiku_orders(id,formal_customer_id) select id,(select id from marking_ids where kind='customer') from marking_ids where kind='order';

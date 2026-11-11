@@ -8,6 +8,7 @@ create temporary table history_ids(k text primary key,id uuid default gen_random
 insert into history_ids(k) values ('a'),('b'),('q'),('pi'),('o1'),('o2'),('o3'),('ob'),('i1'),('ib'),('p1'),('p2'),('p3'),('pb'),('pl'),('independent');
 grant all on history_ids to authenticated;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
 insert into romiku_formal_customers(id,name) select id,k from history_ids where k in ('a','b');
 insert into romiku_quotes(id,counterparty_snapshot) select id,'{"name":"Historical Buyer"}' from history_ids where k='q';
@@ -64,11 +65,13 @@ select throws_ok($$select romiku_global_search('x',array['order'],25,0,'{"formal
 reset role;
 create policy customer360_test_hidden on romiku_orders as restrictive for select to authenticated using(id<>(select id from history_ids where k='ob'));
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is((romiku_customer_documents((select id from history_ids where k='b'),'production')->>'total_count')::int,0,'Order RLS propagates to customer child membership');
 reset role;
 drop policy customer360_test_hidden on romiku_orders;
 create policy customer360_test_no_update on romiku_quotes as restrictive for update to authenticated using(false);
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select throws_ok($$select romiku_confirm_customer_archive((select id from history_ids where k='o1'),(select id from history_ids where k='a'),true,romiku_customer_archive_plan((select id from history_ids where k='o1'))->>'token')$$,'42501',null,'RLS update denial aborts archive');
 select set_config('request.jwt.claim.sub','',true);
 select throws_ok($$select romiku_customer_business_history((select id from history_ids where k='a'))$$,'42501',null,'uid required');

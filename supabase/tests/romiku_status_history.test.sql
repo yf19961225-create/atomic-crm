@@ -6,6 +6,7 @@ select has_table('public','romiku_status_history','unified history exists');
 select has_column('public','romiku_quotes','status_changed_at','status timestamp exists');
 insert into auth.users(id,email) values('de630000-0000-0000-0000-000000000001','status-history@test.example');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de630000-0000-0000-0000-000000000001',true);
 create temporary table sh_ids as select gen_random_uuid() q,gen_random_uuid() i,gen_random_uuid() o,gen_random_uuid() p,gen_random_uuid() pl,gen_random_uuid() pi,gen_random_uuid() out;
 insert into romiku_quotes(id,notes) select q,'Status history fixture' from sh_ids;
@@ -103,6 +104,7 @@ select is((select count(*) from romiku_status_history where resource_id=(select 
 reset role;
 create policy sh_hidden_parent on romiku_quotes as restrictive for select to authenticated using (notes <> 'unrelated');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is((select count(*) from romiku_status_history where resource_id=(select q from sh_ids)),0::bigint,'history read respects parent RLS');
 select is(jsonb_array_length(romiku_get_status_history('quote',(select q from sh_ids))->'records'),0,'RPC respects parent RLS');
 reset role;
@@ -123,6 +125,7 @@ select ok(not has_function_privilege('authenticated','public.romiku_record_statu
 select ok(not has_function_privilege('anon','public.romiku_get_status_history(text,uuid,integer,timestamptz,uuid)','execute'),'anon cannot execute history RPC');
 drop policy sh_hidden_parent on romiku_quotes;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','',true);
 select throws_ok($$select romiku_get_status_history('quote',(select q from sh_ids))$$,'42501',null,'history requires auth uid');
 select throws_ok($$update romiku_quotes set status='quoted' where id=(select q from sh_ids)$$,'42501',null,'status writing requires auth uid');

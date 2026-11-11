@@ -149,8 +149,8 @@ export async function renderPackingXlsx(
     });
     const numericFormats: Array<[number, string]> = [
       [6, "0"],
-      [7, "0"],
-      [9, "0"],
+      [7, "0.####"],
+      [9, "0.####"],
       [10, "General"],
       [11, "General"],
       [12, "General"],

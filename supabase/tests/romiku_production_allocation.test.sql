@@ -7,6 +7,7 @@ create temporary table cap_ids(kind text primary key,id uuid default gen_random_
 insert into cap_ids(kind) values('order'),('source'),('p1'),('p2'),('i1'),('i2');
 grant all on cap_ids to authenticated;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de700000-0000-0000-0000-000000000001',true);
 insert into romiku_orders(id) select id from cap_ids where kind='order';
 insert into romiku_order_items(id,order_id,sku,quantity) select s.id,o.id,'SUN5',100 from cap_ids s,cap_ids o where s.kind='source' and o.kind='order';
@@ -38,6 +39,7 @@ select ok(not has_function_privilege('anon','public.romiku_production_allocation
 select is((select prosecdef from pg_proc where oid='public.romiku_production_allocations(uuid)'::regprocedure),false,'allocation RPC is invoker');
 create policy cap_deny_order on romiku_order_items as restrictive for select to authenticated using(false);
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select is((select count(*) from romiku_production_allocations((select id from cap_ids where kind='order'))),0::bigint,'allocation query respects RLS');
 reset role;
 drop policy cap_deny_order on romiku_order_items;
@@ -46,6 +48,7 @@ alter table romiku_production_items disable trigger romiku_production_item_capac
 update romiku_production_items set quantity=120 where id=(select id from cap_ids where kind='i1');
 alter table romiku_production_items enable trigger romiku_production_item_capacity;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select lives_ok($q$update romiku_production_items set production_note_zh='repair later' where id=(select id from cap_ids where kind='i1')$q$,'legacy excess allows unrelated notes');
 select lives_ok($q$update romiku_production_items set quantity=110 where id=(select id from cap_ids where kind='i1')$q$,'legacy excess can be reduced');
 select throws_like($q$update romiku_production_items set quantity=111 where id=(select id from cap_ids where kind='i1')$q$,'%生产安排超过订单数量%','legacy excess cannot increase');

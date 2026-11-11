@@ -229,7 +229,7 @@ select 'pi_due:' || id::text as id,'pi_due'::text as event_type,'romiku_pis'::te
 union all
 select 'order_delivery:' || id::text as id,'order_delivery'::text as event_type,'romiku_orders'::text as source_table,
     id as source_id,document_number as title,expected_delivery_at as due_at,owner_id,status as status
-    from public.romiku_orders where expected_delivery_at is not null and archived_at is null and actual_delivery_at is null and status<>'voided'
+    from public.romiku_orders where expected_delivery_at is not null and archived_at is null and actual_delivery_at is null and status in ('confirmed','in_production','ready_to_ship')
 union all
 select 'production_due:' || id::text as id,'production_due'::text as event_type,'romiku_production_orders'::text as source_table,
     id as source_id,document_number as title,factory_due_at as due_at,owner_id,status as status
@@ -251,7 +251,7 @@ select 'inquiry_new:'||id::text,'inquiry_new','romiku_website_inquiries',id,docu
 union all
 select 'production_anomaly:'||id::text,'production_anomaly','romiku_production_orders',id,document_number,factory_due_at,owner_id,status,
   coalesce(factory_due_at < now(),false)
-  from public.romiku_production_orders where cardinality(anomaly_flags)>0 and archived_at is null
+  from public.romiku_production_orders where cardinality(anomaly_flags)>0 and archived_at is null and status not in ('received','cancelled')
 union all
 select 'order_receivable:'||id::text,'order_receivable','romiku_orders',id,document_number,
   case when deposit_remaining>0 then deposit_due_at else balance_due_at end,owner_id,status,

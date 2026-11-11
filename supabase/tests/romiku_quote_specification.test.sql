@@ -4,6 +4,7 @@ set search_path=public,extensions;
 select no_plan();
 insert into auth.users(id,email) values('de710000-0000-0000-0000-000000000001','spec-normalization@test.example');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de710000-0000-0000-0000-000000000001',true);
 create temporary table spec_cases(n integer,raw text,expected text);
 insert into spec_cases values

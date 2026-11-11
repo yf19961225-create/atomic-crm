@@ -15,6 +15,7 @@ alter table romiku_quotes enable trigger romiku_number;
 alter table romiku_pis enable trigger romiku_number;
 alter table romiku_orders enable trigger romiku_number;
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','ac270000-0000-0000-0000-000000000099',true);
 update romiku_quotes set document_name='Name' where id='ac270000-0000-0000-0000-000000000001';
 update romiku_pis set document_name='Name' where id='ac270000-0000-0000-0000-000000000002';

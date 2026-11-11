@@ -48,7 +48,7 @@ select throws_ok($$delete from romiku_workbench_refresh$$,'42501',null,'cannot c
 select throws_ok($$select romiku_wb_notify_financial_change()$$,'42501',null,'trigger cannot be invoked as RPC');
 select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000002',true);
 select is((select count(*)::int from romiku_workbench_refresh),0,'disabled sees no token');
-select throws_ok($$update romiku_payments set amount=2500 where id='ef052000-0000-0000-0000-000000000001'$$,'42501','FORBIDDEN','disabled cannot mutate financial data');
+select throws_ok($$update romiku_payments set amount=2500 where id='ef052000-0000-0000-0000-000000000001'$$,'42501','Active CRM membership required','disabled cannot mutate financial data');
 select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000099',true);
 select is((select count(*)::int from romiku_workbench_refresh),0,'unregistered sees no token');
 reset role;

@@ -71,8 +71,8 @@ it.each([1, 4, 5, 20])(
     );
     expect(sheet.getCell("M9").value).toBe(0.06);
     expect(sheet.getCell("F9").numFmt).toBe("0");
-    expect(sheet.getCell("G9").numFmt).toBe("0");
-    expect(sheet.getCell("I9").numFmt).toBe("0");
+    expect(sheet.getCell("G9").numFmt).toBe("0.####");
+    expect(sheet.getCell("I9").numFmt).toBe("0.####");
     expect(sheet.getCell("J9").value).toBe(50);
     expect(sheet.getCell("K9").value).toBe(40);
     expect(sheet.getCell("L9").value).toBe(30);
@@ -155,4 +155,20 @@ it("preserves the cropped logo and appends a saved product photo drawing", async
   expect(drawing).toContain("Product image 1");
   expect(drawing).toContain("<xdr:col>3</xdr:col>");
   expect(drawing).toContain('noChangeAspect="1"');
+});
+
+it("preserves fractional packing quantity display in exported XLSX", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const model = normalizePackingExportModel({}, [
+    { ...item(1), quantity: 0.25, qty_per_carton: 0.25 },
+  ]);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await renderPackingXlsx(model, template));
+  const sheet = workbook.getWorksheet("PACKING LIST")!;
+  expect(sheet.getCell("I9").value).toBe(0.25);
+  expect(sheet.getCell("G9").value).toBe(0.25);
+  expect(sheet.getCell("I9").numFmt).toBe("0.####");
+  expect(sheet.getCell("G9").numFmt).toBe("0.####");
 });

@@ -4,6 +4,7 @@ set search_path=public,extensions;
 select no_plan();
 insert into auth.users(id,email) values('de620000-0000-0000-0000-000000000001','quote-inquiry@test.example');
 set local role authenticated;
+select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de620000-0000-0000-0000-000000000001',true);
 create temporary table qi_ids as select gen_random_uuid() q,gen_random_uuid() i;
 insert into romiku_quotes(id,counterparty_snapshot,notes) select q,'{"company_name":"QI Snapshot"}','QIRegression20261006' from qi_ids;
