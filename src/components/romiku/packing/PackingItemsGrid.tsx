@@ -1,3 +1,7 @@
+import {
+  useDocumentSaveAttempt,
+  documentSaveFailureMessage,
+} from "../commercial/useDocumentSaveAttempt";
 import { useAppDraft } from "../updates/drafts";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { canonicalSkuSearch } from "../../../../shared/productCatalogQuery";
@@ -115,6 +119,7 @@ export function PackingItemsGrid({
   onSaved: () => Promise<unknown>;
 }) {
   const provider = useDataProvider();
+  const saveAttempt = useDocumentSaveAttempt();
   const nextProductRef = useRef<HTMLInputElement>(null);
   const pendingFocus = useRef<string | null>(null);
   const rowInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -272,8 +277,9 @@ export function PackingItemsGrid({
           </Button>
           <Button
             type="button"
-            disabled={!dirty || saving}
+            disabled={!dirty || saving || saveAttempt.needsReconciliation}
             onClick={async () => {
+              if (!saveAttempt.begin()) return;
               setSaving(true);
               setFailure("");
               try {
@@ -311,11 +317,15 @@ export function PackingItemsGrid({
                   });
                 await onSaved();
                 setBaseline(draft);
+                saveAttempt.succeed();
               } catch (cause) {
+                saveAttempt.fail();
                 setFailure(
-                  cause instanceof Error
-                    ? cause.message
-                    : "保存装箱产品项失败。",
+                  documentSaveFailureMessage(
+                    cause instanceof Error
+                      ? cause.message
+                      : "保存装箱产品项失败。",
+                  ),
                 );
               } finally {
                 setSaving(false);

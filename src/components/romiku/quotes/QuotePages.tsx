@@ -1,3 +1,7 @@
+import {
+  useDocumentSaveAttempt,
+  documentSaveFailureMessage,
+} from "../commercial/useDocumentSaveAttempt";
 import { documentTitle } from "../commercial/documentIdentity";
 import { QuoteInquirySource } from "../inquiries/InquiryQuoteLinks";
 import websiteQuoteTemplateUrl from "@/assets/quote-templates/ROMIKU_报价单_网站询盘来源模板.xlsx?url";
@@ -424,7 +428,9 @@ function QuoteEditor({
     if (enabled && Number.isFinite(rate) && rate > 0)
       session.setItems(repriceQuoteItems(rate));
   };
+  const saveAttempt = useDocumentSaveAttempt();
   const save = async () => {
+    if (!saveAttempt.begin()) return;
     setBusy(true);
     setMessage("");
     setFailed(false);
@@ -446,9 +452,11 @@ function QuoteEditor({
       await onSaved();
       await cache.invalidateQueries();
       setMessage("报价单已保存。");
+      saveAttempt.succeed();
     } catch (cause) {
+      saveAttempt.fail();
       setFailed(true);
-      setMessage(errorMessage(cause));
+      setMessage(documentSaveFailureMessage(errorMessage(cause)));
     } finally {
       setBusy(false);
     }
@@ -501,7 +509,11 @@ function QuoteEditor({
         <div className="flex items-center gap-2">
           {session.editing ? (
             <div className="flex gap-2">
-              <Button type="button" disabled={busy} onClick={() => void save()}>
+              <Button
+                type="button"
+                disabled={busy || saveAttempt.needsReconciliation}
+                onClick={() => void save()}
+              >
                 保存
               </Button>
               <Button

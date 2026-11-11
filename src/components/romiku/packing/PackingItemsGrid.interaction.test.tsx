@@ -384,3 +384,24 @@ it("standalone selects two products entirely by keyboard through the next-row fo
   await expect.element(screen.getByLabelText("cartons AAA")).toHaveValue(2);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it("blocks blind packing retry when update committed but response was lost", async () => {
+  const { screen, provider } = await fixture();
+  const update = provider.update.bind(provider);
+  vi.spyOn(provider, "update").mockImplementation(async (resource, params) => {
+    await update(resource, params);
+    throw new Error("response lost after commit");
+  });
+  await screen.getByLabelText("cartons SUN5").fill("5");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect
+    .element(screen.getByText(/response lost after commit/))
+    .toBeVisible();
+  expect(
+    (await provider.getOne("romiku_packing_items", { id: "line" })).data
+      .cartons,
+  ).toBe(5);
+  await expect
+    .element(screen.getByRole("button", { name: "保存", exact: true }))
+    .toBeDisabled();
+});

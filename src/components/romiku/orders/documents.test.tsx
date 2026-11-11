@@ -619,3 +619,60 @@ it("filters awaiting-payment orders and retains their actual receivable", async 
     .element(screen.getByRole("link", { name: "SO-001", exact: true }))
     .toBeVisible();
 });
+
+// A timeout can happen after the server has committed the mutation.
+it.each([
+  ["quotes", "q", "romiku_quote_items"],
+  ["pi", "p", "romiku_pi_items"],
+  ["orders", "o", "romiku_order_items"],
+])(
+  "blocks blind retry after a committed %s row loses its response",
+  async (path, id, resource) => {
+    const { screen, provider } = await setup(
+      `/${path}/${id}`,
+      path === "quotes" ? { status: "pending_quote" } : undefined,
+    );
+    const create = provider.create.bind(provider);
+    vi.spyOn(provider, "create").mockImplementation(async (name, params) => {
+      const result = await create(name, params);
+      if (name === resource) throw new Error("response lost after commit");
+      return result;
+    });
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await screen
+      .getByLabelText("单据名称", { exact: true })
+      .fill("Header already written");
+    if (path === "quotes")
+      await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+    await screen.getByRole("button", { name: "新增产品行" }).click();
+    await screen.getByLabelText("搜索 SKU 或产品").last().fill("LOST-RESPONSE");
+    if (path === "quotes")
+      await screen.getByRole("tab", { name: "产品项", exact: true }).click();
+    else await userEvent.tab();
+    await screen.getByRole("button", { name: "保存", exact: true }).click();
+    await expect
+      .element(screen.getByText(/response lost after commit/))
+      .toBeVisible();
+    expect(
+      (await provider.getList(resource, list)).data.filter(
+        (row) => row.sku === "LOST-RESPONSE",
+      ),
+    ).toHaveLength(1);
+    expect(
+      (
+        await provider.getOne(
+          path === "quotes"
+            ? "romiku_quotes"
+            : path === "pi"
+              ? "romiku_pis"
+              : "romiku_orders",
+          { id },
+        )
+      ).data.document_name,
+    ).toBe("Header already written");
+    await expect
+      .element(screen.getByRole("button", { name: "保存", exact: true }))
+      .toBeDisabled();
+    await expect.element(screen.getByText(/请先保留当前草稿/)).toBeVisible();
+  },
+);

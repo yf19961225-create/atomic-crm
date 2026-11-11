@@ -1,3 +1,7 @@
+import {
+  useDocumentSaveAttempt,
+  documentSaveFailureMessage,
+} from "../commercial/useDocumentSaveAttempt";
 import { InlineOrderDeliveryDate } from "./InlineOrderDeliveryDate";
 import { documentTitle } from "../commercial/documentIdentity";
 import { editableSignature } from "../updates/editableSnapshot";
@@ -594,7 +598,9 @@ function DocumentEditor({
       setMessage(errorMessage(cause));
     }
   };
+  const saveAttempt = useDocumentSaveAttempt();
   async function save() {
+    if (!saveAttempt.begin()) return;
     setBusy(true);
     setMessage("");
     setFailed(false);
@@ -616,9 +622,11 @@ function DocumentEditor({
       await onSaved();
       await cache.invalidateQueries();
       setMessage(`${config.label}已保存。`);
+      saveAttempt.succeed();
     } catch (cause) {
+      saveAttempt.fail();
       setFailed(true);
-      setMessage(errorMessage(cause));
+      setMessage(documentSaveFailureMessage(errorMessage(cause)));
     } finally {
       setBusy(false);
     }
@@ -701,7 +709,11 @@ function DocumentEditor({
         <div className="flex items-center gap-2">
           {session.editing ? (
             <div className="flex gap-2">
-              <Button type="button" disabled={busy} onClick={() => void save()}>
+              <Button
+                type="button"
+                disabled={busy || saveAttempt.needsReconciliation}
+                onClick={() => void save()}
+              >
                 保存
               </Button>
               <Button
