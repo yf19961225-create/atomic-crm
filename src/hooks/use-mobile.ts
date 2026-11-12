@@ -1,7 +1,6 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768;
-export const mobileMediaQuery = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
+import { MOBILE_BREAKPOINT, mobileMediaQuery } from "./mobile-breakpoint";
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(

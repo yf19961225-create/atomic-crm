@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { mobileMediaQuery } from "@/hooks/use-mobile";
+import { mobileMediaQuery } from "@/hooks/mobile-breakpoint";
 import {
   hasAppDraft,
   subscribeAppDraft,
