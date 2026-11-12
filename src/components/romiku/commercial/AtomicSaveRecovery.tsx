@@ -67,6 +67,7 @@ export function AtomicSaveRecovery({
       {!result && (
         <div className="flex flex-wrap gap-2">
           <Button
+            data-document-read-control
             type="button"
             variant="outline"
             disabled={busy}
@@ -88,7 +89,13 @@ export function AtomicSaveRecovery({
         <Button asChild variant="outline">
           <a
             href={`/#/${{ quote: "quotes", pi: "pi", order: "orders", packing: "packing-shipping" }[kind]}/${encodeURIComponent(result.document_id)}`}
-            onClick={() => {
+            onClick={(event) => {
+              if (
+                new URL(event.currentTarget.href).href === window.location.href
+              ) {
+                event.preventDefault();
+                window.location.reload();
+              }
               if (creation) finishDocumentCreation(kind, documentId);
             }}
           >

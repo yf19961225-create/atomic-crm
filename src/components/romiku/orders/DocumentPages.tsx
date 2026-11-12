@@ -177,7 +177,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         独立保存采购方、产品和商务快照，并保留来源历史。
       </p>
       {kind === "order" && (
-        <label className="flex items-center gap-2">
+        <label data-document-read-control className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={showArchived}
@@ -189,7 +189,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
           显示已归档订单
         </label>
       )}
-      <div className="ds-list-toolbar flex gap-4">
+      <div data-document-read-control className="ds-list-toolbar flex gap-4">
         <SearchInput
           label={`搜索${config.plural}`}
           value={searchInput}
@@ -238,7 +238,9 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
       {error && (
         <p role="alert">
           {committedSearch ? "搜索失败。" : `无法加载${config.plural}。`}{" "}
-          <Button onClick={() => refetch()}>重试</Button>
+          <Button data-document-read-control onClick={() => refetch()}>
+            重试
+          </Button>
         </p>
       )}
       <div className="ds-data-table overflow-auto rounded border">
@@ -341,6 +343,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <Button
           variant="outline"
           disabled={page === 1}
+          data-document-read-control
           onClick={() => setPage(page - 1)}
         >
           上一页
@@ -351,6 +354,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
+          data-document-read-control
           onClick={() => setPage(page + 1)}
         >
           下一页
@@ -924,7 +928,9 @@ function DocumentEditor({
       {items.error ? (
         <p role="alert">
           无法加载产品项或合计。{" "}
-          <Button onClick={() => items.refetch()}>重试</Button>
+          <Button data-document-read-control onClick={() => items.refetch()}>
+            重试
+          </Button>
         </p>
       ) : items.isPending ? (
         <p>正在加载合计…</p>

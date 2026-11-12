@@ -153,7 +153,10 @@ export function QuoteList() {
       <p className="text-muted-foreground">
         独立报价单保留来源历史，并可编辑采购方、产品和商务快照。
       </p>
-      <div className="ds-list-toolbar flex flex-wrap gap-4">
+      <div
+        data-document-read-control
+        className="ds-list-toolbar flex flex-wrap gap-4"
+      >
         <SearchInput
           label={"搜索报价单"}
           value={searchInput}
@@ -200,7 +203,11 @@ export function QuoteList() {
       {error && (
         <div role="alert">
           {committedSearch ? "搜索失败。" : "无法加载报价单。"}{" "}
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button
+            data-document-read-control
+            variant="outline"
+            onClick={() => refetch()}
+          >
             重试
           </Button>
         </div>
@@ -286,6 +293,7 @@ export function QuoteList() {
         <Button
           variant="outline"
           disabled={page === 1}
+          data-document-read-control
           onClick={() => setPage(page - 1)}
         >
           上一页
@@ -296,6 +304,7 @@ export function QuoteList() {
         <Button
           variant="outline"
           disabled={total !== undefined ? page * 25 >= total : data.length < 25}
+          data-document-read-control
           onClick={() => setPage(page + 1)}
         >
           下一页
@@ -608,7 +617,11 @@ function QuoteEditor({
       {items.error ? (
         <p role="alert">
           报价单产品数据加载失败，请刷新后重试。{" "}
-          <Button variant="outline" onClick={() => items.refetch()}>
+          <Button
+            data-document-read-control
+            variant="outline"
+            onClick={() => items.refetch()}
+          >
             重试
           </Button>
         </p>

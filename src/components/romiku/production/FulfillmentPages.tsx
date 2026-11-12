@@ -144,7 +144,7 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
           </Link>
         </Button>
       </div>
-      <div className="ds-list-toolbar flex gap-3">
+      <div data-document-read-control className="ds-list-toolbar flex gap-3">
         <SearchInput
           label={`搜索${config.plural}`}
           value={searchInput}
@@ -203,7 +203,9 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
       {query.error && (
         <p role="alert">
           {committedSearch ? "搜索失败。" : "无法加载记录。"}{" "}
-          <Button onClick={() => query.refetch()}>重试</Button>
+          <Button data-document-read-control onClick={() => query.refetch()}>
+            重试
+          </Button>
         </p>
       )}
       <div className="ds-table-scroll overflow-auto rounded border">
@@ -334,7 +336,11 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
         {query.data?.length === 0 && <p className="p-6">未找到记录。</p>}
       </div>
       <div className="flex gap-3">
-        <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
+        <Button
+          disabled={page === 1}
+          data-document-read-control
+          onClick={() => setPage(page - 1)}
+        >
           上一页
         </Button>
         <span>
@@ -346,6 +352,7 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
               ? page * 25 >= query.total
               : (query.data?.length || 0) < 25
           }
+          data-document-read-control
           onClick={() => setPage(page + 1)}
         >
           下一页
@@ -373,7 +380,9 @@ export function FulfillmentDetail({ kind }: { kind: FulfillmentKind }) {
     return (
       <p role="alert">
         无法加载{config.label}。{" "}
-        <Button onClick={() => query.refetch()}>重试</Button>
+        <Button data-document-read-control onClick={() => query.refetch()}>
+          重试
+        </Button>
       </p>
     );
   return (
@@ -735,7 +744,10 @@ function FulfillmentEditor({
       )}
       {items.error ? (
         <p role="alert">
-          无法加载产品项。 <Button onClick={() => items.refetch()}>重试</Button>
+          无法加载产品项。{" "}
+          <Button data-document-read-control onClick={() => items.refetch()}>
+            重试
+          </Button>
         </p>
       ) : items.isPending || !items.data ? (
         <p>正在加载产品项…</p>

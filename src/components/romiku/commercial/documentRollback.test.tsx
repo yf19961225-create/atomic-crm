@@ -41,3 +41,28 @@ it("rollback rejects new saves and source conversions before network calls", () 
   expect(() => assertDocumentWritesEnabled(true)).toThrow("只读回退");
   expect(() => assertDocumentWritesEnabled(false)).not.toThrow();
 });
+
+it("read-only fallback preserves pagination, filters and detail tabs", async () => {
+  const next = vi.fn(),
+    tab = vi.fn();
+  const screen = await render(
+    <DocumentRollbackBoundary enabled pathname="/quotes/qa">
+      <div data-document-read-control>
+        <input aria-label="search" />
+        <button onClick={next}>下一页</button>
+      </div>
+      <button role="tab" onClick={tab}>
+        采购方与详情
+      </button>
+      <button>编辑</button>
+    </DocumentRollbackBoundary>,
+  );
+  await screen.getByLabelText("search").fill("QA");
+  await screen.getByRole("button", { name: "下一页" }).click();
+  await screen.getByRole("tab").click();
+  expect(next).toHaveBeenCalledOnce();
+  expect(tab).toHaveBeenCalledOnce();
+  await expect
+    .element(screen.getByRole("button", { name: "编辑" }))
+    .toBeDisabled();
+});
