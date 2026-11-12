@@ -1,6 +1,7 @@
 import { type ReactNode, Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
+import { DocumentRollbackBoundary } from "../commercial/documentRollback";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +15,7 @@ import { RomikuPrimaryNavigation } from "./RomikuPrimaryNavigation";
 import { romikuBrand } from "../branding/brand";
 
 export const RomikuLayout = ({ children }: { children: ReactNode }) => {
+  const { pathname } = useLocation();
   return (
     <SidebarProvider className="romiku-ds">
       <Sidebar variant="floating" collapsible="icon">
@@ -49,7 +51,9 @@ export const RomikuLayout = ({ children }: { children: ReactNode }) => {
         </header>
         <ErrorBoundary FallbackComponent={Error}>
           <Suspense fallback={<Skeleton className="h-12 w-12 rounded-full" />}>
-            {children}
+            <DocumentRollbackBoundary pathname={pathname}>
+              {children}
+            </DocumentRollbackBoundary>
           </Suspense>
         </ErrorBoundary>
       </main>

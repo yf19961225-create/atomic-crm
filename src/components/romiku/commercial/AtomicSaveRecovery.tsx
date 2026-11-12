@@ -85,21 +85,15 @@ export function AtomicSaveRecovery({
         </div>
       )}
       {result && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            if (creation) finishDocumentCreation(kind, documentId);
-            const path = {
-              quote: "quotes",
-              pi: "pi",
-              order: "orders",
-              packing: "packing-shipping",
-            }[kind];
-            window.location.assign(`/${path}/${result.document_id}`);
-          }}
-        >
-          放弃当前页面编辑并打开已保存单据
+        <Button asChild variant="outline">
+          <a
+            href={`/#/${{ quote: "quotes", pi: "pi", order: "orders", packing: "packing-shipping" }[kind]}/${encodeURIComponent(result.document_id)}`}
+            onClick={() => {
+              if (creation) finishDocumentCreation(kind, documentId);
+            }}
+          >
+            放弃当前页面编辑并打开已保存单据
+          </a>
         </Button>
       )}
     </aside>

@@ -45,6 +45,11 @@ it("reload recovery retries the exact persisted request without replacing a newe
   await expect
     .element(screen.getByText("原请求已保存成功。当前页面编辑内容未被替换。"))
     .toBeVisible();
+  await expect
+    .element(
+      screen.getByRole("link", { name: "放弃当前页面编辑并打开已保存单据" }),
+    )
+    .toHaveAttribute("href", "/#/packing-shipping/packing");
   expect(save).toHaveBeenCalledTimes(2);
   expect(save.mock.calls[1][0]).toEqual(save.mock.calls[0][0]);
   await expect

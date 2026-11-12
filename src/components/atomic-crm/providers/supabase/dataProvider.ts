@@ -1,3 +1,4 @@
+import { assertDocumentWritesEnabled } from "@/components/romiku/commercial/documentRollback";
 import { supabaseDataProvider } from "ra-supabase-core";
 import {
   withLifecycleCallbacks,
@@ -59,6 +60,7 @@ const getDataProviderWithCustomMethods = () => {
     async documentCreateFromSource(
       request: DocumentSourceIntent & { requestId: string },
     ): Promise<DocumentSnapshot> {
+      assertDocumentWritesEnabled();
       const { data, error } = await getSupabaseClient().rpc(
         "romiku_create_document_from_source",
         {
@@ -100,6 +102,7 @@ const getDataProviderWithCustomMethods = () => {
     async documentSave(
       request: DocumentSaveRequest,
     ): Promise<DocumentSnapshot> {
+      assertDocumentWritesEnabled();
       const { data, error } = await getSupabaseClient().rpc(
         "romiku_save_document",
         {
