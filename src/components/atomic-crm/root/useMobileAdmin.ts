@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { mobileMediaQuery } from "@/hooks/mobile-breakpoint";
 import {
   hasAppDraft,
@@ -16,9 +17,11 @@ function isDocumentEditor() {
 
 /** Switching Admin component types unmounts every editor beneath the router. */
 export function useMobileAdmin() {
+  const standardMobile = useIsMobile();
   const [mobile, setMobile] = useState(
     () =>
       typeof window !== "undefined" &&
+      isDocumentEditor() &&
       window.matchMedia(mobileMediaQuery).matches,
   );
   useEffect(() => {
@@ -43,5 +46,7 @@ export function useMobileAdmin() {
       media.removeEventListener("change", sync);
     };
   }, []);
-  return mobile;
+  return typeof window !== "undefined" && isDocumentEditor()
+    ? mobile
+    : standardMobile;
 }
