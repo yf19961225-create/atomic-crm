@@ -42,7 +42,7 @@ export function ProductionBarcode({
     }
   }
   return (
-    <div className="min-w-56 space-y-2">
+    <div className="min-w-0 space-y-1">
       <input
         aria-label={`条形码 ${line.sku}`}
         className="w-full rounded border p-2 font-mono"
@@ -69,7 +69,7 @@ export function ProductionBarcode({
           )}
         </p>
       )}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-1">
         <Button
           size="sm"
           variant="outline"

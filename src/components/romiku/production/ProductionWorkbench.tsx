@@ -56,6 +56,18 @@ import {
   ItemOverrideFields,
 } from "./ProductionInstructionsFields";
 
+const itemColumns = [
+  { label: "SKU", width: 136 },
+  { label: "产品" },
+  { label: "图片", width: 92 },
+  { label: "产品规格" },
+  { label: "箱数", width: 76, numeric: true },
+  { label: "装箱数", width: 76, numeric: true },
+  { label: "总数量", width: 84, numeric: true },
+  { label: "条形码", width: 200 },
+  { label: "操作", width: 76 },
+];
+
 export function ProductionWorkbench({
   record,
   items,
@@ -209,7 +221,7 @@ export function ProductionWorkbench({
     <InstructionUploadContext.Provider
       value={(active) => setUploads((n) => Math.max(0, n + (active ? 1 : -1)))}
     >
-      <section className="space-y-5">
+      <section className="min-w-0 space-y-5">
         <ProductionNavigationGuard
           active={dirty}
           busy={disabled}
@@ -278,7 +290,7 @@ export function ProductionWorkbench({
         {failure && <p role="alert">{failure}</p>}
         {message && <p role="status">{message}</p>}
         {uploads > 0 && <p role="status">正在上传图片，请等待完成后保存。</p>}
-        <fieldset disabled={disabled} className="space-y-5">
+        <fieldset disabled={disabled} className="min-w-0 space-y-5">
           <section className="space-y-4 rounded border p-4">
             <div className="flex flex-wrap justify-between gap-2">
               <h2 className="text-xl font-semibold">统一生产要求</h2>
@@ -470,23 +482,21 @@ export function ProductionWorkbench({
             />
           )}
           <p className="text-sm text-amber-800">{ITEM_XLSX_WARNING}。</p>
-          <div className="overflow-x-auto rounded border">
-            <table className="w-full text-left text-sm">
+          <div className="romiku-items-scroll w-full min-w-0 overflow-x-auto rounded border">
+            <table className="romiku-items-table w-full min-w-[1056px] table-fixed text-left text-sm">
+              <colgroup>
+                {itemColumns.map((column) => (
+                  <col key={column.label} style={{ width: column.width }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  {[
-                    "SKU",
-                    "产品",
-                    "图片",
-                    "产品规格",
-                    "箱数",
-                    "装箱数",
-                    "总数量",
-                    "条形码",
-                    "操作",
-                  ].map((s) => (
-                    <th key={s} className="p-3">
-                      {s}
+                  {itemColumns.map((column) => (
+                    <th
+                      key={column.label}
+                      className={column.numeric ? "text-right" : "text-left"}
+                    >
+                      {column.label}
                     </th>
                   ))}
                 </tr>
@@ -534,7 +544,7 @@ export function ProductionWorkbench({
                             ? capacity
                             : undefined
                         }
-                        className="w-28 rounded border p-2"
+                        className="block w-full min-w-0 rounded border px-2 py-1"
                         aria-label={`${label} ${line.sku}`}
                         value={value == null ? "" : String(value)}
                         onChange={(e) => onChange(e.target.value)}
@@ -569,7 +579,7 @@ export function ProductionWorkbench({
                       <td className="p-3">
                         {line.product_snapshot?.image_url ? (
                           <img
-                            className="size-16 object-contain"
+                            className="size-10 object-contain"
                             alt={line.sku}
                             src={line.product_snapshot.image_url}
                           />
@@ -611,6 +621,7 @@ export function ProductionWorkbench({
                           <details>
                             <summary>生产备注</summary>
                             <textarea
+                              className="w-full min-w-0 resize-y rounded border p-1"
                               aria-label={`生产备注 ${line.sku}`}
                               value={line.production_note_zh || ""}
                               onChange={(e) =>
@@ -625,7 +636,7 @@ export function ProductionWorkbench({
                           <p>{line.production_note_zh}</p>
                         )}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 text-right">
                         {input(
                           "cartons",
                           "箱数",
@@ -637,7 +648,7 @@ export function ProductionWorkbench({
                           true,
                         )}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 text-right">
                         {input(
                           "qty_per_carton",
                           "装箱数",
@@ -652,7 +663,7 @@ export function ProductionWorkbench({
                           true,
                         )}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 text-right">
                         {input(
                           "quantity",
                           "总数量",
@@ -690,6 +701,7 @@ export function ProductionWorkbench({
                         <details key={editing ? "edit" : "view"}>
                           <summary>⋯ 更多</summary>
                           <Button
+                            className="h-auto w-full whitespace-normal break-all p-1"
                             variant="outline"
                             onClick={() =>
                               setSpecial((s) =>

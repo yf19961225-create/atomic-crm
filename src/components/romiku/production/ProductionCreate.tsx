@@ -12,6 +12,16 @@ import { copyOrderProductionInstructions } from "../marking/productionInstructio
 import { OrderSelect } from "./fulfillmentShared";
 import { ProductionWorkbench } from "./ProductionWorkbench";
 import { savedBuyerName } from "./productionWorkspace";
+const itemColumns = [
+  { label: "选择", width: 60 },
+  { label: "SKU / 产品" },
+  { label: "箱数", width: 76, numeric: true },
+  { label: "订单数量", width: 96, numeric: true },
+  { label: "已安排", width: 84, numeric: true },
+  { label: "剩余", width: 76, numeric: true },
+  { label: "本次生产数量", width: 136, numeric: true },
+];
+
 export function ProductionCreate() {
   const [params] = useSearchParams(),
     lockedOrder = params.get("order");
@@ -150,21 +160,21 @@ export function ProductionCreate() {
           </Button>
         </p>
       )}
-      <div className="overflow-auto">
-        <table className="w-full text-left text-sm">
+      <div className="romiku-items-scroll w-full min-w-0 overflow-x-auto rounded border">
+        <table className="romiku-items-table w-full min-w-[760px] table-fixed text-left text-sm">
+          <colgroup>
+            {itemColumns.map((column) => (
+              <col key={column.label} style={{ width: column.width }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              {[
-                "选择",
-                "SKU / 产品",
-                "箱数",
-                "订单数量",
-                "已安排",
-                "剩余",
-                "本次生产数量",
-              ].map((s) => (
-                <th className="p-3" key={s}>
-                  {s}
+              {itemColumns.map((column) => (
+                <th
+                  key={column.label}
+                  className={column.numeric ? "text-right" : "text-left"}
+                >
+                  {column.label}
                 </th>
               ))}
             </tr>
@@ -204,17 +214,19 @@ export function ProductionCreate() {
                   {i.unallocated_quantity <= 0 && <p>已全部安排</p>}
                   <AllocationDetails item={i} />
                 </td>
-                <td className="p-3">
+                <td className="p-3 text-right">
                   {i.packing_snapshot?.cartons ??
                     i.packing_snapshot?.carton_qty ??
                     "—"}
                 </td>
-                <td className="p-3">{i.ordered_quantity}</td>
-                <td className="p-3">{i.production_quantity}</td>
-                <td className="p-3">{Math.max(0, i.unallocated_quantity)}</td>
-                <td className="p-3">
+                <td className="p-3 text-right">{i.ordered_quantity}</td>
+                <td className="p-3 text-right">{i.production_quantity}</td>
+                <td className="p-3 text-right">
+                  {Math.max(0, i.unallocated_quantity)}
+                </td>
+                <td className="p-3 text-right">
                   <input
-                    className="rounded border p-2"
+                    className="w-full min-w-0 rounded border p-1 text-right"
                     type="number"
                     min="0.0001"
                     step="any"

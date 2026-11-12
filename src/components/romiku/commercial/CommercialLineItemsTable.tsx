@@ -41,7 +41,6 @@ import {
 } from "./commercialLineItems";
 import {
   commercialDisplayRows,
-  initialEmptyLines,
   nextCommercialPosition,
   orderedCommercialItems,
   reorderVisibleCommercialItems,
@@ -111,41 +110,32 @@ export function CommercialLineItemsTable({
   useEffect(() => {
     if (!editable) setCommercialPriceDrafts({});
   }, [editable]);
-  const [draftRows, setDraftRows] = useState(() => initialEmptyLines(items));
-  const draftRowsTouched = useRef(false);
-  useEffect(() => {
-    if (!editable) draftRowsTouched.current = false;
-    if (!draftRowsTouched.current) setDraftRows(initialEmptyLines(items));
-  }, [items, editable]);
-  useEffect(() => {
-    onBlankRowsDirtyChange?.(
-      editable && draftRows.some((row) => row.added === true),
-    );
-  }, [draftRows, editable, onBlankRowsDirtyChange]);
-  const draftSkuRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const nextDraftId = useRef(
-    Math.max(-1, ...draftRows.map((row) => row.id)) + 1,
-  );
+  const [blankId, setBlankId] = useState(0);
+  const blankSkuRef = useRef<HTMLInputElement | null>(null);
+  const nextPosition = () => nextCommercialPosition(items, []);
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
   const pendingFocus = useRef<string | null>(null);
   const rowSkuRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const rowNameRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const adapter = commercialItemAdapter(kind);
-  const visibleRows = commercialDisplayRows(items, editable ? draftRows : []);
+  const visibleRows = commercialDisplayRows(
+    items,
+    editable ? [{ id: blankId, position: nextPosition() }] : [],
+  );
   const orderedItems = orderedCommercialItems(items);
-  const nextPosition = () => nextCommercialPosition(items, draftRows);
   useEffect(() => {
     if (!focusTarget) return;
-    const element = focusTarget.startsWith("draft:")
-      ? draftSkuRefs.current[Number(focusTarget.slice(6))]
-      : focusTarget.startsWith("name:")
-        ? rowNameRefs.current[focusTarget.slice(5)]
-        : rowSkuRefs.current[focusTarget.slice(5)];
+    const element =
+      focusTarget === "blank"
+        ? blankSkuRef.current
+        : focusTarget.startsWith("name:")
+          ? rowNameRefs.current[focusTarget.slice(5)]
+          : rowSkuRefs.current[focusTarget.slice(5)];
     if (!element) return;
     element.focus();
     pendingFocus.current = null;
     setFocusTarget(null);
-  }, [focusTarget, draftRows, items]);
+  }, [focusTarget, blankId, items]);
   const requestFocus = (target: string) => {
     pendingFocus.current = target;
     setFocusTarget(target);
@@ -214,7 +204,7 @@ export function CommercialLineItemsTable({
     <td>
       <input
         aria-label={`客户货号 ${item.sku}`}
-        className={`${orderTemplate ? "w-28" : "w-24"} rounded border p-1`}
+        className="min-w-0 w-full rounded border p-1"
         value={String(item.customer_code ?? "")}
         disabled={!editable}
         onChange={(event) => {
@@ -228,94 +218,40 @@ export function CommercialLineItemsTable({
       />
     </td>
   );
-  const add = () => {
-    draftRowsTouched.current = true;
-    setDraftRows((current) => [
-      ...current,
-      {
-        id: nextDraftId.current++,
-        position: nextPosition(),
-        added: true,
-      },
-    ]);
-  };
   const createDraft = async (
-    draftIndex: number,
     data: Record<string, unknown>,
-    focusName = false,
+    focus?: "name" | "blank",
   ) => {
-    draftRowsTouched.current = true;
+    const line = {
+      sku: "MANUAL",
+      quantity: 1,
+      unit_price: 0,
+      unit_price_entered: false,
+      product_snapshot: {},
+      packing_snapshot: {},
+      position: nextPosition(),
+      ...data,
+    };
+    let id;
     if (onItemsChange) {
-      const id = newDraftCommercialItemId();
-      onItemsChange([
-        ...items,
-        {
-          id,
-          sku: "MANUAL",
-          quantity: 1,
-          unit_price: 0,
-          unit_price_entered: false,
-          product_snapshot: {},
-          packing_snapshot: {},
-          position: draftRows[draftIndex].position,
-          ...data,
-        },
-      ]);
-      setDraftRows((current) =>
-        current.filter((row) => row.id !== draftRows[draftIndex].id),
-      );
-      if (focusName) requestFocus(`name:${id}`);
-      return;
+      id = newDraftCommercialItemId();
+      onItemsChange([...items, { ...line, id }]);
+    } else {
+      const created = await provider.create(adapter.resource, {
+        data: { ...line, [adapter.parentKey]: documentId },
+      });
+      id = created.data.id;
+      await onChanged();
     }
-    await provider.create(adapter.resource, {
-      data: {
-        [adapter.parentKey]: documentId,
-        sku: "MANUAL",
-        quantity: 1,
-        unit_price: 0,
-        unit_price_entered: false,
-        product_snapshot: {},
-        packing_snapshot: {},
-        position: draftRows[draftIndex].position,
-        ...data,
-      },
-    });
-    await onChanged();
-    setDraftRows((current) =>
-      current.filter((row) => row.id !== draftRows[draftIndex].id),
-    );
+    onBlankRowsDirtyChange?.(false);
+    setBlankId((current) => current + 1);
+    if (focus) requestFocus(focus === "name" ? `name:${id}` : "blank");
   };
-  const advanceVisibleRow = (key: string) => {
-    if (pendingFocus.current) return;
-    const keyOf = (row: (typeof visibleRows)[number]) =>
-      row.kind === "item" ? `item:${row.item.id}` : `draft:${row.row.id}`;
-    const index = visibleRows.findIndex((row) => keyOf(row) === key);
-    if (index < 0) return;
-    const next = visibleRows[index + 1];
-    if (next) {
-      requestFocus(keyOf(next));
-      return;
-    }
-    draftRowsTouched.current = true;
-    const id = nextDraftId.current++;
-    setDraftRows((current) => [
-      ...current,
-      {
-        id,
-        position: Math.max(
-          nextPosition(),
-          nextCommercialPosition(items, current),
-        ),
-      },
-    ]);
-    requestFocus(`draft:${id}`);
+  const advanceRow = (index: number) => {
+    const next = orderedItems[index + 1];
+    requestFocus(next ? `item:${next.id}` : "blank");
   };
-  const advanceDraft = (draftIndex: number) =>
-    advanceVisibleRow(`draft:${draftRows[draftIndex].id}`);
-  const advanceRow = (index: number) =>
-    advanceVisibleRow(`item:${orderedItems[index].id}`);
   const copy = async (item: CommercialItem) => {
-    draftRowsTouched.current = true;
     const { id: _id, ...copyItem } = item;
     if (onItemsChange) {
       onItemsChange([
@@ -343,7 +279,6 @@ export function CommercialLineItemsTable({
       result.destination.index === result.source.index
     )
       return;
-    draftRowsTouched.current = true;
     if (onItemsChange) {
       const next = reorderVisibleCommercialItems(
         orderedItems,
@@ -372,8 +307,32 @@ export function CommercialLineItemsTable({
       await onChanged();
     }
   };
+  const columns: Array<[header: string, width: number]> = [];
+  if (!compactQuote) columns.push(["", 30]);
+  columns.push(
+    [kind === "pi" ? "序号" : "No.", compactQuote ? 52 : 44],
+    [kind === "pi" ? "货号/SKU" : "货号", 156],
+  );
+  if (orderTemplate && showCustomerCode) columns.push(["客户货号", 108]);
+  columns.push(["产品名称", 152], ["图片", 64]);
+  if (kind === "pi" && showCustomerCode) columns.push(["客户货号", 108]);
+  columns.push([kind === "pi" ? "描述与规格" : "产品规格", 188]);
+  const summaryLabelSpan = columns.length;
+  if (orderTemplate) columns.push(["箱数", 68]);
+  columns.push([kind === "pi" ? "Qty/Ctn" : "装箱数", 76]);
+  if (kind === "pi") columns.push(["箱数", 68]);
+  if (!compactQuote) columns.push(["总数量", 80]);
+  if (quoteFxActive) columns.push(["人民币单价", 98]);
+  columns.push([quoteFxActive ? "单价(USD)" : "单价", 96]);
+  if (compactQuote) columns.push(["CBM", 86]);
+  else
+    columns.push(
+      [orderTemplate ? "总金额" : "金额", 106],
+      [orderTemplate ? "⋯" : "操作", 52],
+    );
+  const minWidth = columns.reduce((sum, [, width]) => sum + width, 0);
   return (
-    <section className="commercial-lines space-y-3 overflow-x-auto">
+    <section className="commercial-lines min-w-0 space-y-3">
       {!compactQuote && (
         <label className="flex items-center gap-2">
           <input
@@ -389,632 +348,741 @@ export function CommercialLineItemsTable({
           显示客户货号
         </label>
       )}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="commercial-lines">
-          {(provided) => (
-            <table
-              className={
-                editable
-                  ? "w-max min-w-[1100px] text-sm"
-                  : "w-full min-w-[1100px] text-sm"
-              }
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-            >
-              <thead>
-                <tr>
-                  {(orderTemplate
-                    ? [
-                        "",
-                        "No.",
-                        "货号",
-                        ...(showCustomerCode ? ["客户货号"] : []),
-                        "产品名称",
-                        "图片",
-                        "产品规格",
-                        "箱数",
-                        "装箱数",
-                        "总数量",
-                        "单价",
-                        "总金额",
-                        "⋯",
-                      ]
-                    : compactQuote
-                      ? [
-                          "No.",
-                          "货号",
-                          "产品名称",
-                          "图片",
-                          "产品规格",
-                          "装箱数",
-                          ...(quoteFxActive
-                            ? ["人民币单价", "单价(USD)"]
-                            : ["单价"]),
-                          "CBM",
-                        ]
-                      : [
-                          "",
-                          "序号",
-                          "货号/SKU",
-                          "产品名称",
-                          "图片",
-                          ...(showCustomerCode ? ["客户货号"] : []),
-                          "描述与规格",
-                          "Qty/Ctn",
-                          "箱数",
-                          "总数量",
-                          "单价",
-                          "金额",
-                          "操作",
-                        ]
-                  ).map((header) => (
-                    <th className="p-2 text-left" key={header}>
-                      {header}
-                    </th>
+      <div className="romiku-items-scroll">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="commercial-lines">
+            {(provided) => (
+              <table
+                className="romiku-items-table w-full table-fixed text-sm"
+                style={{ minWidth }}
+              >
+                <colgroup>
+                  {columns.map(([header, width]) => (
+                    <col
+                      key={header}
+                      style={{ width: `${(100 * width) / minWidth}%` }}
+                    />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((row, visibleIndex) => {
-                  if (row.kind === "empty") {
-                    const { draftIndex } = row;
-                    return (
-                      <tr
-                        className="border-t bg-muted/20"
-                        key={`draft-${row.row.id}`}
+                </colgroup>
+                <thead>
+                  <tr>
+                    {columns.map(([header], index) => (
+                      <th
+                        scope="col"
+                        className={
+                          index >= summaryLabelSpan &&
+                          (compactQuote || index < columns.length - 1)
+                            ? "p-2 text-right"
+                            : "p-2 text-left"
+                        }
+                        key={header}
                       >
-                        {!compactQuote && (
-                          <td className="p-2 text-muted-foreground">—</td>
-                        )}
-                        <td className="text-muted-foreground">
-                          {visibleIndex + 1}
-                        </td>
-                        <td className="min-w-[220px] p-1">
-                          <ProductLibraryLookup
-                            wideCommercial
-                            specificationMode={
-                              kind === "quote" ? "machines-only" : "none"
-                            }
-                            captureQuotePacking={kind === "quote"}
-                            documentLanguage={documentLanguage}
-                            inputRef={(element) => {
-                              draftSkuRefs.current[row.row.id] = element;
-                            }}
-                            onSelected={(snapshot) =>
-                              void createDraft(draftIndex, snapshot, true)
-                            }
-                            onManualSku={(sku) =>
-                              void createDraft(draftIndex, { sku })
-                            }
-                          />
-                        </td>
-                        <td
-                          colSpan={compactQuote ? 6 : showCustomerCode ? 10 : 9}
-                        >
-                          <div className="flex items-center gap-2">
-                            <input
-                              aria-label={`草稿 SKU ${draftIndex + 1}`}
-                              className="w-full bg-transparent p-1 text-muted-foreground"
-                              placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
-                              onKeyDown={(event) => {
-                                if (event.key !== "Enter" || !isEntryKey(event))
-                                  return;
-                                event.preventDefault();
-                                const sku = event.currentTarget.value.trim();
-                                if (!sku) return;
-                                void createDraft(draftIndex, { sku });
-                                advanceDraft(draftIndex);
-                              }}
-                            />
-                            {row.row.added && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                aria-label={`删除空行 ${visibleIndex + 1}`}
-                                onClick={() =>
-                                  setDraftRows((current) =>
-                                    current.filter(
-                                      (candidate) =>
-                                        candidate.id !== row.row.id,
-                                    ),
-                                  )
-                                }
-                              >
-                                删除空行
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-                  const { item, itemIndex: index } = row;
-                  const product = (item.product_snapshot ?? {}) as Record<
-                    string,
-                    unknown
-                  >;
-                  const packing = (item.packing_snapshot ?? {}) as Record<
-                    string,
-                    unknown
-                  >;
-                  const updatePacking = async (key: string, value: unknown) => {
-                    const nextPacking = { ...packing, [key]: value };
-                    const quantity =
-                      (key === "cartons" || key === "qty_per_carton") &&
-                      !packing.quantity_manual
-                        ? quantityFromPacking(nextPacking)
-                        : item.quantity;
-                    await save(item, {
-                      packing_snapshot: nextPacking,
-                      quantity,
-                    });
-                  };
-                  const quoteCbmKey = String(item.id);
-                  const quoteCnyKey = String(item.id);
-                  const quoteUsdKey = String(item.id);
-                  const commitQuoteCbm = async () => {
-                    const current =
-                      quoteCbmDrafts[quoteCbmKey] ?? formatQuoteCbm(packing);
-                    const parsed = parseQuoteCbm(current);
-                    if (parsed === undefined) {
-                      setQuoteCbmDrafts((drafts) => ({
-                        ...drafts,
-                        [quoteCbmKey]: formatQuoteCbm(packing),
-                      }));
-                      return;
-                    }
-                    const formatted = parsed === null ? "" : parsed.toFixed(3);
-                    setQuoteCbmDrafts((drafts) => ({
-                      ...drafts,
-                      [quoteCbmKey]: formatted,
-                    }));
-                    await updatePacking("carton_cbm", parsed);
-                  };
-                  const updateQuoteCnyPrice = async (raw: string) => {
-                    const sourceCny =
-                      raw === "" ? null : parseQuoteSourceCnyUnitPrice(raw);
-                    let unitPrice = item.unit_price;
-                    if (raw === "") {
-                      unitPrice = 0;
-                    } else if (quoteFxActive) {
-                      try {
-                        unitPrice = calculateQuoteUsdUnitPrice(
-                          raw,
-                          quoteFxRate,
-                        );
-                      } catch {
-                        // Keep the saved CNY source price until a valid rate arrives.
-                      }
-                    }
-                    await save(item, {
-                      source_cny_unit_price: sourceCny,
-                      unit_price: unitPrice,
-                      unit_price_entered: raw !== "",
-                    });
-                  };
-                  const commitQuoteCnyPrice = async () => {
-                    const raw =
-                      quoteCnyDrafts[quoteCnyKey] ??
-                      formatQuotePrice(item.source_cny_unit_price);
-                    try {
-                      await updateQuoteCnyPrice(raw);
-                      setQuoteCnyDrafts((drafts) => ({
-                        ...drafts,
-                        [quoteCnyKey]: formatQuotePrice(raw),
-                      }));
-                    } catch {
-                      setQuoteCnyDrafts((drafts) => ({
-                        ...drafts,
-                        [quoteCnyKey]: formatQuotePrice(
-                          item.source_cny_unit_price,
-                        ),
-                      }));
-                    }
-                  };
-                  const updateQuoteUsdPrice = async (raw: string) => {
-                    await save(item, {
-                      unit_price: raw === "" ? 0 : parseQuoteUsdUnitPrice(raw),
-                      unit_price_entered: raw !== "",
-                    });
-                  };
-                  const commitQuoteUsdPrice = async () => {
-                    const raw =
-                      quoteUsdDrafts[quoteUsdKey] ?? savedQuotePriceText(item);
-                    try {
-                      await updateQuoteUsdPrice(raw);
-                      setQuoteUsdDrafts((drafts) => ({
-                        ...drafts,
-                        [quoteUsdKey]: raw === "" ? "" : formatQuotePrice(raw),
-                      }));
-                    } catch {
-                      setQuoteUsdDrafts((drafts) => ({
-                        ...drafts,
-                        [quoteUsdKey]: savedQuotePriceText(item),
-                      }));
-                    }
-                  };
-                  return (
-                    <Draggable
-                      draggableId={String(item.id)}
-                      index={index}
-                      key={item.id}
-                      isDragDisabled={!editable}
-                    >
-                      {(drag) => (
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody ref={provided.innerRef} {...provided.droppableProps}>
+                  {visibleRows.map((row, visibleIndex) => {
+                    if (row.kind === "empty") {
+                      return (
                         <tr
-                          className="border-t"
-                          ref={drag.innerRef}
-                          onKeyDown={(event) => {
-                            const field = event.target;
-                            if (
-                              event.defaultPrevented ||
-                              event.key !== "Enter" ||
-                              !(field instanceof HTMLInputElement) ||
-                              field.disabled ||
-                              field.readOnly ||
-                              !["text", "number", "search"].includes(field.type)
-                            )
-                              return;
-                            if (!isEntryKey(event)) return;
-                            event.preventDefault();
-                            advanceRow(index);
-                          }}
-                          {...({
-                            ...drag.draggableProps,
-                            style: drag.draggableProps.style as CSSProperties,
-                          } as HTMLAttributes<HTMLTableRowElement>)}
+                          className="border-t bg-muted/20"
+                          key={`draft-${row.row.id}`}
                         >
                           {!compactQuote && (
-                            <td className="p-2" {...drag.dragHandleProps}>
-                              ⠿
-                            </td>
+                            <td className="p-2 text-muted-foreground">—</td>
                           )}
-                          <td {...(compactQuote ? drag.dragHandleProps : {})}>
-                            {compactQuote && "⠿ "}
+                          <td className="text-muted-foreground">
                             {visibleIndex + 1}
                           </td>
-                          <td
-                            className={editable ? "min-w-[220px] p-1" : "p-1"}
-                          >
-                            {editable ? (
-                              <ProductLibraryLookup
-                                wideCommercial
-                                sku={item.sku}
-                                onAdvance={() => advanceRow(index)}
-                                inputRef={(element) => {
-                                  rowSkuRefs.current[String(item.id)] = element;
-                                }}
-                                specificationMode={
-                                  kind === "quote" ? "machines-only" : "none"
-                                }
-                                captureQuotePacking={kind === "quote"}
-                                documentLanguage={documentLanguage}
-                                onSelected={(snapshot) => {
-                                  void save(item, { ...snapshot });
-                                  setTimeout(
-                                    () =>
-                                      rowNameRefs.current[
-                                        String(item.id)
-                                      ]?.focus(),
-                                    0,
-                                  );
-                                }}
-                                onManualSku={(sku) =>
-                                  void save(
-                                    item,
-                                    clearProductIdentityForManualSku(item, sku),
+                          <td className="p-1">
+                            <ProductLibraryLookup
+                              wideCommercial
+                              onSearchChange={(value) =>
+                                onBlankRowsDirtyChange?.(Boolean(value.trim()))
+                              }
+                              specificationMode={
+                                kind === "quote" ? "machines-only" : "none"
+                              }
+                              captureQuotePacking={kind === "quote"}
+                              documentLanguage={documentLanguage}
+                              inputRef={(element) => {
+                                blankSkuRef.current = element;
+                              }}
+                              onSelected={(snapshot) =>
+                                void createDraft(snapshot, "name")
+                              }
+                              onManualSku={(sku) => void createDraft({ sku })}
+                            />
+                          </td>
+                          <td colSpan={columns.length - (compactQuote ? 2 : 3)}>
+                            <div className="flex items-center gap-2">
+                              <input
+                                aria-label="草稿 SKU 1"
+                                onChange={(event) =>
+                                  onBlankRowsDirtyChange?.(
+                                    Boolean(event.target.value.trim()),
                                   )
                                 }
-                              />
-                            ) : (
-                              <span>{item.sku}</span>
-                            )}
-                          </td>
-                          {showCustomerCode &&
-                            orderTemplate &&
-                            customerCodeCell(item)}
-                          <td>
-                            <RequestedQuantity
-                              websiteSource={compactQuote && websiteSourceQuote}
-                              value={item.requested_quantity_snapshot}
-                            />
-                            <div className="flex items-start gap-1">
-                              <input
-                                ref={(element) => {
-                                  rowNameRefs.current[String(item.id)] =
-                                    element;
-                                }}
-                                className="w-28 rounded border p-1"
-                                value={String(product.name ?? "")}
-                                disabled={!editable}
-                                onChange={(event) => {
-                                  if (!onItemsChange) return;
-                                  void save(item, {
-                                    product_snapshot: {
-                                      ...product,
-                                      name: event.target.value,
-                                    },
-                                  });
-                                }}
                                 onBlur={(event) => {
-                                  if (onItemsChange) return;
-                                  void save(item, {
-                                    product_snapshot: {
-                                      ...product,
-                                      name: event.target.value,
-                                    },
-                                  });
+                                  const sku = event.currentTarget.value.trim();
+                                  if (sku) void createDraft({ sku });
+                                }}
+                                className="w-full bg-transparent p-1 text-muted-foreground"
+                                placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
+                                onKeyDown={(event) => {
+                                  if (
+                                    event.key !== "Enter" ||
+                                    !isEntryKey(event)
+                                  )
+                                    return;
+                                  event.preventDefault();
+                                  const sku = event.currentTarget.value.trim();
+                                  if (!sku) return;
+                                  void createDraft({ sku }, "blank");
                                 }}
                               />
-                              {compactQuote && editable && (
-                                <details>
-                                  <summary
-                                    aria-label="行操作"
-                                    className="cursor-pointer"
-                                  >
-                                    ⋯
-                                  </summary>
-                                  <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => void copy(item)}
-                                    >
-                                      复制行
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => setDrawer(item)}
-                                    >
-                                      更多详情
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => {
-                                        draftRowsTouched.current = true;
-                                        if (onItemsChange)
-                                          onItemsChange(
-                                            items.filter(
-                                              (candidate) =>
-                                                candidate.id !== item.id,
-                                            ),
-                                          );
-                                        else
-                                          void provider
-                                            .delete(adapter.resource, {
-                                              id: item.id,
-                                              previousData: item,
-                                            })
-                                            .then(onChanged);
-                                      }}
-                                    >
-                                      删除行
-                                    </Button>
-                                  </div>
-                                </details>
-                              )}
                             </div>
                           </td>
-                          <td>
-                            <ProductSnapshotImage
-                              sku={item.sku}
-                              imageUrl={product.image_url}
-                            />
-                          </td>
-                          {orderTemplate && (
-                            <td>
-                              <textarea
-                                aria-label="描述与规格"
-                                className="min-h-8 w-40 resize-y rounded border p-1"
-                                value={String(product.specification ?? "")}
-                                disabled={!editable}
-                                onChange={(event) =>
-                                  onItemsChange &&
-                                  void save(item, {
-                                    product_snapshot: {
-                                      ...product,
-                                      specification: event.target.value,
-                                    },
-                                  })
-                                }
-                                onBlur={(event) =>
-                                  !onItemsChange &&
-                                  void save(item, {
-                                    product_snapshot: {
-                                      ...product,
-                                      specification: event.target.value,
-                                    },
-                                  })
-                                }
-                              />
+                        </tr>
+                      );
+                    }
+                    const { item, itemIndex: index } = row;
+                    const product = (item.product_snapshot ?? {}) as Record<
+                      string,
+                      unknown
+                    >;
+                    const packing = (item.packing_snapshot ?? {}) as Record<
+                      string,
+                      unknown
+                    >;
+                    const updatePacking = async (
+                      key: string,
+                      value: unknown,
+                    ) => {
+                      const nextPacking = { ...packing, [key]: value };
+                      const quantity =
+                        (key === "cartons" || key === "qty_per_carton") &&
+                        !packing.quantity_manual
+                          ? quantityFromPacking(nextPacking)
+                          : item.quantity;
+                      await save(item, {
+                        packing_snapshot: nextPacking,
+                        quantity,
+                      });
+                    };
+                    const quoteCbmKey = String(item.id);
+                    const quoteCnyKey = String(item.id);
+                    const quoteUsdKey = String(item.id);
+                    const commitQuoteCbm = async () => {
+                      const current =
+                        quoteCbmDrafts[quoteCbmKey] ?? formatQuoteCbm(packing);
+                      const parsed = parseQuoteCbm(current);
+                      if (parsed === undefined) {
+                        setQuoteCbmDrafts((drafts) => ({
+                          ...drafts,
+                          [quoteCbmKey]: formatQuoteCbm(packing),
+                        }));
+                        return;
+                      }
+                      const formatted =
+                        parsed === null ? "" : parsed.toFixed(3);
+                      setQuoteCbmDrafts((drafts) => ({
+                        ...drafts,
+                        [quoteCbmKey]: formatted,
+                      }));
+                      await updatePacking("carton_cbm", parsed);
+                    };
+                    const updateQuoteCnyPrice = async (raw: string) => {
+                      const sourceCny =
+                        raw === "" ? null : parseQuoteSourceCnyUnitPrice(raw);
+                      let unitPrice = item.unit_price;
+                      if (raw === "") {
+                        unitPrice = 0;
+                      } else if (quoteFxActive) {
+                        try {
+                          unitPrice = calculateQuoteUsdUnitPrice(
+                            raw,
+                            quoteFxRate,
+                          );
+                        } catch {
+                          // Keep the saved CNY source price until a valid rate arrives.
+                        }
+                      }
+                      await save(item, {
+                        source_cny_unit_price: sourceCny,
+                        unit_price: unitPrice,
+                        unit_price_entered: raw !== "",
+                      });
+                    };
+                    const commitQuoteCnyPrice = async () => {
+                      const raw =
+                        quoteCnyDrafts[quoteCnyKey] ??
+                        formatQuotePrice(item.source_cny_unit_price);
+                      try {
+                        await updateQuoteCnyPrice(raw);
+                        setQuoteCnyDrafts((drafts) => ({
+                          ...drafts,
+                          [quoteCnyKey]: formatQuotePrice(raw),
+                        }));
+                      } catch {
+                        setQuoteCnyDrafts((drafts) => ({
+                          ...drafts,
+                          [quoteCnyKey]: formatQuotePrice(
+                            item.source_cny_unit_price,
+                          ),
+                        }));
+                      }
+                    };
+                    const updateQuoteUsdPrice = async (raw: string) => {
+                      await save(item, {
+                        unit_price:
+                          raw === "" ? 0 : parseQuoteUsdUnitPrice(raw),
+                        unit_price_entered: raw !== "",
+                      });
+                    };
+                    const commitQuoteUsdPrice = async () => {
+                      const raw =
+                        quoteUsdDrafts[quoteUsdKey] ??
+                        savedQuotePriceText(item);
+                      try {
+                        await updateQuoteUsdPrice(raw);
+                        setQuoteUsdDrafts((drafts) => ({
+                          ...drafts,
+                          [quoteUsdKey]:
+                            raw === "" ? "" : formatQuotePrice(raw),
+                        }));
+                      } catch {
+                        setQuoteUsdDrafts((drafts) => ({
+                          ...drafts,
+                          [quoteUsdKey]: savedQuotePriceText(item),
+                        }));
+                      }
+                    };
+                    return (
+                      <Draggable
+                        draggableId={String(item.id)}
+                        index={index}
+                        key={item.id}
+                        isDragDisabled={!editable}
+                      >
+                        {(drag) => (
+                          <tr
+                            className="border-t"
+                            ref={drag.innerRef}
+                            onKeyDown={(event) => {
+                              const field = event.target;
+                              if (
+                                event.defaultPrevented ||
+                                event.key !== "Enter" ||
+                                !(field instanceof HTMLInputElement) ||
+                                field.disabled ||
+                                field.readOnly ||
+                                !["text", "number", "search"].includes(
+                                  field.type,
+                                )
+                              )
+                                return;
+                              if (!isEntryKey(event)) return;
+                              event.preventDefault();
+                              advanceRow(index);
+                            }}
+                            {...({
+                              ...drag.draggableProps,
+                              style: drag.draggableProps.style as CSSProperties,
+                            } as HTMLAttributes<HTMLTableRowElement>)}
+                          >
+                            {!compactQuote && (
+                              <td className="p-2" {...drag.dragHandleProps}>
+                                ⠿
+                              </td>
+                            )}
+                            <td {...(compactQuote ? drag.dragHandleProps : {})}>
+                              {compactQuote && "⠿ "}
+                              {visibleIndex + 1}
                             </td>
-                          )}
-                          {showCustomerCode &&
-                            !orderTemplate &&
-                            !compactQuote &&
-                            customerCodeCell(item)}
-                          {!orderTemplate && (
-                            <td>
-                              <textarea
-                                aria-label="描述与规格"
-                                className="min-h-8 w-40 resize-y rounded border p-1"
-                                value={
-                                  compactQuote
-                                    ? (quoteSpecificationDrafts[
-                                        String(item.id)
-                                      ] ??
-                                      normalizeSpecificationDisplay(
-                                        product.specification,
-                                      ))
-                                    : String(product.specification ?? "")
-                                }
-                                disabled={!editable}
-                                onChange={(event) => {
-                                  if (compactQuote)
-                                    setQuoteSpecificationDrafts((drafts) => ({
-                                      ...drafts,
-                                      [String(item.id)]: event.target.value,
-                                    }));
-                                  if (onItemsChange)
-                                    void save(item, {
-                                      product_snapshot: {
-                                        ...product,
-                                        specification: event.target.value,
-                                      },
-                                    });
-                                }}
-                                onBlur={(event) => {
-                                  if (compactQuote)
-                                    setQuoteSpecificationDrafts((drafts) => {
-                                      const next = { ...drafts };
-                                      delete next[String(item.id)];
-                                      return next;
-                                    });
-                                  if (!onItemsChange)
-                                    void save(item, {
-                                      product_snapshot: {
-                                        ...product,
-                                        specification: event.target.value,
-                                      },
-                                    });
-                                }}
-                              />
-                            </td>
-                          )}
-                          {orderTemplate && (
-                            <td>
-                              <input
-                                className="w-16 rounded border p-1"
-                                type="number"
-                                value={String(packing.cartons ?? "")}
-                                disabled={!editable}
-                                onChange={(event) =>
-                                  onItemsChange &&
-                                  void updatePacking(
-                                    "cartons",
-                                    event.target.value,
-                                  )
-                                }
-                                onBlur={(event) =>
-                                  !onItemsChange &&
-                                  void updatePacking(
-                                    "cartons",
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            </td>
-                          )}
-                          <td>
-                            <input
-                              aria-label={compactQuote ? "Qty/Ctn" : undefined}
-                              className="w-16 rounded border p-1"
-                              type="number"
-                              min={compactQuote ? "1" : undefined}
-                              step={compactQuote ? "1" : undefined}
-                              value={String(packing.qty_per_carton ?? "")}
-                              disabled={!editable}
-                              onChange={(event) => {
-                                if (onItemsChange)
-                                  void updatePacking(
-                                    "qty_per_carton",
-                                    event.target.value,
-                                  );
-                              }}
-                              onBlur={(event) => {
-                                if (!onItemsChange)
-                                  void updatePacking(
-                                    "qty_per_carton",
-                                    event.target.value,
-                                  );
-                              }}
-                            />
-                          </td>
-                          {!compactQuote && !orderTemplate && (
-                            <td>
-                              <input
-                                className="w-16 rounded border p-1"
-                                type="number"
-                                value={String(packing.cartons ?? "")}
-                                disabled={!editable}
-                                onChange={(event) => {
-                                  if (onItemsChange)
-                                    void updatePacking(
-                                      "cartons",
-                                      event.target.value,
+                            <td className="p-1">
+                              {editable ? (
+                                <ProductLibraryLookup
+                                  wideCommercial
+                                  sku={item.sku}
+                                  onAdvance={() => advanceRow(index)}
+                                  inputRef={(element) => {
+                                    rowSkuRefs.current[String(item.id)] =
+                                      element;
+                                  }}
+                                  specificationMode={
+                                    kind === "quote" ? "machines-only" : "none"
+                                  }
+                                  captureQuotePacking={kind === "quote"}
+                                  documentLanguage={documentLanguage}
+                                  onSelected={(snapshot) => {
+                                    void save(item, { ...snapshot });
+                                    setTimeout(
+                                      () =>
+                                        rowNameRefs.current[
+                                          String(item.id)
+                                        ]?.focus(),
+                                      0,
                                     );
-                                }}
-                                onBlur={(event) => {
-                                  if (!onItemsChange)
-                                    void updatePacking(
-                                      "cartons",
-                                      event.target.value,
-                                    );
-                                }}
-                              />
+                                  }}
+                                  onManualSku={(sku) =>
+                                    void save(
+                                      item,
+                                      clearProductIdentityForManualSku(
+                                        item,
+                                        sku,
+                                      ),
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <span>{item.sku}</span>
+                              )}
                             </td>
-                          )}
-                          {!compactQuote && (
+                            {showCustomerCode &&
+                              orderTemplate &&
+                              customerCodeCell(item)}
                             <td>
-                              <input
-                                className="w-20 rounded border p-1"
-                                type="number"
-                                value={String(item.quantity)}
-                                disabled={!editable}
-                                onChange={(event) => {
-                                  if (onItemsChange)
-                                    void save(item, {
-                                      quantity: Number(event.target.value),
-                                      packing_snapshot: {
-                                        ...packing,
-                                        quantity_manual: true,
-                                      },
-                                    });
-                                }}
-                                onBlur={(event) => {
-                                  if (!onItemsChange)
-                                    void save(item, {
-                                      quantity: Number(event.target.value),
-                                      packing_snapshot: {
-                                        ...packing,
-                                        quantity_manual: true,
-                                      },
-                                    });
-                                }}
+                              <RequestedQuantity
+                                websiteSource={
+                                  compactQuote && websiteSourceQuote
+                                }
+                                value={item.requested_quantity_snapshot}
                               />
-                            </td>
-                          )}
-                          {quoteFxActive ? (
-                            <>
-                              <td>
+                              <div className="flex items-start gap-1">
                                 <input
-                                  aria-label="人民币单价"
-                                  className="w-24 rounded border p-1"
-                                  type="number"
-                                  min="0"
-                                  step="0.0001"
-                                  inputMode="decimal"
+                                  ref={(element) => {
+                                    rowNameRefs.current[String(item.id)] =
+                                      element;
+                                  }}
+                                  aria-label={`产品名称 ${item.sku}`}
+                                  className="min-w-0 w-full rounded border p-1"
+                                  value={String(product.name ?? "")}
+                                  disabled={!editable}
+                                  onChange={(event) => {
+                                    if (!onItemsChange) return;
+                                    void save(item, {
+                                      product_snapshot: {
+                                        ...product,
+                                        name: event.target.value,
+                                      },
+                                    });
+                                  }}
+                                  onBlur={(event) => {
+                                    if (onItemsChange) return;
+                                    void save(item, {
+                                      product_snapshot: {
+                                        ...product,
+                                        name: event.target.value,
+                                      },
+                                    });
+                                  }}
+                                />
+                                {compactQuote && editable && (
+                                  <details className="relative">
+                                    <summary
+                                      aria-label="行操作"
+                                      className="cursor-pointer"
+                                    >
+                                      ⋯
+                                    </summary>
+                                    <div className="absolute right-0 z-10 w-max space-y-1 rounded border bg-background p-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => void copy(item)}
+                                      >
+                                        复制行
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setDrawer(item)}
+                                      >
+                                        更多详情
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                          if (onItemsChange)
+                                            onItemsChange(
+                                              items.filter(
+                                                (candidate) =>
+                                                  candidate.id !== item.id,
+                                              ),
+                                            );
+                                          else
+                                            void provider
+                                              .delete(adapter.resource, {
+                                                id: item.id,
+                                                previousData: item,
+                                              })
+                                              .then(onChanged);
+                                        }}
+                                      >
+                                        删除行
+                                      </Button>
+                                    </div>
+                                  </details>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <ProductSnapshotImage
+                                sku={item.sku}
+                                imageUrl={product.image_url}
+                              />
+                            </td>
+                            {orderTemplate && (
+                              <td>
+                                <textarea
+                                  aria-label="描述与规格"
+                                  className="min-h-8 w-full resize-y rounded border p-1"
+                                  value={String(product.specification ?? "")}
+                                  disabled={!editable}
+                                  onChange={(event) =>
+                                    onItemsChange &&
+                                    void save(item, {
+                                      product_snapshot: {
+                                        ...product,
+                                        specification: event.target.value,
+                                      },
+                                    })
+                                  }
+                                  onBlur={(event) =>
+                                    !onItemsChange &&
+                                    void save(item, {
+                                      product_snapshot: {
+                                        ...product,
+                                        specification: event.target.value,
+                                      },
+                                    })
+                                  }
+                                />
+                              </td>
+                            )}
+                            {showCustomerCode &&
+                              !orderTemplate &&
+                              !compactQuote &&
+                              customerCodeCell(item)}
+                            {!orderTemplate && (
+                              <td>
+                                <textarea
+                                  aria-label="描述与规格"
+                                  className="min-h-8 w-full resize-y rounded border p-1"
                                   value={
-                                    quoteCnyDrafts[quoteCnyKey] ??
-                                    formatQuotePrice(item.source_cny_unit_price)
+                                    compactQuote
+                                      ? (quoteSpecificationDrafts[
+                                          String(item.id)
+                                        ] ??
+                                        normalizeSpecificationDisplay(
+                                          product.specification,
+                                        ))
+                                      : String(product.specification ?? "")
                                   }
                                   disabled={!editable}
                                   onChange={(event) => {
-                                    const raw = event.target.value;
-                                    setQuoteCnyDrafts((drafts) => ({
-                                      ...drafts,
-                                      [quoteCnyKey]: raw,
-                                    }));
-                                    try {
-                                      parseQuoteSourceCnyUnitPrice(raw);
-                                      void updateQuoteCnyPrice(raw);
-                                    } catch {
-                                      // Preserve a valid partial decimal draft.
+                                    if (compactQuote)
+                                      setQuoteSpecificationDrafts((drafts) => ({
+                                        ...drafts,
+                                        [String(item.id)]: event.target.value,
+                                      }));
+                                    if (onItemsChange)
+                                      void save(item, {
+                                        product_snapshot: {
+                                          ...product,
+                                          specification: event.target.value,
+                                        },
+                                      });
+                                  }}
+                                  onBlur={(event) => {
+                                    if (compactQuote)
+                                      setQuoteSpecificationDrafts((drafts) => {
+                                        const next = { ...drafts };
+                                        delete next[String(item.id)];
+                                        return next;
+                                      });
+                                    if (!onItemsChange)
+                                      void save(item, {
+                                        product_snapshot: {
+                                          ...product,
+                                          specification: event.target.value,
+                                        },
+                                      });
+                                  }}
+                                />
+                              </td>
+                            )}
+                            {orderTemplate && (
+                              <td>
+                                <input
+                                  className="w-full rounded border p-1"
+                                  type="number"
+                                  value={String(packing.cartons ?? "")}
+                                  disabled={!editable}
+                                  onChange={(event) =>
+                                    onItemsChange &&
+                                    void updatePacking(
+                                      "cartons",
+                                      event.target.value,
+                                    )
+                                  }
+                                  onBlur={(event) =>
+                                    !onItemsChange &&
+                                    void updatePacking(
+                                      "cartons",
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </td>
+                            )}
+                            <td>
+                              <input
+                                aria-label={
+                                  compactQuote ? "Qty/Ctn" : undefined
+                                }
+                                className="w-full rounded border p-1"
+                                type="number"
+                                min={compactQuote ? "1" : undefined}
+                                step={compactQuote ? "1" : undefined}
+                                value={String(packing.qty_per_carton ?? "")}
+                                disabled={!editable}
+                                onChange={(event) => {
+                                  if (onItemsChange)
+                                    void updatePacking(
+                                      "qty_per_carton",
+                                      event.target.value,
+                                    );
+                                }}
+                                onBlur={(event) => {
+                                  if (!onItemsChange)
+                                    void updatePacking(
+                                      "qty_per_carton",
+                                      event.target.value,
+                                    );
+                                }}
+                              />
+                            </td>
+                            {!compactQuote && !orderTemplate && (
+                              <td>
+                                <input
+                                  className="w-full rounded border p-1"
+                                  type="number"
+                                  value={String(packing.cartons ?? "")}
+                                  disabled={!editable}
+                                  onChange={(event) => {
+                                    if (onItemsChange)
+                                      void updatePacking(
+                                        "cartons",
+                                        event.target.value,
+                                      );
+                                  }}
+                                  onBlur={(event) => {
+                                    if (!onItemsChange)
+                                      void updatePacking(
+                                        "cartons",
+                                        event.target.value,
+                                      );
+                                  }}
+                                />
+                              </td>
+                            )}
+                            {!compactQuote && (
+                              <td>
+                                <input
+                                  className="w-full rounded border p-1"
+                                  type="number"
+                                  value={String(item.quantity)}
+                                  disabled={!editable}
+                                  onChange={(event) => {
+                                    if (onItemsChange)
+                                      void save(item, {
+                                        quantity: Number(event.target.value),
+                                        packing_snapshot: {
+                                          ...packing,
+                                          quantity_manual: true,
+                                        },
+                                      });
+                                  }}
+                                  onBlur={(event) => {
+                                    if (!onItemsChange)
+                                      void save(item, {
+                                        quantity: Number(event.target.value),
+                                        packing_snapshot: {
+                                          ...packing,
+                                          quantity_manual: true,
+                                        },
+                                      });
+                                  }}
+                                />
+                              </td>
+                            )}
+                            {quoteFxActive ? (
+                              <>
+                                <td>
+                                  <input
+                                    aria-label="人民币单价"
+                                    className="w-full rounded border p-1"
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    inputMode="decimal"
+                                    value={
+                                      quoteCnyDrafts[quoteCnyKey] ??
+                                      formatQuotePrice(
+                                        item.source_cny_unit_price,
+                                      )
+                                    }
+                                    disabled={!editable}
+                                    onChange={(event) => {
+                                      const raw = event.target.value;
+                                      setQuoteCnyDrafts((drafts) => ({
+                                        ...drafts,
+                                        [quoteCnyKey]: raw,
+                                      }));
+                                      try {
+                                        parseQuoteSourceCnyUnitPrice(raw);
+                                        void updateQuoteCnyPrice(raw);
+                                      } catch {
+                                        // Preserve a valid partial decimal draft.
+                                      }
+                                    }}
+                                    onBlur={() => void commitQuoteCnyPrice()}
+                                    onKeyDown={(event) => {
+                                      if (
+                                        event.key !== "Enter" ||
+                                        !isEntryKey(event)
+                                      )
+                                        return;
+                                      event.preventDefault();
+                                      advanceRow(index);
+                                    }}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    aria-label="单价(USD)"
+                                    className="w-full rounded border p-1"
+                                    readOnly
+                                    value={savedQuotePriceText(item)}
+                                  />
+                                </td>
+                              </>
+                            ) : (
+                              <td>
+                                <input
+                                  aria-label="单价"
+                                  className="w-full rounded border p-1"
+                                  type="number"
+                                  min={compactQuote ? "0" : undefined}
+                                  step={compactQuote ? "0.0001" : "0.01"}
+                                  inputMode={
+                                    compactQuote ? "decimal" : undefined
+                                  }
+                                  value={
+                                    compactQuote
+                                      ? (quoteUsdDrafts[quoteUsdKey] ??
+                                        savedQuotePriceText(item))
+                                      : (commercialPriceDrafts[quoteUsdKey] ??
+                                        savedPriceText(item))
+                                  }
+                                  disabled={!editable}
+                                  onChange={(event) => {
+                                    if (compactQuote) {
+                                      const raw = event.target.value;
+                                      setQuoteUsdDrafts((drafts) => ({
+                                        ...drafts,
+                                        [quoteUsdKey]: raw,
+                                      }));
+                                      try {
+                                        parseQuoteUsdUnitPrice(raw);
+                                        void updateQuoteUsdPrice(raw);
+                                      } catch {
+                                        // Preserve a valid partial decimal draft.
+                                      }
+                                    } else {
+                                      const raw = event.target.value;
+                                      setCommercialPriceDrafts((drafts) => ({
+                                        ...drafts,
+                                        [quoteUsdKey]: raw,
+                                      }));
+                                      if (onItemsChange) {
+                                        try {
+                                          void save(item, {
+                                            unit_price:
+                                              raw === ""
+                                                ? 0
+                                                : parseQuoteUsdUnitPrice(raw),
+                                            unit_price_entered: raw !== "",
+                                          });
+                                        } catch {
+                                          // Preserve an incomplete decimal draft until blur.
+                                        }
+                                      }
                                     }
                                   }}
-                                  onBlur={() => void commitQuoteCnyPrice()}
+                                  onBlur={(event) => {
+                                    if (compactQuote)
+                                      void commitQuoteUsdPrice();
+                                    else if (!onItemsChange) {
+                                      const raw = event.target.value;
+                                      try {
+                                        void save(item, {
+                                          unit_price:
+                                            raw === ""
+                                              ? 0
+                                              : parseQuoteUsdUnitPrice(raw),
+                                          unit_price_entered: raw !== "",
+                                        });
+                                      } catch {
+                                        setCommercialPriceDrafts((drafts) => ({
+                                          ...drafts,
+                                          [quoteUsdKey]: savedPriceText(item),
+                                        }));
+                                      }
+                                    }
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      if (!isEntryKey(event)) return;
+                                      event.preventDefault();
+                                      advanceRow(index);
+                                    } else if (
+                                      event.key === "Tab" &&
+                                      !event.shiftKey
+                                    ) {
+                                      event.preventDefault();
+                                      advanceRow(index);
+                                    }
+                                  }}
+                                />
+                              </td>
+                            )}
+                            {compactQuote && (
+                              <td>
+                                <input
+                                  aria-label="CBM"
+                                  className="w-full rounded border p-1"
+                                  type="number"
+                                  min="0"
+                                  step="0.001"
+                                  inputMode="decimal"
+                                  value={
+                                    quoteCbmDrafts[quoteCbmKey] ??
+                                    formatQuoteCbm(packing)
+                                  }
+                                  disabled={!editable}
+                                  onChange={(event) =>
+                                    setQuoteCbmDrafts((drafts) => ({
+                                      ...drafts,
+                                      [quoteCbmKey]: event.target.value,
+                                    }))
+                                  }
+                                  onBlur={() => void commitQuoteCbm()}
                                   onKeyDown={(event) => {
                                     if (
                                       event.key !== "Enter" ||
@@ -1026,221 +1094,100 @@ export function CommercialLineItemsTable({
                                   }}
                                 />
                               </td>
-                              <td>
-                                <input
-                                  aria-label="单价(USD)"
-                                  className="w-24 rounded border p-1"
-                                  readOnly
-                                  value={savedQuotePriceText(item)}
-                                />
+                            )}
+                            {!compactQuote && (
+                              <td className="text-right">
+                                {currency}{" "}
+                                {lineAmount(
+                                  item.quantity,
+                                  item.unit_price,
+                                ).toFixed(2)}
                               </td>
-                            </>
-                          ) : (
-                            <td>
-                              <input
-                                aria-label="单价"
-                                className="w-20 rounded border p-1"
-                                type="number"
-                                min={compactQuote ? "0" : undefined}
-                                step={compactQuote ? "0.0001" : "0.01"}
-                                inputMode={compactQuote ? "decimal" : undefined}
-                                value={
-                                  compactQuote
-                                    ? (quoteUsdDrafts[quoteUsdKey] ??
-                                      savedQuotePriceText(item))
-                                    : (commercialPriceDrafts[quoteUsdKey] ??
-                                      savedPriceText(item))
-                                }
-                                disabled={!editable}
-                                onChange={(event) => {
-                                  if (compactQuote) {
-                                    const raw = event.target.value;
-                                    setQuoteUsdDrafts((drafts) => ({
-                                      ...drafts,
-                                      [quoteUsdKey]: raw,
-                                    }));
-                                    try {
-                                      parseQuoteUsdUnitPrice(raw);
-                                      void updateQuoteUsdPrice(raw);
-                                    } catch {
-                                      // Preserve a valid partial decimal draft.
-                                    }
-                                  } else {
-                                    const raw = event.target.value;
-                                    setCommercialPriceDrafts((drafts) => ({
-                                      ...drafts,
-                                      [quoteUsdKey]: raw,
-                                    }));
-                                    if (onItemsChange) {
-                                      try {
-                                        void save(item, {
-                                          unit_price:
-                                            raw === ""
-                                              ? 0
-                                              : parseQuoteUsdUnitPrice(raw),
-                                          unit_price_entered: raw !== "",
-                                        });
-                                      } catch {
-                                        // Preserve an incomplete decimal draft until blur.
-                                      }
-                                    }
-                                  }
-                                }}
-                                onBlur={(event) => {
-                                  if (compactQuote) void commitQuoteUsdPrice();
-                                  else if (!onItemsChange) {
-                                    const raw = event.target.value;
-                                    try {
-                                      void save(item, {
-                                        unit_price:
-                                          raw === ""
-                                            ? 0
-                                            : parseQuoteUsdUnitPrice(raw),
-                                        unit_price_entered: raw !== "",
-                                      });
-                                    } catch {
-                                      setCommercialPriceDrafts((drafts) => ({
-                                        ...drafts,
-                                        [quoteUsdKey]: savedPriceText(item),
-                                      }));
-                                    }
-                                  }
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    if (!isEntryKey(event)) return;
-                                    event.preventDefault();
-                                    advanceRow(index);
-                                  } else if (
-                                    event.key === "Tab" &&
-                                    !event.shiftKey
-                                  ) {
-                                    event.preventDefault();
-                                    advanceRow(index);
-                                  }
-                                }}
-                              />
-                            </td>
-                          )}
-                          {compactQuote && (
-                            <td>
-                              <input
-                                aria-label="CBM"
-                                className="w-20 rounded border p-1"
-                                type="number"
-                                min="0"
-                                step="0.001"
-                                inputMode="decimal"
-                                value={
-                                  quoteCbmDrafts[quoteCbmKey] ??
-                                  formatQuoteCbm(packing)
-                                }
-                                disabled={!editable}
-                                onChange={(event) =>
-                                  setQuoteCbmDrafts((drafts) => ({
-                                    ...drafts,
-                                    [quoteCbmKey]: event.target.value,
-                                  }))
-                                }
-                                onBlur={() => void commitQuoteCbm()}
-                                onKeyDown={(event) => {
-                                  if (
-                                    event.key !== "Enter" ||
-                                    !isEntryKey(event)
-                                  )
-                                    return;
-                                  event.preventDefault();
-                                  advanceRow(index);
-                                }}
-                              />
-                            </td>
-                          )}
-                          {!compactQuote && (
-                            <td>
-                              {currency}{" "}
-                              {lineAmount(
-                                item.quantity,
-                                item.unit_price,
-                              ).toFixed(2)}
-                            </td>
-                          )}
-                          {!compactQuote && (
-                            <td>
-                              {editable && (
-                                <details>
-                                  <summary
-                                    aria-label="行操作"
-                                    className="cursor-pointer"
-                                  >
-                                    ⋯
-                                  </summary>
-                                  <div className="absolute z-10 space-y-1 rounded border bg-background p-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => void copy(item)}
+                            )}
+                            {!compactQuote && (
+                              <td>
+                                {editable && (
+                                  <details className="relative">
+                                    <summary
+                                      aria-label="行操作"
+                                      className="cursor-pointer"
                                     >
-                                      复制行
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => setDrawer(item)}
-                                    >
-                                      更多详情
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() =>
-                                        onItemsChange
-                                          ? onItemsChange(
-                                              items.filter(
-                                                (candidate) =>
-                                                  candidate.id !== item.id,
-                                              ),
-                                            )
-                                          : void provider
-                                              .delete(adapter.resource, {
-                                                id: item.id,
-                                                previousData: item,
-                                              })
-                                              .then(onChanged)
-                                      }
-                                    >
-                                      删除行
-                                    </Button>
-                                  </div>
-                                </details>
-                              )}
-                            </td>
-                          )}
-                        </tr>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {provided.placeholder}
-              </tbody>
-              {!compactQuote && (
-                <tfoot>
-                  <tr className="border-t font-semibold">
-                    <td colSpan={showCustomerCode ? 8 : 7}>汇总</td>
-                    <td>{totals.cartons}</td>
-                    <td></td>
-                    <td>{totals.quantity}</td>
-                    <td></td>
-                    <td>
-                      {currency} {totals.subtotal.toFixed(2)}
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          )}
-        </Droppable>
-      </DragDropContext>
-      <Button type="button" disabled={!editable} onClick={() => void add()}>
+                                      ⋯
+                                    </summary>
+                                    <div className="absolute right-0 z-10 w-max space-y-1 rounded border bg-background p-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => void copy(item)}
+                                      >
+                                        复制行
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setDrawer(item)}
+                                      >
+                                        更多详情
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() =>
+                                          onItemsChange
+                                            ? onItemsChange(
+                                                items.filter(
+                                                  (candidate) =>
+                                                    candidate.id !== item.id,
+                                                ),
+                                              )
+                                            : void provider
+                                                .delete(adapter.resource, {
+                                                  id: item.id,
+                                                  previousData: item,
+                                                })
+                                                .then(onChanged)
+                                        }
+                                      >
+                                        删除行
+                                      </Button>
+                                    </div>
+                                  </details>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
+                </tbody>
+                {!compactQuote && (
+                  <tfoot>
+                    <tr className="border-t font-semibold">
+                      <td colSpan={summaryLabelSpan}>汇总</td>
+                      {!orderTemplate && <td />}
+                      <td className="text-right">{totals.cartons}</td>
+                      {orderTemplate && <td />}
+                      <td className="text-right">{totals.quantity}</td>
+                      <td></td>
+                      <td className="text-right">
+                        {currency} {totals.subtotal.toFixed(2)}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </div>
+      <Button
+        type="button"
+        disabled={!editable}
+        onClick={() => requestFocus("blank")}
+      >
         新增产品行
       </Button>
       <CommercialItemDrawer

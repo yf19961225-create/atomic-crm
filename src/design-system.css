@@ -303,7 +303,7 @@
   width: 100%;
   min-width: 0;
 }
-.romiku-ds .ds-order-editor > .flex {
+.romiku-ds .ds-order-editor > .flex:not([data-slot="tabs"]) {
   flex-wrap: wrap;
   align-items: center;
 }
@@ -325,20 +325,44 @@
   border-radius: 12px;
 }
 .romiku-ds .commercial-lines {
-  border: 1px solid var(--ds-line);
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
+  width: 100%;
+  min-width: 0;
+}
+.romiku-ds .romiku-items-scroll {
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--ds-line);
+  border-radius: 8px;
+  background: var(--ds-surface);
 }
-.romiku-ds .commercial-lines :is(td, th) {
-  padding: 8px;
+.romiku-ds .romiku-items-table {
+  width: 100%;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
 }
-.romiku-ds .commercial-lines input {
+.romiku-ds .romiku-items-table :is(th, td) {
+  padding: 6px 8px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.romiku-ds .romiku-items-table th {
+  vertical-align: middle;
+}
+.romiku-ds .romiku-items-table :is(input:not([type="checkbox"]), select) {
+  min-width: 0;
+  max-width: 100%;
+  height: 34px;
   min-height: 34px;
 }
-.romiku-ds .commercial-lines textarea {
+.romiku-ds .romiku-items-table input[type="number"] {
+  text-align: right;
+}
+.romiku-ds .romiku-items-table textarea {
   min-height: 36px;
+  max-width: 100%;
   padding: 6px 8px;
 }
 .romiku-ds [data-slot="tabs-list"] {

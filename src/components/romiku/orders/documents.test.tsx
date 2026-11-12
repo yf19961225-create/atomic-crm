@@ -367,18 +367,18 @@ it.each([
 );
 
 it.each(["/pi/p", "/orders/o"])(
-  "appends a new %s blank line below the current visual end",
+  "focuses the existing %s trailing blank when adding a row",
   async (path) => {
     const { screen } = await setup(path);
     await screen.getByRole("button", { name: "编辑", exact: true }).click();
     const rows = () => [...document.querySelectorAll("table tbody tr")];
     expect(rows()).toHaveLength(2);
     await screen.getByRole("button", { name: "新增产品行" }).click();
-    expect(rows()).toHaveLength(3);
+    expect(rows()).toHaveLength(2);
     expect(
       rows()[1].querySelector('input[aria-label="草稿 SKU 1"]'),
     ).not.toBeNull();
-    expect(rows()[2].textContent).toContain("3");
+    expect(document.activeElement).toBe(rows()[1].querySelector("input"));
   },
 );
 it("keeps an Order customer code when its column is hidden, saved and reopened", async () => {

@@ -67,25 +67,26 @@ export const packingColumnKeys = [
   "total_weight",
   "actions",
 ] as const;
-export const packingColumnWidths = [
-  "3%",
-  "7%",
-  "10%",
-  "4%",
-  "11%",
-  "5%",
-  "5%",
-  "4%",
-  "6%",
-  "5%",
-  "5%",
-  "5%",
-  "6%",
-  "6%",
-  "7%",
-  "7%",
-  "4%",
-] as const;
+// Product name and specification share the remaining space on wide screens.
+const packingColumnWidths: Partial<
+  Record<(typeof packingColumnKeys)[number], number>
+> = {
+  no: 44,
+  sku: 112,
+  image: 52,
+  cartons: 64,
+  qty_per_carton: 78,
+  unit: 60,
+  quantity: 76,
+  length_cm: 70,
+  width_cm: 70,
+  height_cm: 70,
+  per_cbm: 70,
+  carton_weight_kg: 76,
+  total_cbm: 90,
+  total_weight: 102,
+  actions: 52,
+};
 
 export function packingComputedValues(item: Row) {
   const perCbm =
@@ -421,11 +422,11 @@ export function PackingItemsGrid({
           </div>
         </div>
       ) : null}
-      <div className="ds-table-scroll w-full min-w-0 overflow-x-auto">
-        <table className="w-full min-w-[1440px] table-fixed text-sm">
+      <div className="romiku-items-scroll w-full min-w-0 overflow-x-auto">
+        <table className="romiku-items-table w-full min-w-[1380px] table-fixed text-sm">
           <colgroup>
-            {packingColumnKeys.map((key, index) => (
-              <col key={key} style={{ width: packingColumnWidths[index] }} />
+            {packingColumnKeys.map((key) => (
+              <col key={key} style={{ width: packingColumnWidths[key] }} />
             ))}
           </colgroup>
           <thead>
@@ -448,8 +449,11 @@ export function PackingItemsGrid({
                 "Total CBM",
                 "Total Weight",
                 "操作",
-              ].map((label) => (
-                <th className="whitespace-nowrap p-2 text-left" key={label}>
+              ].map((label, index) => (
+                <th
+                  className={`whitespace-nowrap p-2 ${index >= 5 && index <= 15 && index !== 7 ? "text-right" : "text-left"}`}
+                  key={label}
+                >
                   {label}
                 </th>
               ))}

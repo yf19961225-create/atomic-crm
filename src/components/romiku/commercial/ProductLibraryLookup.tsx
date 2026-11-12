@@ -216,6 +216,7 @@ export function ProductLibraryLookup({
   onSelected,
   onManualSku,
   onAdvance,
+  onSearchChange,
   inputRef,
   specificationMode = "all",
   documentLanguage = "zh",
@@ -228,6 +229,7 @@ export function ProductLibraryLookup({
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
   onManualSku: (sku: string) => void;
   onAdvance?: () => void;
+  onSearchChange?: (value: string) => void;
   inputRef?: Ref<HTMLInputElement>;
   specificationMode?: ProductSpecificationMode;
   documentLanguage?: DocumentLanguage;
@@ -413,8 +415,10 @@ export function ProductLibraryLookup({
       event.nativeEvent.isComposing ||
       event.keyCode === 229 ||
       composing.current
-    )
+    ) {
+      if (event.key === "Enter") event.stopPropagation();
       return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       event.stopPropagation();
@@ -467,6 +471,7 @@ export function ProductLibraryLookup({
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => {
         setSearch("");
+        onSearchChange?.("");
         invalidateSearch();
         setSearchPanelOpen(false);
       }}
@@ -533,7 +538,7 @@ export function ProductLibraryLookup({
   return (
     <div
       className={
-        wideCommercial ? "relative w-full min-w-48" : "relative min-w-48"
+        wideCommercial ? "relative w-full min-w-0" : "relative min-w-48"
       }
     >
       <input
@@ -548,6 +553,7 @@ export function ProductLibraryLookup({
         onFocus={() => setSearchPanelOpen(true)}
         onChange={(event) => {
           setSearch(event.target.value);
+          onSearchChange?.(event.target.value);
           searchProducts(event.target.value);
         }}
         onCompositionStart={() => {

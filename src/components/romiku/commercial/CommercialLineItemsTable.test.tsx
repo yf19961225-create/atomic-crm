@@ -134,7 +134,7 @@ it.each(["quote", "pi", "order"] as const)(
     await expect
       .poll(() => document.querySelectorAll('input[aria-label="单价"]').length)
       .toBe(2);
-    expect(inputs()).toHaveLength(2);
+    expect(inputs()).toHaveLength(3);
     await screen
       .getByLabelText(kind === "quote" ? "CBM" : "单价", { exact: true })
       .nth(1)
@@ -305,7 +305,7 @@ it.each(["quote", "pi", "order"] as const)(
         .poll(() => (document.activeElement as HTMLInputElement)?.value)
         .toBe(`Product ${candidate}`);
       // Product selection consumes Enter; a subsequent Enter advances the row.
-      expect(inputs()).toHaveLength(n);
+      expect(inputs()).toHaveLength(n + 1);
       await userEvent.keyboard("{Enter}");
       await expect
         .poll(() => document.activeElement === inputs()[n])
@@ -327,7 +327,9 @@ it.each(["quote", "pi", "order"] as const)(
 it("name IME/repeat and multiline specification Enter do not advance", async () => {
   await setup("order");
   const row = inputs()[0].closest("tr")!;
-  const name = row.querySelector<HTMLInputElement>("input.w-28")!;
+  const name = row.querySelector<HTMLInputElement>(
+    'input[aria-label="产品名称 SKU-1"]',
+  )!;
   name.focus();
   enter(name, { isComposing: true });
   enter(name, { keyCode: 229 });
@@ -340,3 +342,38 @@ it("name IME/repeat and multiline specification Enter do not advance", async () 
   expect(document.activeElement).toBe(specification);
   expect(inputs()).toHaveLength(2);
 });
+
+it("lets the SKU field finish IME composition before row navigation", async () => {
+  await setup("order");
+  const sku = inputs()[0];
+  sku.focus();
+  sku.dispatchEvent(
+    new CompositionEvent("compositionstart", { bubbles: true }),
+  );
+  enter(sku);
+  expect(document.activeElement).toBe(sku);
+  sku.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+});
+
+it.each(["pi", "order"] as const)(
+  "aligns %s summary values with their labeled columns",
+  async (kind) => {
+    await setup(kind);
+    const table = document.querySelector<HTMLTableElement>(
+      ".romiku-items-table",
+    )!;
+    const labels = Array.from(
+      table.tHead!.rows[0].cells,
+      (cell) => cell.textContent,
+    );
+    const totals = Array.from(table.tFoot!.rows[0].cells).flatMap((cell) =>
+      Array(cell.colSpan).fill(cell.textContent),
+    );
+    expect(totals).toHaveLength(labels.length);
+    expect(totals[labels.indexOf("箱数")]).toBe("0");
+    expect(totals[labels.indexOf("总数量")]).toBe("1");
+    expect(totals[labels.indexOf(kind === "order" ? "总金额" : "金额")]).toBe(
+      "USD 5.50",
+    );
+  },
+);
