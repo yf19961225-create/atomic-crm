@@ -80,6 +80,7 @@ it.each([5, 10, 20])(
   "supports %i sequential entries with one next blank and stable saved prices",
   async (count) => {
     const { screen, changes } = await setup("order");
+    await screen.getByRole("button", { name: "手工录入" }).click();
     for (let n = 1; n <= count; n++) {
       const price = screen.getByLabelText("单价", { exact: true }).nth(n - 1);
       await price.click();
@@ -90,7 +91,8 @@ it.each([5, 10, 20])(
       expect(inputs()).toHaveLength(n + 1);
       if (n < count) {
         await screen
-          .getByLabelText("草稿 SKU 1", { exact: true })
+          .getByLabelText("搜索 SKU 或产品", { exact: true })
+          .last()
           .fill(`MANUAL-${n + 1}`);
         await userEvent.keyboard("{Enter}");
         await expect
@@ -142,9 +144,7 @@ it.each(["quote", "pi", "order"] as const)(
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => inputs().length).toBe(3);
     await expect.poll(() => document.activeElement === inputs()[2]).toBe(true);
-    expect(
-      document.querySelectorAll('input[aria-label="草稿 SKU 1"]'),
-    ).toHaveLength(1);
+    expect(inputs().filter((input) => input.value === "")).toHaveLength(1);
   },
 );
 
@@ -201,7 +201,9 @@ it.each(["quote", "pi", "order"] as const)(
   "%s empty draft Enter does not create another blank",
   async (kind) => {
     const { screen } = await setup(kind, 0);
-    const blank = screen.getByLabelText("草稿 SKU 1", { exact: true });
+    const blank = screen
+      .getByLabelText("搜索 SKU 或产品", { exact: true })
+      .last();
     const before = inputs().length;
     await blank.click();
     await userEvent.keyboard("{Enter}{Enter}{Enter}");
@@ -377,3 +379,62 @@ it.each(["pi", "order"] as const)(
     );
   },
 );
+
+it.each(["quote", "pi", "order"] as const)(
+  "%s keeps both SKU entry modes in the SKU column with empty matching cells",
+  async (kind) => {
+    const { screen } = await setup(kind);
+    const table = document.querySelector<HTMLTableElement>(
+      ".romiku-items-table",
+    )!;
+    const headers = [...table.tHead!.rows[0].cells];
+    const skuColumn = headers.findIndex((header) =>
+      /货号/.test(header.textContent || ""),
+    );
+    const row = table.tBodies[0].rows[1];
+    for (const manual of [false, true]) {
+      if (manual)
+        await screen.getByRole("button", { name: "手工录入" }).click();
+      expect(row.cells.length).toBe(headers.length);
+      expect(row.querySelectorAll("input")).toHaveLength(1);
+      expect(row.querySelector("input")?.closest("td")).toBe(
+        row.cells[skuColumn],
+      );
+      expect(
+        [...row.cells]
+          .slice(skuColumn + 1)
+          .every((cell) => cell.childElementCount === 0),
+      ).toBe(true);
+    }
+  },
+);
+
+it("preserves typed SKU when switching to manual entry and ignores IME/repeated Enter", async () => {
+  const { screen, changes } = await setup("order", 0);
+  const blank = screen.getByLabelText("搜索 SKU 或产品");
+  await blank.fill("MANUAL-IME");
+  await screen.getByRole("button", { name: "手工录入" }).click();
+  const input = blank.element() as HTMLInputElement;
+  expect(input.value).toBe("MANUAL-IME");
+  enter(input, { isComposing: true });
+  enter(input, { repeat: true });
+  expect(changes).toHaveLength(0);
+  await userEvent.keyboard("{Enter}");
+  await expect
+    .poll(() => changes.at(-1)?.map((row) => row.sku))
+    .toEqual(["MANUAL-IME"]);
+  await expect.poll(() => document.activeElement).toBe(inputs()[1]);
+});
+
+it("commits an unmatched SKU on Enter once the catalog search has finished", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(JSON.stringify({ result: [] })),
+  );
+  const { screen, changes } = await setup("pi", 0);
+  await screen.getByLabelText("搜索 SKU 或产品").fill("UNLISTED");
+  await expect.element(screen.getByText("未找到匹配产品")).toBeVisible();
+  await userEvent.keyboard("{Enter}");
+  await expect
+    .poll(() => changes.at(-1)?.map((row) => row.sku))
+    .toEqual(["UNLISTED"]);
+});

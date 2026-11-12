@@ -554,21 +554,22 @@ it("continues Enter entry without moving the entered SKU", async () => {
   const { screen } = await setup("/quotes/q", { items: [] });
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
-  await screen.getByLabelText("草稿 SKU 1").fill("SKU-7");
+  await screen.getByRole("button", { name: "手工录入" }).click();
+  await screen.getByLabelText("搜索 SKU 或产品").last().fill("SKU-7");
   await userEvent.keyboard("{Enter}");
   const rows = () => [
     ...document.querySelectorAll<HTMLTableRowElement>("table tbody tr"),
   ];
   expect(rows()[0]?.querySelector('input[value="SKU-7"]')).not.toBeNull();
   expect(
-    rows()[1]?.querySelector('input[aria-label^="草稿 SKU"]'),
+    rows()[1]?.querySelector('input[aria-label="搜索 SKU 或产品"]'),
   ).not.toBeNull();
-  await screen.getByLabelText("草稿 SKU 1").fill("G02");
+  await screen.getByLabelText("搜索 SKU 或产品").last().fill("G02");
   await userEvent.keyboard("{Enter}");
   expect(rows()[0]?.querySelector('input[value="SKU-7"]')).not.toBeNull();
   expect(rows()[1]?.querySelector('input[value="G02"]')).not.toBeNull();
   expect(
-    rows()[2]?.querySelector('input[aria-label^="草稿 SKU"]'),
+    rows()[2]?.querySelector('input[aria-label="搜索 SKU 或产品"]'),
   ).not.toBeNull();
 });
 

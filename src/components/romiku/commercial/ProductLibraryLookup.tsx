@@ -215,6 +215,8 @@ export function ProductLibraryLookup({
   sku = "",
   onSelected,
   onManualSku,
+  manualEntry = false,
+  onManualEntryChange,
   onAdvance,
   onSearchChange,
   inputRef,
@@ -227,7 +229,9 @@ export function ProductLibraryLookup({
 }: {
   sku?: string;
   onSelected: (snapshot: ReturnType<typeof createItemSnapshot>) => void;
-  onManualSku: (sku: string) => void;
+  onManualSku: (sku: string, advance?: boolean) => void;
+  manualEntry?: boolean;
+  onManualEntryChange?: (manual: boolean) => void;
   onAdvance?: () => void;
   onSearchChange?: (value: string) => void;
   inputRef?: Ref<HTMLInputElement>;
@@ -309,7 +313,7 @@ export function ProductLibraryLookup({
   const searchProducts = (value: string, immediate = false) => {
     invalidateSearch();
     const text = value.trim();
-    if (!text || composing.current) return;
+    if (!text || composing.current || manualEntry) return;
     const version = generation.current;
     setSearchPanelOpen(true);
     setLoading(true);
@@ -424,6 +428,19 @@ export function ProductLibraryLookup({
       event.stopPropagation();
     }
     if (event.repeat && event.key === "Enter") return;
+    if (
+      event.key === "Enter" &&
+      onManualEntryChange &&
+      (manualEntry ||
+        (query?.text === search.trim() &&
+          !loading &&
+          !searchError &&
+          !products.length))
+    ) {
+      const value = search.trim();
+      if (value) onManualSku(value, true);
+      return;
+    }
     if (
       event.key === "Enter" &&
       !query &&
@@ -570,10 +587,24 @@ export function ProductLibraryLookup({
           if (!selecting.current) invalidateSearch();
           setSearchPanelOpen(false);
         }}
-        placeholder="SKU / 产品名称"
+        placeholder={manualEntry ? "输入货号，按 Enter" : "SKU / 产品名称"}
       />
-      <div className="flex gap-2 text-sm">
-        {searchButton}
+      <div className="flex flex-wrap gap-x-2 text-sm">
+        {!manualEntry && searchButton}
+        {onManualEntryChange && (
+          <button
+            type="button"
+            aria-pressed={manualEntry}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              invalidateSearch();
+              onManualEntryChange(!manualEntry);
+              triggerRef.current?.focus();
+            }}
+          >
+            手工录入
+          </button>
+        )}
         {clearButton}
       </div>
       {!wideCommercial && results && (

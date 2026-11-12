@@ -16,15 +16,12 @@ export function useAppDraft(active: boolean) {
     };
   }, [active, id]);
 }
+export function subscribeAppDraft(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 export function useHasAppDraft() {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    hasAppDraft,
-    () => false,
-  );
+  return useSyncExternalStore(subscribeAppDraft, hasAppDraft, () => false);
 }

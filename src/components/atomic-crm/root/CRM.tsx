@@ -53,7 +53,7 @@ import {
 } from "./defaultConfiguration";
 import { i18nProvider as defaulti18nProvider } from "../providers/commons/i18nProvider";
 import { StartPage } from "../login/StartPage.tsx";
-import { useIsMobile } from "@/hooks/use-mobile.ts";
+import { useMobileAdmin } from "./useMobileAdmin";
 import { MobileTasksList } from "../tasks/MobileTasksList.tsx";
 import { ContactListMobile } from "../contacts/ContactList.tsx";
 import { ContactShow } from "../contacts/ContactShow.tsx";
@@ -170,7 +170,7 @@ export const CRM = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store]);
 
-  const isMobile = useIsMobile();
+  const isMobile = useMobileAdmin();
 
   // on login, pre-fetch the configuration to avoid a flickering
   // when accessing the app for the first time

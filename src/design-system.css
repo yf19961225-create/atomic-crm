@@ -343,15 +343,19 @@
   table-layout: fixed;
   font-variant-numeric: tabular-nums;
 }
-.romiku-ds .romiku-items-table :is(th, td) {
+.romiku-ds .romiku-items-scroll .romiku-items-table :is(th, td) {
   padding: 6px 8px;
   vertical-align: top;
   overflow-wrap: anywhere;
 }
-.romiku-ds .romiku-items-table th {
+.romiku-ds .romiku-items-scroll .romiku-items-table th {
   vertical-align: middle;
 }
-.romiku-ds .romiku-items-table :is(input:not([type="checkbox"]), select) {
+.romiku-ds
+  .romiku-items-scroll
+  .romiku-items-table
+  :is(input:not([type="checkbox"]), select) {
+  padding-inline: 5px;
   min-width: 0;
   max-width: 100%;
   height: 34px;

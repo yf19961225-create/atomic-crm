@@ -110,6 +110,7 @@ export function CommercialLineItemsTable({
   useEffect(() => {
     if (!editable) setCommercialPriceDrafts({});
   }, [editable]);
+  const [manualEntry, setManualEntry] = useState(false);
   const [blankId, setBlankId] = useState(0);
   const blankSkuRef = useRef<HTMLInputElement | null>(null);
   const nextPosition = () => nextCommercialPosition(items, []);
@@ -413,38 +414,21 @@ export function CommercialLineItemsTable({
                               onSelected={(snapshot) =>
                                 void createDraft(snapshot, "name")
                               }
-                              onManualSku={(sku) => void createDraft({ sku })}
+                              manualEntry={manualEntry}
+                              onManualEntryChange={setManualEntry}
+                              onManualSku={(sku, advance) =>
+                                void createDraft(
+                                  { sku },
+                                  advance ? "blank" : undefined,
+                                )
+                              }
                             />
                           </td>
-                          <td colSpan={columns.length - (compactQuote ? 2 : 3)}>
-                            <div className="flex items-center gap-2">
-                              <input
-                                aria-label="草稿 SKU 1"
-                                onChange={(event) =>
-                                  onBlankRowsDirtyChange?.(
-                                    Boolean(event.target.value.trim()),
-                                  )
-                                }
-                                onBlur={(event) => {
-                                  const sku = event.currentTarget.value.trim();
-                                  if (sku) void createDraft({ sku });
-                                }}
-                                className="w-full bg-transparent p-1 text-muted-foreground"
-                                placeholder="输入 SKU / 产品名称，或按 Enter 连续录入"
-                                onKeyDown={(event) => {
-                                  if (
-                                    event.key !== "Enter" ||
-                                    !isEntryKey(event)
-                                  )
-                                    return;
-                                  event.preventDefault();
-                                  const sku = event.currentTarget.value.trim();
-                                  if (!sku) return;
-                                  void createDraft({ sku }, "blank");
-                                }}
-                              />
-                            </div>
-                          </td>
+                          {columns
+                            .slice(compactQuote ? 2 : 3)
+                            .map(([header]) => (
+                              <td key={header} />
+                            ))}
                         </tr>
                       );
                     }

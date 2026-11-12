@@ -376,7 +376,7 @@ it.each(["/pi/p", "/orders/o"])(
     await screen.getByRole("button", { name: "新增产品行" }).click();
     expect(rows()).toHaveLength(2);
     expect(
-      rows()[1].querySelector('input[aria-label="草稿 SKU 1"]'),
+      rows()[1].querySelector('input[aria-label="搜索 SKU 或产品"]'),
     ).not.toBeNull();
     expect(document.activeElement).toBe(rows()[1].querySelector("input"));
   },
