@@ -1,0 +1,32 @@
+[
+  {
+    "file": "romiku_workbench_actions.test.sql",
+    "assertions": 49,
+    "passed": true
+  },
+  {
+    "file": "romiku_workbench_anon_hardening.test.sql",
+    "assertions": 12,
+    "passed": true
+  },
+  {
+    "file": "romiku_workbench_feed.test.sql",
+    "assertions": 18,
+    "passed": true
+  },
+  {
+    "file": "romiku_workbench_receivables.test.sql",
+    "assertions": 29,
+    "passed": true
+  },
+  {
+    "file": "romiku_workbench_refresh.test.sql",
+    "assertions": 29,
+    "passed": true
+  },
+  {
+    "file": "romiku_workbench_security.test.sql",
+    "assertions": 23,
+    "passed": true
+  }
+]

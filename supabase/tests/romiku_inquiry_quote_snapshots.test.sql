@@ -1,6 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
+\ir helpers/document_atomic.sql
 select no_plan();
 select has_column('public','romiku_website_inquiries','submission_id','submission UUID supported');
 select has_column('public','romiku_quote_items','requested_quantity_snapshot','independent request quantity supported');
@@ -39,7 +40,7 @@ grant select on final_first to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','bdb96dfb-e4eb-48f8-839c-85e5200f0003',true);
-create temp table final_quote as select romiku_quote_from_inquiry((select id from final_first),(select array_agg(id order by sku) from romiku_website_inquiry_items where inquiry_id=(select id from final_first))) id;
+create temp table final_quote as select pg_temp.document_from_inquiry((select id from final_first),(select array_agg(id order by sku) from romiku_website_inquiry_items where inquiry_id=(select id from final_first))) id;
 select is((select status from romiku_quotes where id=(select id from final_quote)),'pending_quote','created Quote pending quote');
 select is((select status from romiku_website_inquiries where id=(select id from final_first)),'pending_screening','conversion does not change Inquiry status');
 select is((select requested_quantity_snapshot from romiku_quote_items where quote_id=(select id from final_quote) and sku='SUN5'),120.1234::numeric,'conversion saves requested quantity');
@@ -47,22 +48,32 @@ select is((select packing_snapshot->>'qty_per_carton' from romiku_quote_items wh
 select is((select counterparty_snapshot->>'brand' from romiku_quotes where id=(select id from final_quote)),'Snapshot Brand','buyer brand copied');
 select is((select counterparty_snapshot->>'contact_name' from romiku_quotes where id=(select id from final_quote)),'Buyer Original','contact copied');
 select is(romiku_global_search('Snapshot Brand',array['website_inquiry'],25,0,'{}')->'groups'->0->>'total_count','3','brand indexed search includes inquiries');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set quantity=240, product_snapshot=product_snapshot||'{"name":"Quoted name"}' where quote_id=(select id from final_quote) and sku='SUN5';
+SET LOCAL ROLE authenticated;
+
 select is((select requested_quantity_snapshot from romiku_quote_items where quote_id=(select id from final_quote) and sku='SUN5'),120.1234::numeric,'commercial editing preserves requested quantity');
 select is((select quantity from romiku_website_inquiry_items where inquiry_id=(select id from final_first) and sku='SUN5'),120.1234::numeric,'editing Quote never writes Inquiry');
-select throws_ok($$update romiku_quote_items set requested_quantity_snapshot=5 where quote_id=(select id from final_quote)$$,'23514',null,'requested quantity cannot be edited');
-create temp table direct_quote as with q as(insert into romiku_quotes(notes) values('direct') returning id) select id from q;
-insert into romiku_quote_items(quote_id,sku,quantity) select id,'DIRECT',1 from direct_quote;
-select is((select requested_quantity_snapshot from romiku_quote_items where quote_id=(select id from direct_quote)),null::numeric,'direct quote quantity snapshot is NULL');
-select throws_ok($$update romiku_quote_items set source_website_inquiry_item_id=null where quote_id=(select id from final_quote)$$,'23514',null,'saved requested quantity source cannot be detached');
-select throws_ok($$update romiku_quote_items set quote_id=(select id from direct_quote) where quote_id=(select id from final_quote)$$,'23514',null,'saved requested quantity cannot move to unrelated Quote');
+select throws_ok($$select pg_temp.document_item_patch('quote',id,jsonb_build_object('requested_quantity_snapshot',5)) from romiku_quote_items where quote_id=(select id from final_quote)$$,'23514',null,'requested quantity cannot be edited');
+create temp table direct_quote as select (romiku_save_document('quote',gen_random_uuid(),0,gen_random_uuid(),'{"notes":"direct"}','[]')->>'document_id')::uuid id;
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
 
-select throws_ok($$update romiku_quotes set source_website_inquiry_id=null where id=(select id from final_quote)$$,'23514',null,'website Quote source cannot be detached');
-select throws_ok($$update romiku_quotes set source_website_inquiry_id=(select id from romiku_website_inquiries where submission_id='bdb96dfb-e4eb-48f8-839c-85e5200f0002') where id=(select id from final_quote)$$,'23514',null,'website Quote source cannot be rebound');
-select throws_ok($$update romiku_quotes set source_website_inquiry_id=(select id from final_first) where id=(select id from direct_quote)$$,'23514',null,'direct Quote cannot acquire fake website provenance');
-select lives_ok($$update romiku_quotes set notes='Updated quote note',status='following_up',source_website_inquiry_id=source_website_inquiry_id where id=(select id from final_quote)$$,'ordinary Quote edits and unchanged source remain allowed');
+insert into romiku_quote_items(quote_id,sku,quantity) select id,'DIRECT',1 from direct_quote;
+SET LOCAL ROLE authenticated;
+
+select is((select requested_quantity_snapshot from romiku_quote_items where quote_id=(select id from direct_quote)),null::numeric,'direct quote quantity snapshot is NULL');
+select throws_ok($$select pg_temp.document_item_patch('quote',id,jsonb_build_object('source_website_inquiry_item_id',null)) from romiku_quote_items where quote_id=(select id from final_quote)$$,'23514',null,'saved requested quantity source cannot be detached');
+select throws_ok($$select pg_temp.document_item_patch('quote',id,jsonb_build_object('quote_id',(select id from direct_quote))) from romiku_quote_items where quote_id=(select id from final_quote)$$,'22023',null,'saved requested quantity cannot move to unrelated Quote');
+
+select throws_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('source_website_inquiry_id',null)) from romiku_quotes where id=(select id from final_quote)$$,'23514',null,'website Quote source cannot be detached');
+select throws_ok($$select pg_temp.document_patch('quote',(select id from final_quote),jsonb_build_object('source_website_inquiry_id',(select id from romiku_website_inquiries where submission_id='bdb96dfb-e4eb-48f8-839c-85e5200f0002')))$$,'23514',null,'website Quote source cannot be rebound');
+select throws_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('source_website_inquiry_id',(select id from final_first))) from romiku_quotes where id=(select id from direct_quote)$$,'23514',null,'direct Quote cannot acquire fake website provenance');
+select lives_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('notes','Updated quote note','status','following_up','source_website_inquiry_id',source_website_inquiry_id)) from romiku_quotes where id=(select id from final_quote)$$,'ordinary Quote edits and unchanged source remain allowed');
 select is((select source_website_inquiry_id from romiku_quotes where id=(select id from final_quote)),(select id from final_first),'source survives ordinary Quote editing');
-select throws_ok($$insert into romiku_quote_items(quote_id,sku,quantity,requested_quantity_snapshot) select id,'FAKE',1,1 from direct_quote$$,'23514',null,'direct requested quantity cannot be forged');
+select throws_ok($$select romiku_save_document('quote',id,revision,gen_random_uuid(),'{}','[{"sku":"FAKE","quantity":1,"requested_quantity_snapshot":1}]') from romiku_quotes where id=(select id from direct_quote)$$,'23514',null,'direct requested quantity cannot be forged');
 -- Even a privileged historical correction cannot change an existing Quote snapshot.
 reset role;
 alter table romiku_website_inquiry_items disable trigger romiku_original;

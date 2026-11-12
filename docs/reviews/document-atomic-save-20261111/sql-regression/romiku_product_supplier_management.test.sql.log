@@ -1,0 +1,67 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - procurement edit has a controlled function
+ok 2 - supplier replacement has a controlled function
+ok 3 - relation deletion has a controlled function
+ok 4 - authenticated cannot directly delete a product supplier relation
+ok 5 - anonymous callers cannot replace product suppliers
+INSERT 0 1
+SET
+authenticated
+
+ok 6 - a missing session cannot delete a relation
+de820000-0000-0000-0000-000000000001
+CREATE TABLE
+INSERT 0 5
+INSERT 0 5
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ok 7 - relation identity is immutable even without cost history
+ok 8 - direct authenticated delete is denied
+ok 9 - procurement edit succeeds through controlled RPC
+ok 10 - edit does not create a second relation
+ok 11 - edit changes only procurement data
+ok 12 - active target blocks replacement
+ok 13 - blocked replacement leaves both rows unchanged
+ok 14 - replacement to a new supplier succeeds
+ok 15 - new target is sole active relation after replacement
+ok 16 - source cost remains on inactive source relation
+ok 17 - new supplier does not inherit old supplier item number
+ok 18 - source preferred status transfers to new target
+ok 19 - historic inactive relation is reactivated
+ok 20 - reactivated relation retains its own procurement fields
+ok 21 - reactivated target retains its own cost history
+ok 22 - cost history blocks relation deletion
+ok 23 - blocked deletion retains the source relation
+ok 24 - dependency-free relation can be deleted
+ok 25 - only selected relation is removed
+ok 26 - Supplier Master survives relation deletion
+ok 27 - bulk plan has a controlled function
+ok 28 - bulk apply has a controlled function
+INSERT 0 1
+INSERT 0 1
+CREATE TABLE
+INSERT 0 1
+ok 29 - plan counts genuinely missing relations
+ok 30 - plan counts inactive relation separately
+ok 31 - plan counts active relation as skipped
+ok 32 - bulk plan applies atomically
+ok 33 - two products have two relations each without duplicates
+ok 34 - reactivation retains the historic target MOQ
+ok 35 - one preferred relation per selected SKU
+ok 36 - repeating bulk apply succeeds idempotently
+ok 37 - bulk retry produces no duplicate relations
+SELECT 1
+INSERT 0 1
+ok 38 - changed relationship invalidates an old plan
+ok 39 - stale plan makes zero writes
+ok 40 - invalid and duplicate SKU inputs are excluded
+ok 41 - more than one catalog page is rejected
+1..41
+ROLLBACK

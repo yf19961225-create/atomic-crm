@@ -20,6 +20,13 @@ import { ATTACHMENTS_BUCKET } from "../commons/attachments";
 import { getIsInitialized } from "./authProvider";
 import { getSupabaseClient } from "./supabase";
 
+import type {
+  AtomicDocumentKind,
+  DocumentSaveRequest,
+  DocumentSnapshot,
+  DocumentSourceIntent,
+} from "@/components/romiku/commercial/atomicDocumentSave";
+
 const getBaseDataProvider = () =>
   supabaseDataProvider({
     instanceUrl: import.meta.env.VITE_SUPABASE_URL,
@@ -49,6 +56,78 @@ const getDataProviderWithCustomMethods = () => {
 
   return {
     ...baseDataProvider,
+    async documentCreateFromSource(
+      request: DocumentSourceIntent & { requestId: string },
+    ): Promise<DocumentSnapshot> {
+      const { data, error } = await getSupabaseClient().rpc(
+        "romiku_create_document_from_source",
+        {
+          p_request_id: request.requestId,
+          p_source_kind:
+            request.sourceKind === "inquiry"
+              ? "website_inquiry"
+              : request.sourceKind,
+          p_source_id: request.sourceId,
+          p_target_kind: request.targetKind,
+          p_selected_item_ids: request.selectedItemIds ?? null,
+          p_expected_source_revision: request.expectedSourceRevision ?? null,
+        },
+      );
+      if (error)
+        throw Object.assign(new Error(error.message), { code: error.code });
+      return data as unknown as DocumentSnapshot;
+    },
+    async documentActor() {
+      const { data, error } = await getSupabaseClient().auth.getUser();
+      if (error || !data.user) throw new Error("请重新登录后保存。");
+      return data.user.id;
+    },
+    async documentSnapshot({
+      kind,
+      documentId,
+    }: {
+      kind: AtomicDocumentKind;
+      documentId: string;
+    }): Promise<DocumentSnapshot> {
+      const { data, error } = await getSupabaseClient().rpc(
+        "romiku_document_snapshot",
+        { p_kind: kind, p_document_id: documentId },
+      );
+      if (error)
+        throw Object.assign(new Error(error.message), { code: error.code });
+      return data as unknown as DocumentSnapshot;
+    },
+    async documentSave(
+      request: DocumentSaveRequest,
+    ): Promise<DocumentSnapshot> {
+      const { data, error } = await getSupabaseClient().rpc(
+        "romiku_save_document",
+        {
+          p_kind: request.kind,
+          p_document_id: request.documentId,
+          p_expected_revision: request.expectedRevision,
+          p_request_id: request.requestId,
+          p_header: request.header,
+          p_items: request.items,
+        },
+      );
+      if (error)
+        throw Object.assign(new Error(error.message), { code: error.code });
+      return data as unknown as DocumentSnapshot;
+    },
+    async documentSaveResult({
+      requestId,
+    }: {
+      requestId: string;
+    }): Promise<DocumentSnapshot | null> {
+      const { data, error } = await getSupabaseClient().rpc(
+        "romiku_document_save_result",
+        { p_request_id: requestId },
+      );
+      if (error)
+        throw Object.assign(new Error(error.message), { code: error.code });
+      return data as unknown as DocumentSnapshot | null;
+    },
     async getList(resource: string, params: GetListParams) {
       if (resource === "companies") {
         return baseDataProvider.getList("companies_summary", params);

@@ -1,7 +1,10 @@
+import { AtomicSaveRecovery } from "../commercial/AtomicSaveRecovery";
 import {
-  useDocumentSaveAttempt,
-  documentSaveFailureMessage,
-} from "../commercial/useDocumentSaveAttempt";
+  readDocumentSnapshot,
+  saveDocumentAtomically,
+  resolveDocumentSave,
+  type DocumentSnapshot,
+} from "../commercial/atomicDocumentSave";
 import { documentTitle } from "../commercial/documentIdentity";
 import { QuoteInquirySource } from "../inquiries/InquiryQuoteLinks";
 import websiteQuoteTemplateUrl from "@/assets/quote-templates/ROMIKU_报价单_网站询盘来源模板.xlsx?url";
@@ -11,7 +14,7 @@ import { usePageSelection } from "../shared/usePageSelection";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -31,10 +34,7 @@ import { renderQuoteXlsx } from "./quoteXlsxRenderer";
 import { CommercialLineItemsTable } from "../commercial/CommercialLineItemsTable";
 import { DocumentFinancialSummary } from "../commercial/DocumentFinancialSummary";
 import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
-import {
-  commitCommercialItems,
-  readCommercialItems,
-} from "../commercial/commercialLineItems";
+import type { CommercialItem } from "../commercial/commercialLineItems";
 import {
   useDocumentEditSession,
   useUnsavedDocumentGuard,
@@ -372,7 +372,7 @@ const termsFields: Field[] = [
   { key: "notes", label: "报价单备注", type: "textarea" },
 ];
 function QuoteEditor({
-  record,
+  record: initialRecord,
   onSaved,
   headerReady,
   headerError,
@@ -387,10 +387,16 @@ function QuoteEditor({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
-  const items = useQuery({
-    queryKey: ["quote-items", record.id],
-    queryFn: () => readCommercialItems(provider, "quote", String(record.id)),
+  const snapshot = useQuery({
+    queryKey: ["document-snapshot", "quote", initialRecord.id],
+    queryFn: () =>
+      readDocumentSnapshot(provider, "quote", String(initialRecord.id)),
   });
+  const record = (snapshot.data?.header ?? initialRecord) as RaRecord;
+  const items = {
+    ...snapshot,
+    data: snapshot.data?.items as CommercialItem[] | undefined,
+  };
   const quoteReadyForEdit =
     headerReady &&
     items.isSuccess &&
@@ -428,36 +434,37 @@ function QuoteEditor({
     if (enabled && Number.isFinite(rate) && rate > 0)
       session.setItems(repriceQuoteItems(rate));
   };
-  const saveAttempt = useDocumentSaveAttempt();
+  const savePending = useRef(false);
+  const submittedDraft = useRef<string | null>(null);
+  const [recoveredSave, setRecoveredSave] = useState<DocumentSnapshot | null>(
+    null,
+  );
+  const draftSignature = JSON.stringify([session.values, session.items]);
   const save = async () => {
-    if (!saveAttempt.begin()) return;
+    if (savePending.current || recoveredSave) return;
+    submittedDraft.current ??= draftSignature;
+    savePending.current = true;
     setBusy(true);
     setMessage("");
     setFailed(false);
     try {
-      const result = await provider.update("romiku_quotes", {
-        id: record.id,
-        data: quoteHeaderWrite(session.values, record),
-        previousData: record,
+      const result = await saveDocumentAtomically(provider, {
+        kind: "quote",
+        documentId: String(record.id),
+        expectedRevision: Number(session.values.revision),
+        header: quoteHeaderWrite(session.values, record),
+        items: session.items,
       });
-      await commitCommercialItems(
-        provider,
-        "quote",
-        String(record.id),
-        session.savedItems,
-        session.items,
-      );
-      await items.refetch();
-      session.commit(result.data, session.items);
-      await onSaved();
-      await cache.invalidateQueries();
+      cache.setQueryData(["document-snapshot", "quote", record.id], result);
+      session.commit(result.header, result.items as CommercialItem[]);
+      submittedDraft.current = null;
+      await Promise.allSettled([onSaved(), cache.invalidateQueries()]);
       setMessage("报价单已保存。");
-      saveAttempt.succeed();
     } catch (cause) {
-      saveAttempt.fail();
       setFailed(true);
-      setMessage(documentSaveFailureMessage(errorMessage(cause)));
+      setMessage(errorMessage(cause));
     } finally {
+      savePending.current = false;
       setBusy(false);
     }
   };
@@ -492,6 +499,7 @@ function QuoteEditor({
   };
   return (
     <section className="ds-order-editor ds-page space-y-4">
+      <AtomicSaveRecovery kind="quote" documentId={String(record.id)} />
       <Link
         to="/quotes"
         className="underline"
@@ -516,7 +524,7 @@ function QuoteEditor({
             <div className="flex gap-2">
               <Button
                 type="button"
-                disabled={busy || saveAttempt.needsReconciliation}
+                disabled={busy || !!recoveredSave}
                 onClick={() => void save()}
               >
                 保存
@@ -560,7 +568,11 @@ function QuoteEditor({
       {headerError && <p role="alert">报价单数据加载失败，请刷新后重试。</p>}
       <SourceLinks record={record} detail />
       <div className="flex flex-wrap gap-3">
-        <DocumentConversion source="quote" sourceId={String(record.id)} />
+        <DocumentConversion
+          source="quote"
+          sourceId={String(record.id)}
+          expectedSourceRevision={Number(record.revision)}
+        />
         <Button
           type="button"
           variant="outline"
@@ -670,6 +682,73 @@ function QuoteEditor({
               />
             </fieldset>
           </TabsContent>
+          {failed && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={async () => {
+                if (savePending.current) return;
+                savePending.current = true;
+                setBusy(true);
+                try {
+                  const result = await resolveDocumentSave(
+                    provider,
+                    "quote",
+                    String(record.id),
+                  );
+                  if (result) {
+                    cache.setQueryData(
+                      ["document-snapshot", "quote", record.id],
+                      result,
+                    );
+                    if (submittedDraft.current === draftSignature) {
+                      session.commit(
+                        result.header,
+                        result.items as CommercialItem[],
+                      );
+                      submittedDraft.current = null;
+                      setMessage("已确认保存结果。");
+                    } else {
+                      setRecoveredSave(result);
+                      setMessage(
+                        "原请求已保存成功；当前修改尚未保存，已保留。请核对后选择是否加载已保存版本。",
+                      );
+                    }
+                    setFailed(false);
+                    await Promise.allSettled([
+                      onSaved(),
+                      cache.invalidateQueries(),
+                    ]);
+                  } else setMessage("尚未查询到已提交结果，请保留当前草稿。");
+                } catch (cause) {
+                  setMessage(errorMessage(cause));
+                } finally {
+                  savePending.current = false;
+                  setBusy(false);
+                }
+              }}
+            >
+              查询保存结果
+            </Button>
+          )}
+          {recoveredSave && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                session.commit(
+                  recoveredSave.header,
+                  recoveredSave.items as CommercialItem[],
+                );
+                setRecoveredSave(null);
+                submittedDraft.current = null;
+                setMessage("已加载原请求保存的版本。");
+              }}
+            >
+              放弃当前修改并加载已保存版本
+            </Button>
+          )}
           {message && <p role={failed ? "alert" : "status"}>{message}</p>}
         </form>
       </Tabs>

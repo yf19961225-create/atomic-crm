@@ -1,0 +1,46 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+                    is                     
+-------------------------------------------
+ ok 1 - anon has no order table privileges
+(1 row)
+
+                     is                      
+---------------------------------------------
+ ok 2 - anon has no daily counter privileges
+(1 row)
+
+                         ok                          
+-----------------------------------------------------
+ ok 3 - authenticated order creation remains granted
+(1 row)
+
+                     ok                      
+---------------------------------------------
+ ok 4 - server intake RPC remains executable
+(1 row)
+
+               is                
+---------------------------------
+ ok 5 - intake RPC not anonymous
+(1 row)
+
+INSERT 0 1
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ ef055000-0000-0000-0000-000000000001
+(1 row)
+
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

@@ -1,3 +1,10 @@
+import { AtomicSaveRecovery } from "../commercial/AtomicSaveRecovery";
+import {
+  readDocumentSnapshot,
+  saveDocumentAtomically,
+  resolveDocumentSave,
+  pendingDocumentIntent,
+} from "../commercial/atomicDocumentSave";
 import { ProductionOrderGroups } from "./ProductionOrderGroups";
 import { packingContactSnapshot } from "../packing/packingExportSnapshot";
 import { useAppDraft } from "../updates/drafts";
@@ -26,7 +33,6 @@ import { errorMessage } from "../outbound/RelatedRecords";
 import { readRelated } from "../outbound/workflow";
 import { fulfillmentConfig, type FulfillmentKind } from "./fulfillmentShared";
 import { PackingItemsGrid } from "../packing/PackingItemsGrid";
-import { readPackingItems } from "../packing/packingWorkflow";
 import { PackingExportDetails } from "../packing/PackingExportDetails";
 import { normalizePackingExportModel } from "../packing/packingExportModel";
 import { renderPackingXlsx } from "../packing/packingXlsxRenderer";
@@ -351,7 +357,17 @@ function FlatFulfillmentList({ kind }: { kind: FulfillmentKind }) {
 export function FulfillmentDetail({ kind }: { kind: FulfillmentKind }) {
   const { id = "" } = useParams(),
     config = fulfillmentConfig[kind];
-  const query = useGetOne(config.resource, { id });
+  const provider = useDataProvider();
+  const query = useQuery({
+    queryKey: ["fulfillment-document", kind, id],
+    queryFn: async () =>
+      kind === "packing"
+        ? readDocumentSnapshot(provider, "packing", id)
+        : {
+            header: (await provider.getOne(config.resource, { id })).data,
+            items: undefined,
+          },
+  });
   if (query.isPending) return <p>正在加载{config.label}…</p>;
   if (query.error || !query.data)
     return (
@@ -364,7 +380,8 @@ export function FulfillmentDetail({ kind }: { kind: FulfillmentKind }) {
     <FulfillmentEditor
       key={`${kind}:${id}`}
       kind={kind}
-      record={query.data}
+      record={query.data.header}
+      packingItems={query.data.items}
       onSaved={query.refetch}
     />
   );
@@ -412,10 +429,12 @@ function headerSnapshot(kind: FulfillmentKind, values: Values) {
 function FulfillmentEditor({
   kind,
   record,
+  packingItems,
   onSaved,
 }: {
   kind: FulfillmentKind;
   record: RaRecord;
+  packingItems?: RaRecord[];
   onSaved: () => Promise<unknown>;
 }) {
   const cache = useQueryClient();
@@ -429,6 +448,7 @@ function FulfillmentEditor({
   const [baseline, setBaseline] = useState(() => headerSnapshot(kind, record));
   const hasUnsavedChanges = headerSnapshot(kind, values) !== baseline;
   const incoming = useRef(record);
+  const submittedHeader = useRef<string | null>(null);
   useEffect(() => {
     if (incoming.current === record) return;
     incoming.current = record;
@@ -437,13 +457,15 @@ function FulfillmentEditor({
       setBaseline(headerSnapshot(kind, record));
     }
   }, [record, kind, hasUnsavedChanges]);
-  const items = useQuery({
+  const productionItems = useQuery({
+    enabled: kind === "production",
     queryKey: ["fulfillment-items", kind, record.id],
-    queryFn: () =>
-      kind === "packing"
-        ? readPackingItems(provider, String(record.id))
-        : readProductionItems(provider, String(record.id)),
+    queryFn: () => readProductionItems(provider, String(record.id)),
   });
+  const items =
+    kind === "packing"
+      ? { data: packingItems, error: null, isPending: false, refetch: onSaved }
+      : productionItems;
   const parent = useGetOne(
     "romiku_orders",
     { id: record.order_id },
@@ -474,17 +496,41 @@ function FulfillmentEditor({
         data[dateKey] = date.toISOString();
       }
       if (kind === "production") delete data.factory_due_at;
-      const result = await provider.update(config.resource, {
-        id: record.id,
-        data,
-        previousData: record,
-      });
+      submittedHeader.current ??= headerSnapshot(kind, values);
+      const result =
+        kind === "packing"
+          ? {
+              data: (
+                await saveDocumentAtomically(provider, {
+                  kind: "packing",
+                  documentId: String(record.id),
+                  expectedRevision: Number(values.revision),
+                  header: data,
+                  items: null,
+                })
+              ).header,
+            }
+          : await provider.update(config.resource, {
+              id: record.id,
+              data,
+              previousData: record,
+            });
+      submittedHeader.current = null;
       setValues(result.data);
       setBaseline(headerSnapshot(kind, result.data));
       await onSaved();
       await cache.invalidateQueries();
       setSaved(true);
     } catch (cause) {
+      if (
+        kind === "packing" &&
+        !(await pendingDocumentIntent(
+          provider,
+          "packing",
+          String(record.id),
+        ).catch(() => true))
+      )
+        submittedHeader.current = null;
       setFailure(errorMessage(cause));
     } finally {
       setBusy(false);
@@ -581,6 +627,9 @@ function FulfillmentEditor({
   }
   return (
     <section className="ds-detail-page ds-page w-full min-w-0 space-y-5">
+      {kind === "packing" && (
+        <AtomicSaveRecovery kind="packing" documentId={String(record.id)} />
+      )}
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>
@@ -624,7 +673,48 @@ function FulfillmentEditor({
           </fieldset>
         </form>
       </details>
-      {failure && <p role="alert">{failure}</p>}
+      {failure && (
+        <div>
+          <p role="alert">{failure}</p>
+          {kind === "packing" && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const result = await resolveDocumentSave(
+                    provider,
+                    "packing",
+                    String(record.id),
+                  );
+                  if (result) {
+                    setValues(
+                      submittedHeader.current === headerSnapshot(kind, values)
+                        ? result.header
+                        : { ...values, revision: result.revision },
+                    );
+                    submittedHeader.current = null;
+                    setBaseline(headerSnapshot(kind, result.header));
+                    setFailure("");
+                    await onSaved();
+                  } else
+                    setFailure(
+                      "尚未查询到原保存结果，草稿已保留。请稍后再查询。",
+                    );
+                } catch (cause) {
+                  setFailure(errorMessage(cause));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              查询原保存结果
+            </Button>
+          )}
+        </div>
+      )}
       {saved && <p role="status">{config.label}已保存。</p>}
       {kind === "packing" && (
         <div className="flex flex-wrap gap-2">
@@ -647,7 +737,7 @@ function FulfillmentEditor({
         <p role="alert">
           无法加载产品项。 <Button onClick={() => items.refetch()}>重试</Button>
         </p>
-      ) : items.isPending ? (
+      ) : items.isPending || !items.data ? (
         <p>正在加载产品项…</p>
       ) : (
         <PackingItemsGrid

@@ -1,5 +1,8 @@
 import { expect, it, vi } from "vitest";
-import fakeRestDataProvider from "ra-data-fakerest";
+import baseFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider: typeof baseFakeRestDataProvider = (...args) =>
+  withAtomicDocuments(baseFakeRestDataProvider(...args));
 import {
   createOrderPackingList,
   packingTotals,
@@ -48,9 +51,9 @@ function setup() {
       },
     ],
     romiku_packing_lists: [
-      { id: "p1", order_id: "o" },
-      { id: "p2", order_id: "o" },
-      { id: "p3", order_id: null },
+      { id: "p1", revision: 1, order_id: "o" },
+      { id: "p2", revision: 1, order_id: "o" },
+      { id: "p3", revision: 1, order_id: null },
     ],
     romiku_packing_items: [
       {
@@ -73,7 +76,7 @@ it("appends a new Packing row after legacy rows and keeps that order on reload",
   });
   const before = await readPackingItems(p, "p3");
   expect(before.map((row) => row.sku)).toEqual(["SECOND", "FIRST"]);
-  await savePackingItem(p, { id: "p3", order_id: null }, "", {
+  await savePackingItem(p, { id: "p3", revision: 1, order_id: null }, "", {
     sku: "NEW",
     quantity: 1,
   });
@@ -85,7 +88,7 @@ it("appends a new Packing row after legacy rows and keeps that order on reload",
 it("packs a partial remaining quantity into another list and preserves Order snapshots", async () => {
   const p = setup();
   const source = (await p.getOne("romiku_order_items", { id: "i" })).data;
-  await savePackingItem(p, { id: "p2", order_id: "o" }, "i", {
+  await savePackingItem(p, { id: "p2", revision: 1, order_id: "o" }, "i", {
     quantity: 20,
     cartons: 2,
     qty_per_carton: 10,
@@ -98,7 +101,8 @@ it("packs a partial remaining quantity into another list and preserves Order sna
   });
   const rows = await readRelated(p, "romiku_packing_items", {});
   expect(rows).toHaveLength(2);
-  expect(rows[1]).toMatchObject({
+  const packed = rows.find((row) => row.packing_list_id === "p2")!;
+  expect(packed).toMatchObject({
     packing_list_id: "p2",
     quantity: 20,
     sku: "A",
@@ -111,7 +115,7 @@ it("packs a partial remaining quantity into another list and preserves Order sna
   expect((await p.getOne("romiku_order_items", { id: "i" })).data).toEqual(
     source,
   );
-  expect(packingTotals([rows[1]])).toEqual({
+  expect(packingTotals([packed])).toEqual({
     cartons: 2,
     cbm: 0.12,
     weight: 16,
@@ -243,23 +247,27 @@ it("rolls back a newly created Packing List when an automatic item import fails"
     return create(resource, params);
   };
 
-  await expect(createOrderPackingList(p, "o")).rejects.toThrow(/已撤销/);
+  await expect(createOrderPackingList(p, "o")).rejects.toThrow(
+    /保存结果尚未确认|simulated item failure/,
+  );
   expect(await readRelated(p, "romiku_packing_lists", {})).toHaveLength(3);
   expect(await readRelated(p, "romiku_packing_items", {})).toHaveLength(1);
 });
 it("blocks overpacking and invalid dimensions before a write", async () => {
   const p = setup();
   await expect(
-    savePackingItem(p, { id: "p2", order_id: "o" }, "i", { quantity: 61 }),
+    savePackingItem(p, { id: "p2", revision: 1, order_id: "o" }, "i", {
+      quantity: 61,
+    }),
   ).rejects.toThrow(/剩余/);
   await expect(
-    savePackingItem(p, { id: "p2", order_id: "o" }, "i", {
+    savePackingItem(p, { id: "p2", revision: 1, order_id: "o" }, "i", {
       quantity: 20,
       cartons: 1.5,
     }),
   ).rejects.toThrow(/箱数/);
   await expect(
-    savePackingItem(p, { id: "p2", order_id: "o" }, "i", {
+    savePackingItem(p, { id: "p2", revision: 1, order_id: "o" }, "i", {
       quantity: 20,
       length_cm: -1,
     }),
@@ -271,7 +279,7 @@ it("credits the edited line quantity back while retaining its immutable source",
   const previous = (await p.getOne("romiku_packing_items", { id: "old" })).data;
   await savePackingItem(
     p,
-    { id: "p1", order_id: "o" },
+    { id: "p1", revision: 1, order_id: "o" },
     "i",
     { quantity: 100 },
     previous,
@@ -282,7 +290,7 @@ it("credits the edited line quantity back while retaining its immutable source",
   await expect(
     savePackingItem(
       p,
-      { id: "p2", order_id: "o" },
+      { id: "p2", revision: 1, order_id: "o" },
       "i",
       { quantity: 1 },
       previous,
@@ -291,7 +299,7 @@ it("credits the edited line quantity back while retaining its immutable source",
 });
 it("saves an independent Packing product snapshot without reading an Order item", async () => {
   const p = setup();
-  await savePackingItem(p, { id: "p3", order_id: null }, "", {
+  await savePackingItem(p, { id: "p3", revision: 1, order_id: null }, "", {
     sku: "DIRECT-1",
     sanity_product_id: "sanity-direct-1",
     quantity: 12,
@@ -327,17 +335,22 @@ it("saves an independent Packing product snapshot without reading an Order item"
 // A stale quantity must never override a fully specified standard carton plan.
 it("persists CTN × Qty/Ctn instead of a stale independent quantity", async () => {
   const provider = setup();
-  const { data: created } = await savePackingItem(provider, { id: "p3" }, "", {
-    sku: "STANDARD",
-    quantity: 1,
-    cartons: 5,
-    qty_per_carton: 32,
-    length_cm: 50,
-    width_cm: 50,
-    height_cm: 50,
-    carton_weight_kg: 55,
-    product_snapshot: { name: "Saved", specification: "Spec", unit: "PCS" },
-  });
+  const { data: created } = await savePackingItem(
+    provider,
+    { id: "p3", revision: 1 },
+    "",
+    {
+      sku: "STANDARD",
+      quantity: 1,
+      cartons: 5,
+      qty_per_carton: 32,
+      length_cm: 50,
+      width_cm: 50,
+      height_cm: 50,
+      carton_weight_kg: 55,
+      product_snapshot: { name: "Saved", specification: "Spec", unit: "PCS" },
+    },
+  );
   const saved = (
     await provider.getOne("romiku_packing_items", { id: created.id })
   ).data;
@@ -351,7 +364,7 @@ it("persists CTN × Qty/Ctn instead of a stale independent quantity", async () =
 it("checks Order remaining capacity against the computed carton quantity", async () => {
   const provider = setup();
   await expect(
-    savePackingItem(provider, { id: "p2", order_id: "o" }, "i", {
+    savePackingItem(provider, { id: "p2", revision: 1, order_id: "o" }, "i", {
       quantity: 1,
       cartons: 5,
       qty_per_carton: 32,
@@ -362,48 +375,17 @@ it("checks Order remaining capacity against the computed carton quantity", async
   );
 });
 
-it.each([false, true])(
-  "reports residual IDs when cleanup fails (partial items=%s)",
-  async (partial) => {
-    const p = setup();
-    const create = p.create.bind(p);
-    let packingId: unknown;
-    let itemId: unknown;
-    if (partial)
-      await p.update("romiku_order_item_remaining", {
-        id: "done",
-        data: { remaining_quantity: 12 },
-        previousData: { id: "done" },
-      });
-    p.create = async (resource, params) => {
-      if (
-        resource === "romiku_packing_items" &&
-        (!partial || itemId !== undefined)
-      )
-        throw new Error("import failed");
-      const result = await create(resource, params);
-      if (resource === "romiku_packing_lists") packingId = result.data.id;
-      if (resource === "romiku_packing_items") itemId = result.data.id;
-      return result;
-    };
-    p.delete = async () => {
-      throw new Error("cleanup denied");
-    };
-    let message = "";
-    try {
-      await createOrderPackingList(p, "o");
-    } catch (error) {
-      message = String(error);
-    }
-    expect(message).not.toContain("已撤销");
-    expect(message).toContain("清理未完成");
-    expect(message).toContain(`装箱单 ID：${packingId}`);
-    if (partial) expect(message).toContain(`产品项 ID：${itemId}`);
-    expect(message).toContain("cleanup denied");
-    expect(message).toContain("import failed");
-    expect(await readRelated(p, "romiku_packing_lists", {})).toHaveLength(4);
-    expect(await readRelated(p, "romiku_packing_items", {})).toHaveLength(
-      partial ? 2 : 1,
-    );
-  },
-);
+it("does not run compensating writes after an atomic failure", async () => {
+  const provider = setup();
+  provider.documentSave = async () => {
+    throw Object.assign(new Error("atomic rollback"), { code: "23514" });
+  };
+  const remove = vi.spyOn(provider, "delete");
+  await expect(createOrderPackingList(provider, "o")).rejects.toThrow(
+    "atomic rollback",
+  );
+  expect(remove).not.toHaveBeenCalled();
+  expect(await readRelated(provider, "romiku_packing_lists", {})).toHaveLength(
+    3,
+  );
+});

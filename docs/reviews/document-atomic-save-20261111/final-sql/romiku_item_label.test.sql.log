@@ -1,0 +1,56 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - Order has independent production defaults
+ok 2 - Item has independent override
+INSERT 0 1
+CREATE TABLE
+INSERT 0 9
+GRANT
+SET
+authenticated
+de500000-0000-0000-0000-000000000001
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+ok 3 - new Order copies customer defaults
+ok 4 - initialization is explicit
+UPDATE 1
+ok 5 - customer edits do not mutate saved Order
+ok 6 - old asset reference stays stable
+RESET
+INSERT 0 1
+SET
+ok 7 - legacy builder uses saved fields only
+RESET
+INSERT 0 1
+SET
+INSERT 0 2
+INSERT 0 2
+ok 8 - valid field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mark": {"mode": "text", "text": "Label A"}, "mode": "override"}}}
+ok 9 - valid field-level data: {"mode": "inherit", "field_overrides": {"side_mark": {"mode": "none"}, "front_mark": {"mode": "inherit"}, "small_label": {"mode": "none"}, "labeling_requirements": {"mode": "append", "text": "Each box"}}}
+ok 10 - valid field-level data: {"mode": "replace", "field_overrides": {"small_label": {"mark": {"mode": "image", "image_asset": {"path": "user/immutable.png", "bucket": "romiku-marking-assets"}}, "mode": "override"}}}
+ok 11 - valid field-level data: {"mode": "append", "additional_labels": [{"mode": "text", "text": "Extra"}]}
+ok 12 - reject malformed field-level data: {"mode": "inherit", "field_overrides": []}
+ok 13 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"unknown": {"mode": "none"}}}
+ok 14 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mode": "replace"}}}
+ok 15 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mode": "override"}}}
+ok 16 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mark": {"mode": "image"}, "mode": "override"}}}
+ok 17 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mark": {"mode": "text", "text": 123}, "mode": "override"}}}
+ok 18 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mark": {"mode": "image", "image_asset": {"path": "u/a.png", "bucket": "other"}}, "mode": "override"}}}
+ok 19 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"small_label": {"mark": {"mode": "image", "image_asset": {"path": "u/../a.png", "bucket": "romiku-marking-assets"}}, "mode": "override"}}}
+ok 20 - reject malformed field-level data: {"mode": "inherit", "field_overrides": {"labeling_requirements": {"mode": "override"}}}
+ok 21 - reject malformed field-level data: {"mode": "inherit", "additional_labels": {}}
+ok 22 - save per-field override with legacy inherit
+ok 23 - set preserves new field instead of compacting inherit
+ok 24 - batch add works on field override
+ok 25 - batch add preserves field override
+ok 26 - reload shared remains compatible
+ok 27 - reload retains field override
+ok 28 - table check rejects missing independent content
+ok 29 - explicit reset removes all exceptions
+ok 30 - reset returns compact inherit
+RESET
+1..30
+ROLLBACK

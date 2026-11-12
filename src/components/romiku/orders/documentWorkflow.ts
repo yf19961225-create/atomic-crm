@@ -1,3 +1,7 @@
+import {
+  saveDocumentAtomically,
+  createDocumentFromSource,
+} from "../commercial/atomicDocumentSave";
 import { statusOptions } from "../shared/workflowStatus";
 import type { DataProvider } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
@@ -37,17 +41,12 @@ export const documentConfig = {
       .map(({ value }) => value),
   },
 };
-type ConversionRpc = {
-  rpc: (
-    name: string,
-    args: { source_kind: string; source_id: string; target_kind: string },
-  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-};
 export async function convertDocument(
-  client: ConversionRpc,
+  provider: DataProvider,
   source: "quote" | "pi",
   sourceId: string,
   target: DocumentKind,
+  expectedSourceRevision: number,
 ) {
   if (
     !sourceId ||
@@ -57,24 +56,28 @@ export async function convertDocument(
     )
   )
     throw new Error("不支持此单据转换。");
-  const { data, error } = await client.rpc("romiku_convert_document", {
-    source_kind: source,
-    source_id: sourceId,
-    target_kind: target,
+  const result = await createDocumentFromSource(provider, {
+    sourceKind: source,
+    sourceId,
+    targetKind: target,
+    expectedSourceRevision,
   });
-  if (error) throw new Error(error.message);
-  if (typeof data !== "string" || !data) throw new Error("转换后未返回单据。");
-  return data;
+  return result.document_id;
 }
 export async function createDocument(
   provider: DataProvider,
   kind: DocumentKind,
   buyerName: string,
   customer?: { formalCustomerId: string; snapshot: Values },
+  documentId: string = crypto.randomUUID(),
 ) {
   if (!buyerName.trim()) throw new Error("采购方名称为必填项。");
-  return provider.create(documentConfig[kind].resource, {
-    data: {
+  const result = await saveDocumentAtomically(provider, {
+    kind,
+    documentId,
+    expectedRevision: 0,
+    items: [],
+    header: {
       status: "draft",
       currency: "USD",
       document_language: "zh",
@@ -97,6 +100,7 @@ export async function createDocument(
       ...(customer ? { formal_customer_id: customer.formalCustomerId } : {}),
     },
   });
+  return { data: result.header };
 }
 export function documentHeaderWrite(kind: DocumentKind, values: Values) {
   // Reuse commercial validation; PI validity belongs to its independent terms snapshot.

@@ -1,0 +1,62 @@
+{
+  "database": "atomic_save_20261111",
+  "connections": "independent psql processes",
+  "tests": [
+    {
+      "case": "quote duplicate concurrent create returns identical receipt",
+      "passed": true
+    },
+    {
+      "case": "quote two writers same revision exactly one wins",
+      "passed": true
+    },
+    {
+      "case": "quote snapshot waits and returns coherent header/items/revision",
+      "passed": true
+    },
+    {
+      "case": "pi duplicate concurrent create returns identical receipt",
+      "passed": true
+    },
+    {
+      "case": "pi two writers same revision exactly one wins",
+      "passed": true
+    },
+    {
+      "case": "pi snapshot waits and returns coherent header/items/revision",
+      "passed": true
+    },
+    {
+      "case": "order duplicate concurrent create returns identical receipt",
+      "passed": true
+    },
+    {
+      "case": "order two writers same revision exactly one wins",
+      "passed": true
+    },
+    {
+      "case": "order snapshot waits and returns coherent header/items/revision",
+      "passed": true
+    },
+    {
+      "case": "packing duplicate concurrent create returns identical receipt",
+      "passed": true
+    },
+    {
+      "case": "packing two writers same revision exactly one wins",
+      "passed": true
+    },
+    {
+      "case": "packing snapshot waits and returns coherent header/items/revision",
+      "passed": true
+    },
+    {
+      "case": "shared Order item never overpacks under concurrent saves",
+      "passed": true
+    },
+    {
+      "case": "concurrent Order reduction cannot fall below newly committed packing",
+      "passed": true
+    }
+  ]
+}

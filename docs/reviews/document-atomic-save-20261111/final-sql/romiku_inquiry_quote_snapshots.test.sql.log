@@ -1,0 +1,78 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+ok 1 - submission UUID supported
+ok 2 - independent request quantity supported
+SELECT 1
+GRANT
+SET
+
+SELECT 1
+ok 3 - saved item order follows submission
+ok 4 - first receipt is new
+SELECT 1
+ok 5 - same submission returns same WI
+ok 6 - second receipt replay
+ok 7 - replay returns original snapshot
+ok 8 - replay retains original date
+ok 9 - retry creates no second history
+ok 10 - quantity precision retained
+ok 11 - product canonical name saved
+ok 12 - authoritative image saved
+ok 13 - brand saved
+ok 14 - source fixed
+ok 15 - unassigned
+ok 16 - no automatic customer
+SELECT 1
+ok 17 - same email different submission is distinct
+ok 18 - brand immutable
+ok 19 - new product snapshots immutable
+ok 20 - RPC independently validates full snapshot
+ok 21 - RPC rejects base64 snapshot
+ok 22 - submission identity immutable
+ok 23 - unknown packing may be null
+ok 24 - unknown packing remains absent in canonical snapshot
+RESET
+INSERT 0 1
+GRANT
+SET
+authenticated
+bdb96dfb-e4eb-48f8-839c-85e5200f0003
+SELECT 1
+ok 25 - created Quote pending quote
+ok 26 - conversion does not change Inquiry status
+ok 27 - conversion saves requested quantity
+ok 28 - packing copied
+ok 29 - buyer brand copied
+ok 30 - contact copied
+ok 31 - brand indexed search includes inquiries
+RESET
+UPDATE 1
+SET
+ok 32 - commercial editing preserves requested quantity
+ok 33 - editing Quote never writes Inquiry
+ok 34 - requested quantity cannot be edited
+SELECT 1
+RESET
+INSERT 0 1
+SET
+ok 35 - direct quote quantity snapshot is NULL
+ok 36 - saved requested quantity source cannot be detached
+ok 37 - saved requested quantity cannot move to unrelated Quote
+ok 38 - website Quote source cannot be detached
+ok 39 - website Quote source cannot be rebound
+ok 40 - direct Quote cannot acquire fake website provenance
+ok 41 - ordinary Quote edits and unchanged source remain allowed
+ok 42 - source survives ordinary Quote editing
+ok 43 - direct requested quantity cannot be forged
+RESET
+ALTER TABLE
+UPDATE 1
+ALTER TABLE
+ok 44 - later source correction does not alter Quote
+1..44
+ROLLBACK

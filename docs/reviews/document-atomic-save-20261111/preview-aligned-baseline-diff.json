@@ -1,0 +1,32 @@
+{
+  "functions": {
+    "preview_count": 91,
+    "local_count": 91,
+    "differences": []
+  },
+  "columns": {
+    "preview_count": 230,
+    "local_count": 230,
+    "differences": []
+  },
+  "grants": {
+    "preview_count": 821,
+    "local_count": 821,
+    "differences": []
+  },
+  "policies": {
+    "preview_count": 125,
+    "local_count": 125,
+    "differences": []
+  },
+  "constraints": {
+    "preview_count": 314,
+    "local_count": 314,
+    "differences": []
+  },
+  "triggers": {
+    "preview_count": 109,
+    "local_count": 109,
+    "differences": []
+  }
+}

@@ -1,0 +1,56 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+             has_column              
+-------------------------------------
+ ok 1 - quote list view exposes name
+(1 row)
+
+            has_column            
+----------------------------------
+ ok 2 - pi list view exposes name
+(1 row)
+
+             has_column              
+-------------------------------------
+ ok 3 - order list view exposes name
+(1 row)
+
+          has_column           
+-------------------------------
+ ok 4 - Quote independent name
+(1 row)
+
+         has_column         
+----------------------------
+ ok 5 - PI independent name
+(1 row)
+
+          has_column           
+-------------------------------
+ ok 6 - Order independent name
+(1 row)
+
+                    is                     
+-------------------------------------------
+ ok 7 - all names nullable without default
+(1 row)
+
+INSERT 0 1
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ fe260000-0000-0000-0000-000000000099
+(1 row)
+
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

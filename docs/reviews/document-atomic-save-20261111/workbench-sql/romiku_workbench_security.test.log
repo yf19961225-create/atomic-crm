@@ -1,0 +1,173 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+          has_table           
+------------------------------
+ ok 1 - request ledger exists
+(1 row)
+
+      has_table      
+---------------------
+ ok 2 - events exist
+(1 row)
+
+         has_table         
+---------------------------
+ ok 3 - order state exists
+(1 row)
+
+           has_table            
+--------------------------------
+ ok 4 - production state exists
+(1 row)
+
+          has_table          
+-----------------------------
+ ok 5 - evidence links exist
+(1 row)
+
+          has_function           
+---------------------------------
+ ok 6 - active user guard exists
+(1 row)
+
+INSERT 0 4
+INSERT 0 3
+INSERT 0 1
+INSERT 0 1
+                   is                   
+----------------------------------------
+ ok 7 - executor nonlogin and no bypass
+(1 row)
+
+                  is                  
+--------------------------------------
+ ok 8 - client cannot assume executor
+(1 row)
+
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ ee040000-0000-0000-0000-000000000001
+(1 row)
+
+          ok          
+----------------------
+ ok 9 - active user A
+(1 row)
+
+                  ok                  
+--------------------------------------
+ ok 10 - A can manage permitted order
+(1 row)
+
+          is           
+-----------------------
+ ok 11 - A reads state
+(1 row)
+
+              throws_ok               
+--------------------------------------
+ ok 12 - direct state mutation denied
+(1 row)
+
+          throws_ok          
+-----------------------------
+ ok 13 - audit delete denied
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 14 - request tampering denied
+(1 row)
+
+              set_config              
+--------------------------------------
+ ee040000-0000-0000-0000-000000000002
+(1 row)
+
+          ok           
+-----------------------
+ ok 15 - active user B
+(1 row)
+
+                 is                  
+-------------------------------------
+ ok 16 - B same permitted visibility
+(1 row)
+
+              set_config              
+--------------------------------------
+ ee040000-0000-0000-0000-000000000003
+(1 row)
+
+                 is                 
+------------------------------------
+ ok 17 - disabled rejected by guard
+(1 row)
+
+                    is                     
+-------------------------------------------
+ ok 18 - disabled direct table read hidden
+(1 row)
+
+              set_config              
+--------------------------------------
+ ee040000-0000-0000-0000-000000000099
+(1 row)
+
+                 is                 
+------------------------------------
+ ok 19 - no CRM membership rejected
+(1 row)
+
+RESET
+ALTER POLICY
+SET
+              set_config              
+--------------------------------------
+ ee040000-0000-0000-0000-000000000001
+(1 row)
+
+              is              
+------------------------------
+ ok 20 - parent RLS preserved
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 21 - invisible parent unmanageable
+(1 row)
+
+RESET
+ALTER POLICY
+ALTER POLICY
+SET
+                         is                         
+----------------------------------------------------
+ ok 22 - readable but UPDATE restricted is rejected
+(1 row)
+
+RESET
+SET
+      throws_ok      
+---------------------
+ ok 23 - anon denied
+(1 row)
+
+RESET
+ finish 
+--------
+ 1..23
+(1 row)
+
+ROLLBACK

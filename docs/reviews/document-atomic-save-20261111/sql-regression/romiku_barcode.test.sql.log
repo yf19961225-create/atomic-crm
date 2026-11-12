@@ -1,0 +1,72 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - atomic Production workspace RPC exists
+ok 2 - explicit Order sync RPC exists
+INSERT 0 1
+CREATE TABLE
+INSERT 0 4
+GRANT
+CREATE TABLE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+authenticated
+de600000-0000-0000-0000-000000000001
+RESET
+INSERT 0 2
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 3 - atomic create succeeds
+INSERT 0 1
+ok 4 - create does not generate
+ok 5 - valid barcode saves transactionally
+ok 6 - TEXT trim and leading zero
+ok 7 - invalid check digit rejects
+ok 8 - invalid barcode rolls back header
+ok 9 - invalid barcode leaves saved value
+ok 10 - old client missing barcode remains compatible
+ok 11 - omitted barcode does not erase
+ok 12 - split Production offers saved reuse, no new number
+ok 13 - reuse correct saved string
+TRUNCATE TABLE
+INSERT 0 1
+ok 14 - explicit generation produces preview
+ok 15 - generated check digit valid
+ok 16 - consecutive generation reuses reservation
+ok 17 - registry unique number prevents race collision
+ok 18 - same product allowed same code
+ok 19 - explicit clear saves
+ok 20 - empty stored as null
+RESET
+UPDATE 1
+SET
+TRUNCATE TABLE
+INSERT 0 1
+ok 21 - renamed live Order SKU still proposes saved Production identity
+ok 22 - saved Production SKU can still save generated or reused code after Order rename
+ok 23 - barcode does not mutate historical SKU
+ok 24 - cannot mix Production item and another Order source
+
+ok 25 - no uid cannot generate
+RESET
+ok 26 - anon no barcode RPC
+ok 27 - anon no registry
+ok 28 - reservations immutable
+ok 29 - generator respects RLS
+de600000-0000-0000-0000-000000000001
+CREATE POLICY
+SET
+authenticated
+ok 30 - source RLS enforced
+RESET
+DROP POLICY
+1..30
+ROLLBACK

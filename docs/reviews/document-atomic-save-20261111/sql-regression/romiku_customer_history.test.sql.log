@@ -1,0 +1,100 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - customer history API exists
+INSERT 0 1
+CREATE TABLE
+INSERT 0 16
+GRANT
+SET
+authenticated
+de600000-0000-0000-0000-000000000001
+INSERT 0 2
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 4
+SET
+RESET
+INSERT 0 2
+SET
+INSERT 0 4
+INSERT 0 4
+RESET
+INSERT 0 2
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+SELECT 1
+ok 2 - multiple Orders count
+ok 3 - Order pagination
+ok 4 - search scopes to customer and groups Order once
+ok 5 - three productions under correct Order
+ok 6 - direct Order no production
+ok 7 - payment summary from Order
+ok 8 - independent Packing excluded despite matching Buyer
+ok 9 - Production own items only, no other customer
+ok 10 - unlinked source Quote found through exact chain
+ok 11 - shared search customer filter
+ok 12 - invalid pagination rejected
+SELECT 1
+ok 13 - archive preview includes exact Quote PI Order
+ok 14 - confirmed archive succeeds
+ok 15 - Quote relationship linked
+ok 16 - PI relationship linked
+ok 17 - archive preserves all Order saved fields
+ok 18 - Quote snapshot preserved
+ok 19 - stale confirmation rejected
+ok 20 - cross-customer reassignment rejected
+UPDATE 1
+ok 21 - customer rename never rewrites snapshots
+INSERT 0 4
+RESET
+INSERT 0 1
+SET
+ok 22 - Quote-direct Order has no PI
+ok 23 - shared Quote deduplicates across Orders
+RESET
+INSERT 0 1
+SET
+ok 24 - cancelled excluded from currency totals
+ok 25 - currencies stay separate
+RESET
+INSERT 0 1
+SET
+ok 26 - explicit new customer and Order attachment atomic
+ok 27 - new customer preserves saved Order
+ok 28 - new customer rolled back on source conflict
+ok 29 - failed archive creates no customer
+RESET
+INSERT 0 26
+SET
+ok 30 - all docs second page has independent total
+ok 31 - snapshot specification search across all records
+ok 32 - Customer B sees only its own production
+ok 33 - typed customer filter validation
+RESET
+CREATE POLICY
+SET
+authenticated
+ok 34 - Order RLS propagates to customer child membership
+RESET
+DROP POLICY
+CREATE POLICY
+SET
+authenticated
+ok 35 - RLS update denial aborts archive
+
+ok 36 - uid required
+RESET
+ok 37 - anon denied
+ok 38 - anon archive denied
+ok 39 - history invoker
+1..39
+ROLLBACK

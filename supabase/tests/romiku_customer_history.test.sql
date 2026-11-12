@@ -11,17 +11,47 @@ set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
 insert into romiku_formal_customers(id,name) select id,k from history_ids where k in ('a','b');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,counterparty_snapshot) select id,'{"name":"Historical Buyer"}' from history_ids where k='q';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id,source_quote_id,counterparty_snapshot) select id,(select id from history_ids where k='q'),'{"name":"Historical Buyer"}' from history_ids where k='pi';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,formal_customer_id,source_quote_id,source_pi_id,currency,status,counterparty_snapshot)
  select id,(select id from history_ids where k=case when h.k='ob' then 'b' else 'a' end),case when k='o1' then (select id from history_ids where k='q') end,case when k='o1' then (select id from history_ids where k='pi') end,case when k='o2' then 'EUR' else 'USD' end,'confirmed','{"name":"Historical Buyer"}' from history_ids h where k in ('o1','o2','o3','ob');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity,unit_price,product_snapshot) select id,(select id from history_ids where k=case when h.k='ib' then 'ob' else 'o1' end),'SUN5',100,2,'{"name":"Historical Lamp","specification":"SpecABC"}' from history_ids h where k in ('i1','ib');
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id) select id,(select id from history_ids where k=case when h.k='pb' then 'ob' else 'o1' end) from history_ids h where k in ('p1','p2','p3','pb');
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select id,(select id from history_ids where k=case when h.k='pb' then 'ob' else 'o1' end),(select id from history_ids where k=case when h.k='pb' then 'ib' else 'i1' end),case when k in ('p2','p3') then 'OTHER' else 'SUN5' end,10 from history_ids h where k in ('p1','p2','p3','pb');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(id,order_id,buyer_snapshot) select id,case when k='pl' then (select id from history_ids where k='o1') end,'{"name":"Historical Buyer"}' from history_ids where k in ('pl','independent');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity,cartons,qty_per_carton) values ((select id from history_ids where k='pl'),(select id from history_ids where k='o1'),(select id from history_ids where k='i1'),'SUN5',10,1,10);
+SET LOCAL ROLE authenticated;
+
 insert into romiku_payments(order_id,kind,amount,received_at) values ((select id from history_ids where k='o1'),'deposit',50,now());
-create temporary table history_saved as select id,to_jsonb(o)-'formal_customer_id'-'updated_at'-'updated_by' payload from romiku_orders o where id=(select id from history_ids where k='o1');
+create temporary table history_saved as select id,to_jsonb(o)-'formal_customer_id'-'updated_at'-'updated_by'-'revision' payload from romiku_orders o where id=(select id from history_ids where k='o1');
 select is((romiku_customer_business_history((select id from history_ids where k='a'))->>'total_count')::int,3,'multiple Orders count');
 select is(jsonb_array_length(romiku_customer_business_history((select id from history_ids where k='a'),1,1)->'orders'),1,'Order pagination');
 select is((romiku_customer_business_history((select id from history_ids where k='a'),10,0,'SUN5')->>'total_count')::int,1,'search scopes to customer and groups Order once');
@@ -38,7 +68,7 @@ select is(jsonb_array_length((select plan->'documents' from archive_preview)),3,
 select is(romiku_confirm_customer_archive((select id from history_ids where k='o1'),(select id from history_ids where k='a'),true,(select plan->>'token' from archive_preview))->>'ok','true','confirmed archive succeeds');
 select is((select formal_customer_id from romiku_quotes where id=(select id from history_ids where k='q')),(select id from history_ids where k='a'),'Quote relationship linked');
 select is((select formal_customer_id from romiku_pis where id=(select id from history_ids where k='pi')),(select id from history_ids where k='a'),'PI relationship linked');
-select is((select to_jsonb(o)-'formal_customer_id'-'updated_at'-'updated_by' from romiku_orders o where id=(select id from history_ids where k='o1')),(select payload from history_saved),'archive preserves all Order saved fields');
+select is((select to_jsonb(o)-'formal_customer_id'-'updated_at'-'updated_by'-'revision' from romiku_orders o where id=(select id from history_ids where k='o1')),(select payload from history_saved),'archive preserves all Order saved fields');
 select is((select counterparty_snapshot->>'name' from romiku_quotes where id=(select id from history_ids where k='q')),'Historical Buyer','Quote snapshot preserved');
 select throws_ok($$select romiku_confirm_customer_archive((select id from history_ids where k='o1'),(select id from history_ids where k='a'),true,(select plan->>'token' from archive_preview))$$,'40001',null,'stale confirmation rejected');
 select throws_ok($$select romiku_confirm_customer_archive((select id from history_ids where k='o1'),(select id from history_ids where k='b'),true,romiku_customer_archive_plan((select id from history_ids where k='o1'))->>'token')$$,'23514',null,'cross-customer reassignment rejected');
@@ -46,18 +76,38 @@ update romiku_formal_customers set name='New Customer Name' where id=(select id 
 select is((select counterparty_snapshot->>'name' from romiku_orders where id=(select id from history_ids where k='o1')),'Historical Buyer','customer rename never rewrites snapshots');
 -- Additional provenance, paging, isolation and rollback contracts.
 insert into history_ids(k) values ('qo'),('neworder'),('cancelled'),('newpi');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,source_quote_id,formal_customer_id,status) select id,(select id from history_ids where k='q'),(select id from history_ids where k='a'),'confirmed' from history_ids where k='qo';
+SET LOCAL ROLE authenticated;
+
 select is((select x->'source_pi' from jsonb_array_elements(romiku_customer_business_history((select id from history_ids where k='a'))->'orders') x where x->>'id'=(select id::text from history_ids where k='qo')),'null'::jsonb,'Quote-direct Order has no PI');
 select is((romiku_customer_documents((select id from history_ids where k='a'),'quote')->>'total_count')::int,1,'shared Quote deduplicates across Orders');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,status,currency,freight,formal_customer_id) select id,'cancelled','USD',999,(select id from history_ids where k='a') from history_ids where k='cancelled';
+SET LOCAL ROLE authenticated;
+
 select is((select (x->>'amount')::numeric from jsonb_array_elements(romiku_customer_business_history((select id from history_ids where k='a'))#>'{summary,totals}') x where x->>'currency'='USD'),200::numeric,'cancelled excluded from currency totals');
 select is(jsonb_array_length(romiku_customer_business_history((select id from history_ids where k='a'))#>'{summary,totals}'),2,'currencies stay separate');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,notes) select id,'Never overwrite notes' from history_ids where k='neworder';
+SET LOCAL ROLE authenticated;
+
 select is(romiku_confirm_customer_archive((select id from history_ids where k='neworder'),null,false,romiku_customer_archive_plan((select id from history_ids where k='neworder'))->>'token','Explicit New Customer')->>'ok','true','explicit new customer and Order attachment atomic');
 select is((select notes from romiku_orders where id=(select id from history_ids where k='neworder')),'Never overwrite notes','new customer preserves saved Order');
 select throws_ok($$select romiku_confirm_customer_archive((select id from history_ids where k='o1'),null,true,romiku_customer_archive_plan((select id from history_ids where k='o1'))->>'token','Must Roll Back')$$,'23514',null,'new customer rolled back on source conflict');
 select is((select count(*)::int from romiku_formal_customers where name='Must Roll Back'),0,'failed archive creates no customer');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(formal_customer_id,status,notes) select (select id from history_ids where k='a'),'confirmed','Page fixture '||n from generate_series(1,26) n;
+SET LOCAL ROLE authenticated;
+
 select is((romiku_customer_documents((select id from history_ids where k='a'),'order',25,25)->>'has_more')::boolean,false,'all docs second page has independent total');
 select is((romiku_customer_documents((select id from history_ids where k='a'),'order',25,0,'SpecABC')->>'total_count')::int,1,'snapshot specification search across all records');
 select is((romiku_customer_documents((select id from history_ids where k='b'),'production',25,0,'SUN5')->>'total_count')::int,1,'Customer B sees only its own production');

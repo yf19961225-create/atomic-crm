@@ -1,0 +1,279 @@
+BEGIN
+CREATE EXTENSION
+SET
+DELETE 0
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+TRUNCATE TABLE
+ok 1 - ROMIKU inbound is independent
+ok 2 - ROMIKU outbound is independent
+ok 3 - ROMIKU customers are independent
+INSERT 0 2
+SET
+authenticated
+10000000-0000-0000-0000-000000000001
+INSERT 0 1
+ok 4 - business owner defaults to actor
+ok 5 - created audit actor
+10000000-0000-0000-0000-000000000002
+ok 6 - second authenticated user has shared read
+UPDATE 1
+ok 7 - shared update audits actual second user
+ok 8 - creator cannot be spoofed by update
+INSERT 0 1
+INSERT 0 2
+ok 9 - inquiry starts unassigned
+ok 10 - inbound and outbound never create a customer
+ok 11 - inbound never creates outbound
+ok 12 - original inquiry quantity protected
+ok 13 - raw website payload protected
+ok 14 - enrichment may update independently
+CREATE TABLE
+INSERT 0 1
+ok 15 - only confirmed inquiry items copied
+ok 16 - requirement copied
+ok 17 - new Quote owns the fixed Seller snapshot
+ok 18 - Quote FX is disabled by default
+ok 19 - Quote FX rate defaults to null
+ok 20 - Quote accepts a positive USD/CNY rate
+ok 21 - Quote rejects a zero USD/CNY rate
+ok 22 - Quote item accepts a nonnegative source CNY price
+ok 23 - Quote item rejects a negative source CNY price
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 24 - total = 480 + 20 + 15 - 10
+ok 25 - quote changes never rewrite inquiry
+ok 26 - conversion does not advance inquiry status
+ok 27 - Quote number uses the Shanghai business date and its own daily counter
+ok 28 - Quote number changes blocked
+ok 29 - original Quote number persists
+ok 30 - clients cannot choose document numbers
+ok 31 - invalid selection fails atomically
+ok 32 - failed conversion leaves no partial document
+ok 33 - Quote document language defaults safely
+RESET
+UPDATE 1
+SET
+ok 34 - only stable document language values are accepted
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ok 35 - new PI uses its PI-prefixed Shanghai daily counter
+ok 36 - Order uses an independent Shanghai daily counter
+ok 37 - Order daily sequence increments independently
+RESET
+UPDATE 1
+SET
+10000000-0000-0000-0000-000000000002
+RESET
+INSERT 0 1
+SET
+ok 38 - Order allocator skips an existing number when the counter is stale
+RESET
+ok 39 - Order counter self-heals after a stale-counter collision
+ALTER TABLE
+UPDATE 1
+ALTER TABLE
+UPDATE 1
+SET
+10000000-0000-0000-0000-000000000002
+RESET
+INSERT 0 1
+SET
+ok 40 - Order allocator advances beyond the highest existing automatic number
+ok 41 - PI financial inputs copied
+ok 42 - order financial inputs copied
+ok 43 - Quote language is copied to PI
+ok 44 - PI language is copied to Order
+ok 45 - Quote language is copied to direct Order
+RESET
+UPDATE 1
+SET
+ok 46 - PI has independent product snapshot
+RESET
+UPDATE 1
+SET
+ok 47 - order item snapshot independent from PI
+ok 48 - direct Quote to Order snapshot independent
+ok 49 - bank snapshot copied
+ok 50 - all conversions leave customer archive unchanged
+ok 51 - source quote status remains manual
+INSERT 0 2
+ok 52 - production allows an unspecified supplier
+ok 53 - unspecified Production supplier remains null
+ok 54 - unspecified supplier Production still derives P01 from its Order number
+INSERT 0 1
+ok 55 - supplier Production derives P02 after an unspecified supplier Production
+INSERT 0 1
+ok 56 - production cannot attach another order item
+UPDATE 2
+ok 57 - supplier edits never rewrite production snapshot
+INSERT 0 1
+INSERT 0 1
+ok 58 - cost history prevents supplier identity changes
+ok 59 - cost history prevents SKU identity changes
+ok 60 - cost history prevents Sanity identity changes
+ok 61 - historical cost still identifies the original product and supplier
+ok 62 - nonidentity supplier attributes remain editable
+ok 63 - active production initially consumes allocation
+UPDATE 1
+ok 64 - cancelled production no longer consumes active allocation
+ok 65 - cancellation restores the full quantity for reallocation
+INSERT 0 1
+ok 66 - next Production derives P03 after the existing P01 and P02 from the same Order
+INSERT 0 1
+ok 67 - replacement production uses the released allocation once
+ok 68 - cancelled production remains retained for history
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+ok 69 - Packing Seller snapshot defaults to an empty saved object
+ok 70 - Packing Buyer snapshot defaults to an empty saved object
+RESET
+UPDATE 1
+SET
+ok 71 - Packing Seller snapshot accepts a document-only saved value
+ok 72 - Packing Buyer snapshot accepts a document-only saved value
+RESET
+INSERT 0 1
+SET
+ok 73 - partial shipment leaves 140
+ok 74 - cannot exceed remaining across packing lists
+ok 75 - cannot reduce ordered quantity below already packed
+RESET
+INSERT 0 1
+SET
+ok 76 - second partial shipment uses remaining
+ok 77 - packing updates also enforce cap
+ok 78 - packing never changes order quantity
+ok 79 - CBM derived with cm to cubic metre conversion
+ok 80 - weight uses carton count
+RESET
+INSERT 0 1
+SET
+ok 81 - independent Packing defaults its saved packing date
+RESET
+INSERT 0 1
+SET
+ok 82 - independent Packing calculates CBM from its saved dimensions
+ok 83 - Packing item requires Order and Order item source together or neither
+INSERT 0 1
+ok 84 - historical payment account remains nullable
+ok 85 - historical payment reference remains nullable
+ok 86 - actual payment reduces receivable
+INSERT 0 1
+ok 87 - payment account is retained on an existing payment record
+ok 88 - payment reference is retained on an existing payment record
+ok 89 - payment metadata does not change receivable aggregation
+ok 90 - orders with payments cannot reinterpret the payment currency
+ok 91 - payment remains denominated in its original order currency
+ok 92 - unpaid order currency remains editable
+ok 93 - payment cannot move to a different order and currency
+UPDATE 1
+ok 94 - calendar derives outbound dates
+ok 95 - workbench derives overdue work
+UPDATE 1
+ok 96 - clearing source date removes calendar entry without duplicate cleanup
+ok 97 - manual task relation references a real CRM record
+ok 98 - publishing creates retained quote version
+ok 99 - first version numbered one
+RESET
+UPDATE 1
+SET
+ok 100 - published version isolated from draft edits
+ok 101 - business users cannot overwrite published versions
+ok 102 - core documents must be archived
+INSERT 0 1
+10000000-0000-0000-0000-000000000001
+ok 103 - second user can delete an ordinary shared task
+ok 104 - shared CRUD deletes task
+ok 105 - manual task has at most one real relation
+ok 106 - negative expenses rejected
+ok 107 - reverse mutation is not a conversion
+RESET
+INSERT 0 1
+SET
+ok 108 - manual Quote number does not advance the automatic counter
+RESET
+UPDATE 1
+SET
+ok 109 - changing document date does not regenerate the number
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 1
+ok 110 - Quote FX conversion copies final USD price to PI
+ok 111 - Quote FX conversion copies final USD price to Order
+ok 112 - PI item does not retain Quote source CNY price
+ok 113 - Order item does not retain Quote source CNY price
+RESET
+UPDATE 1
+SET
+ok 114 - later Quote FX edits do not reprice historical PI
+ok 115 - later Quote FX edits do not reprice historical Order
+INSERT 0 1
+INSERT 0 1
+ok 116 - authenticated directory exposes company, country and primary contact
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+UPDATE 1
+ok 117 - Formal Customer edits never rewrite Quote snapshot
+ok 118 - direct Order persists Formal Customer identity
+ok 119 - direct PI persists document language
+ok 120 - PI number changes blocked
+ok 121 - Order number changes blocked
+ok 122 - manual Production number edits are allowed
+ok 123 - manual number update is rejected
+RESET
+ok 124 - RLS enabled on every ROMIKU table
+ok 125 - all ROMIKU derived views use security invoker
+ok 126 - anon has no ROMIKU table or view grants
+ok 127 - anon has no ROMIKU function execution grants
+SET
+ok 128 - anon cannot read inbound
+ok 129 - anon cannot read derived events
+ok 130 - anon cannot invoke conversion RPC
+ok 131 - anon cannot perform intake
+RESET
+SET
+
+INSERT 0 1
+ok 132 - service-role intake stays unassigned
+ok 133 - service intake does not invent an authenticated actor
+RESET
+1..133
+ROLLBACK
+NOTICE:  truncate cascades to table "romiku_manual_tasks"
+NOTICE:  truncate cascades to table "romiku_packing_lists"
+NOTICE:  truncate cascades to table "romiku_production_orders"
+NOTICE:  truncate cascades to table "romiku_order_items"
+NOTICE:  truncate cascades to table "romiku_payments"
+NOTICE:  truncate cascades to table "romiku_pi_items"
+NOTICE:  truncate cascades to table "romiku_quote_items"
+NOTICE:  truncate cascades to table "romiku_order_collection_state"
+NOTICE:  truncate cascades to table "romiku_quote_versions"
+NOTICE:  truncate cascades to table "romiku_packing_items"
+NOTICE:  truncate cascades to table "romiku_production_items"
+NOTICE:  truncate cascades to table "romiku_production_barcodes"
+NOTICE:  truncate cascades to table "romiku_production_due_state"
+NOTICE:  truncate cascades to table "romiku_production_followups"

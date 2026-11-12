@@ -1,0 +1,60 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - atomic intake RPC exists
+SELECT 1
+SELECT 1
+GRANT
+SET
+ok 2 - anon cannot call intake
+RESET
+SET
+ok 3 - authenticated cannot call intake
+RESET
+SET
+
+SELECT 1
+ok 4 - returns generated inquiry number
+ok 5 - one submission creates one header
+ok 6 - all original items persisted separately even with duplicate SKU
+ok 7 - raw business JSON including unknown fields preserved
+ok 8 - original customer name is not normalized
+ok 9 - legacy payload needs no company
+ok 10 - untrusted owner ignored and inquiry unassigned
+ok 11 - untrusted status ignored
+ok 12 - server intake has no invented user
+ok 13 - original item requirement retained
+ok 14 - identical submission accepted again
+ok 15 - repeated submissions remain independent
+ok 16 - optional company accepted
+ok 17 - company source text preserved
+ok 18 - never creates Outbound
+ok 19 - never creates Formal Customer
+ok 20 - never creates Quote
+ok 21 - raw payload remains immutable
+ok 22 - original items remain immutable
+ok 23 - SQL null rejected
+ok 24 - array payload rejected
+ok 25 - missing required field rejected
+ok 26 - whitespace-only identity rejected by RPC
+ok 27 - whitespace-only SKU rejected by RPC
+ok 28 - invalid email rejected
+ok 29 - nonstring company rejected
+ok 30 - empty item list rejected
+ok 31 - zero quantity rejected
+ok 32 - quantity cannot silently round
+ok 33 - quantity overflow rejected
+ok 34 - string quantity rejected
+ok 35 - blank SKU rejected
+ok 36 - requirement must be a string
+ok 37 - invalid submissions leave no headers
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+ok 38 - late item failure propagates
+ok 39 - late failure rolls header back
+ok 40 - late failure rolls all earlier items back
+RESET
+1..40
+ROLLBACK

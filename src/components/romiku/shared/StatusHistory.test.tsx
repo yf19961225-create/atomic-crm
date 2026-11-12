@@ -1,3 +1,4 @@
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
 import { QueryClient } from "@tanstack/react-query";
 import { CoreAdminContext } from "ra-core";
 import fakeRestDataProvider from "ra-data-fakerest";
@@ -42,7 +43,12 @@ function context(
   return (
     <CoreAdminContext
       queryClient={queryClient}
-      dataProvider={fakeRestDataProvider({})}
+      dataProvider={fakeRestDataProvider({
+        romiku_quote_items: [],
+        romiku_pi_items: [],
+        romiku_order_items: [],
+        romiku_packing_items: [],
+      })}
     >
       {children}
     </CoreAdminContext>
@@ -138,16 +144,22 @@ it("uses resource-specific labels and generic readable fallback when actor canno
     .toBeVisible();
 });
 it("refreshes open history after a single status mutation and resets displayed duration", async () => {
-  const provider = fakeRestDataProvider({
-    romiku_quotes: [{ id: "q", status: "pending_quote" }],
-  });
-  vi.spyOn(provider, "update").mockImplementation(async () => ({
-    data: {
-      id: "q",
-      status: "quoted",
-      status_changed_at: new Date().toISOString(),
-    },
-  }));
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_quote_items: [],
+      romiku_pi_items: [],
+      romiku_order_items: [],
+      romiku_packing_items: [],
+      romiku_quotes: [{ id: "q", status: "pending_quote" }],
+    }),
+  );
+  const baseUpdate = provider.update.bind(provider);
+  vi.spyOn(provider, "update").mockImplementation(async (resource, params) =>
+    baseUpdate(resource, {
+      ...params,
+      data: { ...params.data, status_changed_at: new Date().toISOString() },
+    }),
+  );
   const cache = new QueryClient();
   rpc
     .mockResolvedValueOnce({

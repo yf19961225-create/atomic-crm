@@ -1,5 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import fakeRestDataProvider from "ra-data-fakerest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import rawFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider = (
+  ...args: Parameters<typeof rawFakeRestDataProvider>
+) => withAtomicDocuments(rawFakeRestDataProvider(...args));
 import {
   calculateQuoteUsdUnitPrice,
   createQuote,
@@ -46,31 +50,45 @@ describe("Quote snapshot boundaries", () => {
       }),
     ).toThrow("人民币单价");
   });
-  it("sends only confirmed distinct item IDs to the server snapshot RPC", async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: "q-1", error: null });
-    expect(await quoteFromInquiry({ rpc }, "in-1", ["i-2", "i-1"])).toBe("q-1");
-    expect(rpc).toHaveBeenCalledWith("romiku_quote_from_inquiry", {
-      inquiry_id: "in-1",
-      selected_item_ids: ["i-2", "i-1"],
-    });
-    await expect(quoteFromInquiry({ rpc }, "in-1", [])).rejects.toThrow("选择");
+  it("sends confirmed distinct item IDs through the durable source boundary", async () => {
+    const provider = fakeRestDataProvider({});
+    const create = vi.fn().mockResolvedValue({ document_id: "q-1" });
+    provider.documentCreateFromSource = create;
+    expect(await quoteFromInquiry(provider, "in-1", ["i-2", "i-1"])).toBe(
+      "q-1",
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceKind: "inquiry",
+        sourceId: "in-1",
+        targetKind: "quote",
+        selectedItemIds: ["i-2", "i-1"],
+        requestId: expect.any(String),
+      }),
+    );
+    await expect(quoteFromInquiry(provider, "in-1", [])).rejects.toThrow(
+      "选择",
+    );
     await expect(
-      quoteFromInquiry({ rpc }, "in-1", ["i-1", "i-1"]),
+      quoteFromInquiry(provider, "in-1", ["i-1", "i-1"]),
     ).rejects.toThrow("不重复");
-    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(1);
   });
-  it("surfaces snapshot failures without returning a phantom Quote", async () => {
-    const rpc = vi.fn().mockResolvedValue({
-      data: null,
-      error: { message: "Permission denied" },
-    });
-    await expect(quoteFromInquiry({ rpc }, "in-1", ["i-1"])).rejects.toThrow(
+  it("surfaces source rejection without returning a phantom Quote", async () => {
+    const provider = fakeRestDataProvider({});
+    provider.documentCreateFromSource = vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error("Permission denied"), { code: "42501" }),
+      );
+    await expect(quoteFromInquiry(provider, "in-1", ["i-1"])).rejects.toThrow(
       "Permission denied",
     );
   });
   it("creates independent direct, outbound and customer quotes without creating customers or changing sources", async () => {
     const provider = fakeRestDataProvider({
       romiku_quotes: [],
+      romiku_quote_items: [],
       romiku_outbound_companies: [
         { id: "o", name: "Prospect", country: "DE", status: "replied" },
       ],
@@ -231,3 +249,5 @@ it("keeps unrelated contact snapshots unchanged when saving headers", () => {
   expect(sourceBuyer.contact_name).toBe("Anna");
   expect(values.counterparty_snapshot.contact_name).toBe("Anna");
 });
+
+beforeEach(() => sessionStorage.clear());

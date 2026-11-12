@@ -1,0 +1,43 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+                      ok                       
+-----------------------------------------------
+ ok 1 - anon cannot call production delete RPC
+(1 row)
+
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 2 - production delete requires user
+(1 row)
+
+              set_config              
+--------------------------------------
+ de300000-0000-0000-0000-000000000001
+(1 row)
+
+                               is                               
+----------------------------------------------------------------
+ ok 3 - production kind is supported and missing record is safe
+(1 row)
+
+                           throws_ok                           
+---------------------------------------------------------------
+ ok 4 - authenticated cannot directly delete production header
+(1 row)
+
+CREATE TABLE
+INSERT 0 4
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

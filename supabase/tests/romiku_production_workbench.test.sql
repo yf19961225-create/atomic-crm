@@ -1,6 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
+\ir helpers/document_atomic.sql
 select no_plan();
 select has_function('public','romiku_save_production_workspace',array['uuid','uuid','jsonb','jsonb','jsonb'],'atomic Production workspace RPC exists');
 select has_function('public','romiku_sync_order_production_defaults',array['uuid','jsonb'],'explicit Order sync RPC exists');
@@ -16,9 +17,18 @@ create function pg_temp.ws_items(pid uuid) returns jsonb language sql as $$selec
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
+-- Historical fixture setup only, rolled back.
+reset role;
 insert into romiku_orders(id,notes) select id,'Original saved Order' from ws_ids where kind in ('order','other');
+set local role authenticated;
+-- Historical fixture setup only, rolled back.
+reset role;
 insert into romiku_order_items(id,order_id,sku,quantity,product_snapshot,packing_snapshot) select i.id,o.id,'SUN5',100,'{"name":"Saved lamp","unit":"PCS","specification":"Original"}','{"cartons":2,"material":"Paper"}' from ws_ids i cross join ws_ids o where i.kind='source' and o.kind='order';
+set local role authenticated;
+-- Historical fixture setup only, rolled back.
+reset role;
 insert into romiku_order_items(id,order_id,sku,quantity) select i.id,o.id,'OTHER',100 from ws_ids i cross join ws_ids o where i.kind='foreign' and o.kind='other';
+set local role authenticated;
 insert into ws_result select romiku_save_production_workspace(null,o.id,'{}',jsonb_build_array(jsonb_build_object('source_order_item_id',s.id,'quantity',30,'product_snapshot','{}'::jsonb,'packaging_snapshot','{}'::jsonb)),jsonb_build_object('order_updated_at',o.updated_at)) from romiku_orders o cross join ws_ids s where o.id=(select id from ws_ids where kind='order') and s.kind='source';
 select is((select value->>'ok' from ws_result),'true','atomic create succeeds');
 insert into ws_ids select 'production',(value->>'id')::uuid from ws_result;
@@ -41,7 +51,7 @@ truncate ws_result;
 insert into ws_result select romiku_sync_order_production_defaults((select id from ws_ids where kind='order'));
 select is((select jsonb_array_length(value->'productions') from ws_result),1,'preview excludes archived completed received cancelled');
 select is((select marking_snapshot#>>'{small_label,text}' from romiku_production_orders where id=(select id from ws_ids where kind='production')),'Made in China','preview does not write');
-update romiku_orders set production_defaults_snapshot=production_defaults_snapshot||'{"production_requirements":"Order new"}' where id=(select id from ws_ids where kind='order');
+select pg_temp.document_patch('order',id,jsonb_build_object('production_defaults_snapshot',production_defaults_snapshot||'{"production_requirements":"Order new"}')) from romiku_orders where id=(select id from ws_ids where kind='order');
 select is(romiku_sync_order_production_defaults((select id from ws_ids where kind='order'),(select value from ws_result))->>'ok','false','changed Order invalidates preview');
 truncate ws_result; insert into ws_result select romiku_sync_order_production_defaults((select id from ws_ids where kind='order'));
 select is(romiku_sync_order_production_defaults((select id from ws_ids where kind='order'),(select value from ws_result))->>'ok','true','confirmed sync succeeds');

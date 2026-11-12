@@ -2,6 +2,14 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
 select no_plan();
+-- Test convenience only: SECURITY INVOKER preserves authenticated RPC/permission checks.
+create function pg_temp.save_order(doc uuid, header jsonb default '{}', items jsonb default null) returns jsonb language sql as $$
+ select public.romiku_save_document('order',doc,coalesce((select revision from public.romiku_orders where id=doc),0),gen_random_uuid(),header,items)
+$$;
+create function pg_temp.order_lines(doc uuid) returns jsonb language sql as $$
+ select coalesce(jsonb_agg(jsonb_build_object('id',id,'sku',sku,'quantity',quantity,'unit_price',unit_price) order by id),'[]') from public.romiku_order_items where order_id=doc
+$$;
+
 select has_table('public','romiku_workbench_refresh','minimal refresh tokens exist');
 select columns_are('public','romiku_workbench_refresh',array['order_id','revision'],'no financial/customer payload columns');
 
@@ -15,7 +23,7 @@ insert into sales(user_id,email,administrator,disabled) values
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','ef050000-0000-0000-0000-000000000001',true);
-insert into romiku_orders(id,status,freight,currency) values('ef051000-0000-0000-0000-000000000001','confirmed',10000,'CNY');
+select pg_temp.save_order('ef051000-0000-0000-0000-000000000001','{"status":"confirmed","freight":10000,"currency":"CNY"}');
 select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),1::bigint,'new order emits token');
 insert into romiku_payments(id,order_id,kind,amount) values('ef052000-0000-0000-0000-000000000001','ef051000-0000-0000-0000-000000000001','deposit',2913);
 select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),2::bigint,'receipt insert emits without deposit override');
@@ -29,11 +37,11 @@ rollback to receipt;
 select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),3::bigint,'rollback removes token increment');
 select throws_ok($$update romiku_payments set amount=-1 where id='ef052000-0000-0000-0000-000000000001'$$,null,null,'invalid receipt rejected');
 select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),3::bigint,'rejected write emits nothing');
-update romiku_orders set freight=10001 where id='ef051000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ef051000-0000-0000-0000-000000000001','{"freight":10001}');
 select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),4::bigint,'order total update emits');
-insert into romiku_order_items(id,order_id,sku,quantity,unit_price) values('ef053000-0000-0000-0000-000000000001','ef051000-0000-0000-0000-000000000001','QA',1,1);
-update romiku_order_items set quantity=2 where id='ef053000-0000-0000-0000-000000000001';
-delete from romiku_order_items where id='ef053000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ef051000-0000-0000-0000-000000000001','{}','[{"id":"ef053000-0000-0000-0000-000000000001","sku":"QA","quantity":1,"unit_price":1}]');
+select pg_temp.save_order('ef051000-0000-0000-0000-000000000001','{}',(select jsonb_agg(x||'{"quantity":2}'::jsonb) from jsonb_array_elements(pg_temp.order_lines('ef051000-0000-0000-0000-000000000001')) x));
+select pg_temp.save_order('ef051000-0000-0000-0000-000000000001','{}','[]');
 select is((select revision from romiku_workbench_refresh where order_id='ef051000-0000-0000-0000-000000000001'),7::bigint,'item insert/update/delete emit');
 savepoint payment_lifecycle;
 update romiku_payments set notes='QA correction' where id='ef052000-0000-0000-0000-000000000001';

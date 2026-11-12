@@ -1,0 +1,101 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+ok 1 - Order has independent production defaults
+ok 2 - Item has independent override
+INSERT 0 1
+CREATE TABLE
+INSERT 0 9
+GRANT
+SET
+authenticated
+de500000-0000-0000-0000-000000000001
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+ok 3 - new Order copies customer defaults
+ok 4 - initialization is explicit
+UPDATE 1
+ok 5 - customer edits do not mutate saved Order
+ok 6 - old asset reference stays stable
+RESET
+INSERT 0 1
+SET
+ok 7 - legacy builder uses saved fields only
+RESET
+INSERT 0 1
+SET
+INSERT 0 2
+INSERT 0 2
+ok 8 - items default to compact inherit
+ok 9 - authenticated batch add succeeds
+ok 10 - adding to inherit becomes append
+ok 11 - cross-production batch rejected atomically
+ok 12 - rejected batch leaves valid item unchanged
+ok 13 - replace saved
+ok 14 - add works on replace
+ok 15 - batch add does not reintroduce common labels for replace
+ok 16 - both custom labels retained
+RESET
+UPDATE 1
+SET
+ok 17 - Order update does not auto-sync Production
+ok 18 - explicit reload copies saved Order
+ok 19 - reload preserves item override
+ok 20 - reload does not modify sibling Production
+RESET
+UPDATE 1
+SET
+ok 21 - explicit clear is not auto-filled
+ok 22 - invalid mode rejected
+ok 23 - action whitelist enforced
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 24 - converted Order initialized at creation
+RESET
+ok 25 - batch RPC is SECURITY INVOKER
+ok 26 - reload RPC is SECURITY INVOKER
+ok 27 - anon cannot batch write
+ok 28 - anon cannot reload
+ok 29 - missing schema version cannot masquerade as initialized
+ok 30 - foreign bucket rejected
+ok 31 - non-array labels rejected
+ok 32 - inherit discards inactive overrides
+ok 33 - inherit remains a reference, not copied labels
+
+ok 34 - authenticated role without uid cannot reload
+ok 35 - authenticated role without uid cannot batch edit
+de500000-0000-0000-0000-000000000001
+INSERT 0 1
+INSERT 0 1
+RESET
+CREATE POLICY
+SET
+authenticated
+ok 36 - RLS denies the whole batch before writes
+ok 37 - permitted row update also rolled back
+RESET
+DROP POLICY
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 38 - late write failure aborts batch
+ok 39 - late failure leaves no partially written labels
+RESET
+DROP TRIGGER
+CREATE POLICY
+SET
+authenticated
+ok 40 - reload respects source Order RLS
+RESET
+DROP POLICY
+1..40
+ROLLBACK

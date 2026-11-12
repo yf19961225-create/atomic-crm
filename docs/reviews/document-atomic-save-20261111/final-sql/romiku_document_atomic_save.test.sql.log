@@ -1,0 +1,56 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - atomic save RPC exists
+INSERT 0 1
+CREATE FUNCTION
+SET
+SET
+SET
+ok 2 - quote creates complete header and items
+ok 3 - quote durable identical retry
+ok 4 - quote lost-response lookup
+ok 5 - quote same UUID changed payload rejected
+ok 6 - quote stale revision rejected
+ok 7 - quote header-only patch preserves items
+ok 8 - quote coherent snapshot matches commit
+ok 9 - quote legacy header blocked
+ok 10 - quote legacy items blocked
+ok 11 - quote invalid line rejects transaction
+ok 12 - quote invalid line rolls header/items/revision back
+ok 13 - pi creates complete header and items
+ok 14 - pi durable identical retry
+ok 15 - pi lost-response lookup
+ok 16 - pi same UUID changed payload rejected
+ok 17 - pi stale revision rejected
+ok 18 - pi header-only patch preserves items
+ok 19 - pi coherent snapshot matches commit
+ok 20 - pi legacy header blocked
+ok 21 - pi legacy items blocked
+ok 22 - pi invalid line rejects transaction
+ok 23 - pi invalid line rolls header/items/revision back
+ok 24 - order creates complete header and items
+ok 25 - order durable identical retry
+ok 26 - order lost-response lookup
+ok 27 - order same UUID changed payload rejected
+ok 28 - order stale revision rejected
+ok 29 - order header-only patch preserves items
+ok 30 - order coherent snapshot matches commit
+ok 31 - order legacy header blocked
+ok 32 - order legacy items blocked
+ok 33 - order invalid line rejects transaction
+ok 34 - order invalid line rolls header/items/revision back
+ok 35 - packing creates complete header and items
+ok 36 - packing durable identical retry
+ok 37 - packing lost-response lookup
+ok 38 - packing same UUID changed payload rejected
+ok 39 - packing stale revision rejected
+ok 40 - packing header-only patch preserves items
+ok 41 - packing coherent snapshot matches commit
+ok 42 - packing legacy header blocked
+ok 43 - packing legacy items blocked
+ok 44 - packing invalid line rejects transaction
+ok 45 - packing invalid line rolls header/items/revision back
+RESET
+1..45
+ROLLBACK

@@ -1,0 +1,15 @@
+{
+  "count": 8,
+  "same_failure_names": true,
+  "failures": [
+    ".claude/hooks/test/check-config-sync.test.mjs > check-config-sync > a matcher token missing from config.roles \u2192 exit 1",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > a TS-only change (no schema file) is NOT deploy-relevant (unified definition)",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > empty and exit 0 when NO session topology exists at all (hooks never ran)",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > empty when session branch made no deploy-relevant change",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > exits 3 (could not decide) when --session is missing",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > fails loudly (exit 3 + stderr) on SESSION_SHORT_ID mismatch",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > no config.deploy -> exit 0 empty (deploy phase not configured)",
+    ".claude/scripts/test/pending-deploys.test.mjs > pending-deploys > non-empty when the session branch changes the declarative schema"
+  ],
+  "baseline_source": "/Users/romiku/Documents/ChatGPT/ROMIKU CRM 2.0/system-health-20261111/evidence/baseline-eight-tools.log"
+}

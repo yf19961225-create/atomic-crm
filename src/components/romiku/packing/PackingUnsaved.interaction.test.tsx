@@ -1,8 +1,11 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { useState } from "react";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import baseFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider: typeof baseFakeRestDataProvider = (...args) =>
+  withAtomicDocuments(baseFakeRestDataProvider(...args));
 import { MemoryRouter, Routes, Route } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { FulfillmentDetail } from "../production/FulfillmentPages";
@@ -56,7 +59,7 @@ it("quantity repair is saveable but clean; canonical edits survive refetch and r
     return (
       <CoreAdminContext dataProvider={fakeRestDataProvider({})}>
         <PackingItemsGrid
-          parent={{ id: "packing", order_id: "order" }}
+          parent={{ id: "packing", revision: 1, order_id: "order" }}
           items={items}
           onSaved={async () => {}}
         />
@@ -140,7 +143,14 @@ it("opening a production item editor is clean and field edits/reverts are canoni
 
 it("packing header ignores metadata refetch, preserves edits, and clears after save", async () => {
   const provider = fakeRestDataProvider({
-    romiku_packing_lists: [{ id: "packing", name: "Original", notes: null, packing_at:"2026-10-26T00:00:00.000Z" }],
+    romiku_packing_lists: [
+      {
+        id: "packing",
+        name: "Original",
+        notes: null,
+        packing_at: "2026-10-26T00:00:00.000Z",
+      },
+    ],
     romiku_packing_items: [],
     romiku_status_history: [],
   });
@@ -217,4 +227,61 @@ it("packing header ignores metadata refetch, preserves edits, and clears after s
   await expect
     .element(screen.getByLabelText("draft-status"))
     .toHaveTextContent("clean");
+});
+
+it("Packing header recovery preserves B after its submit is rejected while A is unresolved", async () => {
+  sessionStorage.clear();
+  const provider = fakeRestDataProvider({
+    romiku_packing_lists: [
+      {
+        id: "packing-recover",
+        revision: 1,
+        name: "Original",
+        notes: null,
+        packing_at: "2026-10-26T00:00:00.000Z",
+      },
+    ],
+    romiku_packing_items: [],
+    romiku_status_history: [],
+  });
+  const save = provider.documentSave.bind(provider),
+    lookup = provider.documentSaveResult.bind(provider);
+  vi.spyOn(provider, "documentSave").mockImplementationOnce(async (args) => {
+    await save(args);
+    throw new TypeError("response lost");
+  });
+  const resultLookup = vi
+    .spyOn(provider, "documentSaveResult")
+    .mockResolvedValue(null);
+  const screen = await render(
+    <MemoryRouter initialEntries={["/packing/packing-recover"]}>
+      <CoreAdminContext dataProvider={provider}>
+        <Routes>
+          <Route
+            path="/packing/:id"
+            element={<FulfillmentDetail kind="packing" />}
+          />
+        </Routes>
+      </CoreAdminContext>
+    </MemoryRouter>,
+  );
+  await screen.getByText("装箱单详情", { exact: true }).click();
+  await screen.getByLabelText("装箱名称").fill("A");
+  await screen.getByRole("button", { name: "保存装箱单", exact: true }).click();
+  await expect.element(screen.getByRole("alert")).toHaveTextContent("尚未确认");
+  await screen.getByLabelText("装箱名称").fill("B");
+  await screen.getByRole("button", { name: "保存装箱单", exact: true }).click();
+  await expect
+    .element(screen.getByRole("alert"))
+    .toHaveTextContent("原保存结果");
+  resultLookup.mockImplementation(lookup);
+  await screen
+    .getByRole("button", { name: "查询原保存结果", exact: true })
+    .click();
+  await expect.element(screen.getByLabelText("装箱名称")).toHaveValue("B");
+  expect(provider.documentSave).toHaveBeenCalledTimes(1);
+  expect(
+    (await provider.getOne("romiku_packing_lists", { id: "packing-recover" }))
+      .data.name,
+  ).toBe("A");
 });

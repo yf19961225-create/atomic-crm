@@ -16,9 +16,24 @@ create function pg_temp.ws_items(pid uuid) returns jsonb language sql as $$selec
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de600000-0000-0000-0000-000000000001',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,notes) select id,'Original saved Order' from ws_ids where kind in ('order','other');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity,product_snapshot,packing_snapshot) select i.id,o.id,'SUN5',100,'{"name":"Saved lamp","unit":"PCS","specification":"Original"}','{"cartons":2,"material":"Paper"}' from ws_ids i cross join ws_ids o where i.kind='source' and o.kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select i.id,o.id,'OTHER',100 from ws_ids i cross join ws_ids o where i.kind='foreign' and o.kind='other';
+SET LOCAL ROLE authenticated;
+
 insert into ws_result select romiku_save_production_workspace(null,o.id,'{}',jsonb_build_array(jsonb_build_object('source_order_item_id',s.id,'quantity',30,'product_snapshot','{}'::jsonb,'packaging_snapshot','{}'::jsonb)),jsonb_build_object('order_updated_at',o.updated_at)) from romiku_orders o cross join ws_ids s where o.id=(select id from ws_ids where kind='order') and s.kind='source';
 select is((select value->>'ok' from ws_result),'true','atomic create succeeds');
 insert into ws_ids select 'production',(value->>'id')::uuid from ws_result;
@@ -41,7 +56,12 @@ select throws_ok($$insert into romiku_production_barcodes(barcode_number,sku,sou
 select lives_ok($$update romiku_production_items set barcode_number='0123456789012' where production_order_id=(select id from ws_ids where kind='production')$$,'same product allowed same code');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{}',jsonb_set(pg_temp.ws_items(p.id),'{0,barcode_number}','" "'),pg_temp.ws_expected(p.id))->>'ok','true','explicit clear saves') from romiku_production_orders p where id=(select id from ws_ids where kind='production');
 select is((select barcode_number from romiku_production_items where production_order_id=(select id from ws_ids where kind='production')),null::text,'empty stored as null');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_order_items set sku='RENAMED SUN5' where id=(select id from ws_ids where kind='source');
+SET LOCAL ROLE authenticated;
+
 truncate ws_result;insert into ws_result select romiku_production_barcode(i.source_order_item_id,true,i.id) from romiku_production_items i where production_order_id=(select id from ws_ids where kind='production');
 select is((select value#>>'{candidates,0}' from ws_result),'0123456789012','renamed live Order SKU still proposes saved Production identity');
 select is(romiku_save_production_workspace(p.id,p.order_id,'{}',jsonb_set(pg_temp.ws_items(p.id),'{0,barcode_number}',(select value#>'{candidates,0}' from ws_result)),pg_temp.ws_expected(p.id))->>'ok','true','saved Production SKU can still save generated or reused code after Order rename') from romiku_production_orders p where id=(select id from ws_ids where kind='production');

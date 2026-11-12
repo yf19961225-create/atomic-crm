@@ -1,3 +1,4 @@
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
 import { RomikuWorkbench } from "../workbench/RomikuWorkbench";
 import { actionResources } from "../workbench/actions";
 import { expect, it, vi, beforeEach } from "vitest";
@@ -42,28 +43,30 @@ const cases = [
   ["outbound", "/outbound-development", "romiku_outbound_companies"],
 ] as const;
 async function setup(path: string, resource: string, count = 1) {
-  const provider = fakeRestDataProvider({
-    [resource]: Array.from({ length: count }, (_, i) => ({
-      id: String(i + 1),
-      order_id: "parent-qa",
-      document_number: `DELETE-${i + 1}`,
-      name: `DELETE-${i + 1}`,
-      status: "pending_quote",
-      currency: "USD",
-      total: 0,
-      created_at: String(i).padStart(3, "0"),
-    })),
-    romiku_orders: [
-      {
-        id: "parent-qa",
-        document_number: "ORDER-QA",
-        expected_delivery_at: null,
-      },
-    ],
-    sales: [],
-    romiku_outbound_contacts: [],
-    romiku_outbound_followups: [],
-  });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      [resource]: Array.from({ length: count }, (_, i) => ({
+        id: String(i + 1),
+        order_id: "parent-qa",
+        document_number: `DELETE-${i + 1}`,
+        name: `DELETE-${i + 1}`,
+        status: "pending_quote",
+        currency: "USD",
+        total: 0,
+        created_at: String(i).padStart(3, "0"),
+      })),
+      romiku_orders: [
+        {
+          id: "parent-qa",
+          document_number: "ORDER-QA",
+          expected_delivery_at: null,
+        },
+      ],
+      sales: [],
+      romiku_outbound_contacts: [],
+      romiku_outbound_followups: [],
+    }),
+  );
   const aggregate = async () => {
     const records = (
       await provider.getList(resource, {
@@ -314,32 +317,34 @@ for (const [kind, path, resource, items] of [
   ["manual_task", "/calendar/tasks", "romiku_manual_tasks", "unused_items"],
 ] as const)
   it(`${kind} detail deletes and returns to its list`, async () => {
-    const provider = fakeRestDataProvider({
-      romiku_orders: [
-        {
-          id: "parent-order",
-          document_number: "OD-PARENT",
-          counterparty_snapshot: {},
-        },
-      ],
-      romiku_production_orders: [],
-      [resource]: [
-        {
-          id: "x",
-          order_id: kind === "production" ? "parent-order" : null,
-          document_number: "DETAIL-X",
-          title: "DETAIL-X",
-          status: "pending_quote",
-          currency: "USD",
-          counterparty_snapshot: {},
-          terms_snapshot: {},
-          bank_snapshot: {},
-        },
-      ],
-      [items]: [],
-      sales: [],
-      romiku_payments: [],
-    });
+    const provider = withAtomicDocuments(
+      fakeRestDataProvider({
+        romiku_orders: [
+          {
+            id: "parent-order",
+            document_number: "OD-PARENT",
+            counterparty_snapshot: {},
+          },
+        ],
+        romiku_production_orders: [],
+        [resource]: [
+          {
+            id: "x",
+            order_id: kind === "production" ? "parent-order" : null,
+            document_number: "DETAIL-X",
+            title: "DETAIL-X",
+            status: "pending_quote",
+            currency: "USD",
+            counterparty_snapshot: {},
+            terms_snapshot: {},
+            bank_snapshot: {},
+          },
+        ],
+        [items]: [],
+        sales: [],
+        romiku_payments: [],
+      }),
+    );
     rpc.mockImplementation(async (name, args) => {
       if (kind === "order" && name === "romiku_order_delete_preflight")
         return orderPreflight("x", "DETAIL-X");

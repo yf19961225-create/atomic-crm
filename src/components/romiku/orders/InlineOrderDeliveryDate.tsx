@@ -1,3 +1,4 @@
+import { saveDocumentHeaderPatch } from "../commercial/atomicDocumentSave";
 import { useEffect, useRef, useState } from "react";
 import { useDataProvider, type RaRecord } from "ra-core";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,12 +52,10 @@ export function InlineOrderDeliveryDate({ record }: { record: RaRecord }) {
         : [null];
       if (options.length !== 1)
         throw new Error("日期或时间不唯一，请在订单详情确认后保存。");
-      const result = await provider.update("romiku_orders", {
-        id: record.id,
-        data: { expected_delivery_at: options[0] },
-        previousData: record,
+      const result = await saveDocumentHeaderPatch(provider, "order", record, {
+        expected_delivery_at: options[0],
       });
-      const next = dayOf(result.data.expected_delivery_at);
+      const next = dayOf(result.header.expected_delivery_at);
       setSaved(next);
       setDate(next);
       await cache.invalidateQueries();

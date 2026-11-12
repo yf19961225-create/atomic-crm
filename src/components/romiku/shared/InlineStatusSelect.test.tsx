@@ -1,3 +1,4 @@
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
 import { statusOptions } from "./workflowStatus";
 import { useState } from "react";
 import { QueryClient } from "@tanstack/react-query";
@@ -8,9 +9,15 @@ import { CoreAdminContext } from "ra-core";
 import { InlineStatusSelect } from "./InlineStatusSelect";
 
 it("updates the selected status inline and reports success", async () => {
-  const provider = fakeRestDataProvider({
-    romiku_quotes: [{ id: "q1", status: "draft" }],
-  });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_quote_items: [],
+      romiku_pi_items: [],
+      romiku_order_items: [],
+      romiku_packing_items: [],
+      romiku_quotes: [{ id: "q1", status: "draft" }],
+    }),
+  );
   const screen = await render(
     <CoreAdminContext dataProvider={provider}>
       <InlineStatusSelect
@@ -34,9 +41,15 @@ it("updates the selected status inline and reports success", async () => {
 });
 
 it("shows the safe capacity error and retains cancelled status when restoration is blocked", async () => {
-  const provider = fakeRestDataProvider({
-    romiku_production_orders: [{ id: "p", status: "cancelled" }],
-  });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_quote_items: [],
+      romiku_pi_items: [],
+      romiku_order_items: [],
+      romiku_packing_items: [],
+      romiku_production_orders: [{ id: "p", status: "cancelled" }],
+    }),
+  );
   vi.spyOn(provider, "update").mockRejectedValue({
     body: {
       code: "P4201",
@@ -68,9 +81,15 @@ it("shows the safe capacity error and retains cancelled status when restoration 
 });
 
 it("refreshes its selected value when a cached list refetches a newer Production status", async () => {
-  const provider = fakeRestDataProvider({
-    romiku_production_orders: [{ id: "p", status: "pending" }],
-  });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_quote_items: [],
+      romiku_pi_items: [],
+      romiku_order_items: [],
+      romiku_packing_items: [],
+      romiku_production_orders: [{ id: "p", status: "pending" }],
+    }),
+  );
   function RefetchedRow() {
     const [status, setStatus] = useState("cancelled");
     return (
@@ -113,9 +132,15 @@ it("refreshes its selected value when a cached list refetches a newer Production
   ).toBe("cancelled");
 });
 it("invalidates Production detail, list and Order child caches after a status mutation", async () => {
-  const provider = fakeRestDataProvider({
-    romiku_production_orders: [{ id: "p", status: "pending" }],
-  });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_quote_items: [],
+      romiku_pi_items: [],
+      romiku_order_items: [],
+      romiku_packing_items: [],
+      romiku_production_orders: [{ id: "p", status: "pending" }],
+    }),
+  );
   const cache = new QueryClient();
   const detailKey = ["romiku_production_orders", "getOne", { id: "p" }];
   cache.setQueryData(detailKey, { id: "p", status: "pending" });
@@ -149,7 +174,15 @@ it("shows the seven order stages and saves awaiting payment without changing oth
     paid: 2913,
     expected_delivery_at: "2026-11-20",
   };
-  const provider = fakeRestDataProvider({ romiku_orders: [original] });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_quote_items: [],
+      romiku_pi_items: [],
+      romiku_order_items: [],
+      romiku_packing_items: [],
+      romiku_orders: [original],
+    }),
+  );
   const screen = await render(
     <CoreAdminContext dataProvider={provider}>
       <InlineStatusSelect
@@ -183,5 +216,5 @@ it("shows the seven order stages and saves awaiting payment without changing oth
     .toHaveTextContent("状态已保存");
   expect(
     (await provider.getOne("romiku_orders", { id: original.id })).data,
-  ).toEqual({ ...original, status: "awaiting_payment" });
+  ).toEqual({ ...original, status: "awaiting_payment", revision: 2 });
 });

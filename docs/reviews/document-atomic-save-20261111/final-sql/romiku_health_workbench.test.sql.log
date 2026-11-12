@@ -1,0 +1,67 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+SET
+SET
+SET
+CREATE TABLE
+INSERT 0 9
+RESET
+INSERT 0 9
+SET
+{"ok": true}
+ok 1 - calendar delivery stage awaiting_payment
+ok 2 - calendar delivery stage cancelled
+ok 3 - calendar delivery stage completed
+ok 4 - calendar delivery stage confirmed
+ok 5 - calendar delivery stage draft
+ok 6 - calendar delivery stage in_production
+ok 7 - calendar delivery stage ready_to_ship
+ok 8 - calendar delivery stage shipped
+ok 9 - calendar delivery stage voided
+ok 10 - feed delivery stage awaiting_payment
+ok 11 - feed delivery stage cancelled
+ok 12 - feed delivery stage completed
+ok 13 - feed delivery stage confirmed
+ok 14 - feed delivery stage draft
+ok 15 - feed delivery stage in_production
+ok 16 - feed delivery stage ready_to_ship
+ok 17 - feed delivery stage shipped
+ok 18 - feed delivery stage voided
+{"kind": "order", "items": [], "header": {"id": "b41ae56b-9a57-471c-b055-89f77c3e22eb", "notes": null, "due_at": null, "status": "confirmed", "freight": 0.00, "currency": "USD", "discount": 0.00, "owner_id": "ab110000-0000-0000-0000-000000000001", "revision": 2, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:51.320419+00:00", "created_by": "ab110000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:51.374319+00:00", "updated_by": "ab110000-0000-0000-0000-000000000001", "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": "HEALTH-DELIVERY-confirmed", "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 30.00, "document_number": "OD261112002", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:51.354846+00:00", "actual_delivery_at": "2026-11-12T02:03:51.320419+00:00", "formal_customer_id": null, "source_search_text": "od261112002", "outbound_company_id": null, "business_search_text": "usd\n2026-11-12\nod261112002\nconfirmed", "expected_delivery_at": "2026-11-11T02:03:51.320419+00:00", "source_search_fields": {"document_number": "od261112002"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"status": "confirmed", "currency": "usd", "document_date": "2026-11-12", "document_number": "od261112002"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:51.320419+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:51.320419+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}, "revision": 2, "document_id": "b41ae56b-9a57-471c-b055-89f77c3e22eb"}
+ok 19 - actual delivery also suppresses task
+ok 20 - completed zero-balance order absent from recent
+RESET
+INSERT 0 3
+SET
+{"ok": true, "state": {"order_id": "ab111000-0000-0000-0000-000000000002", "revision": 1, "updated_at": "2026-11-12T02:03:51.38377+00:00", "updated_by": "ab110000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": null, "customer_confirmation": "unconfirmed"}, "event_id": "f7a6c452-e08a-4cd2-9905-501928382bea", "request_id": "21bf409a-da73-41e8-a626-63348dc0e328"}
+{"ok": true, "state": {"order_id": "ab111000-0000-0000-0000-000000000003", "revision": 1, "updated_at": "2026-11-12T02:03:51.384594+00:00", "updated_by": "ab110000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": null, "customer_confirmation": "confirmed"}, "event_id": "74a8c628-f877-448c-879a-b52e9f7757da", "request_id": "94132afe-265a-4046-9327-78a507119057"}
+ok 21 - only unknown in verification including historical draft
+ok 22 - only independently confirmed non-draft is collection
+ok 23 - explicit unconfirmed remains searchable in deferred
+ok 24 - unconfirmed excluded from verification RPC
+ok 25 - shipped actual balance retains independent phase
+{"kind": "order", "items": [], "header": {"id": "ab111000-0000-0000-0000-000000000001", "notes": null, "due_at": null, "status": "draft", "freight": 100.00, "currency": "CNY", "discount": 0.00, "owner_id": "ab110000-0000-0000-0000-000000000001", "revision": 2, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:51.320419+00:00", "created_by": "ab110000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:51.394797+00:00", "updated_by": "ab110000-0000-0000-0000-000000000001", "archived_at": "2026-11-12T02:03:51.320419+00:00", "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": "HEALTH-VERIFY-unknown", "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 30.00, "document_number": "OD261112010", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:51.381767+00:00", "actual_delivery_at": null, "formal_customer_id": null, "source_search_text": "od261112010", "outbound_company_id": null, "business_search_text": "cny\n2026-11-12\nod261112010\ndraft", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261112010"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"status": "draft", "currency": "cny", "document_date": "2026-11-12", "document_number": "od261112010"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:51.320419+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:51.320419+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}, "revision": 2, "document_id": "ab111000-0000-0000-0000-000000000001"}
+ok 26 - archived unknown excluded
+INSERT 0 2
+ok 27 - cancelled parent excluded from production reminders
+ok 28 - archived parent excluded from production reminders
+INSERT 0 2
+ok 29 - received or cancelled production has no actionable anomaly reminder
+INSERT 0 1
+ok 30 - unfinished dated manual task is recent
+UPDATE 1
+ok 31 - completed manual task leaves recent
+INSERT 0 1
+ok 32 - pending inquiry is visible
+UPDATE 1
+ok 33 - won inquiry leaves pending tasks
+UPDATE 1
+ok 34 - invalid inquiry leaves pending tasks
+1..34
+ROLLBACK

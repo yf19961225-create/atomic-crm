@@ -1,0 +1,61 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+                        is                         
+---------------------------------------------------
+ ok 1 - a new unfilled price is distinct from zero
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 2 - a legacy zero price retains entered semantics
+(1 row)
+
+                                     is                                      
+-----------------------------------------------------------------------------
+ ok 3 - unfilled price still contributes zero to the existing amount formula
+(1 row)
+
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+                        is                         
+---------------------------------------------------
+ ok 4 - Quote to PI retains the blank-price marker
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 5 - PI to Order retains the blank-price marker
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 6 - Quote to Order retains the blank-price marker
+(1 row)
+
+                                  is                                   
+-----------------------------------------------------------------------
+ ok 7 - both Order conversion paths retain explicit or historical zero
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 8 - existing amount calculation remains unchanged
+(1 row)
+
+ finish 
+--------
+ 1..8
+(1 row)
+
+ROLLBACK

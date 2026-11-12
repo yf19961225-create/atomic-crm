@@ -1,0 +1,22 @@
+[
+  {
+    "file": "romiku_document_atomic_security.test.sql",
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_document_atomic_save.test.sql",
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_document_atomic_business.test.sql",
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_document_atomic_policies.test.sql",
+    "exit_code": 0,
+    "failures": []
+  }
+]

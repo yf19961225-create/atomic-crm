@@ -1,0 +1,159 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+            has_column            
+----------------------------------
+ ok 1 - submission UUID supported
+(1 row)
+
+                  has_column                   
+-----------------------------------------------
+ ok 2 - independent request quantity supported
+(1 row)
+
+SELECT 1
+GRANT
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SELECT 1
+                     is                     
+--------------------------------------------
+ ok 3 - saved item order follows submission
+(1 row)
+
+             is              
+-----------------------------
+ ok 4 - first receipt is new
+(1 row)
+
+SELECT 1
+                   is                   
+----------------------------------------
+ ok 5 - same submission returns same WI
+(1 row)
+
+              is              
+------------------------------
+ ok 6 - second receipt replay
+(1 row)
+
+                   is                    
+-----------------------------------------
+ ok 7 - replay returns original snapshot
+(1 row)
+
+                 is                  
+-------------------------------------
+ ok 8 - replay retains original date
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 9 - retry creates no second history
+(1 row)
+
+                 is                  
+-------------------------------------
+ ok 10 - quantity precision retained
+(1 row)
+
+                  is                  
+--------------------------------------
+ ok 11 - product canonical name saved
+(1 row)
+
+                is                 
+-----------------------------------
+ ok 12 - authoritative image saved
+(1 row)
+
+         is          
+---------------------
+ ok 13 - brand saved
+(1 row)
+
+          is          
+----------------------
+ ok 14 - source fixed
+(1 row)
+
+         is         
+--------------------
+ ok 15 - unassigned
+(1 row)
+
+              is               
+-------------------------------
+ ok 16 - no automatic customer
+(1 row)
+
+SELECT 1
+                        isnt                         
+-----------------------------------------------------
+ ok 17 - same email different submission is distinct
+(1 row)
+
+        throws_ok        
+-------------------------
+ ok 18 - brand immutable
+(1 row)
+
+                throws_ok                
+-----------------------------------------
+ ok 19 - new product snapshots immutable
+(1 row)
+
+                     throws_ok                     
+---------------------------------------------------
+ ok 20 - RPC independently validates full snapshot
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 21 - RPC rejects base64 snapshot
+(1 row)
+
+               throws_ok               
+---------------------------------------
+ ok 22 - submission identity immutable
+(1 row)
+
+              lives_ok               
+-------------------------------------
+ ok 23 - unknown packing may be null
+(1 row)
+
+                              is                              
+--------------------------------------------------------------
+ ok 24 - unknown packing remains absent in canonical snapshot
+(1 row)
+
+RESET
+INSERT 0 1
+GRANT
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ bdb96dfb-e4eb-48f8-839c-85e5200f0003
+(1 row)
+
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE
+SQL statement "INSERT INTO public.romiku_quotes(source_website_inquiry_id,outbound_company_id,formal_customer_id,counterparty_snapshot)
+  VALUES (source.id,source.outbound_company_id,source.formal_customer_id,
+    jsonb_build_object('name',source.customer_name,'contact_name',source.customer_name,'company',source.company,'brand',source.brand,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
+  RETURNING id"
+PL/pgSQL function public.romiku_quote_from_inquiry(uuid,uuid[]) line 13 at SQL statement

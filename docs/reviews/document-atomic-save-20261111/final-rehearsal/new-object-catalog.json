@@ -1,0 +1,315 @@
+{
+  "executor": {
+    "login": false,
+    "inherit": false,
+    "createdb": false,
+    "bypassrls": false,
+    "superuser": false,
+    "createrole": false
+  },
+  "policies": [
+    {
+      "cmd": "ALL",
+      "qual": "((actor_id = romiku_document_actor()) AND romiku_document_active())",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_document_save_requests",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_request_actor",
+      "schemaname": "public",
+      "with_check": "((actor_id = romiku_document_actor()) AND romiku_document_active())"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_formal_customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_order_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_orders",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_packing_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_packing_lists",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_payments",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor_read",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_pi_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_pis",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_quote_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_quotes",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_website_inquiries",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor_inquiry_source",
+      "schemaname": "public",
+      "with_check": "romiku_document_active()"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "romiku_document_active()",
+      "roles": [
+        "romiku_document_executor"
+      ],
+      "tablename": "romiku_website_inquiry_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "atomic_executor_read",
+      "schemaname": "public",
+      "with_check": null
+    }
+  ],
+  "triggers": [
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_order_items",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_order_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard('item')"
+    },
+    {
+      "name": "ab_atomic_parent_revision",
+      "table": "romiku_order_items",
+      "definition": "CREATE TRIGGER ab_atomic_parent_revision BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_order_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_item_revision('romiku_orders', 'order_id')"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_orders",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_orders FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard()"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_packing_items",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_packing_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard('item')"
+    },
+    {
+      "name": "ab_atomic_parent_revision",
+      "table": "romiku_packing_items",
+      "definition": "CREATE TRIGGER ab_atomic_parent_revision BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_packing_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_item_revision('romiku_packing_lists', 'packing_list_id')"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_packing_lists",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_packing_lists FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard()"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_pi_items",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_pi_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard('item')"
+    },
+    {
+      "name": "ab_atomic_parent_revision",
+      "table": "romiku_pi_items",
+      "definition": "CREATE TRIGGER ab_atomic_parent_revision BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_pi_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_item_revision('romiku_pis', 'pi_id')"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_pis",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_pis FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard()"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_quote_items",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_quote_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard('item')"
+    },
+    {
+      "name": "ab_atomic_parent_revision",
+      "table": "romiku_quote_items",
+      "definition": "CREATE TRIGGER ab_atomic_parent_revision BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_quote_items FOR EACH ROW EXECUTE FUNCTION romiku_atomic_item_revision('romiku_quotes', 'quote_id')"
+    },
+    {
+      "name": "aa_atomic_write",
+      "table": "romiku_quotes",
+      "definition": "CREATE TRIGGER aa_atomic_write BEFORE INSERT OR DELETE OR UPDATE ON public.romiku_quotes FOR EACH ROW EXECUTE FUNCTION romiku_atomic_write_guard()"
+    }
+  ],
+  "functions": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres",
+        "romiku_document_executor=X/postgres"
+      ],
+      "name": "romiku_atomic_access_allowed(regclass,text)",
+      "owner": "postgres",
+      "definer": false
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "name": "romiku_atomic_item_revision()",
+      "owner": "postgres",
+      "definer": true
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "name": "romiku_atomic_write_guard()",
+      "owner": "postgres",
+      "definer": false
+    },
+    {
+      "acl": [
+        "romiku_document_executor=X/romiku_document_executor",
+        "authenticated=X/romiku_document_executor"
+      ],
+      "name": "romiku_create_document_from_source(uuid,text,uuid,text,uuid[],bigint)",
+      "owner": "romiku_document_executor",
+      "definer": true
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres",
+        "romiku_document_executor=X/postgres"
+      ],
+      "name": "romiku_document_active()",
+      "owner": "postgres",
+      "definer": true
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres",
+        "romiku_document_executor=X/postgres"
+      ],
+      "name": "romiku_document_actor()",
+      "owner": "postgres",
+      "definer": true
+    },
+    {
+      "acl": [
+        "romiku_document_executor=X/romiku_document_executor",
+        "authenticated=X/romiku_document_executor"
+      ],
+      "name": "romiku_document_save_result(uuid)",
+      "owner": "romiku_document_executor",
+      "definer": true
+    },
+    {
+      "acl": [
+        "romiku_document_executor=X/romiku_document_executor",
+        "authenticated=X/romiku_document_executor"
+      ],
+      "name": "romiku_document_snapshot(text,uuid)",
+      "owner": "romiku_document_executor",
+      "definer": true
+    },
+    {
+      "acl": [
+        "romiku_document_executor=X/romiku_document_executor",
+        "authenticated=X/romiku_document_executor"
+      ],
+      "name": "romiku_save_document(text,uuid,bigint,uuid,jsonb,jsonb)",
+      "owner": "romiku_document_executor",
+      "definer": true
+    }
+  ],
+  "ledger_count": 72
+}

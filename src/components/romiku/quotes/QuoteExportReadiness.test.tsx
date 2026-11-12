@@ -1,3 +1,4 @@
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
 import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
@@ -15,33 +16,35 @@ async function setup(kind: "quote", cached = false) {
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  const provider = fakeRestDataProvider({
-    [`romiku_${kind}s`]: [
-      {
-        id: "doc",
-        document_number: "READINESS-QA",
-        currency: "USD",
-        status: "draft",
-      },
-    ],
-    [`romiku_${kind}_items`]: [
-      {
-        id: "line",
-        [`${kind}_id`]: "doc",
-        sku: "SAVED",
-        quantity: 0.25,
-        unit_price: 8,
-        product_snapshot: {
-          name: "Saved product",
-          specification: "Saved specification",
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      [`romiku_${kind}s`]: [
+        {
+          id: "doc",
+          document_number: "READINESS-QA",
+          currency: "USD",
+          status: "draft",
         },
-        packing_snapshot: {},
-      },
-    ],
-    romiku_formal_customer_directory: [],
-    romiku_production_orders: [],
-    sales: [],
-  });
+      ],
+      [`romiku_${kind}_items`]: [
+        {
+          id: "line",
+          [`${kind}_id`]: "doc",
+          sku: "SAVED",
+          quantity: 0.25,
+          unit_price: 8,
+          product_snapshot: {
+            name: "Saved product",
+            specification: "Saved specification",
+          },
+          packing_snapshot: {},
+        },
+      ],
+      romiku_formal_customer_directory: [],
+      romiku_production_orders: [],
+      sales: [],
+    }),
+  );
   const getList = provider.getList.bind(provider);
   provider.getList = async (resource, params) => {
     if (resource === `romiku_${kind}_items`) {
@@ -58,10 +61,7 @@ async function setup(kind: "quote", cached = false) {
     <MemoryRouter initialEntries={["/document/doc"]}>
       <CoreAdminContext dataProvider={provider} queryClient={cache}>
         <Routes>
-          <Route
-            path="/document/:id"
-            element={<QuoteDetail />}
-          />
+          <Route path="/document/:id" element={<QuoteDetail />} />
         </Routes>
       </CoreAdminContext>
     </MemoryRouter>,
@@ -106,7 +106,11 @@ for (const kind of ["quote"] as const) {
     const { screen, release } = await setup(kind);
     release(true);
     await expect
-      .element(screen.getByText("报价单产品数据加载失败，请刷新后重试。", { exact: false }))
+      .element(
+        screen.getByText("报价单产品数据加载失败，请刷新后重试。", {
+          exact: false,
+        }),
+      )
       .toBeVisible();
     expect(
       screen.getByRole("button", { name: "编辑", exact: true }).query(),

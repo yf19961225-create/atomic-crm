@@ -1,0 +1,170 @@
+{
+  "functions": {
+    "preview_count": 91,
+    "local_count": 91,
+    "differences": [
+      {
+        "object": "romiku_require_active_business_writer()",
+        "preview": {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "def": "CREATE OR REPLACE FUNCTION public.romiku_require_active_business_writer()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nDECLARE caller text := coalesce(nullif(current_setting('role', true), 'none'), session_user);\nBEGIN\n  IF caller = 'anon' THEN\n    RAISE EXCEPTION 'Active CRM membership required' USING ERRCODE = '42501';\n  ELSIF caller = 'authenticated' THEN\n    -- Separate branch: trusted definer owners need no EXECUTE on the CRM guard.\n    IF NOT public.romiku_wb_active() THEN\n      RAISE EXCEPTION 'Active CRM membership required' USING ERRCODE = '42501';\n    END IF;\n  END IF;\n  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;\n  RETURN NEW;\nEND;\n$function$\n",
+          "name": "romiku_require_active_business_writer()",
+          "owner": "postgres"
+        },
+        "local": {
+          "acl": [
+            "supabase_admin=X/supabase_admin",
+            "postgres=X/supabase_admin",
+            "service_role=X/supabase_admin"
+          ],
+          "def": "CREATE OR REPLACE FUNCTION public.romiku_require_active_business_writer()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nDECLARE caller text := coalesce(nullif(current_setting('role', true), 'none'), session_user);\nBEGIN\n  IF caller = 'anon' THEN\n    RAISE EXCEPTION 'Active CRM membership required' USING ERRCODE = '42501';\n  ELSIF caller = 'authenticated' THEN\n    -- Separate branch: trusted definer owners need no EXECUTE on the CRM guard.\n    IF NOT public.romiku_wb_active() THEN\n      RAISE EXCEPTION 'Active CRM membership required' USING ERRCODE = '42501';\n    END IF;\n  END IF;\n  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;\n  RETURN NEW;\nEND;\n$function$\n",
+          "name": "romiku_require_active_business_writer()",
+          "owner": "supabase_admin"
+        }
+      }
+    ]
+  },
+  "columns": {
+    "preview_count": 230,
+    "local_count": 230,
+    "differences": []
+  },
+  "grants": {
+    "preview_count": 821,
+    "local_count": 813,
+    "differences": [
+      {
+        "object": "romiku_document_daily_counters|authenticated|DELETE",
+        "preview": {
+          "grantee": "authenticated",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "DELETE",
+          "with_hierarchy": "NO"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|authenticated|INSERT",
+        "preview": {
+          "grantee": "authenticated",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "INSERT",
+          "with_hierarchy": "NO"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|authenticated|SELECT",
+        "preview": {
+          "grantee": "authenticated",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "SELECT",
+          "with_hierarchy": "YES"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|authenticated|UPDATE",
+        "preview": {
+          "grantee": "authenticated",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "UPDATE",
+          "with_hierarchy": "NO"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|service_role|DELETE",
+        "preview": {
+          "grantee": "service_role",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "DELETE",
+          "with_hierarchy": "NO"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|service_role|INSERT",
+        "preview": {
+          "grantee": "service_role",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "INSERT",
+          "with_hierarchy": "NO"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|service_role|SELECT",
+        "preview": {
+          "grantee": "service_role",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "SELECT",
+          "with_hierarchy": "YES"
+        },
+        "local": null
+      },
+      {
+        "object": "romiku_document_daily_counters|service_role|UPDATE",
+        "preview": {
+          "grantee": "service_role",
+          "grantor": "postgres",
+          "table_name": "romiku_document_daily_counters",
+          "is_grantable": "NO",
+          "table_schema": "public",
+          "privilege_type": "UPDATE",
+          "with_hierarchy": "NO"
+        },
+        "local": null
+      }
+    ]
+  },
+  "policies": {
+    "preview_count": 125,
+    "local_count": 125,
+    "differences": []
+  },
+  "constraints": {
+    "preview_count": 314,
+    "local_count": 314,
+    "differences": []
+  },
+  "triggers": {
+    "preview_count": 109,
+    "local_count": 110,
+    "differences": [
+      {
+        "object": "romiku_orders|romiku_order_export_snapshot_default",
+        "preview": null,
+        "local": {
+          "def": "CREATE TRIGGER romiku_order_export_snapshot_default BEFORE INSERT ON public.romiku_orders FOR EACH ROW EXECUTE FUNCTION romiku_order_export_snapshot_default()",
+          "name": "romiku_order_export_snapshot_default",
+          "table": "romiku_orders",
+          "enabled": "O"
+        }
+      }
+    ]
+  }
+}

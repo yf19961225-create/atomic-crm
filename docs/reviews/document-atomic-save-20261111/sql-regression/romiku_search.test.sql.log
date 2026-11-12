@@ -1,0 +1,568 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - business search RPC exists
+INSERT 0 1
+ok 2 - invoker with fixed search_path
+ok 3 - anon denied
+SET
+ok 4 - anon RPC denied
+RESET
+SET
+authenticated
+ok 5 - missing auth uid denied
+5ea00000-0000-0000-0000-000000000001
+CREATE TABLE
+INSERT 0 8
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+UPDATE 1
+RESET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+UPDATE 1
+UPDATE 1
+UPDATE 1
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+SET
+authenticated
+CREATE FUNCTION
+ok 6 - empty query preserves all eight groups
+ok 7 - empty query returns no matches
+ok 8 - whitespace query returns no matches
+ok 9 - case insensitive formal_customer header
+ok 10 - case insensitive outbound header
+ok 11 - case insensitive website_inquiry header
+ok 12 - case insensitive quote header
+ok 13 - case insensitive pi header
+ok 14 - case insensitive order header
+ok 15 - case insensitive production header
+ok 16 - case insensitive packing header
+ok 17 - formal_customer matches requirementneedle
+ok 18 - formal_customer matches 442012349876
+ok 19 - formal_customer matches Contactneedle
+ok 20 - formal_customer matches 12125557890
+ok 21 - formal_customer matches +1-212-555-7890
+ok 22 - outbound matches operationneedle
+ok 23 - outbound matches Outboundcontactneedle
+ok 24 - outbound matches 8613812345678
+ok 25 - website_inquiry matches messageneedle
+ok 26 - website_inquiry matches processingneedle
+ok 27 - website_inquiry matches inquiryrequirementneedle
+ok 28 - website_inquiry matches inquiryproductneedle
+ok 29 - website_inquiry matches INQ-SKU-NEEDLE
+ok 30 - quote matches Historicalneedle
+ok 31 - quote matches 493012345678
+ok 32 - quote matches headernotesneedle
+ok 33 - quote matches OWN-QUOTE-SKU
+ok 34 - quote matches CustomerCodeNeedle
+ok 35 - quote matches itemrequirementneedle
+ok 36 - quote matches itemnotesneedle
+ok 37 - quote matches productnameneedle
+ok 38 - quote matches descriptionneedle
+ok 39 - quote matches specificationneedle
+ok 40 - pi matches OWN-PI-SKU
+ok 41 - order matches OWN-ORDER-SKU
+ok 42 - production matches Savedfactoryneedle
+ok 43 - production matches 81398765432
+ok 44 - production matches productionnotesneedle
+ok 45 - production matches productionproductneedle
+ok 46 - production matches productioncodeneedle
+ok 47 - production matches productionspecneedle
+ok 48 - production matches productionrequirementneedle
+ok 49 - production matches productionnoteneedle
+ok 50 - production matches Historicalneedle
+ok 51 - production matches SEARCHFIXTURE-ORDER
+ok 52 - packing matches Packingbuyerneedle
+ok 53 - packing matches Packingsellerneedle
+ok 54 - packing matches packingproductneedle
+ok 55 - packing matches UnitNeedle
+ok 56 - packing matches packingremarkneedle
+ok 57 - packing matches SEARCHFIXTURE-ORDER
+ok 58 - production excludes source order product names
+ok 59 - packing excludes source order SKU
+ok 60 - raw payload excluded
+ok 61 - unlisted snapshot keys excluded
+ok 62 - alphanumeric query cannot widen to normalized phone
+ok 63 - exact document rank
+ok 64 - exact SKU rank
+ok 65 - exact identity rank
+ok 66 - exact normalized phone rank
+ok 67 - prefix rank
+ok 68 - partial rank
+ok 69 - source channel labeled
+RESET
+INSERT 0 1
+SET
+ok 70 - multiple item hits deduplicate header
+RESET
+INSERT 0 31
+SET
+ok 71 - count before pagination
+ok 72 - default per group page 25
+ok 73 - first page has more
+ok 74 - second page six
+ok 75 - last page no more
+ok 76 - UUID breaks equal timestamp and rank ties
+ok 77 - offset beyond end preserves count
+ok 78 - status filter before count
+ok 79 - order filter
+RESET
+INSERT 0 1
+SET
+ok 80 - percent literal
+ok 81 - underscore literal
+ok 82 - backslash literal
+ok 83 - SQL metacharacters literal
+RESET
+UPDATE 1
+SET
+ok 84 - generated text updates immediately
+RESET
+UPDATE 1
+SET
+ok 85 - production keeps own historical product
+ok 86 - source product updates cannot leak
+UPDATE 1
+ok 87 - saved buyer remains searchable independent of live customers
+ok 88 - invalid type rejected
+ok 89 - null type element rejected
+ok 90 - zero limit rejected
+ok 91 - excess limit rejected
+ok 92 - negative offset rejected
+ok 93 - null limit rejected
+ok 94 - unknown filter rejected
+ok 95 - nonobject filter rejected
+ok 96 - invalid uuid filter rejected
+ok 97 - nonstring status rejected
+RESET
+CREATE POLICY
+SET
+authenticated
+ok 98 - caller header RLS enforced
+ok 99 - caller RLS cannot be bypassed by item match
+RESET
+DROP POLICY
+SET
+authenticated
+RESET
+UPDATE 1
+SET
+ok 100 - explicit counterparty_snapshot.company coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 101 - explicit counterparty_snapshot.name coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 102 - explicit counterparty_snapshot.brand coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 103 - explicit counterparty_snapshot.business_name coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 104 - explicit counterparty_snapshot.contact coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 105 - explicit counterparty_snapshot.phone coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 106 - explicit counterparty_snapshot.whatsapp coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 107 - explicit counterparty_snapshot.email coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 108 - explicit counterparty_snapshot.country coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 109 - explicit counterparty_snapshot.region coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 110 - explicit counterparty_snapshot.city coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 111 - explicit counterparty_snapshot.address coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 112 - explicit counterparty_snapshot.company_name coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 113 - explicit counterparty_snapshot.brand_name coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 114 - explicit counterparty_snapshot.contact_name coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 115 - explicit counterparty_snapshot.customer_name coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 116 - explicit counterparty_snapshot.telephone coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 117 - explicit counterparty_snapshot.mobile coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 118 - explicit counterparty_snapshot.shipping_address coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 119 - explicit counterparty_snapshot.billing_address coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 120 - explicit counterparty_snapshot.consignee coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 121 - explicit counterparty_snapshot.consignee_contact coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 122 - explicit counterparty_snapshot.receiving_company coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 123 - explicit counterparty_snapshot.receiving_contact coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 124 - explicit counterparty_snapshot.receiving_phone coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 125 - explicit counterparty_snapshot.delivery_address coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 126 - explicit counterparty_snapshot.forwarder_address coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 127 - explicit counterparty_snapshot.tax_information coverage
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 2
+SET
+ok 128 - explicit product_snapshot.sku coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 129 - explicit product_snapshot.customer_code coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 130 - explicit product_snapshot.name coverage
+ok 131 - product name exact is not identity
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 132 - explicit product_snapshot.name_zh coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 133 - explicit product_snapshot.name_en coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 134 - explicit product_snapshot.name_es coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 135 - explicit product_snapshot.description coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 136 - explicit product_snapshot.description_zh coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 137 - explicit product_snapshot.description_en coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 138 - explicit product_snapshot.description_es coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 139 - explicit product_snapshot.specification coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 140 - explicit product_snapshot.specifications coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 141 - explicit product_snapshot.spec coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 142 - explicit product_snapshot.requirement coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 143 - explicit product_snapshot.requirements coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 144 - explicit product_snapshot.notes coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 145 - explicit product_snapshot.unit coverage
+RESET
+UPDATE 2
+SET
+RESET
+UPDATE 2
+SET
+ok 146 - explicit product_snapshot.shipping_mark coverage
+RESET
+UPDATE 2
+SET
+UPDATE 1
+ok 147 - explicit requirements.packaging coverage
+UPDATE 1
+UPDATE 1
+ok 148 - explicit requirements.shipping_marks coverage
+UPDATE 1
+UPDATE 1
+ok 149 - explicit requirements.product_labels coverage
+UPDATE 1
+UPDATE 1
+ok 150 - explicit requirements.packing_preference coverage
+UPDATE 1
+UPDATE 1
+ok 151 - explicit requirements.shipping_documents coverage
+UPDATE 1
+RESET
+UPDATE 1
+SET
+ok 152 - saved alias arrays covered
+ok 153 - saved alias exact identity rank
+RESET
+UPDATE 2
+SET
+ok 154 - explicit product locale text covered
+ok 155 - product name is prefix rank, not identity rank
+ok 156 - page count before deletion
+ok 157 - controlled deletion of search hit
+ok 158 - deleted hit disappears immediately
+RESET
+ALTER TABLE
+UPDATE 1
+ALTER TABLE
+SET
+authenticated
+ok 159 - newest row wins tie rank
+RESET
+CREATE POLICY
+CREATE POLICY
+SET
+authenticated
+ok 160 - item caller RLS enforced
+ok 161 - contact caller RLS enforced
+RESET
+UPDATE 1
+SET
+ok 162 - saved buyer tel_whatsapp normalized
+ok 163 - saved seller tel_whatsapp exact normalized rank
+UPDATE 1
+ok 164 - own production packaging notes
+ok 165 - own production packaging mark
+UPDATE 1
+UPDATE 1
+ok 166 - formal directory source brand
+ok 167 - formal directory source city
+INSERT 0 1
+ok 168 - outbound followup summary
+ok 169 - outbound followup notes
+ok 170 - copied phone tab whitespace normalizes
+ok 171 - all whitespace empty
+RESET
+1..171
+ROLLBACK

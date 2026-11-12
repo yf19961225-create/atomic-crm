@@ -1,6 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
+\ir helpers/document_atomic.sql
 select no_plan();
 select has_column('public','romiku_quote_totals','document_name','quote list view exposes name');
 select has_column('public','romiku_pi_totals','document_name','pi list view exposes name');
@@ -13,30 +14,45 @@ insert into auth.users(id,email,raw_user_meta_data) values ('fe260000-0000-0000-
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','fe260000-0000-0000-0000-000000000099',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,document_name,counterparty_snapshot) values ('fe269000-0000-0000-0000-000000000001','Marianne 美甲灯 Tú','{"brand":"Original brand","name":"Buyer"}');
+SET LOCAL ROLE authenticated;
+
 create temporary table saved_quote as select * from romiku_quotes where id='fe269000-0000-0000-0000-000000000001';
 select is((select document_name from romiku_quote_totals where id=(select id from saved_quote)),'Marianne 美甲灯 Tú','totals view delivers saved name');
 select matches((select document_number from saved_quote),'^RFQ[0-9]+$','INSERT generates number');
-select throws_ok($$update romiku_quotes set document_number='CHANGED' where id='fe269000-0000-0000-0000-000000000001'$$,'23514',null,'direct number update blocked');
-select lives_ok($$update romiku_quotes set document_name='Same name' where id='fe269000-0000-0000-0000-000000000001'$$,'name editable');
+select throws_ok($$update romiku_quotes set document_number='CHANGED' where id='fe269000-0000-0000-0000-000000000001'$$,'42501',null,'direct number update blocked');
+select lives_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('document_name','Same name')) from romiku_quotes where id='fe269000-0000-0000-0000-000000000001'$$,'name editable');
 select is((select document_number from romiku_quotes where id=(select id from saved_quote)),(select document_number from saved_quote),'number stable');
 select is((select counterparty_snapshot from romiku_quotes where id=(select id from saved_quote)),(select counterparty_snapshot from saved_quote),'brand snapshot preserved');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quote_items(quote_id,sku,quantity,unit_price,unit_price_entered,customer_code,product_snapshot,packing_snapshot,position)
 select id,'NAME-QA-UNPRICED',2,0,false,'BUYER-1','{"name":"Fixture product"}','{"qty_per_carton":24}',1 from saved_quote;
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quote_items(quote_id,sku,quantity,unit_price,unit_price_entered,customer_code,position)
 select id,'NAME-QA-ZERO',3,0,true,'BUYER-2',2 from saved_quote;
+SET LOCAL ROLE authenticated;
+
 create temporary table original_items as select * from romiku_quote_items where quote_id=(select id from saved_quote);
 create temporary table converted(kind text,id uuid);
-insert into converted values ('pi',romiku_convert_document('quote',(select id from saved_quote),'pi'));
-insert into converted values ('order',romiku_convert_document('pi',(select id from converted where kind='pi'),'order'));
-insert into converted values ('direct',romiku_convert_document('quote',(select id from saved_quote),'order'));
+insert into converted values ('pi',pg_temp.document_convert('quote',(select id from saved_quote),'pi'));
+insert into converted values ('order',pg_temp.document_convert('pi',(select id from converted where kind='pi'),'order'));
+insert into converted values ('direct',pg_temp.document_convert('quote',(select id from saved_quote),'order'));
 select is((select document_name from romiku_pis where id=(select id from converted where kind='pi')),'Same name','PI inherits name');
 select is((select document_name from romiku_orders where id=(select id from converted where kind='order')),'Same name','Order inherits PI name');
 select is((select document_name from romiku_orders where id=(select id from converted where kind='direct')),'Same name','direct Order inherits name');
 select matches((select document_number from romiku_pis where id=(select id from converted where kind='pi')),'^PI[0-9]+$','PI own generated number');
 select matches((select document_number from romiku_orders where id=(select id from converted where kind='order')),'^OD[0-9]+$','Order own generated number');
-select throws_ok($$update romiku_pis set document_number='CHANGED' where id=(select id from converted where kind='pi')$$,'23514',null,'PI number locked');
-select throws_ok($$update romiku_orders set document_number='CHANGED' where id=(select id from converted where kind='order')$$,'23514',null,'Order number locked');
+select throws_ok($$update romiku_pis set document_number='CHANGED' where id=(select id from converted where kind='pi')$$,'42501',null,'PI number locked');
+select throws_ok($$update romiku_orders set document_number='CHANGED' where id=(select id from converted where kind='order')$$,'42501',null,'Order number locked');
 select is((select source_quote_id from romiku_pis where id=(select id from converted where kind='pi')),(select id from saved_quote),'PI retains source UUID');
 select is((select source_pi_id from romiku_orders where id=(select id from converted where kind='order')),(select id from converted where kind='pi'),'Order retains source PI UUID');
 select is((select source_quote_id from romiku_orders where id=(select id from converted where kind='direct')),(select id from saved_quote),'direct Order retains source Quote UUID');
@@ -49,13 +65,23 @@ select is((select count(*)::int from romiku_order_items o join romiku_pi_items p
 select is((select count(*)::int from romiku_business_search_hits('Same name',array['order'])) ,2,'duplicate names retain two identities');
 select is(romiku_global_search('Same name',array['order'],1,0)->'groups'->0->>'total_count','2','server total independent of page');
 select is(jsonb_array_length(romiku_global_search('Same name',array['order'],1,1)->'groups'->0->'items'),1,'second page available');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set document_name='T_100% 美甲灯' where id=(select id from converted where kind='order');
+SET LOCAL ROLE authenticated;
+
 select is((select count(*)::int from romiku_business_search_hits('T_100%',array['order'])),1,'wildcard characters literal');
 select is((select document_name from romiku_pis where id=(select id from converted where kind='pi')),'Same name','target rename does not rename source');
 select is((select count(*)::int from romiku_business_search_hits((select document_number from saved_quote),array['quote'])),1,'formal number search kept');
 insert into romiku_production_orders(order_id) select id from converted where kind='order';
 select is(romiku_list_production_order_groups('T_100%','all')->'rows'->0->>'document_name','T_100% 美甲灯','parent name returned and searchable');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set document_name=null where id=(select id from converted where kind='order');
+SET LOCAL ROLE authenticated;
+
 select is((select document_name from romiku_orders where id=(select id from converted where kind='order')),null::text,'name can clear');
 reset role;
 alter policy romiku_read on romiku_orders using (id not in (select id from converted));

@@ -1,0 +1,79 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+CREATE TABLE
+INSERT 0 6
+GRANT
+SET
+authenticated
+de700000-0000-0000-0000-000000000001
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 2
+INSERT 0 2
+ok 1 - direct item update cannot exceed capacity
+ok 2 - failed direct write rolls back
+ok 3 - Order reduction cannot violate assigned quantity
+ok 4 - server allocation query exists
+ok 5 - sums multiple Productions
+ok 6 - fully assigned has zero remaining
+ok 7 - allocations include both linked Production documents
+UPDATE 1
+ok 8 - cancellation releases exactly its quantity
+UPDATE 1
+ok 9 - cancelled restoration is guarded
+ok 10 - failed restoration keeps cancelled status
+UPDATE 1
+UPDATE 1
+ok 11 - restoration within capacity succeeds
+UPDATE 1
+ok 12 - archived still counts, preserving existing semantics
+UPDATE 1
+ok 13 - completed still counts
+RESET
+ok 14 - capacity locks do not increment or reclaim Pxx
+RESET
+ok 15 - anon cannot query allocations
+ok 16 - allocation RPC is invoker
+CREATE POLICY
+SET
+authenticated
+ok 17 - allocation query respects RLS
+RESET
+DROP POLICY
+ALTER TABLE
+UPDATE 1
+ALTER TABLE
+SET
+authenticated
+ok 18 - legacy excess allows unrelated notes
+ok 19 - legacy excess can be reduced
+ok 20 - legacy excess cannot increase
+ok 21 - legacy excess stays visible instead of silently rewritten
+CREATE FUNCTION
+CREATE FUNCTION
+UPDATE 1
+ok 22 - atomic reduction and restoration uses final quantity
+ok 23 - atomic restoration preserves capacity
+UPDATE 1
+ok 24 - workspace restoration cannot exceed capacity
+ok 25 - blocker reports other allocations
+ok 26 - blocker reports proposed document quantity
+ok 27 - blocker reports exact excess
+ok 28 - blocker links occupying Production
+ok 29 - rejected workspace preserves header
+ok 30 - rejected workspace preserves item
+
+ok 31 - uid required
+RESET
+1..31
+ROLLBACK

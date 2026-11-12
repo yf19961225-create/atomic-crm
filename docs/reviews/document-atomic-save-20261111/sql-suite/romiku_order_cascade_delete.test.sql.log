@@ -1,0 +1,63 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+               ok               
+--------------------------------
+ ok 1 - authenticated preflight
+(1 row)
+
+              ok              
+------------------------------
+ ok 2 - anon cannot preflight
+(1 row)
+
+            ok            
+--------------------------
+ ok 3 - anon cannot batch
+(1 row)
+
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              is               
+-------------------------------
+ ok 4 - preflight requires uid
+(1 row)
+
+            is             
+---------------------------
+ ok 5 - batch requires uid
+(1 row)
+
+              set_config              
+--------------------------------------
+ de600000-0000-0000-0000-000000000001
+(1 row)
+
+               is                
+---------------------------------
+ ok 6 - empty selection rejected
+(1 row)
+
+               is                
+---------------------------------
+ ok 7 - oversized batch rejected
+(1 row)
+
+             throws_ok             
+-----------------------------------
+ ok 8 - header delete still denied
+(1 row)
+
+CREATE TABLE
+INSERT 0 14
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

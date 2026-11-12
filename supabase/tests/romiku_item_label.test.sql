@@ -12,15 +12,30 @@ set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de500000-0000-0000-0000-000000000001',true);
 insert into romiku_formal_customers(id,name,marking_profile) select id,'Instructions customer','{"version":1,"front_mark":{"mode":"image","image_asset":{"bucket":"romiku-marking-assets","path":"old/front.png"}},"small_label":{"mode":"text","text":"Made in China"},"production_requirements":"Protect cartons"}'::jsonb from instruction_ids where kind='customer';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,formal_customer_id,notes) select id,(select id from instruction_ids where kind='customer'),'Saved Order note' from instruction_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
 select is((select production_defaults_snapshot#>>'{small_label,text}' from romiku_orders where id=(select id from instruction_ids where kind='order')),'Made in China','new Order copies customer defaults');
 select ok((select production_defaults_snapshot->>'initialized_at' is not null from romiku_orders where id=(select id from instruction_ids where kind='order')),'initialization is explicit');
 update romiku_formal_customers set marking_profile='{"small_label":{"mode":"text","text":"Changed customer"}}' where id=(select id from instruction_ids where kind='customer');
 select is((select production_defaults_snapshot#>>'{small_label,text}' from romiku_orders where id=(select id from instruction_ids where kind='order')),'Made in China','customer edits do not mutate saved Order');
 select is((select production_defaults_snapshot#>>'{front_mark,image_asset,path}' from romiku_orders where id=(select id from instruction_ids where kind='order')),'old/front.png','old asset reference stays stable');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,notes) select id,'Legacy saved note' from instruction_ids where kind='order2';
+SET LOCAL ROLE authenticated;
+
 select is(public.romiku_build_instruction_snapshot('{"small_label":{"mode":"none"}}','Saved legacy note','legacy_order',null)->>'production_requirements','Saved legacy note','legacy builder uses saved fields only');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select id,(select id from instruction_ids where kind='order'),'SUN5',160 from instruction_ids where kind='item';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id,marking_snapshot) select ids.id,o.id,o.production_defaults_snapshot from instruction_ids ids cross join romiku_orders o where ids.kind in ('production','production2') and o.id=(select id from instruction_ids where kind='order');
 insert into romiku_production_items(id,production_order_id,order_id,source_order_item_id,sku,quantity) select id,(select id from instruction_ids where kind=case when ids.kind='line' then 'production' else 'production2' end),(select id from instruction_ids where kind='order'),(select id from instruction_ids where kind='item'),'SUN5',10 from instruction_ids ids where kind in ('line','line2');
 select ok(romiku_valid_item_marking(v),'valid field-level data: '||v::text) from (values

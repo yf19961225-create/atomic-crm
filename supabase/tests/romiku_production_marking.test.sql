@@ -14,14 +14,34 @@ set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de400000-0000-0000-0000-000000000001',true);
 insert into romiku_formal_customers(id,name,marking_profile) select id,'Marking customer','{"version":1,"front_mark":{"mode":"text","text":"ORIGINAL FRONT"}}'::jsonb from marking_ids where kind='customer';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,formal_customer_id) select id,(select id from marking_ids where kind='customer') from marking_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity,product_snapshot) select id,(select id from marking_ids where kind='order'),'SUN5',160,'{"name":"Saved Lamp","specification":"48W"}'::jsonb from marking_ids where kind='item';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id,marking_snapshot) select id,(select id from marking_ids where kind='order'),'{"version":1,"front_mark":{"mode":"text","text":"ORIGINAL FRONT"},"labeling_requirements":"Historical label","production_requirements":"Historical requirement"}'::jsonb from marking_ids where kind='production';
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity,position,packaging_snapshot,product_snapshot) select (select id from marking_ids where kind='production'),(select id from marking_ids where kind='order'),id,'SUN5',150,1,'{"cartons":5,"qty_per_carton":32}'::jsonb,'{"name":"Saved Lamp","specification":"48W"}'::jsonb from marking_ids where kind='item';
 select is((select quantity from romiku_production_items where production_order_id=(select id from marking_ids where kind='production')),150::numeric,'quantity independent of cartons times qty per carton');
 update romiku_formal_customers set marking_profile='{"front_mark":{"mode":"text","text":"NEW FRONT"}}' where id=(select id from marking_ids where kind='customer');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_order_items set product_snapshot='{"name":"New name"}' where id=(select id from marking_ids where kind='item');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set notes='New Order requirements' where id=(select id from marking_ids where kind='order');
+SET LOCAL ROLE authenticated;
+
 select is((select marking_snapshot#>>'{front_mark,text}' from romiku_production_orders where id=(select id from marking_ids where kind='production')),'ORIGINAL FRONT','customer change does not alter Production');
 select is((select marking_snapshot->>'production_requirements' from romiku_production_orders where id=(select id from marking_ids where kind='production')),'Historical requirement','Order changes do not alter requirements');
 select is((select product_snapshot->>'name' from romiku_production_items where production_order_id=(select id from marking_ids where kind='production')),'Saved Lamp','source item change does not alter saved product');

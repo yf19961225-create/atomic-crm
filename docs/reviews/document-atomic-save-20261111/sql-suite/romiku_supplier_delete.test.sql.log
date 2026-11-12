@@ -1,0 +1,54 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+                        ok                        
+--------------------------------------------------
+ ok 1 - anonymous callers cannot delete suppliers
+(1 row)
+
+                              ok                              
+--------------------------------------------------------------
+ ok 2 - authenticated callers cannot bypass controlled delete
+(1 row)
+
+                            is                             
+-----------------------------------------------------------
+ ok 3 - dependency audit includes every direct supplier FK
+(1 row)
+
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                   is                    
+-----------------------------------------
+ ok 4 - delete requires a logged-in user
+(1 row)
+
+              set_config              
+--------------------------------------
+ de500000-0000-0000-0000-000000000001
+(1 row)
+
+               is                
+---------------------------------
+ ok 5 - missing supplier is safe
+(1 row)
+
+                throws_ok                
+-----------------------------------------
+ ok 6 - direct supplier delete is denied
+(1 row)
+
+CREATE TABLE
+INSERT 0 7
+INSERT 0 6
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

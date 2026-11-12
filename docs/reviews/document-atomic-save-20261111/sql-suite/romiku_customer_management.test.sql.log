@@ -1,0 +1,128 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+CREATE TABLE
+INSERT 0 12
+INSERT 0 12
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+GRANT
+                       ok                        
+-------------------------------------------------
+ ok 1 - existing non-delete privileges preserved
+(1 row)
+
+                 ok                 
+------------------------------------
+ ok 2 - direct DELETE grant revoked
+(1 row)
+
+SET
+       throws_ok        
+------------------------
+ ok 3 - anon RPC denied
+(1 row)
+
+            throws_ok            
+---------------------------------
+ ok 4 - anon table delete denied
+(1 row)
+
+RESET
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                 throws_ok                 
+-------------------------------------------
+ ok 5 - authenticated direct DELETE denied
+(1 row)
+
+            is             
+---------------------------
+ ok 6 - no auth uid denied
+(1 row)
+
+              set_config              
+--------------------------------------
+ fc110000-0000-0000-0000-000000000001
+(1 row)
+
+           is            
+-------------------------
+ ok 7 - missing customer
+(1 row)
+
+               is                
+---------------------------------
+ ok 8 - empty preflight eligible
+(1 row)
+
+              is               
+-------------------------------
+ ok 9 - empty customer deleted
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 10 - contacts-only customer deleted
+(1 row)
+
+               is               
+--------------------------------
+ ok 11 - owned contacts deleted
+(1 row)
+
+                is                
+----------------------------------
+ ok 12 - quote blocks deletion
+ ok 13 - pi blocks deletion
+ ok 14 - order blocks deletion
+ ok 15 - inquiry blocks deletion
+ ok 16 - task blocks deletion
+ ok 17 - outbound blocks deletion
+(6 rows)
+
+                         is                         
+----------------------------------------------------
+ ok 18 - cancelled Production counted through Order
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 19 - Packing counted through Order
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 20 - Payment counted through Order
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 21 - all dependency types blocked in preflight
+(1 row)
+
+               is                
+---------------------------------
+ ok 22 - race initially eligible
+(1 row)
+
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

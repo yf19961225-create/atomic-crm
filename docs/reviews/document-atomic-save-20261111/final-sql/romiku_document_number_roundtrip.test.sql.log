@@ -1,0 +1,25 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+SET
+authenticated
+fe260000-0000-0000-0000-000000000010
+RESET
+INSERT 0 2
+SET
+INSERT 0 1
+SELECT 4
+RESET
+UPDATE 1
+SET
+ok 1 - name changes retain original number
+ok 2 - child identity remains UUID based
+ok 3 - ordinary number update rejected before unique constraint
+ok 4 - duplicate rejection does not alter original number
+1..4
+ROLLBACK

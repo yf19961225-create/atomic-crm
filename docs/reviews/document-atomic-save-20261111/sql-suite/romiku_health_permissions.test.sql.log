@@ -1,0 +1,70 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+CREATE FUNCTION
+INSERT 0 2
+INSERT 0 1
+DELETE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+CREATE TABLE
+INSERT 0 12
+INSERT 0 7
+UPDATE 1
+GRANT
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ ee091111-0000-0000-0000-000000000001
+(1 row)
+
+              is               
+-------------------------------
+ ok 1 - disabled is not active
+(1 row)
+
+                           ok                            
+---------------------------------------------------------
+ ok 2 - disabled denied quote item INSERT
+ ok 3 - disabled denied quote item UPDATE
+ ok 4 - disabled denied quote item DELETE
+ ok 5 - disabled denied order INSERT
+ ok 6 - disabled denied quote INSERT
+ ok 7 - disabled denied PI INSERT
+ ok 8 - disabled denied supplier INSERT
+ ok 9 - disabled denied packing INSERT
+ ok 10 - disabled denied inquiry INSERT
+ ok 11 - disabled denied payment INSERT
+ ok 12 - disabled denied production INSERT
+ ok 13 - disabled denied product auxiliary INSERT
+ ok 14 - disabled denied romiku_orders UPDATE
+ ok 15 - disabled denied romiku_quotes UPDATE
+ ok 16 - disabled denied romiku_pis UPDATE
+ ok 17 - disabled denied romiku_suppliers UPDATE
+ ok 18 - disabled denied romiku_production_orders UPDATE
+ ok 19 - disabled denied romiku_packing_lists UPDATE
+ ok 20 - disabled denied romiku_website_inquiries UPDATE
+(19 rows)
+
+                throws_ok                 
+------------------------------------------
+ ok 21 - disabled workbench action denied
+(1 row)
+
+ERROR:  Active CRM membership required
+CONTEXT:  PL/pgSQL function public.romiku_batch_status(text,uuid[],text) line 4 at RAISE

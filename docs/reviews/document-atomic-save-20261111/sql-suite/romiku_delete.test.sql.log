@@ -1,0 +1,115 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+              ok               
+-------------------------------
+ ok 1 - authenticated can call
+(1 row)
+
+           ok            
+-------------------------
+ ok 2 - anon cannot call
+(1 row)
+
+                         ok                          
+-----------------------------------------------------
+ ok 3 - security definer and fixed empty search path
+(1 row)
+
+SET
+       throws_ok        
+------------------------
+ ok 4 - anon RPC denied
+(1 row)
+
+RESET
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+             is             
+----------------------------
+ ok 5 - missing user denied
+(1 row)
+
+              set_config              
+--------------------------------------
+ de100000-0000-0000-0000-000000000001
+(1 row)
+
+            is             
+---------------------------
+ ok 6 - null kind rejected
+(1 row)
+
+               is               
+--------------------------------
+ ok 7 - untrusted kind rejected
+(1 row)
+
+          is          
+----------------------
+ ok 8 - missing quote
+(1 row)
+
+                throws_ok                 
+------------------------------------------
+ ok 9 - direct quote header delete denied
+(1 row)
+
+         is         
+--------------------
+ ok 10 - missing pi
+(1 row)
+
+               throws_ok                
+----------------------------------------
+ ok 11 - direct pi header delete denied
+(1 row)
+
+          is           
+-----------------------
+ ok 12 - missing order
+(1 row)
+
+                 throws_ok                 
+-------------------------------------------
+ ok 13 - direct order header delete denied
+(1 row)
+
+           is            
+-------------------------
+ ok 14 - missing packing
+(1 row)
+
+                  throws_ok                  
+---------------------------------------------
+ ok 15 - direct packing header delete denied
+(1 row)
+
+            is            
+--------------------------
+ ok 16 - missing outbound
+(1 row)
+
+                  throws_ok                   
+----------------------------------------------
+ ok 17 - direct outbound header delete denied
+(1 row)
+
+             is              
+-----------------------------
+ ok 18 - missing manual_task
+(1 row)
+
+CREATE TABLE
+INSERT 0 6
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

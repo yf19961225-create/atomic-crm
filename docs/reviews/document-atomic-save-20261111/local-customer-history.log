@@ -1,0 +1,288 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+            has_function            
+------------------------------------
+ ok 1 - customer history API exists
+(1 row)
+
+INSERT 0 1
+CREATE TABLE
+INSERT 0 16
+GRANT
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ de600000-0000-0000-0000-000000000001
+(1 row)
+
+INSERT 0 2
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 4
+SET
+RESET
+INSERT 0 2
+SET
+INSERT 0 4
+INSERT 0 4
+RESET
+INSERT 0 2
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+SELECT 1
+              is              
+------------------------------
+ ok 2 - multiple Orders count
+(1 row)
+
+           is            
+-------------------------
+ ok 3 - Order pagination
+(1 row)
+
+                           is                           
+--------------------------------------------------------
+ ok 4 - search scopes to customer and groups Order once
+(1 row)
+
+                      is                      
+----------------------------------------------
+ ok 5 - three productions under correct Order
+(1 row)
+
+                is                 
+-----------------------------------
+ ok 6 - direct Order no production
+(1 row)
+
+                is                 
+-----------------------------------
+ ok 7 - payment summary from Order
+(1 row)
+
+                             is                             
+------------------------------------------------------------
+ ok 8 - independent Packing excluded despite matching Buyer
+(1 row)
+
+                         is                          
+-----------------------------------------------------
+ ok 9 - Production own items only, no other customer
+(1 row)
+
+                           is                            
+---------------------------------------------------------
+ ok 10 - unlinked source Quote found through exact chain
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 11 - shared search customer filter
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 12 - invalid pagination rejected
+(1 row)
+
+SELECT 1
+                          is                           
+-------------------------------------------------------
+ ok 13 - archive preview includes exact Quote PI Order
+(1 row)
+
+                 is                 
+------------------------------------
+ ok 14 - confirmed archive succeeds
+(1 row)
+
+                is                 
+-----------------------------------
+ ok 15 - Quote relationship linked
+(1 row)
+
+               is               
+--------------------------------
+ ok 16 - PI relationship linked
+(1 row)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ not ok 17 - archive preserves all Order saved fields                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             +
+ # Failed test 17: "archive preserves all Order saved fields"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     +
+ #         have: {"id": "e2d6e9f6-41eb-4733-855b-0672510f8290", "notes": null, "due_at": null, "status": "confirmed", "freight": 0.00, "currency": "USD", "discount": 0.00, "owner_id": "de600000-0000-0000-0000-000000000001", "revision": 3, "voided_at": null, "voided_by": null, "created_at": "2026-11-11T08:58:55.005831+00:00", "created_by": "de600000-0000-0000-0000-000000000001", "price_term": null, "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": "0042f5d9-90d3-41a3-ab10-2f096d9ef2e8", "bank_snapshot": {}, "document_date": "2026-11-11", "document_name": null, "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {"order_export": {"terms": {"payment": {"text": "Payment terms as agreed by both parties.", "visible": true}, "packaging": {"text": "Standard export packaging unless otherwise agreed."}, "bank_charges": {"text": "All bank charges are borne by the buyer."}, "force_majeure": {"text": "Neither party is liable for force majeure events."}, "quality_claim": {"text": "Quality claims must be raised promptly after receipt."}, "delivery_lead_time": {"text": "Delivery lead time is subject to the confirmed order."}, "dispute_settlement": {"text": "Disputes will be settled through friendly consultation."}, "cancellation_deposit": {"text": "Deposit is non-refundable after production starts."}}, "seller": {"email": "info@romiku.com", "address": "72790, 3rd Street, Unit 4, 2nd Floor, Gate 153, Global Digital Trade Center Yiwu, China", "website": "www.romiku.com", "company_name": "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲", "tel_whatsapp": "+86 190 2577 7589"}, "template_key": "order"}}, "deposit_percent": 30.00, "document_number": "OD261111003", "shipment_method": null, "source_quote_id": "316fafe7-b8fd-49f5-83aa-3f8f969e2da1", "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-11T08:58:55.060105+00:00", "actual_delivery_at": null, "source_search_text": "historical buyer\nod261111003", "outbound_company_id": null, "business_search_text": "historical buyer\nusd\n2026-11-11\nod261111003\nconfirmed", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261111003", "counterparty_snapshot.name": "historical buyer"}, "counterparty_snapshot": {"name": "Historical Buyer"}, "purchase_order_number": null, "business_search_fields": {"status": "confirmed", "currency": "usd", "document_date": "2026-11-11", "document_number": "od261111003", "counterparty_snapshot.name": "historical buyer"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"id": "b1b89a54-bb82-465b-9a78-65c9c84e2eae", "kind": "customer", "copied_at": "2026-11-11T08:58:55.005831+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"text": null}, "small_label": {"text": null}, "initialized_at": "2026-11-11T08:58:55.005831+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}+
+ #         want: {"id": "e2d6e9f6-41eb-4733-855b-0672510f8290", "notes": null, "due_at": null, "status": "confirmed", "freight": 0.00, "currency": "USD", "discount": 0.00, "owner_id": "de600000-0000-0000-0000-000000000001", "revision": 2, "voided_at": null, "voided_by": null, "created_at": "2026-11-11T08:58:55.005831+00:00", "created_by": "de600000-0000-0000-0000-000000000001", "price_term": null, "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": "0042f5d9-90d3-41a3-ab10-2f096d9ef2e8", "bank_snapshot": {}, "document_date": "2026-11-11", "document_name": null, "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {"order_export": {"terms": {"payment": {"text": "Payment terms as agreed by both parties.", "visible": true}, "packaging": {"text": "Standard export packaging unless otherwise agreed."}, "bank_charges": {"text": "All bank charges are borne by the buyer."}, "force_majeure": {"text": "Neither party is liable for force majeure events."}, "quality_claim": {"text": "Quality claims must be raised promptly after receipt."}, "delivery_lead_time": {"text": "Delivery lead time is subject to the confirmed order."}, "dispute_settlement": {"text": "Disputes will be settled through friendly consultation."}, "cancellation_deposit": {"text": "Deposit is non-refundable after production starts."}}, "seller": {"email": "info@romiku.com", "address": "72790, 3rd Street, Unit 4, 2nd Floor, Gate 153, Global Digital Trade Center Yiwu, China", "website": "www.romiku.com", "company_name": "YIWU ROMIKU NAIL SUPPLY 义乌络洣库美甲", "tel_whatsapp": "+86 190 2577 7589"}, "template_key": "order"}}, "deposit_percent": 30.00, "document_number": "OD261111003", "shipment_method": null, "source_quote_id": "316fafe7-b8fd-49f5-83aa-3f8f969e2da1", "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-11T08:58:55.060105+00:00", "actual_delivery_at": null, "source_search_text": "historical buyer\nod261111003", "outbound_company_id": null, "business_search_text": "historical buyer\nusd\n2026-11-11\nod261111003\nconfirmed", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261111003", "counterparty_snapshot.name": "historical buyer"}, "counterparty_snapshot": {"name": "Historical Buyer"}, "purchase_order_number": null, "business_search_fields": {"status": "confirmed", "currency": "usd", "document_date": "2026-11-11", "document_number": "od261111003", "counterparty_snapshot.name": "historical buyer"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"id": "b1b89a54-bb82-465b-9a78-65c9c84e2eae", "kind": "customer", "copied_at": "2026-11-11T08:58:55.005831+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"text": null}, "small_label": {"text": null}, "initialized_at": "2026-11-11T08:58:55.005831+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}
+(1 row)
+
+                is                
+----------------------------------
+ ok 18 - Quote snapshot preserved
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 19 - stale confirmation rejected
+(1 row)
+
+                  throws_ok                   
+----------------------------------------------
+ ok 20 - cross-customer reassignment rejected
+(1 row)
+
+UPDATE 1
+                        is                        
+--------------------------------------------------
+ ok 21 - customer rename never rewrites snapshots
+(1 row)
+
+INSERT 0 4
+RESET
+INSERT 0 1
+SET
+                  is                  
+--------------------------------------
+ ok 22 - Quote-direct Order has no PI
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 23 - shared Quote deduplicates across Orders
+(1 row)
+
+RESET
+INSERT 0 1
+SET
+                       is                        
+-------------------------------------------------
+ ok 24 - cancelled excluded from currency totals
+(1 row)
+
+                is                
+----------------------------------
+ ok 25 - currencies stay separate
+(1 row)
+
+RESET
+INSERT 0 1
+SET
+                            is                             
+-----------------------------------------------------------
+ ok 26 - explicit new customer and Order attachment atomic
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 27 - new customer preserves saved Order
+(1 row)
+
+                      throws_ok                      
+-----------------------------------------------------
+ ok 28 - new customer rolled back on source conflict
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 29 - failed archive creates no customer
+(1 row)
+
+RESET
+INSERT 0 26
+SET
+                         is                         
+----------------------------------------------------
+ ok 30 - all docs second page has independent total
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 31 - snapshot specification search across all records
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 32 - Customer B sees only its own production
+(1 row)
+
+                throws_ok                 
+------------------------------------------
+ ok 33 - typed customer filter validation
+(1 row)
+
+RESET
+CREATE POLICY
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                            is                             
+-----------------------------------------------------------
+ ok 34 - Order RLS propagates to customer child membership
+(1 row)
+
+RESET
+DROP POLICY
+CREATE POLICY
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+                throws_ok                 
+------------------------------------------
+ ok 35 - RLS update denial aborts archive
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+      throws_ok       
+----------------------
+ ok 36 - uid required
+(1 row)
+
+RESET
+         ok          
+---------------------
+ ok 37 - anon denied
+(1 row)
+
+             ok              
+-----------------------------
+ ok 38 - anon archive denied
+(1 row)
+
+           ok            
+-------------------------
+ ok 39 - history invoker
+(1 row)
+
+                finish                
+--------------------------------------
+ 1..39
+ # Looks like you failed 1 test of 39
+(2 rows)
+
+ROLLBACK

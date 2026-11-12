@@ -16,14 +16,34 @@ select is(romiku_batch_delete_orders(array_fill(gen_random_uuid(),array[101]))->
 select throws_ok($$delete from romiku_orders where false$$,'42501',null,'header delete still denied');
 create temporary table cases(label text primary key,id uuid default gen_random_uuid(),p uuid default gen_random_uuid(),item uuid default gen_random_uuid());
 insert into cases(label) values ('pending1'),('pending2'),('cancelled'),('mixed'),('completed'),('received'),('unknown'),('archived'),('followup'),('packing'),('payment'),('late'),('rollback'),('independent');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id) select id from cases;
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select item,id,'CASCADE',100 from cases;
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id,status,archived_at) select p,id,case when label in ('completed','received') then 'received' when label='unknown' then 'scheduled' when label='cancelled' then 'cancelled' else 'pending_send' end,case when label='archived' then now() end from cases where label<>'independent';
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select p,id,item,'CASCADE',10 from cases where label<>'independent';
 insert into romiku_production_orders(order_id,status) select id,case when label='mixed' then 'scheduled' else 'pending' end from cases where label in ('pending2','mixed','rollback');
 insert into romiku_production_followups(production_order_id,method,summary) select p,'email','keep followup' from cases where label='followup';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(order_id) select id from cases where label='packing';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(notes) values ('independent must not block unrelated order');
+SET LOCAL ROLE authenticated;
+
 insert into romiku_payments(order_id,kind,amount) select id,'deposit',5 from cases where label='payment';
 insert into romiku_manual_tasks(title,order_id) select 'retain order task '||label,id from cases where label in ('pending1','rollback');
 insert into romiku_manual_tasks(title,production_order_id) select 'retain production task '||label,p from cases where label in ('pending1','rollback');
@@ -76,13 +96,23 @@ select is(romiku_order_delete_preflight(array[null::uuid])->>'code','INVALID_ARG
 select is(romiku_order_delete_preflight(array[gen_random_uuid()])->'blocked'->0->>'code','NOT_FOUND','missing Order structured');
 select is(jsonb_array_length(romiku_order_delete_preflight(array[(select id from cases where label='mixed'),(select id from cases where label='mixed')])->'blocked'),1,'duplicate IDs deduplicated');
 insert into cases(label) values ('late_status'),('late_followup'),('late_archive'),('late_pack'),('batch_survivor');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id) select id from cases where label like 'late_%' or label='batch_survivor';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id) select p,id from cases where label like 'late_%';
 select is(jsonb_array_length(romiku_order_delete_preflight(array(select id from cases where label like 'late_%'))->'deletable'),4,'all late-change fixtures initially eligible');
 update romiku_production_orders set status='scheduled' where id=(select p from cases where label='late_status');
 insert into romiku_production_followups(production_order_id,method,summary) select p,'email','late followup' from cases where label='late_followup';
 update romiku_production_orders set archived_at=now() where id=(select p from cases where label='late_archive');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(order_id) select id from cases where label='late_pack';
+SET LOCAL ROLE authenticated;
+
 create temporary table late_results as select romiku_batch_delete_orders(array(select id from cases where label like 'late_%' or label in ('rollback','batch_survivor'))) value;
 select is(jsonb_array_length(value->'deleted'),1,'one failure does not roll back another Order success') from late_results;
 select is(jsonb_array_length(value->'failed'),5,'four new dependencies and one rollback reported') from late_results;
@@ -95,10 +125,30 @@ insert into source_ids(kind) values ('quote'),('pi'),('customer'),('outbound'),(
 insert into romiku_outbound_companies(id,name) select id,'Cascade keep outbound' from source_ids where kind='outbound';
 insert into romiku_formal_customers(id,name) select id,'Cascade keep buyer' from source_ids where kind='customer';
 insert into romiku_website_inquiries(id,customer_name,email) select id,'Cascade keep inquiry','cascade@test.example' from source_ids where kind='inquiry';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id) select id from source_ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id,source_quote_id) select id,(select id from source_ids where kind='quote') from source_ids where kind='pi';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,source_quote_id,source_pi_id,formal_customer_id,outbound_company_id,source_website_inquiry_id) select id,(select id from source_ids where kind='quote'),(select id from source_ids where kind='pi'),(select id from source_ids where kind='customer'),(select id from source_ids where kind='outbound'),(select id from source_ids where kind='inquiry') from cases where label='sources';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select item,id,'COUNTER-KEEP',10 from cases where label='sources';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id) select p,id from cases where label='sources';
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity,barcode_number) select p,id,item,'COUNTER-KEEP',1,'0123456789012' from cases where label='sources';
 reset role;

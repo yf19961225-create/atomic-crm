@@ -1,6 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
+\ir helpers/document_atomic.sql
 select no_plan();
 insert into auth.users(id,email) values('de610000-0000-0000-0000-000000000001','workflow@test.example');
 select ok(not has_table_privilege('authenticated','romiku_payments','delete'),'no authenticated Payment DELETE');
@@ -10,22 +11,52 @@ select ok(not has_function_privilege('anon','romiku_delete_preflight(text,uuid[]
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select is(romiku_void_payment(gen_random_uuid(),'reason')->>'code','UNAUTHENTICATED','void requires uid');
-select is(romiku_batch_status('quote',array[gen_random_uuid()],'won')->>'code','UNAUTHENTICATED','batch requires uid');
+select throws_ok($$select romiku_batch_status('quote',array[gen_random_uuid()],'won')$$,'42501',null,'batch requires uid');
 select set_config('request.jwt.claim.sub','de610000-0000-0000-0000-000000000001',true);
 create temporary table ids(kind text primary key,id uuid default gen_random_uuid(),child uuid default gen_random_uuid());
 insert into ids(kind) values('order'),('quote'),('pi'),('production'),('packing'),('website_inquiry'),('outbound'),('customer'),('payment'),('payment2'),('production2'),('order2');
 insert into romiku_formal_customers(id,name) select id,'Workflow Customer' from ids where kind='customer';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,formal_customer_id,freight,currency) select id,(select id from ids where kind='customer'),10000,'USD' from ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id) select id from ids where kind='order2';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_website_inquiries(id,customer_name,email) select id,'Workflow Inquiry','workflow@example.test' from ids where kind='website_inquiry';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,source_website_inquiry_id) select id,(select id from ids where kind='website_inquiry') from ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id) select id from ids where kind='pi';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(id) select id from ids where kind='packing';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_outbound_companies(id,name) select id,'Workflow Outbound' from ids where kind='outbound';
 select is((select status from romiku_quotes where id=(select id from ids where kind='quote')),'pending_quote','new quote default');
 select is((select status from romiku_packing_lists where id=(select id from ids where kind='packing')),'draft','new packing default');
 select is((select status from romiku_website_inquiries where id=(select id from ids where kind='website_inquiry')),'pending_screening','new inquiry default');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select child,id,'WORKFLOW',10 from ids where kind='order';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id) select id,(select id from ids where kind='order') from ids where kind in ('production','production2');
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) select (select id from ids where kind='production'),id,child,'WORKFLOW',10 from ids where kind='order';
 select is((select status from romiku_production_orders where id=(select id from ids where kind='production')),'pending_send','production default');
@@ -69,26 +100,41 @@ select is(romiku_delete_record('order',(select id from ids where kind='order'))-
 insert into romiku_payments(id,order_id,kind,amount) select id,(select id from ids where kind='order'),'deposit',3000 from ids where kind='payment2';
 select is((select received_amount from romiku_order_totals where id=(select id from ids where kind='order')),3000::numeric,'correct re-entry 3000');
 select is((select remaining_amount from romiku_order_totals where id=(select id from ids where kind='order')),7000::numeric,'correct re-entry balance 7000');
-select throws_ok($$update romiku_orders set status='voided' where id=(select id from ids where kind='order')$$,'P4202',null,'direct Order void denied');
+select throws_ok($$update romiku_orders set status='voided' where id=(select id from ids where kind='order')$$,'42501',null,'direct Order void denied');
 select is(romiku_void_order((select id from ids where kind='order'),'取消交易')->>'ok','true','Order void allowed with histories');
 select is((select count(*) from romiku_payments where order_id=(select id from ids where kind='order')),2::bigint,'Order void retains both payments');
 select is((select count(*) from romiku_production_orders where order_id=(select id from ids where kind='order')),2::bigint,'Order void retains productions');
-select throws_ok($$update romiku_orders set status='draft' where id=(select id from ids where kind='order')$$,'P4202',null,'no ordinary Order restoration');
+select throws_ok($$select pg_temp.document_patch('order',(select id from ids where kind='order'),jsonb_build_object('status','draft'))$$,'P4202',null,'no ordinary Order restoration');
 select is(romiku_archive_orders(array[(select id from ids where kind='order')])->>'ok','true','archive independent');
 select is((select status from romiku_orders where id=(select id from ids where kind='order')),'voided','archive keeps status');
 select is(romiku_customer_business_history((select id from ids where kind='customer'))->>'total_count','1','archived voided retained in Customer360');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 -- Mixed quote preflight + execution recheck; source remains.
 update romiku_pis set source_quote_id=(select id from ids where kind='quote') where id=(select id from ids where kind='pi');
+SET LOCAL ROLE authenticated;
+
 select is(jsonb_array_length(romiku_delete_preflight('quote',array[(select id from ids where kind='quote')])->'blocked'),1,'quote downstream blocked');
 select is(jsonb_array_length(romiku_delete_preflight('pi',array[(select id from ids where kind='pi')])->'deletable'),1,'PI without order eligible');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set source_pi_id=(select id from ids where kind='pi') where id=(select id from ids where kind='order2');
+SET LOCAL ROLE authenticated;
+
 select is(romiku_batch_delete('pi',array[(select id from ids where kind='pi')])->'failed'->0->>'status','blocked_at_execution','PI execution rechecks');
 insert into romiku_production_followups(production_order_id,method,summary) select id,'email','history' from ids where kind='production';
 select is(jsonb_array_length(romiku_delete_preflight('production',array[(select id from ids where kind='production'),(select id from ids where kind='production2')])->'blocked'),1,'mixed production classified');
 select is(jsonb_array_length(romiku_batch_delete('packing',array[(select id from ids where kind='packing')])->'succeeded'),1,'independent packing controlled delete');
 select is(jsonb_array_length(romiku_delete_preflight('website_inquiry',array[(select id from ids where kind='website_inquiry')])->'blocked'),1,'Inquiry commercial source blocked');
 select is(romiku_delete_record('website_inquiry',(select id from ids where kind='website_inquiry'))->>'code','HAS_DOWNSTREAM','Inquiry actual delete blocked');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set outbound_company_id=(select id from ids where kind='outbound') where id=(select id from ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is(jsonb_array_length(romiku_batch_delete('outbound',array[(select id from ids where kind='outbound')])->'succeeded'),1,'Outbound commercial detach allowed');
 select ok(exists(select 1 from romiku_quotes where id=(select id from ids where kind='quote') and outbound_company_id is null),'Quote survives Outbound deletion');
 -- A free inquiry must pass both preflight and the immutable-originals trigger.

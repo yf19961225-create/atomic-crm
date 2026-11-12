@@ -1,0 +1,166 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 2
+INSERT 0 1
+DELETE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+CREATE TABLE
+INSERT 0 12
+INSERT 0 7
+UPDATE 1
+GRANT
+SET
+authenticated
+ee091111-0000-0000-0000-000000000001
+ok 1 - disabled is not active
+ok 2 - disabled denied quote item INSERT
+ok 3 - disabled denied quote item UPDATE
+ok 4 - disabled denied quote item DELETE
+ok 5 - disabled denied order INSERT
+ok 6 - disabled denied quote INSERT
+ok 7 - disabled denied PI INSERT
+ok 8 - disabled denied supplier INSERT
+ok 9 - disabled denied packing INSERT
+ok 10 - disabled denied inquiry INSERT
+ok 11 - disabled denied payment INSERT
+ok 12 - disabled denied production INSERT
+ok 13 - disabled denied product auxiliary INSERT
+ok 14 - disabled denied romiku_orders UPDATE
+ok 15 - disabled denied romiku_quotes UPDATE
+ok 16 - disabled denied romiku_pis UPDATE
+ok 17 - disabled denied romiku_suppliers UPDATE
+ok 18 - disabled denied romiku_production_orders UPDATE
+ok 19 - disabled denied romiku_packing_lists UPDATE
+ok 20 - disabled denied romiku_website_inquiries UPDATE
+ok 21 - disabled workbench action denied
+ok 22 - disabled bulk quote UPDATE RPC no success
+ee091111-0000-0000-0000-000000000002
+ok 23 - outsider is not active
+ok 24 - outsider denied quote item INSERT
+ok 25 - outsider denied quote item UPDATE
+ok 26 - outsider denied quote item DELETE
+ok 27 - outsider denied order INSERT
+ok 28 - outsider denied quote INSERT
+ok 29 - outsider denied PI INSERT
+ok 30 - outsider denied supplier INSERT
+ok 31 - outsider denied packing INSERT
+ok 32 - outsider denied inquiry INSERT
+ok 33 - outsider denied payment INSERT
+ok 34 - outsider denied production INSERT
+ok 35 - outsider denied product auxiliary INSERT
+ok 36 - outsider denied romiku_orders UPDATE
+ok 37 - outsider denied romiku_quotes UPDATE
+ok 38 - outsider denied romiku_pis UPDATE
+ok 39 - outsider denied romiku_suppliers UPDATE
+ok 40 - outsider denied romiku_production_orders UPDATE
+ok 41 - outsider denied romiku_packing_lists UPDATE
+ok 42 - outsider denied romiku_website_inquiries UPDATE
+ok 43 - outsider bulk quote UPDATE RPC no success
+ok 44 - outsider supplier DELETE RPC denied
+ok 45 - outsider PI DELETE RPC denied
+ee091111-0000-0000-0000-000000000001
+ok 46 - disabled supplier DELETE RPC denied
+ok 47 - disabled PI DELETE RPC denied
+RESET
+INSERT 0 1
+UPDATE 1
+SET
+ee091111-0000-0000-0000-000000000001
+ok 48 - active A legacy write policy quote item INSERT
+ok 49 - active A legacy write policy quote item UPDATE
+ok 50 - active A legacy write policy quote item DELETE
+ok 51 - active A legacy write policy order INSERT
+ok 52 - active A legacy write policy quote INSERT
+ok 53 - active A legacy write policy PI INSERT
+ok 54 - active A legacy write policy supplier INSERT
+ok 55 - active A legacy write policy packing INSERT
+ok 56 - active A legacy write policy inquiry INSERT
+ok 57 - active A legacy write policy payment INSERT
+ok 58 - active A legacy write policy production INSERT
+ok 59 - active A legacy write policy product auxiliary INSERT
+ok 60 - active A legacy write policy romiku_orders UPDATE
+ok 61 - active A legacy write policy romiku_quotes UPDATE
+ok 62 - active A legacy write policy romiku_pis UPDATE
+ok 63 - active A legacy write policy romiku_suppliers UPDATE
+ok 64 - active A legacy write policy romiku_production_orders UPDATE
+ok 65 - active A legacy write policy romiku_packing_lists UPDATE
+ok 66 - active A legacy write policy romiku_website_inquiries UPDATE
+ok 67 - active A atomic edit order
+ok 68 - active A atomic edit quote
+ok 69 - active A atomic edit pi
+ok 70 - active A atomic edit packing
+ok 71 - active A atomic creation with line retained
+ok 72 - active A atomic item edit retained
+ok 73 - active A workbench manage retained
+ee091111-0000-0000-0000-000000000002
+ok 74 - active B legacy write policy quote item INSERT
+ok 75 - active B legacy write policy quote item UPDATE
+ok 76 - active B legacy write policy quote item DELETE
+ok 77 - active B legacy write policy order INSERT
+ok 78 - active B legacy write policy quote INSERT
+ok 79 - active B legacy write policy PI INSERT
+ok 80 - active B legacy write policy supplier INSERT
+ok 81 - active B legacy write policy packing INSERT
+ok 82 - active B legacy write policy inquiry INSERT
+ok 83 - active B legacy write policy payment INSERT
+ok 84 - active B legacy write policy production INSERT
+ok 85 - active B legacy write policy product auxiliary INSERT
+ok 86 - active B legacy write policy romiku_orders UPDATE
+ok 87 - active B legacy write policy romiku_quotes UPDATE
+ok 88 - active B legacy write policy romiku_pis UPDATE
+ok 89 - active B legacy write policy romiku_suppliers UPDATE
+ok 90 - active B legacy write policy romiku_production_orders UPDATE
+ok 91 - active B legacy write policy romiku_packing_lists UPDATE
+ok 92 - active B legacy write policy romiku_website_inquiries UPDATE
+ok 93 - active B atomic edit order
+ok 94 - active B atomic edit quote
+ok 95 - active B atomic edit pi
+ok 96 - active B atomic edit packing
+ok 97 - active B atomic creation with line retained
+ok 98 - active B atomic item edit retained
+ok 99 - active B workbench manage retained
+ok 100 - active supplier DELETE RPC allowed
+ok 101 - active PI DELETE RPC allowed
+RESET
+GRANT
+SET
+
+anon
+ok 102 - anon denied quote item INSERT
+ok 103 - anon denied quote item UPDATE
+ok 104 - anon denied quote item DELETE
+ok 105 - anon denied order INSERT
+ok 106 - anon denied quote INSERT
+ok 107 - anon denied PI INSERT
+ok 108 - anon denied supplier INSERT
+ok 109 - anon denied packing INSERT
+ok 110 - anon denied inquiry INSERT
+ok 111 - anon denied payment INSERT
+ok 112 - anon denied production INSERT
+ok 113 - anon denied product auxiliary INSERT
+ok 114 - anon denied romiku_orders UPDATE
+ok 115 - anon denied romiku_quotes UPDATE
+ok 116 - anon denied romiku_pis UPDATE
+ok 117 - anon denied romiku_suppliers UPDATE
+ok 118 - anon denied romiku_production_orders UPDATE
+ok 119 - anon denied romiku_packing_lists UPDATE
+ok 120 - anon denied romiku_website_inquiries UPDATE
+RESET
+SET
+ok 121 - service role insert remains permitted
+RESET
+1..121
+ROLLBACK

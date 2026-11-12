@@ -1,5 +1,9 @@
-import { expect, it, vi } from "vitest";
-import fakeRestDataProvider from "ra-data-fakerest";
+import { beforeEach, expect, it, vi } from "vitest";
+import rawFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider = (
+  ...args: Parameters<typeof rawFakeRestDataProvider>
+) => withAtomicDocuments(rawFakeRestDataProvider(...args));
 import {
   convertDocument,
   createDocument,
@@ -8,7 +12,10 @@ import {
 import { paymentSummary, paymentWrite } from "../payments/paymentWorkflow";
 
 it("initializes direct PI export and banking snapshots", async () => {
-  const provider = fakeRestDataProvider({ romiku_pis: [] });
+  const provider = fakeRestDataProvider({
+    romiku_pis: [],
+    romiku_pi_items: [],
+  });
   const { data } = await createDocument(provider, "pi", "Buyer");
   expect(data.terms_snapshot).toMatchObject({
     pi_export: { template_key: "pi", terms_visible: true },
@@ -21,38 +28,46 @@ it.each([
   ["quote", "order"],
   ["pi", "order"],
 ] as const)(
-  "converts %s to %s through the server snapshot boundary",
+  "converts %s to %s with captured source revision",
   async (source, target) => {
-    const rpc = vi.fn().mockResolvedValue({ data: "new-id", error: null });
-    expect(await convertDocument({ rpc }, source, "source-id", target)).toBe(
-      "new-id",
+    const provider = fakeRestDataProvider({});
+    const create = vi.fn().mockResolvedValue({ document_id: "new-id" });
+    provider.documentCreateFromSource = create;
+    expect(
+      await convertDocument(provider, source, "source-id", target, 7),
+    ).toBe("new-id");
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceKind: source,
+        sourceId: "source-id",
+        targetKind: target,
+        expectedSourceRevision: 7,
+        requestId: expect.any(String),
+      }),
     );
-    expect(rpc).toHaveBeenCalledWith("romiku_convert_document", {
-      source_kind: source,
-      source_id: "source-id",
-      target_kind: target,
-    });
   },
 );
 it("rejects unsupported conversions and failed server copies", async () => {
-  const rpc = vi
+  const provider = fakeRestDataProvider({});
+  const create = vi
     .fn()
-    .mockResolvedValue({ data: null, error: { message: "Source missing" } });
-  await expect(convertDocument({ rpc }, "pi", "id", "pi")).rejects.toThrow(
+    .mockRejectedValue(
+      Object.assign(new Error("Source missing"), { code: "P0002" }),
+    );
+  provider.documentCreateFromSource = create;
+  await expect(convertDocument(provider, "pi", "id", "pi", 1)).rejects.toThrow(
     "不支持",
   );
-  expect(rpc).not.toHaveBeenCalled();
+  expect(create).not.toHaveBeenCalled();
   await expect(
-    convertDocument({ rpc }, "quote", "id", "order"),
+    convertDocument(provider, "quote", "id", "order", 1),
   ).rejects.toThrow("Source missing");
-  rpc.mockResolvedValue({ data: null, error: null });
-  await expect(convertDocument({ rpc }, "quote", "id", "pi")).rejects.toThrow(
-    "未返回单据",
-  );
 });
 it("creates distinct direct PI and Order without creating Formal Customers", async () => {
   const provider = fakeRestDataProvider({
     romiku_pis: [],
+    romiku_pi_items: [],
+    romiku_order_items: [],
     romiku_orders: [],
     romiku_formal_customers: [],
   });
@@ -195,3 +210,5 @@ it("accepts the unpaid order stage without altering financial facts or allowing 
     documentHeaderWrite("pi", { status: "awaiting_payment" }),
   ).toThrow("有效的单据状态");
 });
+
+beforeEach(() => sessionStorage.clear());

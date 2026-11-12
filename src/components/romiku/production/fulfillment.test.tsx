@@ -1,7 +1,10 @@
 import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import baseFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider: typeof baseFakeRestDataProvider = (...args) =>
+  withAtomicDocuments(baseFakeRestDataProvider(...args));
 import { MemoryRouter, Routes } from "react-router";
 import { page, userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";

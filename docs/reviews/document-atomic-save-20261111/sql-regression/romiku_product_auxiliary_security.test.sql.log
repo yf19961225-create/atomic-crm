@@ -1,0 +1,83 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 4
+INSERT 0 3
+DELETE 1
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+SET
+authenticated
+ee080000-0000-0000-0000-000000000001
+ok 1 - active 1: create extension
+ok 2 - active 1: update extension
+ok 3 - active 1: create relation
+ok 4 - active 1: update relation
+ok 5 - active 1: create cost
+ok 6 - active 1: delete extension
+ok 7 - active RPC save
+ee080000-0000-0000-0000-000000000002
+ok 8 - active 2: create extension
+ok 9 - active 2: update extension
+ok 10 - active 2: create relation
+ok 11 - active 2: update relation
+ok 12 - active 2: create cost
+ok 13 - active 2: delete extension
+ok 14 - active RPC save
+RESET
+UPDATE 1
+UPDATE 1
+SET
+ee080000-0000-0000-0000-000000000003
+ok 15 - disabled: extension insert denied
+ok 16 - disabled: relation insert denied
+ok 17 - disabled: cost insert denied
+ok 18 - disabled: romiku_product_extensions update affects no rows
+ok 19 - disabled: romiku_product_suppliers update affects no rows
+ok 20 - disabled: extension delete affects no rows
+ok 21 - disabled: RPC save denied before data access
+ok 22 - disabled: RPC replace denied before data access
+ok 23 - disabled: RPC delete denied before data access
+ok 24 - disabled: RPC preview bulk denied before data access
+ok 25 - disabled: RPC apply bulk denied before data access
+ok 26 - direct relation delete stays denied
+ok 27 - cost update stays denied
+ok 28 - cost delete stays denied
+ee080000-0000-0000-0000-000000000004
+ok 29 - outsider: extension insert denied
+ok 30 - outsider: relation insert denied
+ok 31 - outsider: cost insert denied
+ok 32 - outsider: romiku_product_extensions update affects no rows
+ok 33 - outsider: romiku_product_suppliers update affects no rows
+ok 34 - outsider: extension delete affects no rows
+ok 35 - outsider: RPC save denied before data access
+ok 36 - outsider: RPC replace denied before data access
+ok 37 - outsider: RPC delete denied before data access
+ok 38 - outsider: RPC preview bulk denied before data access
+ok 39 - outsider: RPC apply bulk denied before data access
+ok 40 - direct relation delete stays denied
+ok 41 - cost update stays denied
+ok 42 - cost delete stays denied
+RESET
+SET
+anon
+
+ok 43 - anon romiku_product_extensions insert denied
+ok 44 - anon romiku_product_extensions update denied
+ok 45 - anon romiku_product_extensions delete denied
+ok 46 - anon romiku_product_suppliers insert denied
+ok 47 - anon romiku_product_suppliers update denied
+ok 48 - anon romiku_product_suppliers delete denied
+ok 49 - anon romiku_procurement_cost_history insert denied
+ok 50 - anon romiku_procurement_cost_history update denied
+ok 51 - anon romiku_procurement_cost_history delete denied
+RESET
+ok 52 - denied edits preserved extension
+ok 53 - denied edits preserved relation
+ok 54 - cost history unchanged by denied writes
+SET
+ok 55 - existing trusted service role write remains available
+RESET
+1..55
+ROLLBACK

@@ -1,0 +1,49 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - request ledger exists
+ok 2 - events exist
+ok 3 - order state exists
+ok 4 - production state exists
+ok 5 - evidence links exist
+ok 6 - active user guard exists
+INSERT 0 4
+INSERT 0 3
+INSERT 0 1
+INSERT 0 1
+ok 7 - executor nonlogin and no bypass
+ok 8 - client cannot assume executor
+SET
+authenticated
+ee040000-0000-0000-0000-000000000001
+ok 9 - active user A
+ok 10 - A can manage permitted order
+ok 11 - A reads state
+ok 12 - direct state mutation denied
+ok 13 - audit delete denied
+ok 14 - request tampering denied
+ee040000-0000-0000-0000-000000000002
+ok 15 - active user B
+ok 16 - B same permitted visibility
+ee040000-0000-0000-0000-000000000003
+ok 17 - disabled rejected by guard
+ok 18 - disabled direct table read hidden
+ee040000-0000-0000-0000-000000000099
+ok 19 - no CRM membership rejected
+RESET
+ALTER POLICY
+SET
+ee040000-0000-0000-0000-000000000001
+ok 20 - parent RLS preserved
+ok 21 - invisible parent unmanageable
+RESET
+ALTER POLICY
+ALTER POLICY
+SET
+ok 22 - readable but UPDATE restricted is rejected
+RESET
+SET
+ok 23 - anon denied
+RESET
+1..23
+ROLLBACK

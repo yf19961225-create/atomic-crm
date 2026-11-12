@@ -11,8 +11,18 @@ grant all on sy_ids,sy_result,sy_before to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de700000-0000-0000-0000-000000000001',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id) select id from sy_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select s.id,o.id,'SUN5',100 from sy_ids s cross join sy_ids o where s.kind='source' and o.kind='order';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id,status,archived_at,marking_snapshot)
 select p.id,o.id,case when p.kind='p07' then 'scheduled' when p.kind in ('p06','archived') then 'pending_send' when p.kind='completed' then 'received' else p.kind end,
 case when p.kind='archived' then now() end,
@@ -25,7 +35,12 @@ insert into sy_before select id,marking_snapshot from romiku_production_orders w
 select is(romiku_sync_order_production_defaults((select id from sy_ids where kind='order'))->>'code','EMPTY_DEFAULTS','empty saved Order is blocked before confirmation');
 select is(romiku_sync_order_production_defaults((select id from sy_ids where kind='order'),'{"token":"anything"}')->>'message','当前订单尚未设置统一生产要求，请先设置订单的生产要求 / 唛头与标签。','empty confirmed source cannot pretend success');
 select is((select count(*) from romiku_production_orders p join sy_before b using(id) where p.marking_snapshot=b.snapshot),6::bigint,'empty sync preserves all previous snapshots');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set production_defaults_snapshot=production_defaults_snapshot||'{"front_mark":{"mode":"text","text":"云裳"},"small_label":{"mode":"text","text":"Made in China"},"production_requirements":"外套编织袋","labeling_requirements":"四面贴","notes":"shared note","additional_labels":[{"mode":"text","text":"Common barcode"}]}' where id=(select id from sy_ids where kind='order');
+SET LOCAL ROLE authenticated;
+
 insert into sy_result select romiku_sync_order_production_defaults((select id from sy_ids where kind='order'));
 select is((select value->'source_snapshot' from sy_result),(select production_defaults_snapshot from romiku_orders where id=(select id from sy_ids where kind='order')),'confirmation includes exact saved Order snapshot');
 select is((select value->>'order_document_number' from sy_result),(select document_number from romiku_orders where id=(select id from sy_ids where kind='order')),'confirmation identifies saved source Order');
@@ -38,7 +53,12 @@ select is((select marking_override from romiku_production_items where production
 select is((select marking_override from romiku_production_items where production_order_id=(select id from sy_ids where kind='p07')),'{"mode":"inherit"}'::jsonb,'P07 inherit retained exactly');
 select is((select count(*) from romiku_production_orders p join sy_before b using(id) where p.marking_snapshot=b.snapshot),4::bigint,'completed received cancelled archived untouched');
 truncate sy_before;insert into sy_before select id,marking_snapshot from romiku_production_orders where order_id=(select id from sy_ids where kind='order');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set production_defaults_snapshot=jsonb_set(production_defaults_snapshot,'{production_requirements}','"Changed"') where id=(select id from sy_ids where kind='order');
+SET LOCAL ROLE authenticated;
+
 select is(romiku_sync_order_production_defaults((select id from sy_ids where kind='order'),(select value from sy_result))->>'ok','false','stale source confirmation rejected');
 truncate sy_result;insert into sy_result select romiku_sync_order_production_defaults((select id from sy_ids where kind='order'));
 reset role;

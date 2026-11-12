@@ -1,0 +1,329 @@
+
+ RUN  v4.1.0 /private/tmp/romiku order-status baseline 20261109
+
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+ ❯ |claude| .claude/hooks/test/check-config-sync.test.mjs (4 tests | 1 failed) 133ms
+     × a matcher token missing from config.roles → exit 1 35ms
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+ ❯ |claude| .claude/scripts/test/pending-deploys.test.mjs (9 tests | 7 failed) 789ms
+     × empty when session branch made no deploy-relevant change 102ms
+     × non-empty when the session branch changes the declarative schema 142ms
+     × a TS-only change (no schema file) is NOT deploy-relevant (unified definition) 141ms
+     × no config.deploy -> exit 0 empty (deploy phase not configured) 136ms
+     × empty and exit 0 when NO session topology exists at all (hooks never ran) 73ms
+     × exits 3 (could not decide) when --session is missing 92ms
+     × fails loudly (exit 3 + stderr) on SESSION_SHORT_ID mismatch 101ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |claude| .claude/hooks/test/check-config-sync.test.mjs > check-config-sync > a matcher token missing from config.roles → exit 1
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ .claude/hooks/test/check-config-sync.test.mjs:56:22
+     54|       matchers: ["developer|test-writer", "merger"],
+     55|     });
+     56|     expect(r.status).toBe(1);
+       |                      ^
+     57|     expect(r.stderr).toContain("test-writer");
+     58|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > empty when session branch made no deploy-relevant change
+Error: Command failed: node /private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-w0KL3Z --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:70:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > non-empty when the session branch changes the declarative schema
+Error: Command failed: node /private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-EZrh1u --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:84:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > a TS-only change (no schema file) is NOT deploy-relevant (unified definition)
+Error: Command failed: node /private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-9w2tbi --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:98:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > no config.deploy -> exit 0 empty (deploy phase not configured)
+Error: Command failed: node /private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-hM8ATK --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:112:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > empty and exit 0 when NO session topology exists at all (hooks never ran)
+Error: Command failed: node /private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-b6DMUq --session xx99yy00
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/private/tmp/romiku%20order-status%20baseline%2020261109/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:132:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > exits 3 (could not decide) when --session is missing
+AssertionError: expected 1 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 1
+
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:149:18
+    147|       stderr = (e.stderr || "").toString();
+    148|     }
+    149|     expect(code).toBe(3);
+       |                  ^
+    150|     expect(stderr).toMatch(/session/i);
+    151|     rmSync(dir, { recursive: true, force: true });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > fails loudly (exit 3 + stderr) on SESSION_SHORT_ID mismatch
+AssertionError: expected 1 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 1
+
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:167:18
+    165|       stderr = (e.stderr || "").toString();
+    166|     }
+    167|     expect(code).toBe(3);
+       |                  ^
+    168|     expect(stderr).toMatch(/mismatch/i);
+    169|     rmSync(dir, { recursive: true, force: true });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  8 failed | 5 passed (13)
+   Start at  13:22:18
+   Duration  886ms (transform 21ms, setup 0ms, import 42ms, tests 922ms, environment 0ms)
+

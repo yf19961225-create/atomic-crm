@@ -7,7 +7,10 @@ set search_path = public, extensions;
 -- this rollback-only test transaction without changing the local database.
 delete from romiku_document_daily_counters
 where business_date = (now() at time zone 'Asia/Shanghai')::date;
+\ir helpers/document_atomic.sql
 select no_plan();
+-- Rollback-only test isolation: restored Preview may already contain commercial fixtures.
+truncate romiku_quotes,romiku_pis,romiku_orders cascade;
 select has_table('public', 'romiku_website_inquiries', 'ROMIKU inbound is independent');
 select has_table('public', 'romiku_outbound_companies', 'ROMIKU outbound is independent');
 select has_table('public', 'romiku_formal_customers', 'ROMIKU customers are independent');
@@ -40,7 +43,7 @@ select throws_ok($$update romiku_website_inquiry_items set quantity=240 where sk
 select throws_ok($$update romiku_website_inquiries set raw_payload='{}'$$,'23514',null,'raw website payload protected');
 select lives_ok($$update romiku_website_inquiry_items set product_snapshot='{"name":"Enriched name"}',match_status='matched' where sku='SUNS15'$$,'enrichment may update independently');
 create temporary table test_ids (kind text primary key,id uuid);
-insert into test_ids select 'quote', romiku_quote_from_inquiry('30000000-0000-0000-0000-000000000001',array['31000000-0000-0000-0000-000000000001']::uuid[]);
+insert into test_ids select 'quote', pg_temp.document_from_inquiry('30000000-0000-0000-0000-000000000001',array['31000000-0000-0000-0000-000000000001']::uuid[]);
 select is((select count(*) from romiku_quote_items),1::bigint,'only confirmed inquiry items copied');
 select is((select requirement from romiku_quote_items limit 1),'White packaging','requirement copied');
 select is(
@@ -50,12 +53,22 @@ select is(
 );
 select is((select fx_enabled from romiku_quotes limit 1),false,'Quote FX is disabled by default');
 select is((select usd_cny_rate from romiku_quotes limit 1),null::numeric,'Quote FX rate defaults to null');
-select lives_ok($$update romiku_quotes set fx_enabled=true,usd_cny_rate=6.770000$$,'Quote accepts a positive USD/CNY rate');
-select throws_ok($$update romiku_quotes set usd_cny_rate=0$$,'23514',null,'Quote rejects a zero USD/CNY rate');
-select lives_ok($$update romiku_quote_items set source_cny_unit_price=67.7000$$,'Quote item accepts a nonnegative source CNY price');
-select throws_ok($$update romiku_quote_items set source_cny_unit_price=-0.0001$$,'23514',null,'Quote item rejects a negative source CNY price');
+select lives_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('fx_enabled',true,'usd_cny_rate',6.770000)) from romiku_quotes$$,'Quote accepts a positive USD/CNY rate');
+select throws_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('usd_cny_rate',0)) from romiku_quotes$$,'23514',null,'Quote rejects a zero USD/CNY rate');
+select lives_ok($$select pg_temp.document_item_patch('quote',id,jsonb_build_object('source_cny_unit_price',67.7000)) from romiku_quote_items$$,'Quote item accepts a nonnegative source CNY price');
+select throws_ok($$select pg_temp.document_item_patch('quote',id,jsonb_build_object('source_cny_unit_price',-0.0001)) from romiku_quote_items$$,'23514',null,'Quote item rejects a negative source CNY price');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set quantity=240,unit_price=2,product_snapshot='{"name":"Quoted name"}';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set freight=20,discount=10,other_expenses=15,counterparty_snapshot='{"name":"Buyer snapshot"}',bank_snapshot='{"bank":"Historical bank"}';
+SET LOCAL ROLE authenticated;
+
 select is((select total from romiku_quote_totals),505.00::numeric,'total = 480 + 20 + 15 - 10');
 select is((select quantity from romiku_website_inquiry_items where sku='SUNS15'),100::numeric,'quote changes never rewrite inquiry');
 select is((select status from romiku_website_inquiries limit 1),'pending_screening','conversion does not advance inquiry status');
@@ -64,18 +77,23 @@ select is(
   'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001',
   'Quote number uses the Shanghai business date and its own daily counter'
 );
-select throws_ok($$update romiku_quotes set document_number='RFQ-MANUAL'$$,'23514',null,'Quote number changes blocked');
+select throws_ok($$update romiku_quotes set document_number='RFQ-MANUAL'$$,'42501',null,'Quote number changes blocked');
 select isnt((select document_number from romiku_quotes limit 1),'RFQ-MANUAL','original Quote number persists');
-select throws_ok($$insert into romiku_quotes(document_number) values ('FORGED')$$,'23514',null,'clients cannot choose document numbers');
-select throws_ok($$select romiku_quote_from_inquiry('30000000-0000-0000-0000-000000000001',array['ffffffff-ffff-ffff-ffff-ffffffffffff']::uuid[])$$,'23514',null,'invalid selection fails atomically');
+select throws_ok($$insert into romiku_quotes(document_number) values ('FORGED')$$,'42501',null,'clients cannot choose document numbers');
+select throws_ok($$select pg_temp.document_from_inquiry('30000000-0000-0000-0000-000000000001',array['ffffffff-ffff-ffff-ffff-ffffffffffff']::uuid[])$$,'23514',null,'invalid selection fails atomically');
 select is((select count(*) from romiku_quotes),1::bigint,'failed conversion leaves no partial document');
 select is((select document_language from romiku_quotes limit 1),'zh','Quote document language defaults safely');
-update romiku_quotes set document_language='es';
-select throws_ok($$update romiku_quotes set document_language='de'$$,'23514',null,'only stable document language values are accepted');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
 
-insert into test_ids select 'pi',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'pi');
-insert into test_ids select 'order',romiku_convert_document('pi',(select id from test_ids where kind='pi'),'order');
-insert into test_ids select 'direct_order',romiku_convert_document('quote',(select id from test_ids where kind='quote'),'order');
+update romiku_quotes set document_language='es';
+SET LOCAL ROLE authenticated;
+
+select throws_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('document_language','de')) from romiku_quotes$$,'23514',null,'only stable document language values are accepted');
+
+insert into test_ids select 'pi',pg_temp.document_convert('quote',(select id from test_ids where kind='quote'),'pi');
+insert into test_ids select 'order',pg_temp.document_convert('pi',(select id from test_ids where kind='pi'),'order');
+insert into test_ids select 'direct_order',pg_temp.document_convert('quote',(select id from test_ids where kind='quote'),'order');
 select is((select document_number from romiku_pis where id=(select id from test_ids where kind='pi')),'PI' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','new PI uses its PI-prefixed Shanghai daily counter');
 select is((select document_number from romiku_orders where id=(select id from test_ids where kind='order')),'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '001','Order uses an independent Shanghai daily counter');
 select is((select document_number from romiku_orders where id=(select id from test_ids where kind='direct_order')),'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','Order daily sequence increments independently');
@@ -88,8 +106,13 @@ where document_kind='order'
   and business_date=(now() at time zone 'Asia/Shanghai')::date;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,notes) values
 ('74000000-0000-0000-0000-000000000001','stale order counter collision test');
+SET LOCAL ROLE authenticated;
+
 select is(
   (select document_number from romiku_orders where id='74000000-0000-0000-0000-000000000001'),
   'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '003',
@@ -114,8 +137,13 @@ where document_kind='order'
   and business_date=(now() at time zone 'Asia/Shanghai')::date;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,notes) values
 ('74000000-0000-0000-0000-000000000002','stale order counter max-sync test');
+SET LOCAL ROLE authenticated;
+
 select is(
   (select document_number from romiku_orders where id='74000000-0000-0000-0000-000000000002'),
   'OD' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '006',
@@ -126,9 +154,19 @@ select is((select total from romiku_order_totals where id=(select id from test_i
 select is((select document_language from romiku_pis where id=(select id from test_ids where kind='pi')),'es','Quote language is copied to PI');
 select is((select document_language from romiku_orders where id=(select id from test_ids where kind='order')),'es','PI language is copied to Order');
 select is((select document_language from romiku_orders where id=(select id from test_ids where kind='direct_order')),'es','Quote language is copied to direct Order');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{"name":"Later quote edit"}',quantity=999;
+SET LOCAL ROLE authenticated;
+
 select is((select product_snapshot->>'name' from romiku_pi_items limit 1),'Quoted name','PI has independent product snapshot');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_pi_items set quantity=888,product_snapshot='{"name":"Later PI edit"}';
+SET LOCAL ROLE authenticated;
+
 select is((select quantity from romiku_order_items where order_id=(select id from test_ids where kind='order')),240::numeric,'order item snapshot independent from PI');
 select is((select product_snapshot->>'name' from romiku_order_items where order_id=(select id from test_ids where kind='direct_order')),'Quoted name','direct Quote to Order snapshot independent');
 select is((select bank_snapshot->>'bank' from romiku_orders where id=(select id from test_ids where kind='order')),'Historical bank','bank snapshot copied');
@@ -178,9 +216,19 @@ insert into romiku_production_items(production_order_id,order_id,source_order_it
 select '41000000-0000-0000-0000-000000000002',order_id,id,sku,240 from romiku_order_items where order_id=(select id from test_ids where kind='order');
 select is((select unallocated_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),0::numeric,'replacement production uses the released allocation once');
 select is((select quantity from romiku_production_items where production_order_id='41000000-0000-0000-0000-000000000001'),100::numeric,'cancelled production remains retained for history');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 
 insert into romiku_packing_lists(id,order_id) select '50000000-0000-0000-0000-000000000001',id from test_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(id,order_id) select '50000000-0000-0000-0000-000000000002',id from test_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
 select is(
   (select seller_snapshot from romiku_packing_lists where id='50000000-0000-0000-0000-000000000001'),
   '{}'::jsonb,
@@ -191,10 +239,15 @@ select is(
   '{}'::jsonb,
   'Packing Buyer snapshot defaults to an empty saved object'
 );
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_packing_lists
 set seller_snapshot='{"company_name":"Manual Packing Seller"}'::jsonb,
     buyer_snapshot='{"company_name":"Manual Packing Buyer"}'::jsonb
 where id='50000000-0000-0000-0000-000000000002';
+SET LOCAL ROLE authenticated;
+
 select is(
   (select seller_snapshot->>'company_name' from romiku_packing_lists where id='50000000-0000-0000-0000-000000000002'),
   'Manual Packing Seller',
@@ -205,23 +258,41 @@ select is(
   'Manual Packing Buyer',
   'Packing Buyer snapshot accepts a document-only saved value'
 );
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_items(id,packing_list_id,order_id,source_order_item_id,sku,quantity,cartons,length_cm,width_cm,height_cm,carton_weight_kg)
 select '51000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001',order_id,id,sku,100,2,50,40,30,10 from romiku_order_items where order_id=(select id from test_ids where kind='order');
+SET LOCAL ROLE authenticated;
+
 select is((select remaining_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),140::numeric,'partial shipment leaves 140');
-select throws_ok($$insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity) select '50000000-0000-0000-0000-000000000002',order_id,id,sku,141 from romiku_order_items where order_id=(select id from test_ids where kind='order')$$,'23514',null,'cannot exceed remaining across packing lists');
-select throws_ok($$update romiku_order_items set quantity=99 where order_id=(select id from test_ids where kind='order')$$,'23514',null,'cannot reduce ordered quantity below already packed');
+select throws_ok($$select romiku_save_document('packing','50000000-0000-0000-0000-000000000002',(select revision from romiku_packing_lists where id='50000000-0000-0000-0000-000000000002'),gen_random_uuid(),'{}',jsonb_build_array(jsonb_build_object('order_id',order_id,'source_order_item_id',id,'sku',sku,'quantity',141))) from romiku_order_items where order_id=(select id from test_ids where kind='order')$$,'23514',null,'cannot exceed remaining across packing lists');
+select throws_ok($$select pg_temp.document_item_patch('order',id,jsonb_build_object('quantity',99)) from romiku_order_items where order_id=(select id from test_ids where kind='order')$$,'23514',null,'cannot reduce ordered quantity below already packed');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity) select '50000000-0000-0000-0000-000000000002',order_id,id,sku,140 from romiku_order_items where order_id=(select id from test_ids where kind='order');
+SET LOCAL ROLE authenticated;
+
 select is((select remaining_quantity from romiku_order_item_remaining where order_id=(select id from test_ids where kind='order')),0::numeric,'second partial shipment uses remaining');
-select throws_ok($$update romiku_packing_items set quantity=101 where id='51000000-0000-0000-0000-000000000001'$$,'23514',null,'packing updates also enforce cap');
+select throws_ok($$select pg_temp.document_item_patch('packing',id,jsonb_build_object('quantity',101)) from romiku_packing_items where id='51000000-0000-0000-0000-000000000001'$$,'23514',null,'packing updates also enforce cap');
 select is((select quantity from romiku_order_items where order_id=(select id from test_ids where kind='order')),240::numeric,'packing never changes order quantity');
 select is((select total_cbm from romiku_packing_totals where id='50000000-0000-0000-0000-000000000001'),0.12::numeric,'CBM derived with cm to cubic metre conversion');
 select is((select total_weight_kg from romiku_packing_totals where id='50000000-0000-0000-0000-000000000001'),20::numeric,'weight uses carton count');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(id,order_id)
 values ('50000000-0000-0000-0000-000000000003',null);
+SET LOCAL ROLE authenticated;
+
 select ok(
   (select packing_at is not null from romiku_packing_lists where id='50000000-0000-0000-0000-000000000003'),
   'independent Packing defaults its saved packing date'
 );
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_items(
   id,packing_list_id,order_id,source_order_item_id,sanity_product_id,sku,
   product_snapshot,quantity,cartons,length_cm,width_cm,height_cm,carton_weight_kg
@@ -232,15 +303,15 @@ insert into romiku_packing_items(
   '{"name":"Saved direct product","unit":"PCS"}',
   12,1,50,40,30,8.5
 );
+SET LOCAL ROLE authenticated;
+
 select is(
   (select total_cbm from romiku_packing_items where id='51000000-0000-0000-0000-000000000003'),
   0.06::numeric,
   'independent Packing calculates CBM from its saved dimensions'
 );
 select throws_ok(
-  $$insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity)
-    values ('50000000-0000-0000-0000-000000000003',null,
-      (select id from romiku_order_items limit 1),'bad-source',1)$$,
+  $$select romiku_save_document('packing','50000000-0000-0000-0000-000000000003',(select revision from romiku_packing_lists where id='50000000-0000-0000-0000-000000000003'),gen_random_uuid(),'{}',jsonb_build_array(jsonb_build_object('order_id',null,'source_order_item_id',(select id from romiku_order_items limit 1),'sku','bad-source','quantity',1)))$$,
   '23514',null,
   'Packing item requires Order and Order item source together or neither'
 );
@@ -272,9 +343,9 @@ select is(
   'payment reference is retained on an existing payment record'
 );
 select is((select remaining_amount from romiku_order_totals where id=(select id from test_ids where kind='order')),400::numeric,'payment metadata does not change receivable aggregation');
-select throws_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='order')$$,'23514',null,'orders with payments cannot reinterpret the payment currency');
+select throws_ok($$select pg_temp.document_patch('order',id,jsonb_build_object('currency','EUR')) from romiku_orders where id=(select id from test_ids where kind='order')$$,'23514',null,'orders with payments cannot reinterpret the payment currency');
 select is((select currency from romiku_orders where id=(select id from test_ids where kind='order')),'USD','payment remains denominated in its original order currency');
-select lives_ok($$update romiku_orders set currency='EUR' where id=(select id from test_ids where kind='direct_order')$$,'unpaid order currency remains editable');
+select lives_ok($$select pg_temp.document_patch('order',id,jsonb_build_object('currency','EUR')) from romiku_orders where id=(select id from test_ids where kind='direct_order')$$,'unpaid order currency remains editable');
 select throws_ok($$update romiku_payments set order_id=(select id from test_ids where kind='direct_order') where order_id=(select id from test_ids where kind='order')$$,'P4202',null,'payment cannot move to a different order and currency');
 update romiku_outbound_companies set next_follow_up_at=now()-interval '1 day';
 select is((select count(*) from romiku_calendar where event_type='outbound_follow_up'),1::bigint,'calendar derives outbound dates');
@@ -284,7 +355,12 @@ select is((select count(*) from romiku_calendar where event_type='outbound_follo
 select throws_ok($$insert into romiku_manual_tasks(title,outbound_company_id) values ('invalid','ffffffff-ffff-ffff-ffff-ffffffffffff')$$,'23503',null,'manual task relation references a real CRM record');
 select lives_ok($$select romiku_publish_quote_version((select id from test_ids where kind='quote'))$$,'publishing creates retained quote version');
 select is((select version from romiku_quote_versions limit 1),1,'first version numbered one');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set notes='Later draft edit';
+SET LOCAL ROLE authenticated;
+
 select is((select items_snapshot->0->>'notes' from romiku_quote_versions limit 1),null::text,'published version isolated from draft edits');
 select throws_ok($$update romiku_quote_versions set version=99$$,'42501',null,'business users cannot overwrite published versions');
 select throws_ok($$delete from romiku_quotes$$,'42501',null,'core documents must be archived');
@@ -293,23 +369,48 @@ select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001'
 select lives_ok($$delete from romiku_manual_tasks where id='60000000-0000-0000-0000-000000000001'$$,'second user can delete an ordinary shared task');
 select is((select count(*) from romiku_manual_tasks),0::bigint,'shared CRUD deletes task');
 select throws_ok($$insert into romiku_manual_tasks(title,outbound_company_id,quote_id) select 'ambiguous','20000000-0000-0000-0000-000000000001',id from test_ids where kind='quote'$$,'23514',null,'manual task has at most one real relation');
-select throws_ok($$update romiku_quotes set other_expenses=-1$$,'23514',null,'negative expenses rejected');
-select throws_ok($$select romiku_convert_document('order',(select id from test_ids where kind='order'),'quote')$$,'23514',null,'reverse mutation is not a conversion');
+select throws_ok($$select pg_temp.document_patch('quote',id,jsonb_build_object('other_expenses',-1)) from romiku_quotes$$,'23514',null,'negative expenses rejected');
+select throws_ok($$select pg_temp.document_convert('order',(select id from test_ids where kind='order'),'quote')$$,'23514',null,'reverse mutation is not a conversion');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(notes) values ('numbering configuration test');
+SET LOCAL ROLE authenticated;
+
 select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','manual Quote number does not advance the automatic counter');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set document_date='2000-01-01' where notes='numbering configuration test';
+SET LOCAL ROLE authenticated;
+
 select is((select document_number from romiku_quotes where notes='numbering configuration test'),'RFQ' || to_char((now() at time zone 'Asia/Shanghai')::date,'YYMMDD') || '002','changing document date does not regenerate the number');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,notes,fx_enabled,usd_cny_rate)
 values ('75000000-0000-0000-0000-000000000001','FX conversion final-price test',true,6.770000);
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quote_items(id,quote_id,sku,quantity,source_cny_unit_price,unit_price)
 values ('75100000-0000-0000-0000-000000000001','75000000-0000-0000-0000-000000000001','FX-USD',1,5.0000,0.7386);
-insert into test_ids select 'fx_pi',romiku_convert_document('quote','75000000-0000-0000-0000-000000000001','pi');
-insert into test_ids select 'fx_order',romiku_convert_document('quote','75000000-0000-0000-0000-000000000001','order');
+SET LOCAL ROLE authenticated;
+
+insert into test_ids select 'fx_pi',pg_temp.document_convert('quote','75000000-0000-0000-0000-000000000001','pi');
+insert into test_ids select 'fx_order',pg_temp.document_convert('quote','75000000-0000-0000-0000-000000000001','order');
 select is((select unit_price from romiku_pi_items where pi_id=(select id from test_ids where kind='fx_pi')),0.7386::numeric,'Quote FX conversion copies final USD price to PI');
 select is((select unit_price from romiku_order_items where order_id=(select id from test_ids where kind='fx_order')),0.7386::numeric,'Quote FX conversion copies final USD price to Order');
 select ok(not (select to_jsonb(i) ? 'source_cny_unit_price' from romiku_pi_items i where pi_id=(select id from test_ids where kind='fx_pi')),'PI item does not retain Quote source CNY price');
 select ok(not (select to_jsonb(i) ? 'source_cny_unit_price' from romiku_order_items i where order_id=(select id from test_ids where kind='fx_order')),'Order item does not retain Quote source CNY price');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set source_cny_unit_price=18.0000,unit_price=2.6588 where id='75100000-0000-0000-0000-000000000001';
+SET LOCAL ROLE authenticated;
+
 select is((select unit_price from romiku_pi_items where pi_id=(select id from test_ids where kind='fx_pi')),0.7386::numeric,'later Quote FX edits do not reprice historical PI');
 select is((select unit_price from romiku_order_items where order_id=(select id from test_ids where kind='fx_order')),0.7386::numeric,'later Quote FX edits do not reprice historical Order');
 insert into romiku_formal_customers(id,name,country,logistics) values
@@ -317,20 +418,35 @@ insert into romiku_formal_customers(id,name,country,logistics) values
 insert into romiku_customer_contacts(formal_customer_id,name,email,is_primary) values
 ('70000000-0000-0000-0000-000000000001','Ana Buyer','ana@example.test',true);
 select is((select name || ':' || country || ':' || contact || ':' || email from romiku_formal_customer_directory where search_text ilike '%ana buyer%'),'Formal buyer:Spain:Ana Buyer:ana@example.test','authenticated directory exposes company, country and primary contact');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,formal_customer_id,counterparty_snapshot,document_language) values
 ('71000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','{"name":"Formal buyer","country":"Spain","contact":"Ana Buyer"}','en');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id,formal_customer_id,counterparty_snapshot,document_language) values
 ('72000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','{"name":"Formal buyer","country":"Spain","contact":"Ana Buyer"}','es');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,formal_customer_id,counterparty_snapshot,document_language) values
 ('73000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','{"name":"Formal buyer","country":"Spain","contact":"Ana Buyer"}','zh');
+SET LOCAL ROLE authenticated;
+
 update romiku_formal_customers set name='Changed later' where id='70000000-0000-0000-0000-000000000001';
 select is((select counterparty_snapshot->>'name' from romiku_quotes where id='71000000-0000-0000-0000-000000000001'),'Formal buyer','Formal Customer edits never rewrite Quote snapshot');
 select is((select formal_customer_id from romiku_orders where id='73000000-0000-0000-0000-000000000001'),'70000000-0000-0000-0000-000000000001'::uuid,'direct Order persists Formal Customer identity');
 select is((select document_language from romiku_pis where id='72000000-0000-0000-0000-000000000001'),'es','direct PI persists document language');
-select throws_ok($$update romiku_pis set document_number='RPI-MANUAL' where id='72000000-0000-0000-0000-000000000001'$$,'23514',null,'PI number changes blocked');
-select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id='73000000-0000-0000-0000-000000000001'$$,'23514',null,'Order number changes blocked');
+select throws_ok($$update romiku_pis set document_number='RPI-MANUAL' where id='72000000-0000-0000-0000-000000000001'$$,'42501',null,'PI number changes blocked');
+select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id='73000000-0000-0000-0000-000000000001'$$,'42501',null,'Order number changes blocked');
 select lives_ok($$update romiku_production_orders set document_number='RCI-MANUAL-P01' where id='41000000-0000-0000-0000-000000000001'$$,'manual Production number edits are allowed');
-select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id=(select id from test_ids where kind='order')$$,'23514',null,'manual number update is rejected');
+select throws_ok($$update romiku_orders set document_number='RCI-MANUAL' where id=(select id from test_ids where kind='order')$$,'42501',null,'manual number update is rejected');
 reset role;
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='r' and not c.relrowsecurity),'RLS enabled on every ROMIKU table');
 select ok(not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname like 'romiku_%' and c.relkind='v' and not coalesce(c.reloptions @> array['security_invoker=true'],false)),'all ROMIKU derived views use security invoker');
@@ -339,7 +455,7 @@ select ok(not exists(select 1 from pg_proc p where p.pronamespace='public'::regn
 set local role anon;
 select throws_ok($$select * from romiku_website_inquiries$$,'42501',null,'anon cannot read inbound');
 select throws_ok($$select * from romiku_calendar$$,'42501',null,'anon cannot read derived events');
-select throws_ok($$select romiku_convert_document('quote','ffffffff-ffff-ffff-ffff-ffffffffffff','pi')$$,'42501',null,'anon cannot invoke conversion RPC');
+select throws_ok($$select pg_temp.document_convert('quote','ffffffff-ffff-ffff-ffff-ffffffffffff','pi')$$,'42501',null,'anon cannot invoke conversion RPC');
 select throws_ok($$insert into romiku_website_inquiries(customer_name) values ('bad')$$,'42501',null,'anon cannot perform intake');
 reset role;
 set local role service_role;

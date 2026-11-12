@@ -1,3 +1,7 @@
+import {
+  saveDocumentAtomically,
+  createDocumentFromSource,
+} from "../commercial/atomicDocumentSave.js";
 import { statusOptions } from "../shared/workflowStatus.js";
 import type { DataProvider } from "ra-core";
 // Keep snapshot helpers usable by server-side XLSX without importing React UI.
@@ -14,14 +18,8 @@ export const quoteSourceResources = {
   customer: "romiku_formal_customers",
 };
 export const quoteStatuses = statusOptions("quote").map((x) => x.value);
-type SnapshotRpc = {
-  rpc: (
-    name: string,
-    args: { inquiry_id: string; selected_item_ids: string[] },
-  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-};
 export async function quoteFromInquiry(
-  client: SnapshotRpc,
+  provider: DataProvider,
   inquiryId: string,
   selectedIds: string[],
 ) {
@@ -31,14 +29,13 @@ export async function quoteFromInquiry(
     new Set(selectedIds).size !== selectedIds.length
   )
     throw new Error("请从询盘中选择不重复的产品项。");
-  const { data, error } = await client.rpc("romiku_quote_from_inquiry", {
-    inquiry_id: inquiryId,
-    selected_item_ids: selectedIds,
+  const result = await createDocumentFromSource(provider, {
+    sourceKind: "inquiry",
+    sourceId: inquiryId,
+    targetKind: "quote",
+    selectedItemIds: selectedIds,
   });
-  if (error) throw new Error(error.message);
-  if (typeof data !== "string" || !data)
-    throw new Error("报价单创建后未返回单据。");
-  return data;
+  return result.document_id;
 }
 export async function createQuote(
   provider: DataProvider,
@@ -46,6 +43,7 @@ export async function createQuote(
   sourceId: string,
   buyerName: string,
   directCustomer?: { formalCustomerId: string; snapshot: Values },
+  documentId: string = crypto.randomUUID(),
 ) {
   let snapshot: Values;
   const links: Values = {};
@@ -78,8 +76,12 @@ export async function createQuote(
       source === "outbound" ? "outbound_company_id" : "formal_customer_id"
     ] = sourceId;
   }
-  return provider.create("romiku_quotes", {
-    data: {
+  const result = await saveDocumentAtomically(provider, {
+    kind: "quote",
+    documentId,
+    expectedRevision: 0,
+    items: [],
+    header: {
       status: "pending_quote",
       currency: "USD",
       document_language: "zh",
@@ -88,6 +90,7 @@ export async function createQuote(
       ...links,
     },
   });
+  return { data: result.header };
 }
 const pick = (values: Values, keys: string[]) =>
   Object.fromEntries(

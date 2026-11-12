@@ -1,0 +1,67 @@
+BEGIN
+CREATE EXTENSION
+SET
+ok 1 - read-only production parent aggregation exists
+ok 2 - anonymous access denied
+ok 3 - authenticated access granted
+ok 4 - stable security invoker
+INSERT 0 1
+SET
+authenticated
+
+ok 5 - missing session denied
+fe260000-0000-0000-0000-000000000001
+INSERT 0 1
+RESET
+INSERT 0 4
+SET
+RESET
+UPDATE 6
+SET
+INSERT 0 65
+INSERT 0 4
+ok 6 - all parents counted
+ok 7 - ongoing includes any pending or scheduled
+ok 8 - received with canceled child retained
+ok 9 - all-canceled separate
+ok 10 - child match aggregates ALL children beyond25
+ok 11 - whole visible history received count
+ok 12 - canceled excluded denominator
+ok 13 - canceled counted separately
+ok 14 - customer search
+ok 15 - supplier search
+ok 16 - parent pagination page size
+ok 17 - count independent of page
+ok 18 - out of range page empty
+ok 19 - zero result total
+ok 20 - order history filter
+ok 21 - view validated
+ok 22 - page validated
+ok 23 - page size bounded
+ok 24 - search bounded
+RESET
+SELECT 1
+GRANT
+ALTER POLICY
+SET
+authenticated
+ok 25 - RLS-hidden only-child parent not leaked
+ok 26 - RLS-hidden child excluded counts
+ok 27 - RLS-hidden child not searchable
+ok 28 - order status unchanged
+ok 29 - visible matching child count is retained
+ok 30 - visible search child identities are returned
+RESET
+ALTER POLICY
+ALTER POLICY
+SET
+authenticated
+ok 31 - RLS-hidden parent excluded even when children visible
+ok 32 - RLS-hidden parent name not searchable
+ok 33 - RLS-hidden current supplier name not leaked by search
+Result  (cost=0.00..0.26 rows=1 width=32) (actual time=0.217..0.217 rows=1 loops=1)
+  Buffers: shared hit=139
+Planning Time: 0.004 ms
+Execution Time: 0.219 ms
+1..33
+ROLLBACK

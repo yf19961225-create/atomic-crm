@@ -1,7 +1,11 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import rawFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider = (
+  ...args: Parameters<typeof rawFakeRestDataProvider>
+) => withAtomicDocuments(rawFakeRestDataProvider(...args));
 import { MemoryRouter, Routes } from "react-router";
 import { page } from "vitest/browser";
 import { userEvent } from "vitest/browser";
@@ -91,6 +95,21 @@ async function setup(
       error: null,
     }),
   );
+  provider.documentCreateFromSource = async (request: {
+    sourceKind: string;
+    sourceId: string;
+    targetKind: "quote" | "pi" | "order";
+  }) => {
+    const response = await rpc("romiku_convert_document", {
+      source_kind: request.sourceKind,
+      source_id: request.sourceId,
+      target_kind: request.targetKind,
+    });
+    return provider.documentSnapshot({
+      kind: request.targetKind,
+      documentId: response.data,
+    });
+  };
   const screen = await render(
     <MemoryRouter initialEntries={[path]}>
       <CoreAdminContext dataProvider={provider}>
@@ -626,18 +645,19 @@ it.each([
   ["pi", "p", "romiku_pi_items"],
   ["orders", "o", "romiku_order_items"],
 ])(
-  "blocks blind retry after a committed %s row loses its response",
+  "recovers a committed %s save response without duplicating its new row",
   async (path, id, resource) => {
     const { screen, provider } = await setup(
       `/${path}/${id}`,
       path === "quotes" ? { status: "pending_quote" } : undefined,
     );
-    const create = provider.create.bind(provider);
-    vi.spyOn(provider, "create").mockImplementation(async (name, params) => {
-      const result = await create(name, params);
-      if (name === resource) throw new Error("response lost after commit");
-      return result;
-    });
+    const save = provider.documentSave.bind(provider);
+    const saveSpy = vi
+      .spyOn(provider, "documentSave")
+      .mockImplementation(async (request) => {
+        await save(request);
+        throw new TypeError("response lost after commit");
+      });
     await screen.getByRole("button", { name: "编辑", exact: true }).click();
     await screen
       .getByLabelText("单据名称", { exact: true })
@@ -650,9 +670,7 @@ it.each([
       await screen.getByRole("tab", { name: "产品项", exact: true }).click();
     else await userEvent.tab();
     await screen.getByRole("button", { name: "保存", exact: true }).click();
-    await expect
-      .element(screen.getByText(/response lost after commit/))
-      .toBeVisible();
+    await expect.element(screen.getByText(/已保存。/)).toBeVisible();
     expect(
       (await provider.getList(resource, list)).data.filter(
         (row) => row.sku === "LOST-RESPONSE",
@@ -670,9 +688,112 @@ it.each([
         )
       ).data.document_name,
     ).toBe("Header already written");
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    await expect
+      .element(screen.getByRole("button", { name: "编辑", exact: true }))
+      .toBeEnabled();
+  },
+);
+
+beforeEach(() => sessionStorage.clear());
+
+it.each([
+  ["quotes", "q", "romiku_quotes"],
+  ["pi", "p", "romiku_pis"],
+  ["orders", "o", "romiku_orders"],
+])(
+  "keeps a newer %s draft when result lookup confirms an earlier save",
+  async (path, id, resource) => {
+    const { screen, provider } = await setup(
+      `/${path}/${id}`,
+      path === "quotes" ? { status: "pending_quote" } : undefined,
+    );
+    const save = provider.documentSave.bind(provider);
+    vi.spyOn(provider, "documentSave").mockImplementationOnce(
+      async (request) => {
+        await save(request);
+        throw new TypeError("lost response");
+      },
+    );
+    vi.spyOn(provider, "documentSaveResult").mockResolvedValueOnce(null);
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await screen
+      .getByLabelText("单据名称", { exact: true })
+      .fill("Submitted A");
+    await screen.getByRole("button", { name: "保存", exact: true }).click();
+    await expect.element(screen.getByText(/保存结果尚未确认/)).toBeVisible();
+    await screen
+      .getByLabelText("单据名称", { exact: true })
+      .fill("Keep draft B");
+    await screen
+      .getByRole("button", { name: "查询保存结果", exact: true })
+      .click();
+    await expect
+      .element(screen.getByText(/当前修改尚未保存，已保留/))
+      .toBeVisible();
+    await expect
+      .element(screen.getByLabelText("单据名称", { exact: true }))
+      .toHaveValue("Keep draft B");
     await expect
       .element(screen.getByRole("button", { name: "保存", exact: true }))
       .toBeDisabled();
-    await expect.element(screen.getByText(/请先保留当前草稿/)).toBeVisible();
+    expect((await provider.getOne(resource, { id })).data.document_name).toBe(
+      "Submitted A",
+    );
+    await screen
+      .getByRole("button", {
+        name: "放弃当前修改并加载已保存版本",
+        exact: true,
+      })
+      .click();
+    await expect
+      .element(screen.getByRole("button", { name: "编辑", exact: true }))
+      .toBeEnabled();
+    await screen.getByRole("button", { name: "编辑", exact: true }).click();
+    await expect
+      .element(screen.getByLabelText("单据名称", { exact: true }))
+      .toHaveValue("Submitted A");
+  },
+);
+
+it.each([
+  ["quotes", "报价单"],
+  ["pi", "PI"],
+  ["orders", "订单"],
+])(
+  "keeps changed buyer input when %s create result is recovered",
+  async (path, label) => {
+    const { screen, provider } = await setup(`/${path}/new`);
+    const save = provider.documentSave.bind(provider);
+    vi.spyOn(provider, "documentSave").mockImplementationOnce(
+      async (request) => {
+        await save(request);
+        throw new TypeError("lost response");
+      },
+    );
+    vi.spyOn(provider, "documentSaveResult").mockResolvedValueOnce(null);
+    await screen.getByLabelText("采购方名称", { exact: true }).fill("Buyer A");
+    await screen
+      .getByRole("button", { name: `创建${label}`, exact: true })
+      .click();
+    await expect.element(screen.getByText(/保存结果尚未确认/)).toBeVisible();
+    await screen.getByLabelText("采购方名称", { exact: true }).fill("Buyer B");
+    await screen
+      .getByRole("button", { name: "查询创建结果", exact: true })
+      .click();
+    await expect.element(screen.getByText(/当前输入已保留/)).toBeVisible();
+    await expect
+      .element(screen.getByLabelText("采购方名称", { exact: true }))
+      .toHaveValue("Buyer B");
+    await expect
+      .element(
+        screen.getByRole("link", { name: "查看原请求创建的单据", exact: true }),
+      )
+      .toBeVisible();
+    await expect
+      .element(
+        screen.getByRole("button", { name: `创建${label}`, exact: true }),
+      )
+      .toBeDisabled();
   },
 );

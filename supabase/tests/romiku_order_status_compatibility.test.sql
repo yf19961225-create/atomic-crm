@@ -7,8 +7,13 @@ set local role authenticated;
 set local request.jwt.claim.role='authenticated';
 set local request.jwt.claim.sub='ed090000-0000-0000-0000-000000000001';
 insert into romiku_formal_customers(id,name) values ('ed090000-0000-0000-0000-000000000002','Order Status QA');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,formal_customer_id,status,freight,currency,deposit_percent,document_name)
 values ('ed090000-0000-0000-0000-000000000003','ed090000-0000-0000-0000-000000000002','awaiting_payment',10000,'CNY',30,'UniqueStatusQA0909');
+SET LOCAL ROLE authenticated;
+
 insert into romiku_payments(order_id,kind,amount) values ('ed090000-0000-0000-0000-000000000003','deposit',2913);
 select is((romiku_customer_business_history('ed090000-0000-0000-0000-000000000002')#>>'{summary,in_progress}')::int,1,'awaiting payment counted in customer in-progress');
 select is((romiku_customer_business_history('ed090000-0000-0000-0000-000000000002')#>>'{orders,0,payment_summary,balance}')::numeric,7087::numeric,'customer balance stays factual');
@@ -18,13 +23,28 @@ select is((select count(*)::int from jsonb_array_elements(romiku_workbench_recei
 select romiku_workbench_action('customer_confirmation','ed090000-0000-0000-0000-000000000003',0,gen_random_uuid(),'{"state":"confirmed"}','QA');
 select is((select (r->>'amount')::numeric from jsonb_array_elements(romiku_workbench_receivables()->'rows') r where r->>'id'='ed090000-0000-0000-0000-000000000003'),87::numeric,'manual order status does not finish deposit');
 select is((select r->>'phase' from jsonb_array_elements(romiku_workbench_receivables()->'rows') r where r->>'id'='ed090000-0000-0000-0000-000000000003'),'deposit','collection phase stays independent');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set status='completed' where id='ed090000-0000-0000-0000-000000000003';
+SET LOCAL ROLE authenticated;
+
 select is((select (r->>'amount')::numeric from jsonb_array_elements(romiku_workbench_receivables()->'rows') r where r->>'id'='ed090000-0000-0000-0000-000000000003'),87::numeric,'completed unpaid order remains collectible');
 select is((romiku_customer_business_history('ed090000-0000-0000-0000-000000000002')#>>'{summary,completed}')::int,1,'completed summary preserved');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set status='shipped' where id='ed090000-0000-0000-0000-000000000003';
+SET LOCAL ROLE authenticated;
+
 select is((select status from romiku_orders where id='ed090000-0000-0000-0000-000000000003'),'shipped','delivery not automatically changed to awaiting payment');
 select is((select remaining_amount from romiku_order_totals where id='ed090000-0000-0000-0000-000000000003'),7087::numeric,'all transitions preserve actual balance');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_orders set status='cancelled' where id='ed090000-0000-0000-0000-000000000003';
+SET LOCAL ROLE authenticated;
+
 select is((romiku_customer_business_history('ed090000-0000-0000-0000-000000000002')#>>'{summary,in_progress}')::int,0,'cancelled not counted in progress');
 select is((romiku_customer_business_history('ed090000-0000-0000-0000-000000000002')->>'total_count')::int,1,'cancelled history retained');
 reset role;

@@ -1,0 +1,56 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+           has_function            
+-----------------------------------
+ ok 1 - business search RPC exists
+(1 row)
+
+INSERT 0 1
+                  ok                   
+---------------------------------------
+ ok 2 - invoker with fixed search_path
+(1 row)
+
+         ok         
+--------------------
+ ok 3 - anon denied
+(1 row)
+
+SET
+       throws_ok        
+------------------------
+ ok 4 - anon RPC denied
+(1 row)
+
+RESET
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+           throws_ok            
+--------------------------------
+ ok 5 - missing auth uid denied
+(1 row)
+
+              set_config              
+--------------------------------------
+ 5ea00000-0000-0000-0000-000000000001
+(1 row)
+
+CREATE TABLE
+INSERT 0 8
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

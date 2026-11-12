@@ -1,0 +1,4 @@
+
+> atomic-crm@0.1.0 typecheck
+> tsc --noEmit --project tsconfig.app.json && tsc --project tsconfig.server.json && tsc --project tsconfig.smoke.json
+

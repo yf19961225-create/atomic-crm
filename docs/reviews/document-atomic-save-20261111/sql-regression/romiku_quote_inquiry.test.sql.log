@@ -1,0 +1,82 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+SET
+authenticated
+de620000-0000-0000-0000-000000000001
+SELECT 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+SELECT 1
+ok 1 - Quote defaults pending_quote
+ok 2 - Inquiry defaults pending_screening
+ok 3 - Quote atomic update quoted
+ok 4 - Quote atomic update following_up
+ok 5 - Quote atomic update customer_no_reply
+ok 6 - Quote atomic update following_up
+ok 7 - Quote atomic update won
+ok 8 - Quote atomic update invalid
+ok 9 - Quote atomic update pending_quote
+ok 10 - Quote bulk update pending_quote
+ok 11 - Quote bulk update quoted
+ok 12 - Quote bulk update following_up
+ok 13 - Quote bulk update customer_no_reply
+ok 14 - Quote bulk update won
+ok 15 - Quote bulk update invalid
+ok 16 - Quote final status persisted
+RESET
+UPDATE 1
+SET
+ok 17 - stale sent write maps to quoted
+ok 18 - old Quote status excluded from batch choices
+ok 19 - unknown Quote status rejected
+ok 20 - Quote status filtering occurs server-side
+ok 21 - Quote status filter excludes other statuses
+ok 22 - Inquiry single update pending_screening
+ok 23 - Inquiry single update pending_contact
+ok 24 - Inquiry single update pending_quote
+ok 25 - Inquiry single update quoted
+ok 26 - Inquiry single update following_up
+ok 27 - Inquiry single update customer_no_reply
+ok 28 - Inquiry single update won
+ok 29 - Inquiry single update invalid
+ok 30 - Inquiry bulk update pending_screening
+ok 31 - Inquiry bulk update pending_contact
+ok 32 - Inquiry bulk update pending_quote
+ok 33 - Inquiry bulk update quoted
+ok 34 - Inquiry bulk update following_up
+ok 35 - Inquiry bulk update customer_no_reply
+ok 36 - Inquiry bulk update won
+ok 37 - Inquiry bulk update invalid
+ok 38 - normalized WhatsApp with server status filter
+ok 39 - Inquiry email searchable
+ok 40 - Quote status preserves buyer snapshot
+ok 41 - Quote status preserves product snapshot
+ok 42 - Quote prices unchanged
+ok 43 - Inquiry status preserves raw payload
+ok 44 - Inquiry message unchanged
+ok 45 - original submission stays immutable
+RESET
+SET
+SELECT 1
+SELECT 1
+ok 46 - legacy intake without WhatsApp accepted as NULL
+ok 47 - explicit null WhatsApp accepted
+ok 48 - blank WhatsApp accepted
+SELECT 1
+ok 49 - WhatsApp trims edges and preserves plus/country/format
+ok 50 - raw payload kept exactly as submitted
+ok 51 - numeric WhatsApp rejected
+RESET
+1..51
+ROLLBACK

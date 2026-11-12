@@ -1,0 +1,316 @@
+[
+  {
+    "file": "romiku_barcode.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_calendar.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_commercial_price_entry.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_core.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_customer_history.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_customer_management.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_delete.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_document_atomic_business.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_document_atomic_save.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_document_atomic_security.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_document_names.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_document_number_guard.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_document_number_roundtrip.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_health_permissions.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Active CRM membership required"
+    ]
+  },
+  {
+    "file": "romiku_health_workbench.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_inquiry_quote_snapshots.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_item_label.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_order_cascade_delete.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_order_status_compatibility.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_product_auxiliary_security.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_product_supplier_management.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_production_allocation.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_production_delete.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_production_instructions.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_production_marking.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_production_order_groups.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_production_sync.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_production_workbench.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_quote_inquiry.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_quote_specification.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_search.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_status_history.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_supplier_delete.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_website_intake.test.sql",
+    "passed": true,
+    "exit_code": 0,
+    "failures": []
+  },
+  {
+    "file": "romiku_workbench_actions.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_workbench_anon_hardening.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_workbench_feed.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_workbench_receivables.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_workbench_refresh.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Use atomic document save"
+    ]
+  },
+  {
+    "file": "romiku_workbench_security.test.sql",
+    "passed": false,
+    "exit_code": 0,
+    "failures": [
+      "not ok 10 - A can manage permitted order        +"
+    ]
+  },
+  {
+    "file": "romiku_workflow.test.sql",
+    "passed": false,
+    "exit_code": 3,
+    "failures": [
+      "ERROR:  Active CRM membership required"
+    ]
+  }
+]

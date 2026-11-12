@@ -1,3 +1,4 @@
+import { saveDocumentHeaderPatch } from "../commercial/atomicDocumentSave";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { useState } from "react";
@@ -68,6 +69,8 @@ function MarkingProfileEditorForm({
       kind === "customer" ? customerMarkingProfile(record) : record[field],
     ),
   );
+  const [savedRecord, setSavedRecord] = useState(record);
+  const [initializedAt] = useState(() => new Date().toISOString());
   const [confirmReload, setConfirmReload] = useState(false),
     [savedProfile, setSavedProfile] = useState(profile),
     [busy, setBusy] = useState(false),
@@ -127,17 +130,26 @@ function MarkingProfileEditorForm({
           ? normalizeMarkingProfile(profile)
           : {
               ...profile,
-              initialized_at:
-                profile.initialized_at || new Date().toISOString(),
+              initialized_at: profile.initialized_at || initializedAt,
               source: profile.initialized_at
                 ? profile.source
                 : { kind: "manual", id: String(record.id) },
             };
-      const { data } = await provider.update(resource, {
-        id: record.id,
-        data: { [field]: value },
-        previousData: record,
-      });
+      const { data } =
+        kind === "order"
+          ? {
+              data: (
+                await saveDocumentHeaderPatch(provider, "order", savedRecord, {
+                  [field]: value,
+                })
+              ).header,
+            }
+          : await provider.update(resource, {
+              id: record.id,
+              data: { [field]: value },
+              previousData: record,
+            });
+      setSavedRecord(data);
       const next = normalizeProductionInstructions(data[field]);
       setSavedProfile(next);
       setProfile(next);

@@ -12,8 +12,18 @@ select is(romiku_delete_record('production',gen_random_uuid())->>'code','NOT_FOU
 select throws_ok($$delete from romiku_production_orders where false$$,'42501',null,'authenticated cannot directly delete production header');
 create temporary table production_delete_ids(kind text primary key,id uuid default gen_random_uuid());
 insert into production_delete_ids(kind) values ('order'),('item'),('production'),('task');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,counterparty_snapshot,notes) select id,'{"name":"Historical Buyer","whatsapp":"+593 99 123-4567"}','Keep commercial notes' from production_delete_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity,product_snapshot) values ((select id from production_delete_ids where kind='item'),(select id from production_delete_ids where kind='order'),'KEEP-SKU',10,'{"name":"Saved source product"}');
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id) values ((select id from production_delete_ids where kind='production'),(select id from production_delete_ids where kind='order'));
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity) values ((select id from production_delete_ids where kind='production'),(select id from production_delete_ids where kind='order'),(select id from production_delete_ids where kind='item'),'KEEP-SKU',4);
 insert into romiku_manual_tasks(id,title,notes,production_order_id) values ((select id from production_delete_ids where kind='task'),'Keep production task','Keep manual content',(select id from production_delete_ids where kind='production'));

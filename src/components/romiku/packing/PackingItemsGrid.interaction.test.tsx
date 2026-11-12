@@ -3,7 +3,10 @@ import { userEvent } from "vitest/browser";
 import { useState } from "react";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext, type RaRecord } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import baseFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider: typeof baseFakeRestDataProvider = (...args) =>
+  withAtomicDocuments(baseFakeRestDataProvider(...args));
 import { hasAppDraft } from "../updates/drafts";
 import { PackingItemsGrid } from "./PackingItemsGrid";
 
@@ -30,6 +33,7 @@ async function fixture(overrides: Record<string, unknown> = {}) {
     },
   };
   const provider = fakeRestDataProvider({
+    romiku_packing_lists: [{ id: "packing", revision: 1, order_id: "order" }],
     romiku_packing_items: [row],
     romiku_order_items: [
       {
@@ -47,7 +51,7 @@ async function fixture(overrides: Record<string, unknown> = {}) {
     return (
       <CoreAdminContext dataProvider={provider}>
         <PackingItemsGrid
-          parent={{ id: "packing", order_id: "order" }}
+          parent={{ id: "packing", revision: 1, order_id: "order" }}
           items={items}
           onSaved={async () => {
             setItems(
@@ -385,23 +389,26 @@ it("standalone selects two products entirely by keyboard through the next-row fo
 });
 afterEach(() => vi.unstubAllGlobals());
 
-it("blocks blind packing retry when update committed but response was lost", async () => {
+it("recovers an atomic commit with a lost response through request result lookup", async () => {
   const { screen, provider } = await fixture();
-  const update = provider.update.bind(provider);
-  vi.spyOn(provider, "update").mockImplementation(async (resource, params) => {
-    await update(resource, params);
-    throw new Error("response lost after commit");
-  });
+  const save = provider.documentSave.bind(provider);
+  const write = vi
+    .spyOn(provider, "documentSave")
+    .mockImplementation(async (request) => {
+      await save(request);
+      throw new Error("response lost after commit");
+    });
   await screen.getByLabelText("cartons SUN5").fill("5");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   await expect
-    .element(screen.getByText(/response lost after commit/))
-    .toBeVisible();
-  expect(
-    (await provider.getOne("romiku_packing_items", { id: "line" })).data
-      .cartons,
-  ).toBe(5);
+    .poll(
+      async () =>
+        (await provider.getOne("romiku_packing_items", { id: "line" })).data
+          .cartons,
+    )
+    .toBe(5);
   await expect
     .element(screen.getByRole("button", { name: "保存", exact: true }))
     .toBeDisabled();
+  expect(write).toHaveBeenCalledTimes(1);
 });

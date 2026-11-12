@@ -1,0 +1,46 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+ok 1 - anonymous callers cannot delete suppliers
+ok 2 - authenticated callers cannot bypass controlled delete
+ok 3 - dependency audit includes every direct supplier FK
+SET
+authenticated
+ok 4 - delete requires a logged-in user
+de500000-0000-0000-0000-000000000001
+ok 5 - missing supplier is safe
+ok 6 - direct supplier delete is denied
+CREATE TABLE
+INSERT 0 7
+INSERT 0 6
+RESET
+INSERT 0 1
+SET
+INSERT 0 2
+INSERT 0 1
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+ok 7 - product dependency blocks delete
+ok 8 - production dependency blocks delete
+ok 9 - contact dependency blocks delete
+ok 10 - task dependency blocks delete
+ok 11 - combined dependency blocks delete
+ok 12 - all four dependency counts are returned
+ok 13 - blocked message names concrete counts
+ok 14 - all blocked suppliers are retained
+ok 15 - cost history under a blocked product relation is retained
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+ok 16 - late database failure returns a safe error
+ok 17 - late failure leaves supplier intact
+RESET
+DROP TRIGGER
+SET
+ok 18 - unreferenced supplier is deleted
+ok 19 - only the unreferenced supplier was removed
+1..19
+ROLLBACK

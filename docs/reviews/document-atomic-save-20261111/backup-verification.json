@@ -1,0 +1,8 @@
+{
+  "path": "/Volumes/ROMIKU-Preview-Backup-20261104/backup/20261104T043438Z/database.dump",
+  "sha256": "a1640737a7b10b0ebaae9b6356dbe48f3c56a977cee3fbf9625215dc7ffd1e89",
+  "bytes": 1165680,
+  "readable_hash_matches": true,
+  "supabase_project_recovery": "PARTIAL",
+  "new_export_performed": false
+}

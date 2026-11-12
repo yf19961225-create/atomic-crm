@@ -28,20 +28,60 @@ select throws_ok($$delete from romiku_outbound_companies where false$$,'42501',n
 select is(romiku_delete_record('manual_task',gen_random_uuid())->>'code','NOT_FOUND','missing manual_task');
 create temporary table ids(kind text primary key,id uuid default gen_random_uuid());
 insert into ids(kind) values ('quote'),('pi'),('order'),('packing'),('outbound'),('manual_task');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id) select id from ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quote_items(quote_id,sku,quantity) select id,'DELETE-SKU',10 from ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
 select romiku_publish_quote_version((select id from ids where kind='quote'));
 insert into romiku_manual_tasks(title,notes,quote_id) select 'keep quote task','keep content',id from ids where kind='quote';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id,source_quote_id) values ((select id from ids where kind='pi'),(select id from ids where kind='quote'));
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pi_items(pi_id,sku,quantity) select id,'DELETE-SKU',10 from ids where kind='pi';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,source_pi_id,source_quote_id) values ((select id from ids where kind='order'),(select id from ids where kind='pi'),(select id from ids where kind='quote'));
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(order_id,sku,quantity) select id,'DELETE-SKU',10 from ids where kind='order';
+SET LOCAL ROLE authenticated;
+
 select is(romiku_delete_record('quote',(select id from ids where kind='quote'))->>'code','HAS_DOWNSTREAM','quote blocked by PI/order');
 select is(romiku_delete_record('pi',(select id from ids where kind='pi'))->>'code','HAS_DOWNSTREAM','PI blocked by order');
 insert into romiku_production_orders(order_id) select id from ids where kind='order';
 insert into romiku_production_orders(order_id) select id from ids where kind='order';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(id,order_id) values ((select id from ids where kind='packing'),(select id from ids where kind='order'));
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_items(packing_list_id,order_id,source_order_item_id,sku,quantity) select (select id from ids where kind='packing'),order_id,id,sku,4 from romiku_order_items where order_id=(select id from ids where kind='order');
+SET LOCAL ROLE authenticated;
+
 insert into romiku_payments(order_id,kind,amount) select id,'deposit',1 from ids cross join generate_series(1,3) where kind='order';
 select is(romiku_delete_record('order',(select id from ids where kind='order'))->'dependencies','{"production":2,"packing":1,"payments":3}'::jsonb,'exact downstream counts');
 select is(romiku_delete_record('order',(select id from ids where kind='order'))->>'message','该订单存在收款历史，不能永久删除。可以作废订单。','readable dependency message');
@@ -88,9 +128,24 @@ insert into romiku_outbound_followups(outbound_company_id,method,summary) select
 insert into romiku_source_urls(outbound_company_id,source_type,url) select id,'website','https://example.test' from ids where kind='outbound';
 insert into romiku_formal_customers(name,source_outbound_company_id) select 'keep customer',id from ids where kind='outbound';
 insert into romiku_website_inquiries(customer_name,email,outbound_company_id) select 'keep inquiry','delete@example.test',id from ids where kind='outbound';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,outbound_company_id) values ((select id from ids where kind='quote'),(select id from ids where kind='outbound'));
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id,outbound_company_id) values ((select id from ids where kind='pi'),(select id from ids where kind='outbound'));
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,outbound_company_id) values ((select id from ids where kind='order'),(select id from ids where kind='outbound'));
+SET LOCAL ROLE authenticated;
+
 insert into romiku_manual_tasks(id,title,outbound_company_id) values ((select id from ids where kind='manual_task'),'keep outbound task',(select id from ids where kind='outbound'));
 select is(romiku_delete_record('outbound',(select id from ids where kind='outbound')),'{"ok":true}'::jsonb,'outbound deleted');
 select ok(exists(select 1 from romiku_formal_customers where name='keep customer' and source_outbound_company_id is null),'outbound retains formal_customers');

@@ -1,0 +1,202 @@
+{
+  "tags": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "deals": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "sales": {
+    "hash": "5548398f21852de0c4abe9b2d2f92559",
+    "rows": 2
+  },
+  "tasks": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "contacts": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "companies": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "deal_notes": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_pis": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "configuration": {
+    "hash": "832768cea25f57b32af27a67d8012862",
+    "rows": 1
+  },
+  "contact_notes": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_orders": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_quotes": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_payments": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_pi_items": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_suppliers": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_order_items": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_quote_items": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_source_urls": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_manual_tasks": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_packing_items": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_packing_lists": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_quote_versions": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_status_history": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_numbering_rules": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_deposit_evidence": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_formal_customers": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_production_items": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_workbench_events": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_customer_contacts": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_outbound_contacts": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_product_suppliers": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_production_orders": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_supplier_contacts": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_website_inquiries": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_workbench_refresh": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "favicons_excluded_domains": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_outbound_companies": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_outbound_followups": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_product_extensions": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_workbench_requests": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_production_barcodes": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_production_due_state": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_production_followups": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_website_inquiry_items": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_document_save_requests": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_order_collection_state": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_document_daily_counters": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_procurement_cost_history": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_production_order_counters": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  },
+  "romiku_website_inquiry_followups": {
+    "hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "rows": 0
+  }
+}

@@ -1,0 +1,114 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 2
+CREATE FUNCTION
+DO
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+SET
+SET
+             advanced_cases              
+-----------------------------------------
+ ok 1 - quote injected header failure
+ ok 2 - quote full rollback after header
+ ok 3 - quote no receipt after header
+ ok 4 - quote injected delete failure
+ ok 5 - quote full rollback after delete
+ ok 6 - quote no receipt after delete
+ ok 7 - quote injected insert failure
+ ok 8 - quote full rollback after insert
+ ok 9 - quote no receipt after insert
+ ok 10 - quote cannot inject revision
+ ok 11 - quote cannot inject ownership
+(11 rows)
+
+            advanced_cases             
+---------------------------------------
+ ok 12 - pi injected header failure
+ ok 13 - pi full rollback after header
+ ok 14 - pi no receipt after header
+ ok 15 - pi injected delete failure
+ ok 16 - pi full rollback after delete
+ ok 17 - pi no receipt after delete
+ ok 18 - pi injected insert failure
+ ok 19 - pi full rollback after insert
+ ok 20 - pi no receipt after insert
+ ok 21 - pi cannot inject revision
+ ok 22 - pi cannot inject ownership
+(11 rows)
+
+              advanced_cases              
+------------------------------------------
+ ok 23 - order injected header failure
+ ok 24 - order full rollback after header
+ ok 25 - order no receipt after header
+ ok 26 - order injected delete failure
+ ok 27 - order full rollback after delete
+ ok 28 - order no receipt after delete
+ ok 29 - order injected insert failure
+ ok 30 - order full rollback after insert
+ ok 31 - order no receipt after insert
+ ok 32 - order cannot inject revision
+ ok 33 - order cannot inject ownership
+(11 rows)
+
+               advanced_cases               
+--------------------------------------------
+ ok 34 - packing injected header failure
+ ok 35 - packing full rollback after header
+ ok 36 - packing no receipt after header
+ ok 37 - packing injected delete failure
+ ok 38 - packing full rollback after delete
+ ok 39 - packing no receipt after delete
+ ok 40 - packing injected insert failure
+ ok 41 - packing full rollback after insert
+ ok 42 - packing no receipt after insert
+ ok 43 - packing cannot inject revision
+ ok 44 - packing cannot inject ownership
+(11 rows)
+
+                     conversion_case                      
+----------------------------------------------------------
+ ok 45 - conversion preserves header and line lineage
+ ok 46 - conversion lost reply replays same target
+ ok 47 - conversion changed request rejected
+ ok 48 - conversion shares durable recovery lookup
+ ok 49 - line lineage cannot be removed by atomic save
+ ok 50 - manual create cannot forge conversion provenance
+ ok 51 - trusted batch status remains available
+ ok 52 - batch status invalidates editor revision
+ ok 53 - trusted customer archival remains available
+ ok 54 - trusted order archive remains available
+(10 rows)
+
+RESET
+UPDATE 1
+SET
+             throws_ok              
+------------------------------------
+ ok 55 - disabled actor save denied
+(1 row)
+
+               throws_ok                
+----------------------------------------
+ ok 56 - disabled actor recovery denied
+(1 row)
+
+               throws_ok                
+----------------------------------------
+ ok 57 - disabled actor snapshot denied
+(1 row)
+
+RESET
+ finish 
+--------
+ 1..57
+(1 row)
+
+ROLLBACK

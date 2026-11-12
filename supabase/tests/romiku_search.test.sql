@@ -21,17 +21,62 @@ insert into romiku_customer_contacts(formal_customer_id,name,email,phone) select
 insert into romiku_outbound_contacts(outbound_company_id,name,whatsapp) select id,'Outboundcontactneedle','+86 138-1234-5678' from search_ids where kind='outbound';
 insert into romiku_website_inquiries(id,customer_name,message,processing_notes,raw_payload) select id,'Inquiry buyer','messageneedle','processingneedle','{"secret":"rawsecretneedle"}' from search_ids where kind='website_inquiry';
 insert into romiku_website_inquiry_items(inquiry_id,sku,quantity,requirement,product_snapshot) select id,'INQ-SKU-NEEDLE',1,'inquiryrequirementneedle','{"name":"inquiryproductneedle"}' from search_ids where kind='website_inquiry';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(id,counterparty_snapshot,notes,archived_at) select id,'{"name":"Historicalneedle","phone":"+49 (30) 1234-5678","unexpected":"hiddenjsonneedle"}','headernotesneedle',now() from search_ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quote_items(quote_id,sku,quantity,customer_code,requirement,notes,product_snapshot) select id,'OWN-QUOTE-SKU',1,'CustomerCodeNeedle','itemrequirementneedle','itemnotesneedle','{"name":"productnameneedle","description":"descriptionneedle","specification":"specificationneedle"}' from search_ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pis(id,counterparty_snapshot,notes,archived_at) select id,'{"name":"Historicalneedle","phone":"+49 (30) 1234-5678","unexpected":"hiddenjsonneedle"}','headernotesneedle',now() from search_ids where kind='pi';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_pi_items(pi_id,sku,quantity,customer_code,requirement,notes,product_snapshot) select id,'OWN-PI-SKU',1,'CustomerCodeNeedle','itemrequirementneedle','itemnotesneedle','{"name":"productnameneedle","description":"descriptionneedle","specification":"specificationneedle"}' from search_ids where kind='pi';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,counterparty_snapshot,notes,archived_at) select id,'{"name":"Historicalneedle","phone":"+49 (30) 1234-5678","unexpected":"hiddenjsonneedle"}','headernotesneedle',now() from search_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(order_id,sku,quantity,customer_code,requirement,notes,product_snapshot) select id,'OWN-ORDER-SKU',1,'CustomerCodeNeedle','itemrequirementneedle','itemnotesneedle','{"name":"productnameneedle","description":"descriptionneedle","specification":"specificationneedle"}' from search_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(order_id,sku,quantity,product_snapshot) select id,'SOURCE-ONLY-PRODUCT',1,'{"name":"sourceonlyproductneedle"}' from search_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id,name,supplier_snapshot,notes) select p.id,o.id,'Searchfixture production','{"name":"Savedfactoryneedle","phone":"+81 (3) 9876-5432"}','productionnotesneedle' from search_ids p,search_ids o where p.kind='production' and o.kind='order';
 insert into romiku_production_items(production_order_id,order_id,source_order_item_id,sku,quantity,product_snapshot,production_note_zh) select p.id,i.order_id,i.id,'OWN-PRODUCTION-SKU',1,'{"name":"productionproductneedle","customer_code":"productioncodeneedle","specification":"productionspecneedle","requirement":"productionrequirementneedle"}','productionnoteneedle' from search_ids p join romiku_order_items i on i.sku='OWN-ORDER-SKU' where p.kind='production';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_lists(id,order_id,name,buyer_snapshot,seller_snapshot) select p.id,o.id,'Searchfixture packing','{"name":"Packingbuyerneedle"}','{"company_name":"Packingsellerneedle"}' from search_ids p,search_ids o where p.kind='packing' and o.kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_packing_items(packing_list_id,sku,quantity,product_snapshot,remark) select id,'OWN-PACKING-SKU',1,'{"name":"packingproductneedle","unit":"UnitNeedle"}','packingremarkneedle' from search_ids where kind='packing';
+SET LOCAL ROLE authenticated;
+
 update romiku_website_inquiries set document_number='SEARCHFIXTURE-INQ' where id=(select id from search_ids where kind='website_inquiry');
 -- Existing historical numbers fixture, local transaction only.
 reset role;
@@ -111,9 +156,19 @@ select is((pg_temp.search_group('+49-30-1234-5678','quote')->'items'->0->>'rank'
 select is((pg_temp.search_group('historical','quote')->'items'->0->>'rank')::int,2,'prefix rank');
 select is((pg_temp.search_group('ricalneedle','quote')->'items'->0->>'rank')::int,3,'partial rank');
 select ok(pg_temp.search_group('Historicalneedle','production')->'items'->0->'matched_fields' ? 'source_order.counterparty_snapshot.name','source channel labeled');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quote_items(quote_id,sku,quantity) select id,'OWN-QUOTE-SKU',1 from search_ids where kind='quote';
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('OWN-QUOTE-SKU','quote')->>'total_count')::int,1,'multiple item hits deduplicate header');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(notes,created_at) select 'paginationneedle', '2025-01-01'::timestamptz+n*interval '1 day' from generate_series(1,31) n;
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('paginationneedle','quote')->>'total_count')::int,31,'count before pagination');
 select is(jsonb_array_length(pg_temp.search_group('paginationneedle','quote')->'items'),25,'default per group page 25');
 select is(pg_temp.search_group('paginationneedle','quote')->>'has_more','true','first page has more');
@@ -123,14 +178,29 @@ select is(pg_temp.search_group('paginationneedle','quote')->'items'->0->>'id',(s
 select is((pg_temp.search_group('paginationneedle','quote',50,90)->>'total_count')::int,31,'offset beyond end preserves count');
 select is((pg_temp.search_group('searchfixture','quote',25,0,'{"status":"not-a-status"}')->>'total_count')::int,0,'status filter before count');
 select is((pg_temp.search_group('searchfixture','production',25,0,jsonb_build_object('order_id',(select id from search_ids where kind='order')))->>'total_count')::int,1,'order filter');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(notes) values (E'literal%needle literal_needle literal\\needle');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('%','quote')->>'total_count')::int,1,'percent literal');
 select is((pg_temp.search_group('literal_needle','quote')->>'total_count')::int,1,'underscore literal');
 select is((pg_temp.search_group(E'\\','quote')->>'total_count')::int,1,'backslash literal');
 select is((pg_temp.search_group($q$'; select 1; --$q$,'quote')->>'total_count')::int,0,'SQL metacharacters literal');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set notes='generatedupdateneedle' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('generatedupdateneedle','quote')->>'total_count')::int,1,'generated text updates immediately');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_order_items set product_snapshot='{"name":"changedsourceproduct"}' where sku='OWN-ORDER-SKU';
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('productionproductneedle','production')->>'total_count')::int,1,'production keeps own historical product');
 select is((pg_temp.search_group('changedsourceproduct','production')->>'total_count')::int,0,'source product updates cannot leak');
 update romiku_formal_customers set name='Changedlivecustomer' where id=(select id from search_ids where kind='formal_customer');
@@ -155,145 +225,605 @@ reset role;
 drop policy search_test_restriction on public.romiku_quotes;
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('company','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.company coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('name','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.name coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('brand','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.brand coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('business_name','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.business_name coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('contact','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.contact coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('phone','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.phone coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('whatsapp','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.whatsapp coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('email','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.email coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('country','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.country coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('region','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.region coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('city','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.city coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('address','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.address coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('company_name','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.company_name coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('brand_name','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.brand_name coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('contact_name','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.contact_name coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('customer_name','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.customer_name coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('telephone','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.telephone coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('mobile','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.mobile coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('shipping_address','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.shipping_address coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('billing_address','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.billing_address coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('consignee','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.consignee coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('consignee_contact','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.consignee_contact coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('receiving_company','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.receiving_company coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('receiving_contact','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.receiving_contact coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('receiving_phone','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.receiving_phone coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('delivery_address','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.delivery_address coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('forwarder_address','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.forwarder_address coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot=jsonb_build_object('tax_information','fieldmatrixneedle') where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit counterparty_snapshot.tax_information coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('sku','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.sku coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('customer_code','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.customer_code coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('name','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.name coverage');
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->'items'->0->>'rank')::int,2,'product name exact is not identity');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('name_zh','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.name_zh coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('name_en','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.name_en coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('name_es','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.name_es coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('description','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.description coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('description_zh','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.description_zh coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('description_en','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.description_en coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('description_es','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.description_es coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('specification','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.specification coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('specifications','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.specifications coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('spec','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.spec coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('requirement','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.requirement coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('requirements','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.requirements coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('notes','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.notes coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('unit','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.unit coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot=jsonb_build_object('shipping_mark','fieldmatrixneedle') where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('fieldmatrixneedle','quote')->>'total_count')::int,1,'explicit product_snapshot.shipping_mark coverage');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 update romiku_formal_customers set requirements=jsonb_build_object('packaging','fieldmatrixneedle') where id=(select id from search_ids where kind='formal_customer');
 select is((pg_temp.search_group('fieldmatrixneedle','formal_customer')->>'total_count')::int,1,'explicit requirements.packaging coverage');
 update romiku_formal_customers set requirements='{}' where id=(select id from search_ids where kind='formal_customer');
@@ -309,10 +839,20 @@ update romiku_formal_customers set requirements='{}' where id=(select id from se
 update romiku_formal_customers set requirements=jsonb_build_object('shipping_documents','fieldmatrixneedle') where id=(select id from search_ids where kind='formal_customer');
 select is((pg_temp.search_group('fieldmatrixneedle','formal_customer')->>'total_count')::int,1,'explicit requirements.shipping_documents coverage');
 update romiku_formal_customers set requirements='{}' where id=(select id from search_ids where kind='formal_customer');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quotes set counterparty_snapshot='{"aliases":["AliasNeedle"],"saved_aliases":["SavedAliasNeedle"]}' where id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('AliasNeedle','quote')->>'total_count')::int,1,'saved alias arrays covered');
 select is((pg_temp.search_group('SavedAliasNeedle','quote')->'items'->0->>'rank')::int,1,'saved alias exact identity rank');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_quote_items set product_snapshot='{"name":{"zh":"中文产品","en":"LocalizedNeedle","es":"Nombre"}}' where quote_id=(select id from search_ids where kind='quote');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('中文产品','quote')->>'total_count')::int,1,'explicit product locale text covered');
 select is((pg_temp.search_group('LocalizedNeedle','quote')->'items'->0->>'rank')::int,2,'product name is prefix rank, not identity rank');
 select is((pg_temp.search_group('paginationneedle','quote',50)->>'total_count')::int,31,'page count before deletion');
@@ -332,7 +872,12 @@ set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select is((pg_temp.search_group('OWN-PI-SKU','pi')->>'total_count')::int,0,'item caller RLS enforced');
 select is((pg_temp.search_group('Contactneedle','formal_customer')->>'total_count')::int,0,'contact caller RLS enforced');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update romiku_packing_lists set buyer_snapshot='{"tel_whatsapp":"+86 (190) 2577-7589"}',seller_snapshot='{"tel_whatsapp":"+49 (30) 1234-8765"}' where id=(select id from search_ids where kind='packing');
+SET LOCAL ROLE authenticated;
+
 select is((pg_temp.search_group('8619025777589','packing')->>'total_count')::int,1,'saved buyer tel_whatsapp normalized');
 select is((pg_temp.search_group('+49-30-1234-8765','packing')->'items'->0->>'rank')::int,1,'saved seller tel_whatsapp exact normalized rank');
 update romiku_production_items set packaging_snapshot='{"notes":"PackagingNotesNeedle","shipping_mark":"PackagingMarkNeedle"}' where production_order_id=(select id from search_ids where kind='production');

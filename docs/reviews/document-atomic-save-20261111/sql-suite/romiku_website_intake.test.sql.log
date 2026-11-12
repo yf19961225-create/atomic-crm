@@ -1,0 +1,232 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+          has_function           
+---------------------------------
+ ok 1 - atomic intake RPC exists
+(1 row)
+
+SELECT 1
+SELECT 1
+GRANT
+SET
+           throws_ok            
+--------------------------------
+ ok 2 - anon cannot call intake
+(1 row)
+
+RESET
+SET
+                throws_ok                
+-----------------------------------------
+ ok 3 - authenticated cannot call intake
+(1 row)
+
+RESET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SELECT 1
+                 matches                 
+-----------------------------------------
+ ok 4 - returns generated inquiry number
+(1 row)
+
+                    is                    
+------------------------------------------
+ ok 5 - one submission creates one header
+(1 row)
+
+                                   is                                   
+------------------------------------------------------------------------
+ ok 6 - all original items persisted separately even with duplicate SKU
+(1 row)
+
+                             is                              
+-------------------------------------------------------------
+ ok 7 - raw business JSON including unknown fields preserved
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 8 - original customer name is not normalized
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 9 - legacy payload needs no company
+(1 row)
+
+                           is                           
+--------------------------------------------------------
+ ok 10 - untrusted owner ignored and inquiry unassigned
+(1 row)
+
+                is                
+----------------------------------
+ ok 11 - untrusted status ignored
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 12 - server intake has no invented user
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 13 - original item requirement retained
+(1 row)
+
+                  lives_ok                   
+---------------------------------------------
+ ok 14 - identical submission accepted again
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 15 - repeated submissions remain independent
+(1 row)
+
+             lives_ok              
+-----------------------------------
+ ok 16 - optional company accepted
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 17 - company source text preserved
+(1 row)
+
+               is               
+--------------------------------
+ ok 18 - never creates Outbound
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 19 - never creates Formal Customer
+(1 row)
+
+             is              
+-----------------------------
+ ok 20 - never creates Quote
+(1 row)
+
+               throws_ok               
+---------------------------------------
+ ok 21 - raw payload remains immutable
+(1 row)
+
+                throws_ok                
+-----------------------------------------
+ ok 22 - original items remain immutable
+(1 row)
+
+         throws_ok         
+---------------------------
+ ok 23 - SQL null rejected
+(1 row)
+
+           throws_ok            
+--------------------------------
+ ok 24 - array payload rejected
+(1 row)
+
+                throws_ok                
+-----------------------------------------
+ ok 25 - missing required field rejected
+(1 row)
+
+                    throws_ok                     
+--------------------------------------------------
+ ok 26 - whitespace-only identity rejected by RPC
+(1 row)
+
+                  throws_ok                  
+---------------------------------------------
+ ok 27 - whitespace-only SKU rejected by RPC
+(1 row)
+
+           throws_ok            
+--------------------------------
+ ok 28 - invalid email rejected
+(1 row)
+
+             throws_ok              
+------------------------------------
+ ok 29 - nonstring company rejected
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 30 - empty item list rejected
+(1 row)
+
+           throws_ok            
+--------------------------------
+ ok 31 - zero quantity rejected
+(1 row)
+
+               throws_ok                
+----------------------------------------
+ ok 32 - quantity cannot silently round
+(1 row)
+
+             throws_ok              
+------------------------------------
+ ok 33 - quantity overflow rejected
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 34 - string quantity rejected
+(1 row)
+
+         throws_ok          
+----------------------------
+ ok 35 - blank SKU rejected
+(1 row)
+
+              throws_ok               
+--------------------------------------
+ ok 36 - requirement must be a string
+(1 row)
+
+                      is                      
+----------------------------------------------
+ ok 37 - invalid submissions leave no headers
+(1 row)
+
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+              throws_ok               
+--------------------------------------
+ ok 38 - late item failure propagates
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 39 - late failure rolls header back
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 40 - late failure rolls all earlier items back
+(1 row)
+
+RESET
+ finish 
+--------
+ 1..40
+(1 row)
+
+ROLLBACK

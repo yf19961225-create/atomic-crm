@@ -14,10 +14,20 @@ select set_config('request.jwt.claim.sub','',true);
 select throws_ok($$select public.romiku_list_production_order_groups()$$,'42501',null,'missing session denied');
 select set_config('request.jwt.claim.sub','fe260000-0000-0000-0000-000000000001',true);
 insert into public.romiku_suppliers(id,name) values ('fe260000-0000-0000-0000-000000000002','QA GROUP SUPPLIER');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into public.romiku_orders(id,counterparty_snapshot,status)
 select ('fe261000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  jsonb_build_object('name','Buyer ' || n),'confirmed' from generate_series(1,4) n;
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 update public.romiku_orders set document_name='QA-GROUP-' || right(id::text,1);
+SET LOCAL ROLE authenticated;
+
 insert into public.romiku_production_orders(name,order_id,supplier_id,status,factory_due_at,created_at)
 select 'QA-A-' || n,'fe261000-0000-0000-0000-000000000001','fe260000-0000-0000-0000-000000000002',
  case when n<=20 then 'scheduled' else 'received' end,'2026-10-31T15:59:59.999Z','2026-10-26'::timestamptz + n * interval '1 minute'

@@ -40,7 +40,12 @@ select is((romiku_customer_dependencies((select id from customer_ids where label
 select is((romiku_customer_dependencies((select id from customer_ids where label='order'))->>'payments')::int,1,'Payment counted through Order');
 select is(jsonb_array_length(romiku_delete_preflight('formal_customer',array_agg(id))->'blocked'),6,'all dependency types blocked in preflight') from customer_ids where label in ('quote','pi','order','inquiry','task','outbound');
 select is(jsonb_array_length(romiku_delete_preflight('formal_customer',array[(select id from customer_ids where label='race')])->'deletable'),1,'race initially eligible');
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_quotes(formal_customer_id) select id from customer_ids where label='race';
+SET LOCAL ROLE authenticated;
+
 select is(romiku_delete_record('formal_customer',(select id from customer_ids where label='race'))->>'code','HAS_DOWNSTREAM','new reference after preflight blocks execution');
 select is(jsonb_array_length(romiku_delete_preflight('formal_customer',array_agg(id))->'deletable'),2,'mixed batch has two eligible') from customer_ids where label in ('batch-a','order','batch-c');
 select is(jsonb_array_length(romiku_batch_delete('formal_customer',array_agg(id))->'succeeded'),2,'mixed batch deletes only eligible two') from customer_ids where label in ('batch-a','order','batch-c');

@@ -1,0 +1,40 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+SET
+SET
+SET
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 1 - awaiting payment counted in customer in-progress
+ok 2 - customer balance stays factual
+ok 3 - search includes new status
+ok 4 - status filter excludes different stage
+ok 5 - manual stage does not imply customer confirmation
+{"ok": true, "state": {"order_id": "ed090000-0000-0000-0000-000000000003", "revision": 1, "updated_at": "2026-11-12T02:02:01.10423+00:00", "updated_by": "ed090000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": null, "customer_confirmation": "confirmed"}, "event_id": "fd8bfa55-62be-4530-8250-0e504b2d2f14", "request_id": "ff78255a-dbef-4370-ac0c-27d379d8bd9a"}
+ok 6 - manual order status does not finish deposit
+ok 7 - collection phase stays independent
+RESET
+UPDATE 1
+SET
+ok 8 - completed unpaid order remains collectible
+ok 9 - completed summary preserved
+RESET
+UPDATE 1
+SET
+ok 10 - delivery not automatically changed to awaiting payment
+ok 11 - all transitions preserve actual balance
+RESET
+UPDATE 1
+SET
+ok 12 - cancelled not counted in progress
+ok 13 - cancelled history retained
+RESET
+ok 14 - anon RPC access unchanged
+ok 15 - RPC remains security invoker
+1..15
+ROLLBACK

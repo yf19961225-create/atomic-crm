@@ -1,3 +1,5 @@
+import { withAtomicDocuments } from "./tests/withAtomicDocuments";
+import { saveDocumentAtomically } from "./atomicDocumentSave";
 import { describe, expect, it, vi } from "vitest";
 import fakeRestDataProvider from "ra-data-fakerest";
 import {
@@ -104,9 +106,14 @@ describe.each<CommercialDocumentKind>(["quote", "pi", "order"])(
   },
 );
 
-it("packing sequential saves retain the first row after later validation failure", async () => {
-  const provider = fakeRestDataProvider({ romiku_packing_items: [] });
-  const parent = { id: "packing", order_id: null };
+it("packing separately committed operations retain the first valid save after later validation failure", async () => {
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_packing_lists: [{ id: "packing", revision: 1, order_id: null }],
+      romiku_packing_items: [],
+    }),
+  );
+  const parent = { id: "packing", revision: 1, order_id: null };
   const values = { sku: "A", quantity: 1, cartons: 1, qty_per_carton: 1 };
   await savePackingItem(provider, parent, "", values);
   await expect(
@@ -118,20 +125,33 @@ it("packing sequential saves retain the first row after later validation failure
     ),
   ).toEqual(["A"]);
 });
-it("packing create also duplicates on retry after lost response", async () => {
-  const provider = fakeRestDataProvider({ romiku_packing_items: [] });
-  const create = provider.create.bind(provider);
-  vi.spyOn(provider, "create").mockImplementationOnce(async (name, params) => {
-    await create(name, params);
+it("packing committed atomic save recovers a lost response without creating duplicate rows", async () => {
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_packing_lists: [],
+      romiku_packing_items: [],
+    }),
+  );
+  const save = provider.documentSave.bind(provider);
+  vi.spyOn(provider, "documentSave").mockImplementationOnce(async (args) => {
+    await save(args);
     throw new Error("timeout after commit");
   });
-  const parent = { id: "packing", order_id: null };
-  const values = { sku: "A", quantity: 1, cartons: 1, qty_per_carton: 1 };
-  await expect(savePackingItem(provider, parent, "", values)).rejects.toThrow(
-    "timeout",
-  );
-  await savePackingItem(provider, parent, "", values);
+  const result = await saveDocumentAtomically(provider, {
+    kind: "packing",
+    documentId: "packing-lost",
+    expectedRevision: 0,
+    header: { order_id: null },
+    items: [
+      { id: "line", sku: "A", quantity: 1, cartons: 1, qty_per_carton: 1 },
+    ],
+  });
+  expect(result.header.id).toBe("packing-lost");
+  expect(provider.documentSave).toHaveBeenCalledTimes(1);
+  expect(
+    (await provider.getList("romiku_packing_lists", list)).data,
+  ).toHaveLength(1);
   expect(
     (await provider.getList("romiku_packing_items", list)).data,
-  ).toHaveLength(2);
+  ).toHaveLength(1);
 });

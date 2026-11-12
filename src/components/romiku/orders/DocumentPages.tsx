@@ -1,7 +1,12 @@
+import { AtomicSaveRecovery } from "../commercial/AtomicSaveRecovery";
 import {
-  useDocumentSaveAttempt,
-  documentSaveFailureMessage,
-} from "../commercial/useDocumentSaveAttempt";
+  readDocumentSnapshot,
+  saveDocumentAtomically,
+  resolveDocumentSave,
+  type DocumentSnapshot,
+  getDocumentCreationId,
+  finishDocumentCreation,
+} from "../commercial/atomicDocumentSave";
 import { InlineOrderDeliveryDate } from "./InlineOrderDeliveryDate";
 import { documentTitle } from "../commercial/documentIdentity";
 import { editableSignature } from "../updates/editableSnapshot";
@@ -15,7 +20,7 @@ import { OrderCustomerArchive } from "../customers/OrderCustomerArchive";
 import { RecordDelete } from "../shared/RecordDelete";
 import { useModuleSearch, useRetainedRows } from "../search/useBusinessSearch";
 import { SearchInput } from "../search/SearchInput";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDataProvider, useGetList, useGetOne, type RaRecord } from "ra-core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,10 +37,7 @@ import { DepositBalanceSummary } from "../commercial/DepositBalanceSummary";
 import { DocumentFinancialSummary } from "../commercial/DocumentFinancialSummary";
 import { DocumentHeaderSummary } from "../commercial/DocumentHeaderSummary";
 import { FormalCustomerSelector } from "../commercial/FormalCustomerSelector";
-import {
-  commitCommercialItems,
-  readCommercialItems,
-} from "../commercial/commercialLineItems";
+import type { CommercialItem } from "../commercial/commercialLineItems";
 import {
   useDocumentEditSession,
   useUnsavedDocumentGuard,
@@ -358,6 +360,10 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
   );
 }
 export function DocumentCreate({ kind }: { kind: DocumentKind }) {
+  const documentId = useRef(getDocumentCreationId(kind));
+  const pending = useRef(false);
+  const submittedCreate = useRef<string | null>(null);
+  const [recoveredId, setRecoveredId] = useState<string | null>(null);
   const config = documentConfig[kind],
     provider = useDataProvider(),
     navigate = useNavigate();
@@ -376,6 +382,9 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
   useAppDraft(signature !== baseline);
   async function create(event: React.FormEvent) {
     event.preventDefault();
+    if (pending.current || recoveredId) return;
+    submittedCreate.current ??= signature;
+    pending.current = true;
     setBusy(true);
     setFailure("");
     try {
@@ -384,17 +393,25 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
         kind,
         String(values.name || ""),
         customer || undefined,
+        documentId.current,
       );
       setBaseline(signature);
+      finishDocumentCreation(kind, documentId.current);
       navigate(`${config.path}/${data.id}`);
     } catch (cause) {
       setFailure(errorMessage(cause));
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
   return (
     <section className={"ds-order-create ds-page space-y-4"}>
+      <AtomicSaveRecovery
+        kind={kind}
+        documentId={documentId.current}
+        creation
+      />
       <Link className="underline" to={config.path}>
         返回{config.plural}
       </Link>
@@ -421,8 +438,53 @@ export function DocumentCreate({ kind }: { kind: DocumentKind }) {
               }}
             />
           </label>
-          <Button type="submit">创建{config.label}</Button>
+          <Button type="submit" disabled={!!recoveredId}>
+            创建{config.label}
+          </Button>
         </fieldset>
+        {failure && !recoveredId && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={async () => {
+              if (pending.current) return;
+              pending.current = true;
+              setBusy(true);
+              try {
+                const result = await resolveDocumentSave(
+                  provider,
+                  kind,
+                  documentId.current,
+                );
+                if (result) {
+                  finishDocumentCreation(kind, documentId.current);
+                  if (submittedCreate.current === signature) {
+                    setBaseline(signature);
+                    navigate(`${config.path}/${result.document_id}`);
+                  } else {
+                    setRecoveredId(result.document_id);
+                    setFailure(
+                      "原请求已创建成功；当前输入已保留，未写入已创建单据。",
+                    );
+                  }
+                } else setFailure("尚未查询到已提交结果，请保留当前内容。");
+              } catch (cause) {
+                setFailure(errorMessage(cause));
+              } finally {
+                pending.current = false;
+                setBusy(false);
+              }
+            }}
+          >
+            查询创建结果
+          </Button>
+        )}
+        {recoveredId && (
+          <Link to={`${config.path}/${recoveredId}`} className="underline">
+            查看原请求创建的单据
+          </Link>
+        )}
         {failure && <p role="alert">{failure}</p>}
       </form>
     </section>
@@ -513,7 +575,7 @@ const termsFields: Field[] = [
 ];
 function DocumentEditor({
   kind,
-  record,
+  record: initialRecord,
   onSaved,
   headerReady,
   headerError,
@@ -531,10 +593,16 @@ function DocumentEditor({
     [message, setMessage] = useState(""),
     [failed, setFailed] = useState(false);
   const [missingCodeRows, setMissingCodeRows] = useState<number[]>([]);
-  const items = useQuery({
-    queryKey: [`${kind}-items`, record.id],
-    queryFn: () => readCommercialItems(provider, kind, String(record.id)),
+  const snapshot = useQuery({
+    queryKey: ["document-snapshot", kind, initialRecord.id],
+    queryFn: () =>
+      readDocumentSnapshot(provider, kind, String(initialRecord.id)),
   });
+  const record = (snapshot.data?.header ?? initialRecord) as RaRecord;
+  const items = {
+    ...snapshot,
+    data: snapshot.data?.items as CommercialItem[] | undefined,
+  };
   const itemsReady =
     headerReady &&
     items.isSuccess &&
@@ -598,36 +666,37 @@ function DocumentEditor({
       setMessage(errorMessage(cause));
     }
   };
-  const saveAttempt = useDocumentSaveAttempt();
+  const savePending = useRef(false);
+  const submittedDraft = useRef<string | null>(null);
+  const [recoveredSave, setRecoveredSave] = useState<DocumentSnapshot | null>(
+    null,
+  );
+  const draftSignature = JSON.stringify([session.values, session.items]);
   async function save() {
-    if (!saveAttempt.begin()) return;
+    if (savePending.current || recoveredSave) return;
+    submittedDraft.current ??= draftSignature;
+    savePending.current = true;
     setBusy(true);
     setMessage("");
     setFailed(false);
     try {
-      const result = await provider.update(config.resource, {
-        id: record.id,
-        data: documentHeaderWrite(kind, session.values),
-        previousData: record,
+      const result = await saveDocumentAtomically(provider, {
+        kind: kind,
+        documentId: String(record.id),
+        expectedRevision: Number(session.values.revision),
+        header: documentHeaderWrite(kind, session.values),
+        items: session.items,
       });
-      await commitCommercialItems(
-        provider,
-        kind,
-        String(record.id),
-        session.savedItems,
-        session.items,
-      );
-      await items.refetch();
-      session.commit(result.data, session.items);
-      await onSaved();
-      await cache.invalidateQueries();
+      cache.setQueryData(["document-snapshot", kind, record.id], result);
+      session.commit(result.header, result.items as CommercialItem[]);
+      submittedDraft.current = null;
+      await Promise.allSettled([onSaved(), cache.invalidateQueries()]);
       setMessage(`${config.label}已保存。`);
-      saveAttempt.succeed();
     } catch (cause) {
-      saveAttempt.fail();
       setFailed(true);
-      setMessage(documentSaveFailureMessage(errorMessage(cause)));
+      setMessage(errorMessage(cause));
     } finally {
+      savePending.current = false;
       setBusy(false);
     }
   }
@@ -687,6 +756,7 @@ function DocumentEditor({
   ];
   return (
     <section className={"ds-order-editor ds-page space-y-4"}>
+      <AtomicSaveRecovery kind={kind} documentId={String(record.id)} />
       <Link
         className="underline"
         to={config.path}
@@ -711,7 +781,7 @@ function DocumentEditor({
             <div className="flex gap-2">
               <Button
                 type="button"
-                disabled={busy || saveAttempt.needsReconciliation}
+                disabled={busy || !!recoveredSave}
                 onClick={() => void save()}
               >
                 保存
@@ -806,7 +876,11 @@ function DocumentEditor({
       )}
       {kind === "pi" && (
         <div className="flex gap-4">
-          <DocumentConversion source="pi" sourceId={String(record.id)} />
+          <DocumentConversion
+            source="pi"
+            sourceId={String(record.id)}
+            expectedSourceRevision={Number(record.revision)}
+          />
           <Button
             type="button"
             variant="outline"
@@ -952,6 +1026,72 @@ function DocumentEditor({
           </TabsContent>
         ))}
       </Tabs>
+      {failed && (
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={async () => {
+            if (savePending.current) return;
+            savePending.current = true;
+            setBusy(true);
+            try {
+              const result = await resolveDocumentSave(
+                provider,
+                kind,
+                String(record.id),
+              );
+              if (result) {
+                cache.setQueryData(
+                  ["document-snapshot", kind, record.id],
+                  result,
+                );
+                if (submittedDraft.current === draftSignature) {
+                  session.commit(
+                    result.header,
+                    result.items as CommercialItem[],
+                  );
+                  submittedDraft.current = null;
+                  setMessage("已确认保存结果。");
+                } else {
+                  setRecoveredSave(result);
+                  setMessage(
+                    "原请求已保存成功；当前修改尚未保存，已保留。请核对后选择是否加载已保存版本。",
+                  );
+                }
+                setFailed(false);
+                await Promise.allSettled([
+                  onSaved(),
+                  cache.invalidateQueries(),
+                ]);
+              } else setMessage("尚未查询到已提交结果，请保留当前草稿。");
+            } catch (cause) {
+              setMessage(errorMessage(cause));
+            } finally {
+              savePending.current = false;
+              setBusy(false);
+            }
+          }}
+        >
+          查询保存结果
+        </Button>
+      )}
+      {recoveredSave && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            session.commit(
+              recoveredSave.header,
+              recoveredSave.items as CommercialItem[],
+            );
+            setRecoveredSave(null);
+            submittedDraft.current = null;
+            setMessage("已加载原请求保存的版本。");
+          }}
+        >
+          放弃当前修改并加载已保存版本
+        </Button>
+      )}
       {message && <p role={failed ? "alert" : "status"}>{message}</p>}
     </section>
   );

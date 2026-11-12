@@ -1,0 +1,34 @@
+
+ RUN  v4.1.0 /Users/romiku/Documents/ChatGPT/ROMIKU CRM 2.0/workbench-ui-20261107/repo
+
+stderr | src/components/romiku/packing/PackingAtomicGrid.interaction.test.tsx > does not replace newer Packing edits when a rejected second submit precedes recovery of the first
+[TypeError: lost response]
+ ❯ |app (chromium)| src/components/romiku/packing/PackingAtomicGrid.interaction.test.tsx (3 tests | 1 failed) 15420ms
+   × does not replace newer Packing edits when a rejected second submit precedes recovery of the first 15129ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |app (chromium)| src/components/romiku/packing/PackingAtomicGrid.interaction.test.tsx > does not replace newer Packing edits when a rejected second submit precedes recovery of the first
+Error: [2mexpect([22m[31melement[39m[2m).toHaveValue([22m[32m5[39m[2m)[22m
+
+Expected the element to have value:
+[32m  5[39m
+Received:
+[31m  1[39m
+
+Failure screenshot:
+  - src/components/romiku/packing/__screenshots__/PackingAtomicGrid.interaction.test.tsx/does-not-replace-newer-Packing-edits-when-a-rejected-second-submit-precedes-recovery-of-the-first-1.png
+
+ ❯ ../../../ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/src/components/romiku/packing/PackingAtomicGrid.interaction.test.tsx:132:60
+
+Caused by: Error: Matcher did not succeed in time.
+ ❯ ../../../ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/src/components/romiku/packing/PackingAtomicGrid.interaction.test.tsx:132:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  09:53:45
+   Duration  17.37s (transform 0ms, setup 0ms, import 248ms, tests 15.42s, environment 0ms)
+

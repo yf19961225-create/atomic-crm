@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { resolveDocumentSource } from "../commercial/atomicDocumentSave";
+import { useRef, useState } from "react";
+import { useDataProvider } from "ra-core";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
 import { errorMessage } from "../outbound/RelatedRecords";
 import {
   convertDocument,
@@ -19,29 +20,37 @@ import {
 export function DocumentConversion({
   source,
   sourceId,
+  expectedSourceRevision,
 }: {
   source: "quote" | "pi";
   sourceId: string;
+  expectedSourceRevision: number;
 }) {
+  const provider = useDataProvider();
+  const pending = useRef(false);
+  const sourceRevision = useRef(expectedSourceRevision);
   const [target, setTarget] = useState<DocumentKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
   const navigate = useNavigate();
   async function convert() {
-    if (!target || busy) return;
+    if (!target || pending.current) return;
+    pending.current = true;
     setBusy(true);
     setFailure("");
     try {
       const id = await convertDocument(
-        getSupabaseClient(),
+        provider,
         source,
         sourceId,
         target,
+        sourceRevision.current,
       );
       navigate(`${documentConfig[target].path}/${id}`);
     } catch (cause) {
       setFailure(errorMessage(cause));
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -54,6 +63,7 @@ export function DocumentConversion({
             variant="outline"
             onClick={() => {
               setFailure("");
+              sourceRevision.current = expectedSourceRevision;
               setTarget(kind as DocumentKind);
             }}
           >
@@ -91,6 +101,37 @@ export function DocumentConversion({
               取消
             </Button>
           </div>
+          {failure && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={async () => {
+                if (!target || pending.current) return;
+                pending.current = true;
+                setBusy(true);
+                try {
+                  const result = await resolveDocumentSource(provider, {
+                    sourceKind: source,
+                    sourceId,
+                    targetKind: target,
+                    expectedSourceRevision: sourceRevision.current,
+                  });
+                  if (result)
+                    navigate(
+                      `${documentConfig[target].path}/${result.document_id}`,
+                    );
+                  else setFailure("尚未查询到转换结果，请保留当前选择。");
+                } catch (cause) {
+                  setFailure(errorMessage(cause));
+                } finally {
+                  pending.current = false;
+                  setBusy(false);
+                }
+              }}
+            >
+              查询创建结果
+            </Button>
+          )}
           {failure && <p role="alert">{failure}</p>}
         </DialogContent>
       </Dialog>

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.0 /Users/romiku/Documents/ChatGPT/ROMIKU CRM 2.0/workbench-ui-20261107/repo
+
+
+ Test Files  3 passed (3)
+      Tests  15 passed (15)
+   Start at  09:55:16
+   Duration  3.91s (transform 0ms, setup 0ms, import 1.58s, tests 3.86s, environment 0ms)
+

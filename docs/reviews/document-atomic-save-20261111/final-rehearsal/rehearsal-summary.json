@@ -1,0 +1,31 @@
+{
+  "database": "atomic_save_preview_final_20261111",
+  "executed_as": "postgres (not superuser)",
+  "migration_sha256": "187854b764ba5e24e29079c338d4f5a5ca30dfadd9a86c67300ce02ab98010a6",
+  "business_tables_unchanged": 49,
+  "new_journal_rows": 0,
+  "role_before_equals_after": true,
+  "fresh_role_creation_cleanup_verified": true,
+  "owner_failure_rollbacks": [
+    {
+      "after_owner_transfer": 1,
+      "rolled_back": true,
+      "role_and_temporary_grants_absent": true
+    },
+    {
+      "after_owner_transfer": 2,
+      "rolled_back": true,
+      "role_and_temporary_grants_absent": true
+    },
+    {
+      "after_owner_transfer": 3,
+      "rolled_back": true,
+      "role_and_temporary_grants_absent": true
+    },
+    {
+      "after_owner_transfer": 4,
+      "rolled_back": true,
+      "role_and_temporary_grants_absent": true
+    }
+  ]
+}

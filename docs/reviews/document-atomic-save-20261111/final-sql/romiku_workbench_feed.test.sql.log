@@ -1,0 +1,41 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+INSERT 0 1
+SET
+SET
+SET
+{"kind": "order", "items": [], "header": {"id": "ef041000-0000-0000-0000-000000000001", "notes": null, "due_at": null, "status": "confirmed", "freight": 10000.00, "currency": "USD", "discount": 0.00, "owner_id": "ef040000-0000-0000-0000-000000000001", "revision": 1, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:54.698042+00:00", "created_by": "ef040000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:54.732673+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": "QA historical", "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 30.00, "document_number": "OD261112001", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:54.733638+00:00", "actual_delivery_at": null, "formal_customer_id": null, "source_search_text": "od261112001", "outbound_company_id": null, "business_search_text": "usd\n2026-11-12\nod261112001\nconfirmed", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261112001"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"status": "confirmed", "currency": "usd", "document_date": "2026-11-12", "document_number": "od261112001"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:54.698042+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:54.698042+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}, "revision": 1, "document_id": "ef041000-0000-0000-0000-000000000001"}
+ok 1 - unknown history always counted
+ok 2 - undated historical item is not recent
+INSERT 0 2
+ok 3 - two children grouped before pagination
+ok 4 - group counts all children
+ok 5 - name search preserves historical record
+{"ok": true, "state": {"order_id": "ef041000-0000-0000-0000-000000000001", "revision": 1, "updated_at": "2026-11-12T02:03:54.75658+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": null, "customer_confirmation": "confirmed"}, "event_id": "ffb90c73-cfc6-4c79-83bb-5fd2d7b5de3a", "request_id": "16e75931-b008-42d2-92f6-f1ad427192f7"}
+ok 6 - confirmed order one collection item
+ok 7 - undated receivable not urgent
+ok 8 - count is before pagination
+ok 9 - page size enforced
+ok 10 - bounded page
+{"ok": true, "state": {"order_id": "ef041000-0000-0000-0000-000000000001", "revision": 2, "updated_at": "2026-11-12T02:03:54.761959+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": "2026-11-18", "customer_confirmation": "confirmed"}, "event_id": "8df1a925-b203-4c12-8ae0-1b8da9374d0d", "request_id": "074dd93f-5bf6-49e8-b16e-20bd27d4a9d5"}
+ok 11 - future collection follow-up is not immediate
+{"ok": true, "state": {"order_id": "ef041000-0000-0000-0000-000000000001", "revision": 3, "updated_at": "2026-11-12T02:03:54.762897+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": "2026-11-19", "customer_confirmation": "confirmed"}, "event_id": "4621f411-919b-44a1-8a02-641cba466ac8", "request_id": "4e12afcf-33b4-4a68-a1ba-d426ae5f2907"}
+ok 12 - day seven excluded
+{"ok": true, "state": {"revision": 1, "updated_at": "2026-11-12T02:03:54.764048+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "factory_due_at": null, "needs_follow_up": false, "next_follow_up_on": "2026-11-14", "due_classification": "needs_confirmation", "production_order_id": "ef042000-0000-0000-0000-000000000001"}, "event_id": "914d6688-2e57-4e5a-a9b8-1266c6548d51", "request_id": "687d9b24-e46b-48c6-87d3-c5f059c2f57c"}
+ok 13 - explicit future production follow-up is recent
+{"ok": true, "state": {"order_id": "ef041000-0000-0000-0000-000000000001", "revision": 4, "updated_at": "2026-11-12T02:03:54.765035+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": "2026-11-12", "customer_confirmation": "confirmed"}, "event_id": "37792890-238b-4ae0-bf6b-ee9e80af4e2f", "request_id": "44f10598-03f9-4fc5-97dc-61d8c2122d27"}
+ok 14 - today collection follow-up included
+{"ok": true, "state": {"order_id": "ef041000-0000-0000-0000-000000000001", "revision": 5, "updated_at": "2026-11-12T02:03:54.765925+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "needs_follow_up": false, "deposit_event_id": null, "deposit_override": "none", "next_follow_up_on": null, "customer_confirmation": "confirmed"}, "event_id": "27c6a7bd-ecf7-449a-8a19-25c411cbb039", "request_id": "16641fd7-54d3-45b0-9fd0-3fbbccb8f8f1"}
+{"kind": "order", "items": [], "header": {"id": "ef041000-0000-0000-0000-000000000001", "notes": null, "due_at": null, "status": "confirmed", "freight": 10000.00, "currency": "USD", "discount": 0.00, "owner_id": "ef040000-0000-0000-0000-000000000001", "revision": 2, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:54.698042+00:00", "created_by": "ef040000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:54.767074+00:00", "updated_by": "ef040000-0000-0000-0000-000000000001", "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": "QA historical", "balance_due_at": null, "deposit_due_at": "2026-11-11T02:03:54.698042+00:00", "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 100.00, "document_number": "OD261112001", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:54.733638+00:00", "actual_delivery_at": null, "formal_customer_id": null, "source_search_text": "od261112001", "outbound_company_id": null, "business_search_text": "usd\n2026-11-12\nod261112001\nconfirmed", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261112001"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"status": "confirmed", "currency": "usd", "document_date": "2026-11-12", "document_number": "od261112001"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:54.698042+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:54.698042+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}, "revision": 2, "document_id": "ef041000-0000-0000-0000-000000000001"}
+ok 15 - overdue 100 percent prepayment uses deposit due date
+ok 16 - prepayment full remaining unchanged
+INSERT 0 2
+ok 17 - Shanghai day six included / day seven excluded
+RESET
+UPDATE 1
+SET
+ok 18 - disabled user denied
+1..18
+ROLLBACK

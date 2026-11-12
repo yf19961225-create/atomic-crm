@@ -1,0 +1,126 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+ok 1 - authenticated can call
+ok 2 - anon cannot call
+ok 3 - security definer and fixed empty search path
+SET
+ok 4 - anon RPC denied
+RESET
+SET
+authenticated
+ok 5 - missing user denied
+de100000-0000-0000-0000-000000000001
+ok 6 - null kind rejected
+ok 7 - untrusted kind rejected
+ok 8 - missing quote
+ok 9 - direct quote header delete denied
+ok 10 - missing pi
+ok 11 - direct pi header delete denied
+ok 12 - missing order
+ok 13 - direct order header delete denied
+ok 14 - missing packing
+ok 15 - direct packing header delete denied
+ok 16 - missing outbound
+ok 17 - direct outbound header delete denied
+ok 18 - missing manual_task
+CREATE TABLE
+INSERT 0 6
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+d1e6846a-21fe-4c4e-8a4c-71e2825e17e1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+ok 19 - quote blocked by PI/order
+ok 20 - PI blocked by order
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 3
+ok 21 - exact downstream counts
+ok 22 - readable dependency message
+ok 23 - packing deleted
+ok 24 - packing delete restores order remaining
+ok 25 - packing children removed
+RESET
+DELETE 2
+UPDATE 1
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+SET
+authenticated
+INSERT 0 1
+ok 26 - order deleted while historical counter is retained
+ok 27 - source PI and quote retained
+ok 28 - order task detached
+INSERT 0 1
+ok 29 - PI deleted
+ok 30 - PI task detached
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 31 - late delete failure is structured
+ok 32 - rollback restores task link
+ok 33 - rollback restores items
+ok 34 - rollback restores versions
+RESET
+DROP TRIGGER
+SET
+authenticated
+ok 35 - quote including immutable versions deleted
+ok 36 - quote task content preserved
+ok 37 - quote versions removed
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 38 - outbound deleted
+ok 39 - outbound retains formal_customers
+ok 40 - outbound retains website_inquiries
+ok 41 - outbound retains quotes
+ok 42 - outbound retains pis
+ok 43 - outbound retains orders
+ok 44 - outbound retains manual_tasks
+ok 45 - outbound removes outbound_contacts
+ok 46 - outbound removes outbound_followups
+ok 47 - outbound removes source_urls
+ok 48 - manual task deleted
+1..48
+ROLLBACK

@@ -1,0 +1,35 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+SET
+authenticated
+de710000-0000-0000-0000-000000000001
+CREATE TABLE
+INSERT 0 9
+SELECT 1
+INSERT 0 1
+INSERT 0 9
+SELECT 9
+SELECT 1
+ok 1 - new Quote saved normalized specification case 1
+ok 2 - new Quote saved normalized specification case 2
+ok 3 - new Quote saved normalized specification case 3
+ok 4 - new Quote saved normalized specification case 4
+ok 5 - new Quote saved normalized specification case 5
+ok 6 - new Quote saved normalized specification case 6
+ok 7 - new Quote saved normalized specification case 7
+ok 8 - new Quote saved normalized specification case 8
+ok 9 - new Quote saved normalized specification case 9
+ok 10 - original Inquiry snapshots unchanged
+ok 11 - quantity, saved request quantity, unit and packing remain unchanged
+ok 12 - Quote provenance preserved
+ok 13 - invalid selection remains rejected atomically
+ok 14 - invalid conversion does not create an extra Quote
+RESET
+1..14
+ROLLBACK

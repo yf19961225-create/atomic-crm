@@ -1,0 +1,98 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+ok 1 - atomic Production workspace RPC exists
+ok 2 - explicit Order sync RPC exists
+INSERT 0 1
+CREATE TABLE
+INSERT 0 4
+GRANT
+CREATE TABLE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+SET
+authenticated
+de600000-0000-0000-0000-000000000001
+RESET
+INSERT 0 2
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 3 - atomic create succeeds
+INSERT 0 1
+ok 4 - number uses parent Order counter
+ok 5 - copies saved Order instructions
+ok 6 - preserves unedited saved item snapshot
+ok 7 - header shared requirements and item override saved together
+ok 8 - source Order unchanged
+ok 9 - source item unchanged
+ok 10 - stale session rejected
+ok 11 - foreign Order item rejected
+ok 12 - failed line rolls header back
+ok 13 - over assignment is blocked
+ok 14 - blocked excess rolls back
+ok 15 - legacy override cannot bypass capacity
+ok 16 - empty session cannot erase rows
+ok 17 - header whitelist rejects source mutation
+INSERT 0 4
+TRUNCATE TABLE
+INSERT 0 1
+ok 18 - preview excludes archived completed received cancelled
+ok 19 - preview does not write
+{"kind": "order", "items": [{"id": "499b8fed-ee73-49c4-b101-ea9c8d7c9052", "sku": "SUN5", "notes": null, "amount": 0.00, "order_id": "70883ec1-02a8-4ac8-86f1-f366ae800cb4", "owner_id": "de600000-0000-0000-0000-000000000001", "position": 0, "quantity": 100.0000, "created_at": "2026-11-12T02:03:53.00912+00:00", "created_by": "de600000-0000-0000-0000-000000000001", "unit_price": 0.0000, "updated_at": "2026-11-12T02:03:53.052365+00:00", "updated_by": "de600000-0000-0000-0000-000000000001", "requirement": null, "customer_code": null, "packing_snapshot": {"cartons": 2, "material": "Paper"}, "product_snapshot": {"name": "Saved lamp", "unit": "PCS", "specification": "Original"}, "sanity_product_id": null, "source_pi_item_id": null, "unit_price_entered": true, "business_search_text": "saved lamp\noriginal\npcs\nsun5", "source_quote_item_id": null, "business_search_fields": {"sku": "sun5", "product_snapshot.name": "saved lamp", "product_snapshot.unit": "pcs", "product_snapshot.specification": "original"}}], "header": {"id": "70883ec1-02a8-4ac8-86f1-f366ae800cb4", "notes": "Original saved Order", "due_at": null, "status": "draft", "freight": 0.00, "currency": "USD", "discount": 0.00, "owner_id": "de600000-0000-0000-0000-000000000001", "revision": 3, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:53.00912+00:00", "created_by": "de600000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:53.075339+00:00", "updated_by": "de600000-0000-0000-0000-000000000001", "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": null, "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 30.00, "document_number": "OD261112001", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:53.048839+00:00", "actual_delivery_at": null, "formal_customer_id": null, "source_search_text": "od261112001", "outbound_company_id": null, "business_search_text": "usd\n2026-11-12\nod261112001\noriginal saved order\ndraft", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261112001"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"notes": "original saved order", "status": "draft", "currency": "usd", "document_date": "2026-11-12", "document_number": "od261112001"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:53.00912+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:53.00912+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": "Order new"}}, "revision": 3, "document_id": "70883ec1-02a8-4ac8-86f1-f366ae800cb4"}
+ok 20 - changed Order invalidates preview
+TRUNCATE TABLE
+INSERT 0 1
+ok 21 - confirmed sync succeeds
+ok 22 - sync copies current saved Order
+ok 23 - sync preserves item overrides
+ok 24 - excluded Production snapshots unchanged
+
+ok 25 - authenticated role without uid blocked
+ok 26 - sync requires uid
+RESET
+ok 27 - anon cannot save
+ok 28 - anon cannot sync
+ok 29 - save invoker respects RLS
+ok 30 - sync invoker respects RLS
+de600000-0000-0000-0000-000000000001
+CREATE POLICY
+SET
+authenticated
+ok 31 - RLS denied row aborts whole session
+ok 32 - RLS failure rolls header back
+RESET
+DROP POLICY
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 33 - late trigger error is sanitized
+ok 34 - late trigger rolls header back
+RESET
+DROP TRIGGER
+CREATE POLICY
+SET
+authenticated
+ok 35 - sync respects source Order RLS
+RESET
+DROP POLICY
+SET
+authenticated
+ok 36 - invalid create rolls back new header
+ok 37 - no partial new Production remains
+RESET
+ok 38 - failed create does not consume Pxx
+RESET
+1..38
+ROLLBACK

@@ -1,3 +1,4 @@
+import { withFakeAtomicDocuments } from "./atomicDocuments";
 import {
   withLifecycleCallbacks,
   type CreateParams,
@@ -145,7 +146,9 @@ export const createDataProvider = ({
   authProvider,
   silent = false,
 }: CreateFakeRestDataProviderOptions = {}): CrmDataProvider => {
-  const baseDataProvider = fakeRestDataProvider(db, !silent, latency);
+  const baseDataProvider = withFakeAtomicDocuments(
+    fakeRestDataProvider(db, !silent, latency),
+  );
   let taskUpdateType = TASK_DONE_NOT_CHANGED;
   const getIdentity = async () =>
     authProvider?.getIdentity?.() ?? defaultAuthProvider.getIdentity?.();

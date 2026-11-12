@@ -1,7 +1,8 @@
 import {
-  useDocumentSaveAttempt,
-  documentSaveFailureMessage,
-} from "../commercial/useDocumentSaveAttempt";
+  saveDocumentAtomically,
+  resolveDocumentSave,
+  pendingDocumentIntent,
+} from "../commercial/atomicDocumentSave";
 import { useAppDraft } from "../updates/drafts";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { canonicalSkuSearch } from "../../../../shared/productCatalogQuery";
@@ -12,7 +13,7 @@ import { ProductLibraryLookup } from "../commercial/ProductLibraryLookup";
 import {
   packingQuantity,
   resolvePackingItemDefaults,
-  savePackingItem,
+  packingItemPayload,
 } from "./packingWorkflow";
 
 type Row = RaRecord & { [key: string]: unknown };
@@ -119,7 +120,8 @@ export function PackingItemsGrid({
   onSaved: () => Promise<unknown>;
 }) {
   const provider = useDataProvider();
-  const saveAttempt = useDocumentSaveAttempt();
+  const submittedDraft = useRef<string | null>(null);
+
   const nextProductRef = useRef<HTMLInputElement>(null);
   const pendingFocus = useRef<string | null>(null);
   const rowInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -128,18 +130,27 @@ export function PackingItemsGrid({
   const [locateIndex, setLocateIndex] = useState(0);
   const [draft, setDraft] = useState<Row[]>(items.map((item) => ({ ...item })));
   const [baseline, setBaseline] = useState(items);
+  const [revision, setRevision] = useState(Number(parent.revision));
   const hasUnsavedChanges =
     editableSnapshot(draft) !== editableSnapshot(baseline);
   const [saving, setSaving] = useState(false),
     [failure, setFailure] = useState(""),
     [menuId, setMenuId] = useState<string | null>(null),
     [pendingDelete, setPendingDelete] = useState<Row | null>(null);
+  const incoming = useRef({ items, revision: parent.revision });
   useEffect(() => {
+    if (
+      incoming.current.items === items &&
+      incoming.current.revision === parent.revision
+    )
+      return;
+    incoming.current = { items, revision: parent.revision };
     if (!hasUnsavedChanges) {
       setDraft(items.map((item) => ({ ...item })));
       setBaseline(items);
+      setRevision(Number(parent.revision));
     }
-  }, [items, hasUnsavedChanges]);
+  }, [items, hasUnsavedChanges, parent.revision]);
   useEffect(() => {
     const id = pendingFocus.current;
     if (id && rowInputRefs.current[id]) {
@@ -248,7 +259,7 @@ export function PackingItemsGrid({
       )
     )
       return;
-    const id = `catalog-${values.sanity_product_id || values.sku}-${draft.length}`;
+    const id = crypto.randomUUID();
     pendingFocus.current = id;
     setDraft((current) => [
       ...current,
@@ -271,61 +282,62 @@ export function PackingItemsGrid({
             onClick={() => {
               setDraft(items.map((item) => ({ ...item })));
               setBaseline(items);
+              setRevision(Number(parent.revision));
             }}
           >
             取消
           </Button>
           <Button
             type="button"
-            disabled={!dirty || saving || saveAttempt.needsReconciliation}
+            disabled={!dirty || saving}
             onClick={async () => {
-              if (!saveAttempt.begin()) return;
               setSaving(true);
               setFailure("");
               try {
-                for (let i = 0; i < draft.length; i++)
-                  await savePackingItem(
-                    provider,
-                    parent,
-                    draft[i].source_order_item_id
-                      ? String(draft[i].source_order_item_id)
-                      : "",
-                    Object.fromEntries([
-                      ...editable.map((key) => [
-                        key,
-                        draft[i][key] === ""
-                          ? key === "qty_per_carton"
-                            ? null
-                            : 0
-                          : draft[i][key],
-                      ]),
-                      ["quantity", packingQuantity(draft[i])],
-                      ["product_snapshot", draft[i].product_snapshot],
-                      ["sku", draft[i].sku],
-                      ["sanity_product_id", draft[i].sanity_product_id],
-                    ]),
-                    String(draft[i].id).startsWith("draft-")
-                      ? undefined
-                      : items.find((item) => item.id === draft[i].id),
-                  );
-                for (const item of items.filter(
-                  (saved) => !draft.some((row) => row.id === saved.id),
-                ))
-                  await provider.delete("romiku_packing_items", {
-                    id: item.id,
-                    previousData: item,
-                  });
-                await onSaved();
-                setBaseline(draft);
-                saveAttempt.succeed();
-              } catch (cause) {
-                saveAttempt.fail();
-                setFailure(
-                  documentSaveFailureMessage(
-                    cause instanceof Error
-                      ? cause.message
-                      : "保存装箱产品项失败。",
+                submittedDraft.current ??= editableSnapshot(draft);
+                const result = await saveDocumentAtomically(provider, {
+                  kind: "packing",
+                  documentId: String(parent.id),
+                  expectedRevision: revision,
+                  header: {},
+                  items: draft.map((row, index) =>
+                    packingItemPayload({
+                      ...row,
+                      position: row.position ?? index + 1,
+                      quantity: packingQuantity(row),
+                      ...Object.fromEntries(
+                        editable.map((key) => [
+                          key,
+                          row[key] === ""
+                            ? key === "qty_per_carton"
+                              ? null
+                              : 0
+                            : key === "qty_per_carton" && row[key] == null
+                              ? null
+                              : Number(row[key] ?? 0),
+                        ]),
+                      ),
+                    }),
                   ),
+                });
+                submittedDraft.current = null;
+                setDraft(result.items);
+                setBaseline(result.items);
+                setRevision(result.revision);
+                await onSaved();
+              } catch (cause) {
+                if (
+                  !(await pendingDocumentIntent(
+                    provider,
+                    "packing",
+                    String(parent.id),
+                  ).catch(() => true))
+                )
+                  submittedDraft.current = null;
+                setFailure(
+                  cause instanceof Error
+                    ? cause.message
+                    : "保存装箱产品项失败。",
                 );
               } finally {
                 setSaving(false);
@@ -631,7 +643,46 @@ export function PackingItemsGrid({
           </Button>
         </div>
       )}
-      {failure && <p role="alert">{failure}</p>}
+      {failure && (
+        <div>
+          <p role="alert">{failure}</p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                const result = await resolveDocumentSave(
+                  provider,
+                  "packing",
+                  String(parent.id),
+                );
+                if (result) {
+                  if (submittedDraft.current === editableSnapshot(draft))
+                    setDraft(result.items);
+                  submittedDraft.current = null;
+                  setBaseline(result.items);
+                  setRevision(result.revision);
+                  setFailure("");
+                  await onSaved();
+                } else
+                  setFailure(
+                    "尚未查询到原保存结果，草稿已保留。请稍后再查询。",
+                  );
+              } catch (cause) {
+                setFailure(
+                  cause instanceof Error ? cause.message : "查询失败。",
+                );
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            查询原保存结果
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

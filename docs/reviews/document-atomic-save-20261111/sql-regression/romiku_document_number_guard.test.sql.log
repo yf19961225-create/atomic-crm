@@ -1,0 +1,38 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+SET
+authenticated
+ac270000-0000-0000-0000-000000000099
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 1 - legacy Quote verbatim
+ok 2 - legacy PI verbatim
+ok 3 - legacy Order verbatim
+ok 4 - even normalization of existing number blocked
+ok 5 - NULL replacement blocked
+ok 6 - blank replacement blocked
+ok 7 - atomic name clear leaves existing number untouched
+1..7
+ROLLBACK

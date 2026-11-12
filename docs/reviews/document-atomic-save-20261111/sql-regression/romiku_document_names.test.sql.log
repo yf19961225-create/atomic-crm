@@ -1,0 +1,78 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+ok 1 - quote list view exposes name
+ok 2 - pi list view exposes name
+ok 3 - order list view exposes name
+ok 4 - Quote independent name
+ok 5 - PI independent name
+ok 6 - Order independent name
+ok 7 - all names nullable without default
+INSERT 0 1
+SET
+authenticated
+fe260000-0000-0000-0000-000000000099
+RESET
+INSERT 0 1
+SET
+SELECT 1
+ok 8 - totals view delivers saved name
+ok 9 - INSERT generates number
+ok 10 - direct number update blocked
+ok 11 - name editable
+ok 12 - number stable
+ok 13 - brand snapshot preserved
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+SELECT 2
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ok 14 - PI inherits name
+ok 15 - Order inherits PI name
+ok 16 - direct Order inherits name
+ok 17 - PI own generated number
+ok 18 - Order own generated number
+ok 19 - PI number locked
+ok 20 - Order number locked
+ok 21 - PI retains source UUID
+ok 22 - Order retains source PI UUID
+ok 23 - direct Order retains source Quote UUID
+ok 24 - PI conversion preserves brand snapshot
+ok 25 - Order conversion preserves brand snapshot
+ok 26 - PI copies products, price-entry flags, customer SKU, snapshots and order
+ok 27 - Order copies all item fields: order
+ok 28 - Order copies all item fields: direct
+ok 29 - PI item lineage preserved
+ok 30 - Order item lineage preserved
+ok 31 - duplicate names retain two identities
+ok 32 - server total independent of page
+ok 33 - second page available
+RESET
+UPDATE 1
+SET
+ok 34 - wildcard characters literal
+ok 35 - target rename does not rename source
+ok 36 - formal number search kept
+INSERT 0 1
+ok 37 - parent name returned and searchable
+RESET
+UPDATE 1
+SET
+ok 38 - name can clear
+RESET
+ALTER POLICY
+SET
+authenticated
+ok 39 - name search honors RLS
+1..39
+ROLLBACK

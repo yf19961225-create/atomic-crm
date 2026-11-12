@@ -1,0 +1,45 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+              has_column               
+---------------------------------------
+ ok 1 - Customer owns marking defaults
+(1 row)
+
+               has_column                
+-----------------------------------------
+ ok 2 - Production owns marking snapshot
+(1 row)
+
+                     has_column                      
+-----------------------------------------------------
+ ok 3 - Production items have saved stable positions
+(1 row)
+
+                is                 
+-----------------------------------
+ ok 4 - marking assets are private
+(1 row)
+
+INSERT 0 1
+CREATE TABLE
+INSERT 0 4
+GRANT
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ de400000-0000-0000-0000-000000000001
+(1 row)
+
+INSERT 0 1
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE

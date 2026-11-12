@@ -2,6 +2,11 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
 select no_plan();
+-- Test convenience only: SECURITY INVOKER preserves authenticated RPC/permission checks.
+create function pg_temp.save_order(doc uuid, header jsonb default '{}', items jsonb default null) returns jsonb language sql as $$
+ select public.romiku_save_document('order',doc,coalesce((select revision from public.romiku_orders where id=doc),0),gen_random_uuid(),header,items)
+$$;
+
 select is(has_table_privilege('anon','romiku_orders','SELECT,INSERT,UPDATE,DELETE'),false,'anon has no order table privileges');
 select is(has_table_privilege('anon','romiku_document_daily_counters','SELECT,INSERT,UPDATE,DELETE'),false,'anon has no daily counter privileges');
 select ok(has_table_privilege('authenticated','romiku_orders','INSERT'),'authenticated order creation remains granted');
@@ -11,10 +16,12 @@ insert into auth.users(id,email,raw_user_meta_data) values ('ef055000-0000-0000-
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','ef055000-0000-0000-0000-000000000001',true);
-insert into romiku_orders(id,status) values ('ef055100-0000-0000-0000-000000000001','draft');
-select matches((select document_number from romiku_orders where id='ef055100-0000-0000-0000-000000000001'),'^OD[0-9]+$','authenticated INSERT generates official number');
-update romiku_orders set document_name='QA updated' where id='ef055100-0000-0000-0000-000000000001';
-select is((select document_name from romiku_orders where id='ef055100-0000-0000-0000-000000000001'),'QA updated','ordinary authenticated edit remains functional');
+select throws_ok($$insert into romiku_orders(id,status) values ('ef055100-0000-0000-0000-000000000001','draft')$$,'42501',null,'unversioned authenticated create is rejected');
+select pg_temp.save_order('ef055100-0000-0000-0000-000000000001','{"status":"draft"}');
+select matches((select document_number from romiku_orders where id='ef055100-0000-0000-0000-000000000001'),'^OD[0-9]+$','authenticated atomic create generates official number');
+select throws_ok($$update romiku_orders set document_name='QA updated' where id='ef055100-0000-0000-0000-000000000001'$$,'42501',null,'unversioned authenticated edit is rejected');
+select pg_temp.save_order('ef055100-0000-0000-0000-000000000001','{"document_name":"QA updated"}');
+select is((select document_name from romiku_orders where id='ef055100-0000-0000-0000-000000000001'),'QA updated','revision-checked authenticated edit remains functional');
 reset role;
 set local role anon;
 select throws_ok($$select * from romiku_orders$$,'42501',null,'anonymous SELECT denied at ACL');

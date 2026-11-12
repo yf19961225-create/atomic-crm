@@ -1,7 +1,11 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import rawFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider = (
+  ...args: Parameters<typeof rawFakeRestDataProvider>
+) => withAtomicDocuments(rawFakeRestDataProvider(...args));
 import { MemoryRouter, Routes } from "react-router";
 import { page, userEvent } from "vitest/browser";
 import { romikuRoutes } from "../routes/RomikuRoutes";
@@ -84,6 +88,19 @@ const setup = async (
     romiku_outbound_companies: [],
     sales: [],
   });
+  provider.documentCreateFromSource = async (request: {
+    sourceId: string;
+    selectedItemIds?: string[];
+  }) => {
+    const response = await rpc("romiku_quote_from_inquiry", {
+      inquiry_id: request.sourceId,
+      selected_item_ids: request.selectedItemIds,
+    });
+    return provider.documentSnapshot({
+      kind: "quote",
+      documentId: response.data,
+    });
+  };
   const screen = await render(
     <MemoryRouter initialEntries={[path]}>
       <CoreAdminContext dataProvider={provider}>
@@ -661,7 +678,11 @@ it("saves only selected Quote rows and reopens them in visual order", async () =
   expect(rows().at(-1)?.querySelector('input[value="NEW"]')).not.toBeNull();
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   const persisted = (await provider.getList("romiku_quote_items", list)).data;
-  expect(persisted.map((row) => row.sku)).toEqual(["A", "NEW"]);
+  expect(
+    persisted
+      .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
+      .map((row) => row.sku),
+  ).toEqual(["A", "NEW"]);
   expect(persisted.find((row) => row.sku === "NEW")?.position).toBe(5);
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
   await screen.getByRole("tab", { name: "产品项", exact: true }).click();
@@ -885,3 +906,5 @@ it("tracks name-only drafts and clears them on cancel without touching brand", a
     counterparty_snapshot: { brand: "KEEP" },
   });
 });
+
+beforeEach(() => sessionStorage.clear());

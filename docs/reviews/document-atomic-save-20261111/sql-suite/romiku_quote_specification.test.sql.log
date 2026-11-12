@@ -1,0 +1,32 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ de710000-0000-0000-0000-000000000001
+(1 row)
+
+CREATE TABLE
+INSERT 0 9
+SELECT 1
+INSERT 0 1
+INSERT 0 9
+SELECT 9
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE
+SQL statement "INSERT INTO public.romiku_quotes(source_website_inquiry_id,outbound_company_id,formal_customer_id,counterparty_snapshot)
+  VALUES (source.id,source.outbound_company_id,source.formal_customer_id,
+    jsonb_build_object('name',source.customer_name,'contact_name',source.customer_name,'company',source.company,'brand',source.brand,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
+  RETURNING id"
+PL/pgSQL function public.romiku_quote_from_inquiry(uuid,uuid[]) line 13 at SQL statement

@@ -1,0 +1,91 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+CREATE TABLE
+INSERT 0 8
+CREATE TABLE
+CREATE TABLE
+GRANT
+SET
+authenticated
+de700000-0000-0000-0000-000000000001
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 6
+INSERT 0 2
+INSERT 0 6
+ok 1 - empty saved Order is blocked before confirmation
+ok 2 - empty confirmed source cannot pretend success
+ok 3 - empty sync preserves all previous snapshots
+RESET
+UPDATE 1
+SET
+INSERT 0 1
+ok 4 - confirmation includes exact saved Order snapshot
+ok 5 - confirmation identifies saved source Order
+ok 6 - only pending and in_production are eligible
+ok 7 - actual updated count is two
+ok 8 - re-fetch P06 all shared fields match Order
+ok 9 - re-fetch P07 all shared fields match Order
+ok 10 - P06 Barcode override retained exactly
+ok 11 - P07 inherit retained exactly
+ok 12 - completed received cancelled archived untouched
+TRUNCATE TABLE
+INSERT 0 6
+RESET
+UPDATE 1
+SET
+ok 13 - stale source confirmation rejected
+TRUNCATE TABLE
+INSERT 0 1
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 14 - one target failure fails entire sync
+ok 15 - failure rolls back all persisted targets
+RESET
+DROP TRIGGER
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 16 - readback catches successful UPDATE with wrong persisted content
+ok 17 - readback failure rolls back all targets
+RESET
+DROP TRIGGER
+ok 18 - anon forbidden
+ok 19 - invoker RLS retained
+ok 20 - ignores empty/hidden/invalid effective content: {}
+ok 21 - ignores empty/hidden/invalid effective content: {"source": {"kind": "manual"}, "initialized_at": "2026-10-05", "schema_version": 2}
+ok 22 - ignores empty/hidden/invalid effective content: {"front_mark": {"mode": "none", "text": "hidden"}}
+ok 23 - ignores empty/hidden/invalid effective content: {"notes": "", "production_requirements": "  "}
+ok 24 - ignores empty/hidden/invalid effective content: {"small_label": {"mode": "image", "image_asset": {"path": "x.png", "bucket": "other"}}}
+ok 25 - recognizes effective content: {"front_mark": {"mode": "text", "text": "云裳"}}
+ok 26 - recognizes effective content: {"side_mark": {"text": "Legacy side"}}
+ok 27 - recognizes effective content: {"small_label": {"mode": "text", "text": "Made in China"}}
+ok 28 - recognizes effective content: {"front_mark": {"mode": "image", "image_asset": {"path": "immutable/v1.png", "bucket": "romiku-marking-assets"}}}
+ok 29 - recognizes effective content: {"additional_labels": [{"mode": "text", "text": "Barcode"}]}
+ok 30 - recognizes effective content: {"labeling_requirements": "四面贴"}
+ok 31 - recognizes effective content: {"production_requirements": "外套编织袋"}
+ok 32 - recognizes effective content: {"notes": "Internal note"}
+CREATE POLICY
+SET
+authenticated
+ok 33 - RLS target denial fails sync
+ok 34 - RLS target denial leaves all persisted rows unchanged
+RESET
+DROP POLICY
+SET
+authenticated
+
+ok 35 - authenticated role without uid cannot sync
+RESET
+1..35
+ROLLBACK

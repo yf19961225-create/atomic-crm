@@ -1,3 +1,7 @@
+import {
+  documentKindForResource,
+  saveDocumentHeaderPatch,
+} from "../commercial/atomicDocumentSave";
 import { StatusAge } from "./StatusAge";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -45,11 +49,23 @@ export function InlineStatusSelect({
     setMessage("");
     setFailed(false);
     try {
-      const result = await provider.update(resource, {
-        id: recordId,
-        data: { status: next },
-        previousData: { id: recordId, status: previous },
-      });
+      const kind = documentKindForResource(resource);
+      const result = kind
+        ? {
+            data: (
+              await saveDocumentHeaderPatch(
+                provider,
+                kind,
+                { id: recordId, status: previous },
+                { status: next },
+              )
+            ).header,
+          }
+        : await provider.update(resource, {
+            id: recordId,
+            data: { status: next },
+            previousData: { id: recordId, status: previous },
+          });
       if (result.data.status_changed_at)
         setChangedAt(result.data.status_changed_at);
       await cache.invalidateQueries();

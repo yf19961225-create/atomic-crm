@@ -1,0 +1,107 @@
+BEGIN
+CREATE EXTENSION
+SET
+DELETE 3
+ no_plan 
+---------
+(0 rows)
+
+              has_table               
+--------------------------------------
+ ok 1 - ROMIKU inbound is independent
+(1 row)
+
+               has_table               
+---------------------------------------
+ ok 2 - ROMIKU outbound is independent
+(1 row)
+
+                has_table                
+-----------------------------------------
+ ok 3 - ROMIKU customers are independent
+(1 row)
+
+INSERT 0 2
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+              set_config              
+--------------------------------------
+ 10000000-0000-0000-0000-000000000001
+(1 row)
+
+INSERT 0 1
+                   is                    
+-----------------------------------------
+ ok 4 - business owner defaults to actor
+(1 row)
+
+             is             
+----------------------------
+ ok 5 - created audit actor
+(1 row)
+
+              set_config              
+--------------------------------------
+ 10000000-0000-0000-0000-000000000002
+(1 row)
+
+                        is                        
+--------------------------------------------------
+ ok 6 - second authenticated user has shared read
+(1 row)
+
+UPDATE 1
+                       is                       
+------------------------------------------------
+ ok 7 - shared update audits actual second user
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 8 - creator cannot be spoofed by update
+(1 row)
+
+INSERT 0 1
+INSERT 0 2
+                is                
+----------------------------------
+ ok 9 - inquiry starts unassigned
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 10 - inbound and outbound never create a customer
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 11 - inbound never creates outbound
+(1 row)
+
+                  throws_ok                  
+---------------------------------------------
+ ok 12 - original inquiry quantity protected
+(1 row)
+
+               throws_ok               
+---------------------------------------
+ ok 13 - raw website payload protected
+(1 row)
+
+                  lives_ok                   
+---------------------------------------------
+ ok 14 - enrichment may update independently
+(1 row)
+
+CREATE TABLE
+ERROR:  Use atomic document save
+CONTEXT:  PL/pgSQL function public.romiku_atomic_write_guard() line 4 at RAISE
+SQL statement "INSERT INTO public.romiku_quotes(source_website_inquiry_id,outbound_company_id,formal_customer_id,counterparty_snapshot)
+  VALUES (source.id,source.outbound_company_id,source.formal_customer_id,
+    jsonb_build_object('name',source.customer_name,'contact_name',source.customer_name,'company',source.company,'brand',source.brand,'email',source.email,'whatsapp',source.whatsapp,'country',source.country))
+  RETURNING id"
+PL/pgSQL function public.romiku_quote_from_inquiry(uuid,uuid[]) line 13 at SQL statement

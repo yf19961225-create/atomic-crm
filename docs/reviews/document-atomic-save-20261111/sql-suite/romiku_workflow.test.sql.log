@@ -1,0 +1,41 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+                   ok                   
+----------------------------------------
+ ok 1 - no authenticated Payment DELETE
+(1 row)
+
+           ok            
+-------------------------
+ ok 2 - anon void denied
+(1 row)
+
+               ok               
+--------------------------------
+ ok 3 - anon bulk status denied
+(1 row)
+
+              ok              
+------------------------------
+ ok 4 - anon preflight denied
+(1 row)
+
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+            is            
+--------------------------
+ ok 5 - void requires uid
+(1 row)
+
+ERROR:  Active CRM membership required
+CONTEXT:  PL/pgSQL function public.romiku_batch_status(text,uuid[],text) line 4 at RAISE

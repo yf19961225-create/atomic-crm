@@ -1,0 +1,251 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+                        ok                         
+---------------------------------------------------
+ ok 1 - procurement edit has a controlled function
+(1 row)
+
+                          ok                           
+-------------------------------------------------------
+ ok 2 - supplier replacement has a controlled function
+(1 row)
+
+                         ok                         
+----------------------------------------------------
+ ok 3 - relation deletion has a controlled function
+(1 row)
+
+                                   ok                                    
+-------------------------------------------------------------------------
+ ok 4 - authenticated cannot directly delete a product supplier relation
+(1 row)
+
+                            ok                             
+-----------------------------------------------------------
+ ok 5 - anonymous callers cannot replace product suppliers
+(1 row)
+
+INSERT 0 1
+SET
+  set_config   
+---------------
+ authenticated
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 6 - a missing session cannot delete a relation
+(1 row)
+
+              set_config              
+--------------------------------------
+ de820000-0000-0000-0000-000000000001
+(1 row)
+
+CREATE TABLE
+INSERT 0 5
+INSERT 0 5
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+                            throws_ok                            
+-----------------------------------------------------------------
+ ok 7 - relation identity is immutable even without cost history
+(1 row)
+
+                  throws_ok                   
+----------------------------------------------
+ ok 8 - direct authenticated delete is denied
+(1 row)
+
+                           is                            
+---------------------------------------------------------
+ ok 9 - procurement edit succeeds through controlled RPC
+(1 row)
+
+                       is                       
+------------------------------------------------
+ ok 10 - edit does not create a second relation
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 11 - edit changes only procurement data
+(1 row)
+
+                    is                    
+------------------------------------------
+ ok 12 - active target blocks replacement
+(1 row)
+
+                           is                           
+--------------------------------------------------------
+ ok 13 - blocked replacement leaves both rows unchanged
+(1 row)
+
+                       is                       
+------------------------------------------------
+ ok 14 - replacement to a new supplier succeeds
+(1 row)
+
+                              is                              
+--------------------------------------------------------------
+ ok 15 - new target is sole active relation after replacement
+(1 row)
+
+                           is                            
+---------------------------------------------------------
+ ok 16 - source cost remains on inactive source relation
+(1 row)
+
+                               is                               
+----------------------------------------------------------------
+ ok 17 - new supplier does not inherit old supplier item number
+(1 row)
+
+                           is                            
+---------------------------------------------------------
+ ok 18 - source preferred status transfers to new target
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 19 - historic inactive relation is reactivated
+(1 row)
+
+                               is                                
+-----------------------------------------------------------------
+ ok 20 - reactivated relation retains its own procurement fields
+(1 row)
+
+                           is                            
+---------------------------------------------------------
+ ok 21 - reactivated target retains its own cost history
+(1 row)
+
+                      is                       
+-----------------------------------------------
+ ok 22 - cost history blocks relation deletion
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 23 - blocked deletion retains the source relation
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 24 - dependency-free relation can be deleted
+(1 row)
+
+                    is                     
+-------------------------------------------
+ ok 25 - only selected relation is removed
+(1 row)
+
+                         is                         
+----------------------------------------------------
+ ok 26 - Supplier Master survives relation deletion
+(1 row)
+
+                     ok                      
+---------------------------------------------
+ ok 27 - bulk plan has a controlled function
+(1 row)
+
+                      ok                      
+----------------------------------------------
+ ok 28 - bulk apply has a controlled function
+(1 row)
+
+INSERT 0 1
+INSERT 0 1
+CREATE TABLE
+INSERT 0 1
+                       is                        
+-------------------------------------------------
+ ok 29 - plan counts genuinely missing relations
+(1 row)
+
+                        is                        
+--------------------------------------------------
+ ok 30 - plan counts inactive relation separately
+(1 row)
+
+                       is                       
+------------------------------------------------
+ ok 31 - plan counts active relation as skipped
+(1 row)
+
+                  is                  
+--------------------------------------
+ ok 32 - bulk plan applies atomically
+(1 row)
+
+                               is                                
+-----------------------------------------------------------------
+ ok 33 - two products have two relations each without duplicates
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 34 - reactivation retains the historic target MOQ
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 35 - one preferred relation per selected SKU
+(1 row)
+
+                         is                         
+----------------------------------------------------
+ ok 36 - repeating bulk apply succeeds idempotently
+(1 row)
+
+                         is                         
+----------------------------------------------------
+ ok 37 - bulk retry produces no duplicate relations
+(1 row)
+
+SELECT 1
+INSERT 0 1
+                          is                          
+------------------------------------------------------
+ ok 38 - changed relationship invalidates an old plan
+(1 row)
+
+                  is                  
+--------------------------------------
+ ok 39 - stale plan makes zero writes
+(1 row)
+
+                          is                           
+-------------------------------------------------------
+ ok 40 - invalid and duplicate SKU inputs are excluded
+(1 row)
+
+                       is                       
+------------------------------------------------
+ ok 41 - more than one catalog page is rejected
+(1 row)
+
+ finish 
+--------
+ 1..41
+(1 row)
+
+ROLLBACK

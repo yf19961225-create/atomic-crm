@@ -1,0 +1,136 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+ok 1 - authenticated preflight
+ok 2 - anon cannot preflight
+ok 3 - anon cannot batch
+SET
+authenticated
+ok 4 - preflight requires uid
+ok 5 - batch requires uid
+de600000-0000-0000-0000-000000000001
+ok 6 - empty selection rejected
+ok 7 - oversized batch rejected
+ok 8 - header delete still denied
+CREATE TABLE
+INSERT 0 14
+RESET
+INSERT 0 14
+SET
+RESET
+INSERT 0 14
+SET
+INSERT 0 13
+INSERT 0 13
+INSERT 0 3
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 2
+INSERT 0 2
+SELECT 1
+ok 9 - six eligible orders, including cancelled and independent
+ok 10 - executed, archived, followup, packing, payment blocked
+ok 11 - cascade mode explicit
+ok 12 - all child business documents listed
+ok 13 - mixed blocks single deletion
+ok 14 - completed blocks single deletion
+ok 15 - received blocks single deletion
+ok 16 - scheduled blocks single deletion
+ok 17 - archived blocks single deletion
+ok 18 - followup blocks single deletion
+ok 19 - packing blocks single deletion
+ok 20 - payment blocks single deletion
+INSERT 0 1
+SELECT 1
+ok 21 - eligible orders deleted together
+ok 22 - new dependency rechecked
+ok 23 - late blocked order retained
+ok 24 - pending and cancelled headers removed
+ok 25 - own order items removed
+ok 26 - manual Order task retained and detached
+ok 27 - manual Production task retained and detached
+RESET
+ok 28 - counter survives deleted Order without recycling
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 29 - late Order failure is structured
+ok 30 - late failure rolls back both production deletes
+ok 31 - rollback restores production items
+ok 32 - rollback restores detached production task
+ok 33 - rollback restores detached order task
+ok 34 - batch reports failed transaction
+RESET
+ok 35 - internal mutation helper not callable
+ok 36 - internal eligibility not callable
+ok 37 - new RPCs and helpers fixed search_path/security definer
+SET
+ok 38 - anon preflight actually denied
+ok 39 - anon execution actually denied
+RESET
+SET
+authenticated
+ok 40 - null id rejected
+ok 41 - missing Order structured
+ok 42 - duplicate IDs deduplicated
+INSERT 0 5
+RESET
+INSERT 0 5
+SET
+INSERT 0 4
+ok 43 - all late-change fixtures initially eligible
+UPDATE 1
+INSERT 0 1
+UPDATE 1
+RESET
+INSERT 0 1
+SET
+SELECT 1
+ok 44 - one failure does not roll back another Order success
+ok 45 - four new dependencies and one rollback reported
+ok 46 - status followup archive packing rechecked at execution
+ok 47 - batch rollback preserves earlier child deletes
+INSERT 0 1
+CREATE TABLE
+INSERT 0 5
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 1
+RESET
+SELECT 6
+SET
+authenticated
+ok 48 - safe cascade with upstream chain succeeds
+ok 49 - Quote retained
+ok 50 - PI retained
+ok 51 - Customer retained
+ok 52 - Inquiry retained
+ok 53 - Outbound retained
+ok 54 - barcode reservation retained and source detached
+RESET
+ok 55 - global document numbering counters unchanged
+ok 56 - unknown statuses cannot be stored
+1..56
+ROLLBACK

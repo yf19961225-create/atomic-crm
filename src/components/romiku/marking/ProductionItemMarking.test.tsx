@@ -1,3 +1,4 @@
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
 import { hasAppDraft } from "../updates/drafts";
 import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
@@ -119,10 +120,13 @@ it("reload is explicit, cancel does not call RPC, and saved empty Order metadata
     data: { ...common, small_label: { mode: "none", text: "" } },
     error: null,
   });
-  const provider = fakeRestDataProvider({
-    romiku_orders: [{ id: "o", production_defaults_snapshot: common }],
-    romiku_production_orders: [parent],
-  });
+  const provider = withAtomicDocuments(
+    fakeRestDataProvider({
+      romiku_orders: [{ id: "o", production_defaults_snapshot: common }],
+      romiku_order_items: [],
+      romiku_production_orders: [parent],
+    }),
+  );
   const screen = await render(
     <CoreAdminContext dataProvider={provider}>
       <MarkingProfileEditor kind="production" record={parent} />

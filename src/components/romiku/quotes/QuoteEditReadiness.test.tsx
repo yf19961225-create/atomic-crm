@@ -1,8 +1,12 @@
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { CoreAdminContext } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import rawFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider = (
+  ...args: Parameters<typeof rawFakeRestDataProvider>
+) => withAtomicDocuments(rawFakeRestDataProvider(...args));
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { QuoteDetail } from "./QuotePages";
@@ -89,7 +93,7 @@ async function setup(
       mutations: { retry: false },
     },
   });
-  if (cached) cache.setQueryData(["quote-items", "q"], []);
+  if (cached) cache.setQueryData(["document-snapshot", "quote", "q"], []);
   await page.viewport(1440, 1000);
   const screen = await render(
     <MemoryRouter initialEntries={["/quotes/q"]}>
@@ -177,7 +181,9 @@ it("background item/header refetch cannot overwrite an active draft; cancel rest
     },
     previousData: item,
   });
-  await cache.invalidateQueries({ queryKey: ["quote-items", "q"] });
+  await cache.invalidateQueries({
+    queryKey: ["document-snapshot", "quote", "q"],
+  });
   await cache.invalidateQueries({ queryKey: ["romiku_quotes", "getOne"] });
   await expect
     .element(screen.getByLabelText("描述与规格"))
@@ -302,3 +308,35 @@ it("legacy Quote specification display revert is clean without rewriting its sav
       .product_snapshot.specification,
   ).toBe("Specifications: 48W 24LEDS");
 });
+
+it("sends the revision captured with the edit snapshot and preserves a stale draft", async () => {
+  const { screen, release, provider } = await setup(false);
+  release();
+  await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen.getByLabelText("描述与规格").fill("Keep this stale draft");
+  const current = (await provider.getOne("romiku_quotes", { id: "q" })).data;
+  await provider.update("romiku_quotes", {
+    id: "q",
+    data: {
+      revision: Number(current.revision ?? 1) + 1,
+      notes: "Another editor",
+    },
+    previousData: current,
+  });
+  const save = vi.spyOn(provider, "documentSave");
+  await screen.getByRole("button", { name: "保存", exact: true }).click();
+  await expect.poll(() => save.mock.calls.length).toBe(1);
+  expect(save.mock.calls[0][0]).toMatchObject({ expectedRevision: 1 });
+  await expect
+    .element(screen.getByLabelText("描述与规格"))
+    .toHaveValue("Keep this stale draft");
+  expect((await provider.getOne("romiku_quotes", { id: "q" })).data.notes).toBe(
+    "Another editor",
+  );
+  expect(
+    (await provider.getOne("romiku_quote_items", { id: "qi" })).data
+      .product_snapshot.specification,
+  ).toBe("48W\n24LEDS");
+});
+
+beforeEach(() => sessionStorage.clear());

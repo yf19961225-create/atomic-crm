@@ -1,7 +1,11 @@
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { CoreAdminContext } from "ra-core";
-import fakeRestDataProvider from "ra-data-fakerest";
+import rawFakeRestDataProvider from "ra-data-fakerest";
+import { withAtomicDocuments } from "../commercial/tests/withAtomicDocuments";
+const fakeRestDataProvider = (
+  ...args: Parameters<typeof rawFakeRestDataProvider>
+) => withAtomicDocuments(rawFakeRestDataProvider(...args));
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { DocumentDetail } from "./DocumentPages";
@@ -53,7 +57,7 @@ async function setup(kind: "pi" | "order", cached = false) {
   const cache = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   });
-  if (cached) cache.setQueryData([`${kind}-items`, "doc"], []);
+  if (cached) cache.setQueryData(["document-snapshot", kind, "doc"], []);
   const screen = await render(
     <MemoryRouter initialEntries={["/document/doc"]}>
       <CoreAdminContext dataProvider={provider} queryClient={cache}>
@@ -149,3 +153,5 @@ it.each(["pi", "order"] as const)(
     ).toHaveProperty("disabled", true);
   },
 );
+
+beforeEach(() => sessionStorage.clear());

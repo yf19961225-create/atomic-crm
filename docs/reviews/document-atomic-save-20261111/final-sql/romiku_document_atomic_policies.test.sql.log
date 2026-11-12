@@ -1,0 +1,18 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+INSERT 0 1
+CREATE POLICY
+SET
+SET
+SET
+ok 1 - atomic executor respects restrictive authenticated update policy
+RESET
+DROP POLICY
+CREATE POLICY
+SET
+ok 2 - atomic snapshot respects restrictive authenticated select policy
+RESET
+1..2
+ROLLBACK

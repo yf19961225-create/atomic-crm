@@ -24,8 +24,13 @@ create temporary table supplier_delete_ids(kind text primary key,id uuid default
 insert into supplier_delete_ids(kind) values ('empty'),('product'),('production'),('contact'),('task'),('combined'),('order');
 insert into romiku_suppliers(id,name)
 select id,'QA controlled delete ' || kind from supplier_delete_ids where kind <> 'order';
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id,counterparty_snapshot)
 select id,'{"name":"Supplier delete QA buyer"}' from supplier_delete_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_product_suppliers(sku,supplier_id)
 select 'QA-SUPPLIER-DELETE-' || kind,id from supplier_delete_ids where kind in ('product','combined');
 insert into romiku_procurement_cost_history(product_supplier_id,cost,currency,effective_date,source_type)

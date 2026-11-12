@@ -1,0 +1,72 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+CREATE TABLE
+INSERT 0 12
+INSERT 0 12
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+GRANT
+ok 1 - existing non-delete privileges preserved
+ok 2 - direct DELETE grant revoked
+SET
+ok 3 - anon RPC denied
+ok 4 - anon table delete denied
+RESET
+SET
+authenticated
+ok 5 - authenticated direct DELETE denied
+ok 6 - no auth uid denied
+fc110000-0000-0000-0000-000000000001
+ok 7 - missing customer
+ok 8 - empty preflight eligible
+ok 9 - empty customer deleted
+ok 10 - contacts-only customer deleted
+ok 11 - owned contacts deleted
+ok 12 - quote blocks deletion
+ok 13 - pi blocks deletion
+ok 14 - order blocks deletion
+ok 15 - inquiry blocks deletion
+ok 16 - task blocks deletion
+ok 17 - outbound blocks deletion
+ok 18 - cancelled Production counted through Order
+ok 19 - Packing counted through Order
+ok 20 - Payment counted through Order
+ok 21 - all dependency types blocked in preflight
+ok 22 - race initially eligible
+RESET
+INSERT 0 1
+SET
+ok 23 - new reference after preflight blocks execution
+ok 24 - mixed batch has two eligible
+ok 25 - mixed batch deletes only eligible two
+ok 26 - blocked batch customer retained
+ok 27 - fixed status whitelist
+ok 28 - batch disable succeeds
+ok 29 - inactive directory retained with status
+ok 30 - inactive Customer 360 retains Order, Production and Packing
+ok 31 - Order snapshot unchanged
+ok 32 - Quote snapshot unchanged
+ok 33 - PI snapshot unchanged
+ok 34 - inactive business history retains Order
+ok 35 - re-enable succeeds
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 36 - safe error on deletion failure
+ok 37 - child deletion rolled back
+ok 38 - parent retained on failure
+1..38
+ROLLBACK

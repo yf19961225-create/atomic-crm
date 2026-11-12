@@ -1,3 +1,7 @@
+import {
+  readDocumentSnapshot,
+  saveDocumentAtomically,
+} from "../commercial/atomicDocumentSave";
 import type { DataProvider, RaRecord } from "ra-core";
 import type { Values } from "../outbound/WorkflowFields";
 import { positiveQuantity } from "../production/productionWorkflow";
@@ -160,10 +164,9 @@ export const loadOrderPackingSupplierDefaults: SupplierDefaultsLoader = async (
 
 /**
  * Creates an Order-backed Packing List and snapshots every currently
- * unallocated source line. Client providers have no transaction primitive,
- * so a failed item write explicitly removes every write made by this call.
+ * unallocated source line in one server transaction.
  */
-export async function createOrderPackingList(
+export async function prepareOrderPackingList(
   provider: DataProvider,
   orderId: string,
   loadSupplierDefaults: SupplierDefaultsLoader = loadOrderPackingSupplierDefaults,
@@ -184,58 +187,41 @@ export async function createOrderPackingList(
     (source) => (remainingBySource.get(String(source.id)) || 0) > 0,
   );
   const supplierDefaults = await loadSupplierDefaults(provider, eligible);
-  const { data: packing } = await provider.create("romiku_packing_lists", {
-    data: {
+  return {
+    kind: "packing" as const,
+    documentId: crypto.randomUUID(),
+    expectedRevision: 0,
+    header: {
       order_id: orderId,
       packing_at: new Date().toISOString(),
       seller_snapshot: defaultPackingSellerSnapshot(),
       buyer_snapshot: structuredClone(order.counterparty_snapshot || {}),
     },
-  });
-  const created: RaRecord[] = [];
-  try {
-    for (const source of eligible) {
-      const result = await savePackingItem(
-        provider,
-        packing,
-        String(source.id),
-        {
-          ...resolvePackingItemDefaults(
-            source,
-            remainingBySource.get(String(source.id)) || 0,
-            supplierDefaults.get(String(source.id)),
-          ),
-          product_snapshot: structuredClone(source.product_snapshot || {}),
-        },
-      );
-      created.push(result.data);
-    }
-  } catch (cause) {
-    const cleanupFailures: string[] = [];
-    for (const item of created.reverse()) {
-      try {
-        await provider.delete("romiku_packing_items", { id: item.id });
-      } catch (error) {
-        cleanupFailures.push(
-          `产品项 ID：${item.id}（${error instanceof Error ? error.message : String(error)}）`,
-        );
-      }
-    }
-    try {
-      await provider.delete("romiku_packing_lists", { id: packing.id });
-    } catch (error) {
-      cleanupFailures.push(
-        `装箱单 ID：${packing.id}（${error instanceof Error ? error.message : String(error)}）`,
-      );
-    }
-    const cleanupMessage = cleanupFailures.length
-      ? `清理未完成，请核查装箱单 ID：${packing.id}。以下记录删除失败，可能仍有残留：${cleanupFailures.join("；")}。请核查后再重试。`
-      : "已撤销本次创建。";
-    throw new Error(
-      `创建装箱单时无法完整导入订单产品，${cleanupMessage}${cause instanceof Error ? cause.message : String(cause)}`,
-    );
-  }
-  return packing;
+    items: eligible.map((source, index) => ({
+      id: crypto.randomUUID(),
+      position: index + 1,
+      source_order_item_id: source.id,
+      sanity_product_id: source.sanity_product_id || null,
+      sku: source.sku,
+      product_snapshot: structuredClone(source.product_snapshot || {}),
+      ...resolvePackingItemDefaults(
+        source,
+        remainingBySource.get(String(source.id)) || 0,
+        supplierDefaults.get(String(source.id)),
+      ),
+    })),
+  };
+}
+export async function createOrderPackingList(
+  provider: DataProvider,
+  orderId: string,
+  loadSupplierDefaults: SupplierDefaultsLoader = loadOrderPackingSupplierDefaults,
+) {
+  const result = await saveDocumentAtomically(
+    provider,
+    await prepareOrderPackingList(provider, orderId, loadSupplierDefaults),
+  );
+  return result.header;
 }
 export function packingTotals(items: Values[]) {
   return items.reduce<{ cartons: number; cbm: number; weight: number }>(
@@ -321,21 +307,14 @@ export async function savePackingItem(
     data.product_snapshot = Object.hasOwn(productSnapshot, "unit")
       ? withPackingItemUnit(productSnapshot, String(productSnapshot.unit || ""))
       : productSnapshot;
-    return previous
-      ? provider.update("romiku_packing_items", {
-          id: previous.id,
-          data,
-          previousData: previous,
-        })
-      : provider.create("romiku_packing_items", {
-          data: {
-            ...data,
-            packing_list_id: parent.id,
-            order_id: parent.order_id,
-            source_order_item_id: source.id,
-            sanity_product_id: source.sanity_product_id || null,
-          },
-        });
+    return savePackingRow(provider, parent, {
+      ...previous,
+      ...data,
+      id: previous?.id || crypto.randomUUID(),
+      source_order_item_id: source.id,
+      sanity_product_id:
+        previous?.sanity_product_id || source.sanity_product_id || null,
+    });
   }
   if (sourceId) throw new Error("独立装箱单不能关联订单产品项。");
   const sku = String(values.sku || previous?.sku || "").trim();
@@ -348,19 +327,57 @@ export async function savePackingItem(
   data.product_snapshot = Object.hasOwn(productSnapshot, "unit")
     ? withPackingItemUnit(productSnapshot, String(productSnapshot.unit || ""))
     : productSnapshot;
-  return previous
-    ? provider.update("romiku_packing_items", {
-        id: previous.id,
-        data,
-        previousData: previous,
-      })
-    : provider.create("romiku_packing_items", {
-        data: {
-          ...data,
-          packing_list_id: parent.id,
-          order_id: null,
-          source_order_item_id: null,
-          sanity_product_id: values.sanity_product_id || null,
-        },
-      });
+  return savePackingRow(provider, parent, {
+    ...previous,
+    ...data,
+    id: previous?.id || crypto.randomUUID(),
+    source_order_item_id: null,
+    sanity_product_id:
+      previous?.sanity_product_id || values.sanity_product_id || null,
+  });
+}
+
+export function packingItemPayload(item: Record<string, unknown>) {
+  return Object.fromEntries(
+    [
+      "id",
+      "position",
+      "source_order_item_id",
+      "sanity_product_id",
+      "sku",
+      "product_snapshot",
+      "quantity",
+      "cartons",
+      "qty_per_carton",
+      "length_cm",
+      "width_cm",
+      "height_cm",
+      "carton_weight_kg",
+      "remark",
+    ]
+      .filter((key) => item[key] !== undefined)
+      .map((key) => [key, item[key]]),
+  );
+}
+
+async function savePackingRow(
+  provider: DataProvider,
+  parent: RaRecord,
+  row: RaRecord,
+) {
+  const snapshot = await readDocumentSnapshot(
+    provider,
+    "packing",
+    String(parent.id),
+  );
+  const result = await saveDocumentAtomically(provider, {
+    kind: "packing",
+    documentId: String(parent.id),
+    expectedRevision: Number(parent.revision),
+    header: {},
+    items: [...snapshot.items.filter((item) => item.id !== row.id), row].map(
+      packingItemPayload,
+    ),
+  });
+  return { data: result.items.find((item) => item.id === row.id)! };
 }

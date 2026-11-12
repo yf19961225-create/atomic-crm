@@ -1,0 +1,230 @@
+[
+  {
+    "file": "romiku_barcode.test.sql",
+    "exit": 0,
+    "pass": 30,
+    "fail": []
+  },
+  {
+    "file": "romiku_calendar.test.sql",
+    "exit": 0,
+    "pass": 20,
+    "fail": []
+  },
+  {
+    "file": "romiku_commercial_price_entry.test.sql",
+    "exit": 0,
+    "pass": 8,
+    "fail": []
+  },
+  {
+    "file": "romiku_core.test.sql",
+    "exit": 0,
+    "pass": 133,
+    "fail": []
+  },
+  {
+    "file": "romiku_customer_history.test.sql",
+    "exit": 0,
+    "pass": 39,
+    "fail": []
+  },
+  {
+    "file": "romiku_customer_management.test.sql",
+    "exit": 0,
+    "pass": 38,
+    "fail": []
+  },
+  {
+    "file": "romiku_delete.test.sql",
+    "exit": 0,
+    "pass": 48,
+    "fail": []
+  },
+  {
+    "file": "romiku_document_names.test.sql",
+    "exit": 0,
+    "pass": 39,
+    "fail": []
+  },
+  {
+    "file": "romiku_document_number_guard.test.sql",
+    "exit": 0,
+    "pass": 7,
+    "fail": []
+  },
+  {
+    "file": "romiku_document_number_roundtrip.test.sql",
+    "exit": 0,
+    "pass": 4,
+    "fail": []
+  },
+  {
+    "file": "romiku_health_permissions.test.sql",
+    "exit": 0,
+    "pass": 121,
+    "fail": []
+  },
+  {
+    "file": "romiku_health_workbench.test.sql",
+    "exit": 0,
+    "pass": 34,
+    "fail": []
+  },
+  {
+    "file": "romiku_inquiry_quote_snapshots.test.sql",
+    "exit": 0,
+    "pass": 44,
+    "fail": []
+  },
+  {
+    "file": "romiku_item_label.test.sql",
+    "exit": 0,
+    "pass": 30,
+    "fail": []
+  },
+  {
+    "file": "romiku_order_cascade_delete.test.sql",
+    "exit": 0,
+    "pass": 56,
+    "fail": []
+  },
+  {
+    "file": "romiku_order_status_compatibility.test.sql",
+    "exit": 0,
+    "pass": 15,
+    "fail": []
+  },
+  {
+    "file": "romiku_product_auxiliary_security.test.sql",
+    "exit": 0,
+    "pass": 55,
+    "fail": []
+  },
+  {
+    "file": "romiku_product_supplier_management.test.sql",
+    "exit": 0,
+    "pass": 41,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_allocation.test.sql",
+    "exit": 0,
+    "pass": 31,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_delete.test.sql",
+    "exit": 0,
+    "pass": 23,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_instructions.test.sql",
+    "exit": 0,
+    "pass": 40,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_marking.test.sql",
+    "exit": 0,
+    "pass": 16,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_order_groups.test.sql",
+    "exit": 0,
+    "pass": 33,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_sync.test.sql",
+    "exit": 0,
+    "pass": 35,
+    "fail": []
+  },
+  {
+    "file": "romiku_production_workbench.test.sql",
+    "exit": 0,
+    "pass": 38,
+    "fail": []
+  },
+  {
+    "file": "romiku_quote_inquiry.test.sql",
+    "exit": 0,
+    "pass": 51,
+    "fail": []
+  },
+  {
+    "file": "romiku_quote_specification.test.sql",
+    "exit": 0,
+    "pass": 14,
+    "fail": []
+  },
+  {
+    "file": "romiku_search.test.sql",
+    "exit": 0,
+    "pass": 171,
+    "fail": []
+  },
+  {
+    "file": "romiku_status_history.test.sql",
+    "exit": 0,
+    "pass": 63,
+    "fail": []
+  },
+  {
+    "file": "romiku_supplier_delete.test.sql",
+    "exit": 0,
+    "pass": 19,
+    "fail": []
+  },
+  {
+    "file": "romiku_website_intake.test.sql",
+    "exit": 0,
+    "pass": 40,
+    "fail": []
+  },
+  {
+    "file": "romiku_workbench_actions.test.sql",
+    "exit": 0,
+    "pass": 49,
+    "fail": []
+  },
+  {
+    "file": "romiku_workbench_anon_hardening.test.sql",
+    "exit": 0,
+    "pass": 12,
+    "fail": []
+  },
+  {
+    "file": "romiku_workbench_feed.test.sql",
+    "exit": 0,
+    "pass": 18,
+    "fail": []
+  },
+  {
+    "file": "romiku_workbench_receivables.test.sql",
+    "exit": 0,
+    "pass": 29,
+    "fail": []
+  },
+  {
+    "file": "romiku_workbench_refresh.test.sql",
+    "exit": 0,
+    "pass": 29,
+    "fail": []
+  },
+  {
+    "file": "romiku_workbench_security.test.sql",
+    "exit": 0,
+    "pass": 23,
+    "fail": []
+  },
+  {
+    "file": "romiku_workflow.test.sql",
+    "exit": 0,
+    "pass": 79,
+    "fail": []
+  }
+]

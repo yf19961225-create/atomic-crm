@@ -1,0 +1,27 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+ok 1 - anon has no order table privileges
+ok 2 - anon has no daily counter privileges
+ok 3 - authenticated order creation remains granted
+ok 4 - server intake RPC remains executable
+ok 5 - intake RPC not anonymous
+INSERT 0 1
+SET
+authenticated
+ef055000-0000-0000-0000-000000000001
+ok 6 - unversioned authenticated create is rejected
+{"kind": "order", "items": [], "header": {"id": "ef055100-0000-0000-0000-000000000001", "notes": null, "due_at": null, "status": "draft", "freight": 0.00, "currency": "USD", "discount": 0.00, "owner_id": "ef055000-0000-0000-0000-000000000001", "revision": 1, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:54.608694+00:00", "created_by": "ef055000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:54.651672+00:00", "updated_by": "ef055000-0000-0000-0000-000000000001", "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": null, "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 30.00, "document_number": "OD261112001", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:54.65268+00:00", "actual_delivery_at": null, "formal_customer_id": null, "source_search_text": "od261112001", "outbound_company_id": null, "business_search_text": "usd\n2026-11-12\nod261112001\ndraft", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261112001"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"status": "draft", "currency": "usd", "document_date": "2026-11-12", "document_number": "od261112001"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:54.608694+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:54.608694+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}, "revision": 1, "document_id": "ef055100-0000-0000-0000-000000000001"}
+ok 7 - authenticated atomic create generates official number
+ok 8 - unversioned authenticated edit is rejected
+{"kind": "order", "items": [], "header": {"id": "ef055100-0000-0000-0000-000000000001", "notes": null, "due_at": null, "status": "draft", "freight": 0.00, "currency": "USD", "discount": 0.00, "owner_id": "ef055000-0000-0000-0000-000000000001", "revision": 2, "voided_at": null, "voided_by": null, "created_at": "2026-11-12T02:03:54.608694+00:00", "created_by": "ef055000-0000-0000-0000-000000000001", "price_term": null, "updated_at": "2026-11-12T02:03:54.657138+00:00", "updated_by": "ef055000-0000-0000-0000-000000000001", "archived_at": null, "co_owner_id": null, "void_reason": null, "follow_up_at": null, "source_pi_id": null, "bank_snapshot": {}, "document_date": "2026-11-12", "document_name": "QA updated", "balance_due_at": null, "deposit_due_at": null, "other_expenses": 0.00, "terms_snapshot": {}, "deposit_percent": 30.00, "document_number": "OD261112001", "shipment_method": null, "source_quote_id": null, "voided_by_label": null, "document_language": "zh", "status_changed_at": "2026-11-12T02:03:54.65268+00:00", "actual_delivery_at": null, "formal_customer_id": null, "source_search_text": "od261112001", "outbound_company_id": null, "business_search_text": "usd\n2026-11-12\nod261112001\ndraft", "expected_delivery_at": null, "source_search_fields": {"document_number": "od261112001"}, "counterparty_snapshot": {}, "purchase_order_number": null, "business_search_fields": {"status": "draft", "currency": "usd", "document_date": "2026-11-12", "document_number": "od261112001"}, "source_website_inquiry_id": null, "production_defaults_snapshot": {"notes": "", "source": {"kind": "manual", "copied_at": "2026-11-12T02:03:54.608694+00:00"}, "version": 1, "side_mark": {"mode": "none", "text": "", "image_asset": null}, "front_mark": {"mode": "none", "text": "", "image_asset": null}, "small_label": {"mode": "none", "text": "", "image_asset": null}, "initialized_at": "2026-11-12T02:03:54.608694+00:00", "schema_version": 2, "additional_labels": [], "labeling_requirements": "", "production_requirements": ""}}, "revision": 2, "document_id": "ef055100-0000-0000-0000-000000000001"}
+ok 9 - revision-checked authenticated edit remains functional
+RESET
+SET
+ok 10 - anonymous SELECT denied at ACL
+ok 11 - anonymous INSERT denied
+ok 12 - anonymous counter UPDATE denied
+RESET
+1..12
+ROLLBACK

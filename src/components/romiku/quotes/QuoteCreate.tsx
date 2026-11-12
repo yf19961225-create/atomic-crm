@@ -1,12 +1,18 @@
+import { AtomicSaveRecovery } from "../commercial/AtomicSaveRecovery";
+import {
+  resolveDocumentSave,
+  resolveDocumentSource,
+  getDocumentCreationId,
+  finishDocumentCreation,
+} from "../commercial/atomicDocumentSave";
 import { editableSignature } from "../updates/editableSnapshot";
 import { useAppDraft } from "../updates/drafts";
 import { orderInquiryItems } from "../inquiries/inquirySavedItems";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useDataProvider, useGetOne } from "ra-core";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { getSupabaseClient } from "@/components/atomic-crm/providers/supabase/supabase";
 import { readRelated } from "../outbound/workflow";
 import { errorMessage } from "../outbound/RelatedRecords";
 import {
@@ -18,6 +24,10 @@ import {
 import { FormalCustomerSelector } from "../commercial/FormalCustomerSelector";
 
 export function QuoteCreate() {
+  const documentId = useRef(getDocumentCreationId("quote"));
+  const pending = useRef(false);
+  const submittedCreate = useRef<string | null>(null);
+  const [recoveredId, setRecoveredId] = useState<string | null>(null);
   const [params] = useSearchParams();
   const initialSource = params.get("source");
   const [source, setSource] = useState<QuoteSource>(
@@ -57,7 +67,9 @@ export function QuoteCreate() {
   });
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (source === "inquiry") return;
+    if (source === "inquiry" || pending.current || recoveredId) return;
+    submittedCreate.current ??= signature;
+    pending.current = true;
     setBusy(true);
     setFailure("");
     try {
@@ -67,17 +79,25 @@ export function QuoteCreate() {
         sourceId,
         buyer,
         source === "direct" ? customer || undefined : undefined,
+        documentId.current,
       );
       setBaseline(signature);
+      finishDocumentCreation("quote", documentId.current);
       navigate(`/quotes/${result.data.id}`);
     } catch (cause) {
       setFailure(errorMessage(cause));
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   };
   return (
     <section className="ds-order-create ds-page space-y-5">
+      <AtomicSaveRecovery
+        kind="quote"
+        documentId={documentId.current}
+        creation
+      />
       <Link to="/quotes" className="underline">
         返回报价单
       </Link>
@@ -158,12 +178,56 @@ export function QuoteCreate() {
             type="submit"
             disabled={
               busy ||
+              !!recoveredId ||
               (source !== "direct" &&
                 (!sourceId || choices.isPending || !!choices.error))
             }
           >
             {busy ? "创建中…" : "创建报价单"}
           </Button>
+        )}
+        {failure && !recoveredId && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={async () => {
+              if (pending.current) return;
+              pending.current = true;
+              setBusy(true);
+              try {
+                const result = await resolveDocumentSave(
+                  provider,
+                  "quote",
+                  documentId.current,
+                );
+                if (result) {
+                  finishDocumentCreation("quote", documentId.current);
+                  if (submittedCreate.current === signature) {
+                    setBaseline(signature);
+                    navigate(`/quotes/${result.document_id}`);
+                  } else {
+                    setRecoveredId(result.document_id);
+                    setFailure(
+                      "原请求已创建成功；当前输入已保留，未写入已创建单据。",
+                    );
+                  }
+                } else setFailure("尚未查询到已提交结果，请保留当前内容。");
+              } catch (cause) {
+                setFailure(errorMessage(cause));
+              } finally {
+                pending.current = false;
+                setBusy(false);
+              }
+            }}
+          >
+            查询创建结果
+          </Button>
+        )}
+        {recoveredId && (
+          <Link to={`/quotes/${recoveredId}`} className="underline">
+            查看原请求创建的单据
+          </Link>
         )}
         {failure && <p role="alert">{failure}</p>}
       </form>
@@ -189,6 +253,7 @@ function InquiryConfirmation({
   onCreated: (id: string) => void;
 }) {
   const provider = useDataProvider();
+  const pending = useRef(false);
   const inquiry = useGetOne("romiku_website_inquiries", { id: inquiryId });
   const items = useQuery({
     queryKey: ["quote-original-items", inquiryId],
@@ -207,19 +272,18 @@ function InquiryConfirmation({
     .filter((item) => !excluded.includes(String(item.id)))
     .map((item) => String(item.id));
   const confirm = async () => {
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     setFailure("");
     try {
-      const id = await quoteFromInquiry(
-        getSupabaseClient(),
-        inquiryId,
-        selected,
-      );
+      const id = await quoteFromInquiry(provider, inquiryId, selected);
       setExcluded([]);
       onCreated(id);
     } catch (cause) {
       setFailure(errorMessage(cause));
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   };
@@ -290,6 +354,36 @@ function InquiryConfirmation({
           {busy ? "正在创建快照…" : "确认并创建报价单"}
         </Button>
       </fieldset>
+      {failure && (
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={async () => {
+            if (pending.current) return;
+            pending.current = true;
+            setBusy(true);
+            try {
+              const result = await resolveDocumentSource(provider, {
+                sourceKind: "inquiry",
+                sourceId: inquiryId,
+                targetKind: "quote",
+                selectedItemIds: selected,
+              });
+              if (result) {
+                setExcluded([]);
+                onCreated(result.document_id);
+              } else setFailure("尚未查询到创建结果，请保留当前选择。");
+            } catch (cause) {
+              setFailure(errorMessage(cause));
+            } finally {
+              pending.current = false;
+              setBusy(false);
+            }
+          }}
+        >
+          查询创建结果
+        </Button>
+      )}
       {failure && <p role="alert">{failure}</p>}
     </section>
   );

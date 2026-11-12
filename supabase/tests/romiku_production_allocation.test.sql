@@ -1,6 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
+\ir helpers/document_atomic.sql
 select no_plan();
 insert into auth.users(id,email,raw_user_meta_data) values('de700000-0000-0000-0000-000000000001','allocation@example.test','{}');
 create temporary table cap_ids(kind text primary key,id uuid default gen_random_uuid());
@@ -9,13 +10,23 @@ grant all on cap_ids to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','de700000-0000-0000-0000-000000000001',true);
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_orders(id) select id from cap_ids where kind='order';
+SET LOCAL ROLE authenticated;
+
+-- Fixture arrangement under the local test owner; public writes are tested through the atomic RPC.
+RESET ROLE;
+
 insert into romiku_order_items(id,order_id,sku,quantity) select s.id,o.id,'SUN5',100 from cap_ids s,cap_ids o where s.kind='source' and o.kind='order';
+SET LOCAL ROLE authenticated;
+
 insert into romiku_production_orders(id,order_id) select p.id,o.id from cap_ids p,cap_ids o where p.kind in ('p1','p2') and o.kind='order';
 insert into romiku_production_items(id,production_order_id,order_id,source_order_item_id,sku,quantity) select i.id,p.id,o.id,s.id,'SUN5',case when i.kind='i1' then 60 else 40 end from cap_ids i,cap_ids p,cap_ids o,cap_ids s where ((i.kind='i1' and p.kind='p1') or (i.kind='i2' and p.kind='p2')) and o.kind='order' and s.kind='source';
 select throws_like($q$update romiku_production_items set quantity=41 where id=(select id from cap_ids where kind='i2')$q$,'%生产安排超过订单数量%','direct item update cannot exceed capacity');
 select is((select quantity from romiku_production_items where id=(select id from cap_ids where kind='i2')),40::numeric,'failed direct write rolls back');
-select throws_like($q$update romiku_order_items set quantity=99 where id=(select id from cap_ids where kind='source')$q$,'%已安排%','Order reduction cannot violate assigned quantity');
+select throws_like($q$select pg_temp.document_item_patch('order',(select id from cap_ids where kind='source'),'{"quantity":99}')$q$,'%已安排%','Order reduction cannot violate assigned quantity');
 select has_function('public','romiku_production_allocations',array['uuid'],'server allocation query exists');
 select is((select production_quantity from romiku_production_allocations((select id from cap_ids where kind='order'))),100::numeric,'sums multiple Productions');
 select is((select unallocated_quantity from romiku_production_allocations((select id from cap_ids where kind='order'))),0::numeric,'fully assigned has zero remaining');

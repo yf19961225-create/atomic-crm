@@ -1,0 +1,137 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 1
+ok 1 - no authenticated Payment DELETE
+ok 2 - anon void denied
+ok 3 - anon bulk status denied
+ok 4 - anon preflight denied
+SET
+authenticated
+ok 5 - void requires uid
+ok 6 - batch requires uid
+de610000-0000-0000-0000-000000000001
+CREATE TABLE
+INSERT 0 12
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 7 - new quote default
+ok 8 - new packing default
+ok 9 - new inquiry default
+RESET
+INSERT 0 1
+SET
+INSERT 0 2
+INSERT 0 1
+ok 10 - production default
+ok 11 - quote sent
+ok 12 - quote won
+ok 13 - PI confirmed
+ok 14 - packing incomplete
+ok 15 - packing completed
+ok 16 - packing sent
+ok 17 - inquiry status pending_contact
+ok 18 - inquiry status pending_quote
+ok 19 - inquiry status quoted
+ok 20 - inquiry status following_up
+ok 21 - inquiry status customer_no_reply
+ok 22 - inquiry status won
+ok 23 - inquiry status invalid
+ok 24 - inquiry status pending_screening
+ok 25 - Order not arbitrary batch status
+ok 26 - fixed status whitelist
+ok 27 - wrong resource ID rejected
+ok 28 - production scheduled
+ok 29 - production received
+ok 30 - received still occupies
+UPDATE 1
+ok 31 - archive still occupies
+ok 32 - cancel frees
+ok 33 - cancelled quantity released
+INSERT 0 1
+ok 34 - restoration over capacity blocked per-record
+ok 35 - failed restore rolled back
+INSERT 0 1
+ok 36 - Paid 3000
+ok 37 - Balance 7000
+ok 38 - reason required
+ok 39 - direct payment deletion forbidden
+ok 40 - reparent history forbidden
+ok 41 - direct spoofed void forbidden
+ok 42 - active history blocks with correct reason
+ok 43 - controlled void succeeds
+ok 44 - audit and original money preserved
+ok 45 - void paid zero
+ok 46 - void balance 10000
+ok 47 - Customer360 active totals
+ok 48 - Customer360 retains void history
+ok 49 - void cannot restore
+ok 50 - void original money immutable
+ok 51 - void history still blocks
+INSERT 0 1
+ok 52 - correct re-entry 3000
+ok 53 - correct re-entry balance 7000
+ok 54 - direct Order void denied
+ok 55 - Order void allowed with histories
+ok 56 - Order void retains both payments
+ok 57 - Order void retains productions
+ok 58 - no ordinary Order restoration
+ok 59 - archive independent
+ok 60 - archive keeps status
+ok 61 - archived voided retained in Customer360
+RESET
+UPDATE 1
+SET
+ok 62 - quote downstream blocked
+ok 63 - PI without order eligible
+RESET
+UPDATE 1
+SET
+ok 64 - PI execution rechecks
+INSERT 0 1
+ok 65 - mixed production classified
+ok 66 - independent packing controlled delete
+ok 67 - Inquiry commercial source blocked
+ok 68 - Inquiry actual delete blocked
+RESET
+UPDATE 1
+SET
+ok 69 - Outbound commercial detach allowed
+ok 70 - Quote survives Outbound deletion
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ok 71 - free Inquiry preflight eligible
+ok 72 - Inquiry originals remain immutable
+27bf9129-eb06-4676-af66-d64b0e398a73
+ok 73 - spoofed controlled-delete marker cannot bypass permissions
+
+ok 74 - free Inquiry controlled deletion passes originals guard
+ok 75 - controlled Inquiry deletion clears its permit
+ok 76 - free Inquiry items deleted
+ok 77 - free Inquiry followups deleted
+ok 78 - direct Inquiry header delete still denied
+ok 79 - direct Inquiry item delete still denied
+1..79
+ROLLBACK

@@ -1,0 +1,330 @@
+
+ RUN  v4.1.0 /Users/romiku/Documents/ChatGPT/ROMIKU CRM 2.0/workbench-ui-20261107/repo
+
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+ ❯ |claude| .claude/hooks/test/check-config-sync.test.mjs (4 tests | 1 failed) 596ms
+     × a matcher token missing from config.roles → exit 1 86ms
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+ ❯ |claude| .claude/scripts/test/pending-deploys.test.mjs (9 tests | 7 failed) 2654ms
+     × empty when session branch made no deploy-relevant change 443ms
+     × non-empty when the session branch changes the declarative schema 414ms
+     × a TS-only change (no schema file) is NOT deploy-relevant (unified definition) 470ms
+     × no config.deploy -> exit 0 empty (deploy phase not configured) 423ms
+     × empty and exit 0 when NO session topology exists at all (hooks never ran) 293ms
+     × exits 3 (could not decide) when --session is missing 303ms
+     × fails loudly (exit 3 + stderr) on SESSION_SHORT_ID mismatch 303ms
+ DEPRECATED  /Users/romiku/Documents/ChatGPT/ROMIKU CRM 2.0/workbench-ui-20261107/repo/src/components/romiku/commercial/FormalCustomerSelector.test.tsx tries to load a deprecated "@vitest/browser/context" module. This import will stop working in the next major version. Please, use "vitest/browser" instead.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > empty when session branch made no deploy-relevant change
+Error: Command failed: node /Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-zxXY2b --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:70:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > non-empty when the session branch changes the declarative schema
+Error: Command failed: node /Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-HQVjrt --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:84:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > a TS-only change (no schema file) is NOT deploy-relevant (unified definition)
+Error: Command failed: node /Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-rUCbpZ --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:98:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > no config.deploy -> exit 0 empty (deploy phase not configured)
+Error: Command failed: node /Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-rc50Od --session ab12cd34
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:112:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > empty and exit 0 when NO session topology exists at all (hooks never ran)
+Error: Command failed: node /Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs --app /var/folders/f9/24w1shv1627bnsx811ct9n4w0000gn/T/pd-WN8IqZ --session xx99yy00
+node:internal/modules/cjs/loader:1503
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/romiku/Documents/ChatGPT/ROMIKU%20CRM%202.0/workbench-ui-20261107/repo/.claude/scripts/pending-deploys.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1500:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1116:12)
+    at Module._load (node:internal/modules/cjs/loader:1285:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.17.0
+
+ ❯ run .claude/scripts/test/pending-deploys.test.mjs:49:15
+     47|
+     48| const run = (dir, ...args) =>
+     49|   execFileSync("node", [SCRIPT, "--app", dir, ...args])
+       |               ^
+     50|     .toString()
+     51|     .trim();
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:132:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > exits 3 (could not decide) when --session is missing
+AssertionError: expected 1 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 1
+
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:149:18
+    147|       stderr = (e.stderr || "").toString();
+    148|     }
+    149|     expect(code).toBe(3);
+       |                  ^
+    150|     expect(stderr).toMatch(/session/i);
+    151|     rmSync(dir, { recursive: true, force: true });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  |claude| .claude/scripts/test/pending-deploys.test.mjs > pending-deploys > fails loudly (exit 3 + stderr) on SESSION_SHORT_ID mismatch
+AssertionError: expected 1 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 1
+
+ ❯ .claude/scripts/test/pending-deploys.test.mjs:167:18
+    165|       stderr = (e.stderr || "").toString();
+    166|     }
+    167|     expect(code).toBe(3);
+       |                  ^
+    168|     expect(stderr).toMatch(/mismatch/i);
+    169|     rmSync(dir, { recursive: true, force: true });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  |claude| .claude/hooks/test/check-config-sync.test.mjs > check-config-sync > a matcher token missing from config.roles → exit 1
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ .claude/hooks/test/check-config-sync.test.mjs:56:22
+     54|       matchers: ["developer|test-writer", "merger"],
+     55|     });
+     56|     expect(r.status).toBe(1);
+       |                      ^
+     57|     expect(r.stderr).toContain("test-writer");
+     58|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  2 failed | 199 passed | 2 skipped (203)
+      Tests  8 failed | 1508 passed | 3 skipped (1519)
+   Start at  09:56:09
+   Duration  38.06s (transform 7.71s, setup 0ms, import 63.18s, tests 304.63s, environment 4ms)
+

@@ -2,6 +2,14 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path=public,extensions;
 select no_plan();
+-- Test convenience only: SECURITY INVOKER preserves authenticated RPC/permission checks.
+create function pg_temp.save_order(doc uuid, header jsonb default '{}', items jsonb default null) returns jsonb language sql as $$
+ select public.romiku_save_document('order',doc,coalesce((select revision from public.romiku_orders where id=doc),0),gen_random_uuid(),header,items)
+$$;
+create function pg_temp.order_lines(doc uuid) returns jsonb language sql as $$
+ select coalesce(jsonb_agg(jsonb_build_object('id',id,'sku',sku,'quantity',quantity,'unit_price',unit_price) order by id),'[]') from public.romiku_order_items where order_id=doc
+$$;
+
 select has_function('public','romiku_workbench_action',array['text','uuid','bigint','uuid','jsonb','text'],'controlled action RPC');
 select has_function('public','romiku_workbench_order_snapshot',array['uuid'],'read evidence snapshot');
 select has_function('public','romiku_workbench_verification_list',array['integer','integer'],'historical verification query');
@@ -11,8 +19,11 @@ insert into public.sales(user_id,email,administrator,disabled) values ('ea040000
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','ea040000-0000-0000-0000-000000000001',true);
+-- Historical fixtures are seeded as admin; tested mutations below remain authenticated.
+reset role;
 insert into romiku_orders(id,status,currency,deposit_percent) values('ea041000-0000-0000-0000-000000000001','confirmed','CNY',30);
 insert into romiku_order_items(id,order_id,sku,quantity,unit_price) values('ea042000-0000-0000-0000-000000000001','ea041000-0000-0000-0000-000000000001','QA',1,10000);
+set local role authenticated;
 insert into romiku_payments(id,order_id,kind,amount) values('ea043000-0000-0000-0000-000000000001','ea041000-0000-0000-0000-000000000001','deposit',2913);
 select is(romiku_workbench_verification_list(1,0)->>'total','1','historical unknown remains visible');
 select is(romiku_workbench_verification_list(1,0)->'potential_receivables'->0->>'amount','7087.00','potential receivables includes unknown');
@@ -40,10 +51,10 @@ select pg_temp.accept_deposit();
 update romiku_payments set amount=2912 where id='ea043000-0000-0000-0000-000000000001';
 select is((select deposit_override from romiku_order_collection_state),'invalidated','ordinary payment UPDATE invalidates atomically');
 select pg_temp.accept_deposit();
-update romiku_order_items set unit_price=10001 where id='ea042000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{}',(select jsonb_agg(x||jsonb_build_object('unit_price',10001)) from jsonb_array_elements(pg_temp.order_lines('ea041000-0000-0000-0000-000000000001')) x));
 select is((select deposit_override from romiku_order_collection_state),'invalidated','item amount update invalidates');
 select pg_temp.accept_deposit();
-update romiku_orders set freight=1 where id='ea041000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{"freight":1}');
 select is((select deposit_override from romiku_order_collection_state),'invalidated','header total change invalidates');
 select pg_temp.accept_deposit();
 update romiku_payments set received_at=received_at+interval '1 hour' where id='ea043000-0000-0000-0000-000000000001';
@@ -62,26 +73,26 @@ update romiku_payments set kind='balance' where id='ea043000-0000-0000-0000-0000
 select is((select deposit_override from romiku_order_collection_state),'invalidated','payment kind change invalidates');
 update romiku_payments set kind='deposit' where id='ea043000-0000-0000-0000-000000000001';
 select pg_temp.accept_deposit();
-update romiku_orders set discount=1 where id='ea041000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{"discount":1}');
 select is((select deposit_override from romiku_order_collection_state),'invalidated','order discount invalidates');
 select pg_temp.accept_deposit();
-update romiku_orders set other_expenses=1 where id='ea041000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{"other_expenses":1}');
 select is((select deposit_override from romiku_order_collection_state),'invalidated','order other_expenses invalidates');
 select pg_temp.accept_deposit();
-update romiku_orders set deposit_percent=35 where id='ea041000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{"deposit_percent":35}');
 select is((select deposit_override from romiku_order_collection_state),'invalidated','order deposit_percent invalidates');
 select pg_temp.accept_deposit();
-select throws_ok($$update romiku_orders set currency='USD' where id='ea041000-0000-0000-0000-000000000001'$$,null,'Order currency is immutable after payments exist','existing currency immutability retained');
+select throws_ok($$select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{"currency":"USD"}')$$,null,'Order currency is immutable after payments exist','existing currency immutability retained');
 select is((select deposit_override from romiku_order_collection_state),'accepted','rejected currency write leaves acceptance unchanged');
 select romiku_workbench_action('deposit_revoke','ea041000-0000-0000-0000-000000000001',(select revision from romiku_order_collection_state),gen_random_uuid(),'{}','QA reset');
 select pg_temp.accept_deposit();
-update romiku_order_items set quantity=2 where id='ea042000-0000-0000-0000-000000000001';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{}',(select jsonb_agg(x||jsonb_build_object('quantity',2)) from jsonb_array_elements(pg_temp.order_lines('ea041000-0000-0000-0000-000000000001')) x));
 select is((select deposit_override from romiku_order_collection_state),'invalidated','item quantity invalidates');
 select pg_temp.accept_deposit();
-insert into romiku_order_items(id,order_id,sku,quantity,unit_price) values('ea042000-0000-0000-0000-000000000002','ea041000-0000-0000-0000-000000000001','QA-extra',1,1);
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{}',pg_temp.order_lines('ea041000-0000-0000-0000-000000000001')||'[{"id":"ea042000-0000-0000-0000-000000000002","sku":"QA-extra","quantity":1,"unit_price":1}]');
 select is((select deposit_override from romiku_order_collection_state),'invalidated','item insert invalidates');
 select pg_temp.accept_deposit();
-delete from romiku_order_items where id='ea042000-0000-0000-0000-000000000002';
+select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{}',(select jsonb_agg(x) from jsonb_array_elements(pg_temp.order_lines('ea041000-0000-0000-0000-000000000001')) x where x->>'id'<>'ea042000-0000-0000-0000-000000000002'));
 select is((select deposit_override from romiku_order_collection_state),'invalidated','item deletion invalidates');
 select pg_temp.accept_deposit();
 select romiku_workbench_action('deposit_revoke','ea041000-0000-0000-0000-000000000001',(select revision from romiku_order_collection_state),gen_random_uuid(),'{}','QA revoke');
@@ -109,7 +120,7 @@ reset role;
 set constraints all immediate;
 alter table romiku_workbench_events add constraint qa_audit_failure check(reason<>'order_terms_changed') not valid;
 set local role authenticated;
-select throws_ok($$update romiku_orders set freight=2 where id='ea041000-0000-0000-0000-000000000001'$$,'23514',null,'audit failure rolls back source business write');
+select throws_ok($$select pg_temp.save_order('ea041000-0000-0000-0000-000000000001','{"freight":2}')$$,'23514',null,'audit failure rolls back source business write');
 select is((select freight from romiku_orders where id='ea041000-0000-0000-0000-000000000001'),1::numeric,'source amount unchanged after failed audit');
 select is((select deposit_override from romiku_order_collection_state),'accepted','failed transaction does not half-invalidate state');
 reset role;

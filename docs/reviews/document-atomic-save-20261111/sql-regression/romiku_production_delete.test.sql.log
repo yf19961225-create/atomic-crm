@@ -1,0 +1,58 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 1
+ok 1 - anon cannot call production delete RPC
+SET
+authenticated
+ok 2 - production delete requires user
+de300000-0000-0000-0000-000000000001
+ok 3 - production kind is supported and missing record is safe
+ok 4 - authenticated cannot directly delete production header
+CREATE TABLE
+INSERT 0 4
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+ok 5 - followups block production deletion
+ok 6 - followups count returned structurally
+ok 7 - followup count readable to user
+ok 8 - blocked delete retains production items
+ok 9 - blocked delete retains manual association
+ok 10 - fixture allocates production quantity
+RESET
+DELETE 2
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+authenticated
+ok 11 - late failure returns structured failure
+ok 12 - raw PostgreSQL details not exposed
+ok 13 - late failure restores deleted items
+ok 14 - late failure restores manual link
+RESET
+DROP TRIGGER
+SET
+authenticated
+ok 15 - production with no followups is deleted
+ok 16 - header removed
+ok 17 - own items removed
+ok 18 - manual task detached and content preserved
+ok 19 - Order snapshot and notes unchanged
+ok 20 - source Order item unchanged
+ok 21 - unallocated quantity naturally restores
+RESET
+ok 22 - production numbering counter retained
+SET
+authenticated
+INSERT 0 1
+ok 23 - deleted production number is never recycled
+1..23
+ROLLBACK

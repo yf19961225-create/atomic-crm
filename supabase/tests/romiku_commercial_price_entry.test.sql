@@ -2,6 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
+\ir helpers/document_atomic.sql
 select no_plan();
 
 create temporary table price_test_ids (kind text primary key, id uuid);
@@ -20,12 +21,17 @@ select is((select unit_price_entered from romiku_quote_items where sku='LEGACY-Z
 select is((select amount from romiku_quote_items where sku='UNFILLED'),0::numeric,
   'unfilled price still contributes zero to the existing amount formula');
 
+insert into auth.users(id,email) values('c0000000-0000-0000-0000-000000000099','price-entry@example.test');
+grant all on price_test_ids to authenticated;
+set local role authenticated;
+set local request.jwt.claim.role='authenticated';
+set local request.jwt.claim.sub='c0000000-0000-0000-0000-000000000099';
 insert into price_test_ids
-select 'pi',romiku_convert_document('quote','c0000000-0000-0000-0000-000000000001','pi');
+select 'pi',pg_temp.document_convert('quote','c0000000-0000-0000-0000-000000000001','pi');
 insert into price_test_ids
-select 'order',romiku_convert_document('pi',(select id from price_test_ids where kind='pi'),'order');
+select 'order',pg_temp.document_convert('pi',(select id from price_test_ids where kind='pi'),'order');
 insert into price_test_ids
-select 'direct_order',romiku_convert_document('quote','c0000000-0000-0000-0000-000000000001','order');
+select 'direct_order',pg_temp.document_convert('quote','c0000000-0000-0000-0000-000000000001','order');
 
 select is((select unit_price_entered from romiku_pi_items where sku='UNFILLED'),false,
   'Quote to PI retains the blank-price marker');

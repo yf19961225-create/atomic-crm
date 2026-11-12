@@ -1,0 +1,34 @@
+BEGIN
+CREATE EXTENSION
+SET
+ no_plan 
+---------
+(0 rows)
+
+INSERT 0 1
+INSERT 0 1
+CREATE POLICY
+SET
+SET
+SET
+                                throws_ok                                
+-------------------------------------------------------------------------
+ ok 1 - atomic executor respects restrictive authenticated update policy
+(1 row)
+
+RESET
+DROP POLICY
+CREATE POLICY
+SET
+                                throws_ok                                
+-------------------------------------------------------------------------
+ ok 2 - atomic snapshot respects restrictive authenticated select policy
+(1 row)
+
+RESET
+ finish 
+--------
+ 1..2
+(1 row)
+
+ROLLBACK

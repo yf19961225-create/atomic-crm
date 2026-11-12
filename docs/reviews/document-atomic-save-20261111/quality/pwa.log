@@ -1,0 +1,5 @@
+
+> atomic-crm@0.1.0 test:pwa-cache
+> node scripts/verify-pwa-shell.mjs
+
+PWA shell cache policy verified

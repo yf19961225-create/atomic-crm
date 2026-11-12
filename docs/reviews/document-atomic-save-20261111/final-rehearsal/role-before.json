@@ -1,0 +1,16 @@
+{
+  "anon_set": false,
+  "memberships": [
+    {
+      "set": false,
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": false
+    }
+  ],
+  "postgres_set": false,
+  "schema_create": false,
+  "postgres_usage": false,
+  "authenticated_set": false
+}

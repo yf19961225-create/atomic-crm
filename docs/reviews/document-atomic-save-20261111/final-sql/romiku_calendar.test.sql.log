@@ -1,0 +1,64 @@
+BEGIN
+CREATE EXTENSION
+SET
+INSERT 0 2
+SET
+authenticated
+81000000-0000-0000-0000-000000000001
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 1 - all eight source types aggregate with separate quote/PI follow-up and due events
+ok 2 - calendar covers exactly eight source types
+ok 3 - derived event ids are unique
+ok 4 - owner filter selects auth user UUID
+ok 5 - Website new action remains separate from outbound
+ok 6 - Outbound action remains separate from Website
+81000000-0000-0000-0000-000000000002
+ok 7 - second user shares all source events irrespective of owner
+RESET
+UPDATE 1
+SET
+ok 8 - second user source edit reflects immediately in calendar
+ok 9 - moving date does not append duplicate stored events
+RESET
+UPDATE 1
+SET
+ok 10 - clearing due date preserves only the independent follow-up event
+UPDATE 1
+ok 11 - completed manual task leaves calendar
+UPDATE 1
+ok 12 - unscheduled manual task is retained outside calendar
+ok 13 - task source survives date clearing
+ok 14 - existing quote link prevents a second task relationship
+UPDATE 1
+UPDATE 1
+UPDATE 1
+ok 15 - terminal source statuses remove actionable events
+RESET
+UPDATE 1
+SET
+ok 16 - archived packing source leaves calendar
+RESET
+ok 17 - calendar is a view rather than duplicate event storage
+ok 18 - calendar honors underlying RLS
+SET
+ok 19 - anonymous calendar reads denied
+ok 20 - anonymous action center reads denied
+RESET
+1..20
+ROLLBACK

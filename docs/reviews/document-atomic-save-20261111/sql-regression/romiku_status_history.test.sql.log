@@ -1,0 +1,176 @@
+BEGIN
+CREATE EXTENSION
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+ok 1 - unified history exists
+ok 2 - status timestamp exists
+INSERT 0 1
+SET
+authenticated
+de630000-0000-0000-0000-000000000001
+SELECT 1
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 3 - each resource gets initial history
+ok 4 - initial source create
+ok 5 - initial from is null
+ok 6 - initial actor from auth
+SELECT 1
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 7 - unrelated edit, forgery and same-status do not reset timestamp
+ok 8 - same status and notes do not add history
+batch
+2000-01-01T00:00:00Z
+RESET
+UPDATE 1
+SET
+ok 9 - batch start before a newer row must not move timestamp backwards
+
+ok 10 - history captures normalized final value
+ok 11 - from_status correct
+ok 12 - batch source context
+ok 13 - actual change advances timestamp
+ok 14 - history and current timestamp identical
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 15 - Quote retains create plus five transitions
+ok 16 - repeat state does not overwrite
+ok 17 - bulk successful row
+ok 18 - bulk source recorded
+ok 19 - bulk actor
+ok 20 - failed bulk id creates no extra history
+{"ok": true, "failed": [], "succeeded": [{"id": "23e734bc-e16b-4194-a8aa-883b625a3a31", "label": "WI-000337"}]}
+ok 21 - batch same-state no-op
+UPDATE 1
+ok 22 - batch context restored
+ok 23 - invalid status fails
+ok 24 - failed status creates no history
+ok 25 - authenticated cannot insert history
+ok 26 - authenticated cannot update audit
+ok 27 - authenticated cannot delete audit
+SELECT 1
+RESET
+INSERT 0 1
+SET
+INSERT 0 1
+ok 28 - Payment void still succeeds
+ok 29 - Payment remains outside status ledger
+ok 30 - Payment financial attribution preserved
+ok 31 - controlled Order void succeeds
+ok 32 - Order void recorded in business history
+ok 33 - Order create and controlled void each logged once
+RESET
+UPDATE 1
+SET
+UPDATE 1
+UPDATE 1
+UPDATE 1
+ok 34 - Production stages retained
+UPDATE 1
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+RESET
+UPDATE 1
+SET
+ok 35 - Packing repeated states retained
+ok 36 - PI transition recorded
+ok 37 - Outbound transition recorded
+RESET
+UPDATE 1
+SET
+ok 38 - archive is not a business status
+RESET
+UPDATE 1
+SET
+SELECT 1
+ok 39 - history page size enforced before returning
+ok 40 - history has_more independent of UI
+ok 41 - next cursor continues without duplicates
+ok 42 - fixed history resource whitelist excludes Payment
+ok 43 - history page bounded
+ok 44 - partial cursor rejected
+ok 45 - draft Order controlled cascade still works
+ok 46 - Order and Production child histories cleaned
+RESET
+UPDATE 1
+SET
+ok 47 - dependent Quote delete blocked
+ok 48 - blocked delete retains history
+ok 49 - bulk controlled delete successful
+ok 50 - bulk delete history cleanup
+ok 51 - totals exposes timestamp
+SAVEPOINT
+RESET
+UPDATE 1
+SET
+ROLLBACK
+ok 52 - transaction rollback includes history
+RESET
+CREATE POLICY
+SET
+authenticated
+ok 53 - history read respects parent RLS
+ok 54 - RPC respects parent RLS
+RESET
+SET
+ok 55 - anon cannot read history
+ok 56 - anon cannot read display view
+RESET
+
+SET
+SELECT 1
+INSERT 0 1
+UPDATE 1
+ok 57 - system change explicitly attributed
+ok 58 - system actor remains NULL
+RESET
+ok 59 - history RPC invoker
+ok 60 - client cannot invoke history writer
+ok 61 - anon cannot execute history RPC
+DROP POLICY
+SET
+authenticated
+
+ok 62 - history requires auth uid
+ok 63 - status writing requires auth uid
+RESET
+1..63
+ROLLBACK
