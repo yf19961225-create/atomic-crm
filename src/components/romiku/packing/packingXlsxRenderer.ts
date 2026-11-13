@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import type { PackingExportModel } from "./packingExportModel";
 import {
   applyStyle,
+  quantityNumberFormat,
   captureStyle,
   clearResidualDynamicMerges,
   prepareProductImage,
@@ -149,8 +150,8 @@ export async function renderPackingXlsx(
     });
     const numericFormats: Array<[number, string]> = [
       [6, "0"],
-      [7, "0.####"],
-      [9, "0.####"],
+      [7, quantityNumberFormat(item.qtyPerCarton, false)],
+      [9, quantityNumberFormat(item.quantity, false)],
       [10, "General"],
       [11, "General"],
       [12, "General"],

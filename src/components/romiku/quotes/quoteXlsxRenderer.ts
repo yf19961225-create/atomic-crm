@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import type { QuoteExportModel } from "./quoteExportModel.js";
 import {
   applyStyle,
+  quantityNumberFormat,
   captureStyle,
   clearResidualDynamicMerges,
   formatDate,
@@ -136,6 +137,9 @@ export async function renderQuoteXlsx(
     sheet.getCell(row, 5).value = item.specification;
     if (columns === 9) sheet.getCell(row, 6).value = item.requestedQuantity;
     sheet.getCell(row, columns - 2).value = item.qtyPerCarton;
+    sheet.getCell(row, columns - 2).numFmt = quantityNumberFormat(
+      item.qtyPerCarton,
+    );
     sheet.getCell(row, columns - 1).value = item.unitPrice;
     sheet.getCell(row, columns).value = item.cartonCbm;
     sheet.getCell(row, columns - 1).numFmt = moneyFormat(model.currency);

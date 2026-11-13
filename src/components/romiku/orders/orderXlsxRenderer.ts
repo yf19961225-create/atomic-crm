@@ -14,6 +14,13 @@ export const moneyFormat = (currency: "USD" | "CNY") =>
   currency === "CNY"
     ? "¥#,##0.00;[Red]-¥#,##0.00"
     : "$#,##0.00;[Red]-$#,##0.00";
+// An optional fractional part alone can leave a visible decimal separator in Excel.
+export function quantityNumberFormat(value: number | null, grouped = true) {
+  const integer = grouped ? "#,##0" : "0";
+  return value === null || Number.isInteger(value)
+    ? integer
+    : integer + ".0##############";
+}
 export type RowStyle = {
   height?: number;
   styles: Array<Partial<ExcelJS.Style> | undefined>;
@@ -547,7 +554,7 @@ export async function renderOrderXlsx(
     sheet.getCell(row, 5).value = item.specification;
     sheet.getCell(row, 6).value = item.cartons;
     sheet.getCell(row, 7).value = item.qtyPerCarton;
-    sheet.getCell(row, 7).numFmt = "#,##0.####";
+    sheet.getCell(row, 7).numFmt = quantityNumberFormat(item.qtyPerCarton);
     sheet.getCell(row, 8).value = item.quantity;
     sheet.getCell(row, 9).value = item.unitPrice;
     sheet.getCell(row, 10).value = item.amount;

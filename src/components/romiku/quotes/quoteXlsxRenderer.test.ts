@@ -349,3 +349,26 @@ it("changing internal document name leaves formal XLSX identity and template con
   expect(workbook.worksheets[0].getCell("H1").text).toContain("RFQ261026001");
   expect(workbook.worksheets[0].getCell("H1").text).not.toContain("Marianne");
 });
+
+it("retains numeric fractional and whole pack sizes in quote exports", async () => {
+  const template = await fetch(templateUrl).then((response) =>
+    response.arrayBuffer(),
+  );
+  const values = [24, 1.5, 0.25, 0];
+  const model = normalizeQuoteExportModel(
+    {},
+    values.map((value, index) => ({
+      ...item(index + 1),
+      packing_snapshot: { qty_per_carton: value },
+    })),
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await renderQuoteXlsx(model, template));
+  values.forEach((value, index) => {
+    const cell = workbook.worksheets[0].getCell(9 + index, 6);
+    expect(cell.value).toBe(value);
+    expect(cell.numFmt).toBe(
+      Number.isInteger(value) ? "#,##0" : "#,##0.0##############",
+    );
+  });
+});

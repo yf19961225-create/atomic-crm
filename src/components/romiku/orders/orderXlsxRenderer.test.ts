@@ -487,20 +487,27 @@ it("preserves fractional quantity display in exported XLSX", async () => {
   const template = await fetch(templateUrl).then((response) =>
     response.arrayBuffer(),
   );
-  const model = normalizeOrderExportModel({}, [
-    {
-      id: "fraction",
-      sku: "FRACTION",
-      quantity: 0.25,
+  const values = [20, 24, 16, 200, 1.5, 0.25, 0, 0.00001];
+  const model = normalizeOrderExportModel(
+    {},
+    values.map((value, index) => ({
+      id: String(index),
+      sku: "QA-" + index,
+      quantity: value,
       unit_price: 8,
       product_snapshot: {},
-      packing_snapshot: { qty_per_carton: 0.25 },
-    },
-  ]);
+      packing_snapshot: { qty_per_carton: value },
+    })),
+  );
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await renderOrderXlsx(model, template));
-  const sheet = workbook.getWorksheet("ORDER")!;
-  expect(sheet.getCell("H10").value).toBe(0.25);
-  expect(sheet.getCell("H10").numFmt || "General").toBe("General");
-  expect(sheet.getCell("G10").numFmt).toBe("#,##0.####");
+  const sheet = workbook.worksheets[0];
+  values.forEach((value, index) => {
+    const row = 10 + index;
+    const format = Number.isInteger(value) ? "#,##0" : "#,##0.0##############";
+    expect(sheet.getCell(row, 7).value).toBe(value);
+    expect(sheet.getCell(row, 7).numFmt).toBe(format);
+    expect(sheet.getCell(row, 8).value).toBe(value);
+    expect(sheet.getCell(row, 8).numFmt || "General").toBe("General");
+  });
 });
