@@ -15,7 +15,13 @@ import {
 } from "../products/websiteProductImages";
 
 export type ProductSpecificationMode = "all" | "machines-only" | "none";
-export type DocumentLanguage = "zh" | "en" | "es";
+import {
+  productText,
+  productLanguages,
+  localizedProductText,
+  type DocumentLanguage,
+} from "./productLanguage";
+export type { DocumentLanguage } from "./productLanguage";
 
 export function commercialSearchPanelPosition(
   viewportWidth: number,
@@ -41,33 +47,6 @@ export function commercialSearchPanelPosition(
     transform: openAbove ? "translateY(-100%)" : undefined,
   };
 }
-
-const languageFallbacks: Record<DocumentLanguage, DocumentLanguage[]> = {
-  zh: ["zh", "en"],
-  en: ["en", "zh"],
-  es: ["es", "en", "zh"],
-};
-function localizedText(value: unknown, language: DocumentLanguage) {
-  if (typeof value === "string" || typeof value === "number")
-    return String(value);
-  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
-  const translations = value as Record<string, unknown>;
-  for (const locale of languageFallbacks[language]) {
-    const text = translations[locale];
-    if (typeof text === "string" || typeof text === "number")
-      return String(text);
-  }
-  return "";
-}
-
-const isSpecificationsParameter = (parameter: {
-  label?: Record<string, string>;
-}) =>
-  Object.values(parameter.label ?? {}).some((label) =>
-    ["参数", "specifications", "especificaciones"].includes(
-      label.trim().toLowerCase(),
-    ),
-  );
 
 export function shouldImportProductSpecifications(
   kind: "quote" | "pi" | "order",
@@ -111,16 +90,18 @@ export function createItemSnapshot(
   } = {},
 ) {
   const language = options.documentLanguage ?? "zh";
-  const specifications = (product.parameters ?? []).find(
-    isSpecificationsParameter,
+  const text = productText(product, language, options.localizedPowerSupply);
+  const localized = Object.fromEntries(
+    Object.keys(productLanguages).map((key) => [
+      key,
+      productText(
+        product,
+        key as DocumentLanguage,
+        options.localizedPowerSupply,
+      ),
+    ]),
   );
-  const specification = [
-    specifications ? localizedText(specifications.value, language) : "",
-    localizedText(product.powerSupply, language) ||
-      localizedText(options.localizedPowerSupply, language),
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const specification = text.specification;
   const overlay = options.procurementPacking;
   // The overlay resolves supplier overrides over product defaults per field.
   // A product with no supplier can still carry its own packing defaults.
@@ -161,11 +142,18 @@ export function createItemSnapshot(
     sanity_product_id: product.id,
     sku: product.sku ?? "",
     product_snapshot: {
-      name: localizedText(product.name, language) || product.sku || "",
+      name: text.name,
+      language,
+      localized_text: localized,
+      automatic_text: text,
+      translation_pending: [
+        !text.name && "name",
+        !specification && "specification",
+      ].filter(Boolean),
       image_url: resolvedImageUrl ?? null,
       moq: product.moqQuantity ?? null,
       ...(options.includeUnit
-        ? { unit: localizedText(product.moqUnit, language) }
+        ? { unit: localizedProductText(product.moqUnit, language) }
         : {}),
       ...(options.includeSpecification === false ? {} : { specification }),
     },
@@ -398,10 +386,9 @@ export function ProductLibraryLookup({
           )[0],
         {
           documentLanguage,
-          localizedPowerSupply: importMachineSpecifications
-            ? (selectedDetails?.localizedPowerSupplies.get(product.id) ??
-              localizedPowerSupplies.get(product.id))
-            : undefined,
+          localizedPowerSupply:
+            selectedDetails?.localizedPowerSupplies.get(product.id) ??
+            localizedPowerSupplies.get(product.id),
           includeSpecification:
             specificationMode === "all" || importMachineSpecifications,
           procurementPacking,

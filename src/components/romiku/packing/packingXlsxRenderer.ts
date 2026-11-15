@@ -5,7 +5,7 @@ import {
   quantityNumberFormat,
   captureStyle,
   clearResidualDynamicMerges,
-  prepareProductImage,
+  prepareSnapshotProductImage,
   preserveTemplatePackage,
   unmerge,
   type PreparedProductImage,
@@ -179,7 +179,11 @@ export async function renderPackingXlsx(
   const productImages = (
     await Promise.all(
       model.items.map((item, index) =>
-        prepareProductImage(item.imageUrl, PRODUCT_START + index),
+        prepareSnapshotProductImage(
+          item.imageUrl,
+          item.sku,
+          PRODUCT_START + index,
+        ),
       ),
     )
   ).filter((image): image is PreparedProductImage => Boolean(image));

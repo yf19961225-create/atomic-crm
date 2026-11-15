@@ -4,6 +4,7 @@ import {
   applyStyle,
   captureStyle,
   clearResidualDynamicMerges,
+  prepareSnapshotProductImage,
   prepareProductImage,
   preserveTemplatePackage,
   unmerge,
@@ -140,7 +141,11 @@ export async function renderProductionXlsx(
   const photos = await Promise.all(
     model.items.map(async (item, index) => {
       if (!item.imageUrl) return undefined;
-      const image = await prepareProductImage(item.imageUrl, 4 + index);
+      const image = await prepareSnapshotProductImage(
+        item.imageUrl,
+        item.sku,
+        4 + index,
+      );
       if (!image)
         throw new Error(
           `产品 ${item.sku} 图片无法嵌入，请检查已保存图片后重试。`,

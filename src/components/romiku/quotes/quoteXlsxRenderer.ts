@@ -7,7 +7,7 @@ import {
   clearResidualDynamicMerges,
   formatDate,
   moneyFormat,
-  prepareProductImage,
+  prepareSnapshotProductImage,
   preserveTemplatePackage,
   unmerge,
   type PreparedProductImage,
@@ -148,10 +148,13 @@ export async function renderQuoteXlsx(
   const productImages = (
     await Promise.all(
       model.items.map((item, index) =>
-        (options.prepareImage || prepareProductImage)(
-          item.imageUrl,
-          layout.productStart + index,
-        ),
+        options.prepareImage
+          ? options.prepareImage(item.imageUrl, layout.productStart + index)
+          : prepareSnapshotProductImage(
+              item.imageUrl,
+              item.sku,
+              layout.productStart + index,
+            ),
       ),
     )
   ).filter((image): image is PreparedProductImage => Boolean(image));

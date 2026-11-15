@@ -403,10 +403,8 @@ export function CommercialLineItemsTable({
                               onSearchChange={(value) =>
                                 onBlankRowsDirtyChange?.(Boolean(value.trim()))
                               }
-                              specificationMode={
-                                kind === "quote" ? "machines-only" : "none"
-                              }
-                              captureQuotePacking={kind === "quote"}
+                              specificationMode="all"
+                              captureQuotePacking
                               documentLanguage={documentLanguage}
                               inputRef={(element) => {
                                 blankSkuRef.current = element;
@@ -447,6 +445,7 @@ export function CommercialLineItemsTable({
                     ) => {
                       const nextPacking = { ...packing, [key]: value };
                       const quantity =
+                        !compactQuote &&
                         (key === "cartons" || key === "qty_per_carton") &&
                         !packing.quantity_manual
                           ? quantityFromPacking(nextPacking)
@@ -596,10 +595,8 @@ export function CommercialLineItemsTable({
                                     rowSkuRefs.current[String(item.id)] =
                                       element;
                                   }}
-                                  specificationMode={
-                                    kind === "quote" ? "machines-only" : "none"
-                                  }
-                                  captureQuotePacking={kind === "quote"}
+                                  specificationMode="all"
+                                  captureQuotePacking
                                   documentLanguage={documentLanguage}
                                   onSelected={(snapshot) => {
                                     void save(item, { ...snapshot });
@@ -642,6 +639,11 @@ export function CommercialLineItemsTable({
                                       element;
                                   }}
                                   aria-label={`产品名称 ${item.sku}`}
+                                  placeholder={
+                                    product.language && !product.name
+                                      ? "待翻译：请填写所选语言名称"
+                                      : undefined
+                                  }
                                   className="min-w-0 w-full rounded border p-1"
                                   value={String(product.name ?? "")}
                                   disabled={!editable}
@@ -724,6 +726,16 @@ export function CommercialLineItemsTable({
                               <td>
                                 <textarea
                                   aria-label="描述与规格"
+                                  placeholder={
+                                    Array.isArray(
+                                      product.translation_pending,
+                                    ) &&
+                                    product.translation_pending.includes(
+                                      "specification",
+                                    )
+                                      ? "待翻译：请补齐所选语言规格"
+                                      : undefined
+                                  }
                                   className="min-h-8 w-full resize-y rounded border p-1"
                                   value={String(product.specification ?? "")}
                                   disabled={!editable}
@@ -756,6 +768,16 @@ export function CommercialLineItemsTable({
                               <td>
                                 <textarea
                                   aria-label="描述与规格"
+                                  placeholder={
+                                    Array.isArray(
+                                      product.translation_pending,
+                                    ) &&
+                                    product.translation_pending.includes(
+                                      "specification",
+                                    )
+                                      ? "待翻译：请补齐所选语言规格"
+                                      : undefined
+                                  }
                                   className="min-h-8 w-full resize-y rounded border p-1"
                                   value={
                                     compactQuote
@@ -831,8 +853,8 @@ export function CommercialLineItemsTable({
                                 }
                                 className="w-full rounded border p-1"
                                 type="number"
-                                min={compactQuote ? "1" : undefined}
-                                step={compactQuote ? "1" : undefined}
+                                min="0"
+                                step="any"
                                 value={String(packing.qty_per_carton ?? "")}
                                 disabled={!editable}
                                 onChange={(event) => {
@@ -1060,12 +1082,16 @@ export function CommercialLineItemsTable({
                                     formatQuoteCbm(packing)
                                   }
                                   disabled={!editable}
-                                  onChange={(event) =>
+                                  onChange={(event) => {
+                                    const raw = event.target.value;
                                     setQuoteCbmDrafts((drafts) => ({
                                       ...drafts,
-                                      [quoteCbmKey]: event.target.value,
-                                    }))
-                                  }
+                                      [quoteCbmKey]: raw,
+                                    }));
+                                    const parsed = parseQuoteCbm(raw);
+                                    if (onItemsChange && parsed !== undefined)
+                                      void updatePacking("carton_cbm", parsed);
+                                  }}
                                   onBlur={() => void commitQuoteCbm()}
                                   onKeyDown={(event) => {
                                     if (

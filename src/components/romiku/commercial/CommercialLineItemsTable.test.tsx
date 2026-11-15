@@ -438,3 +438,17 @@ it("commits an unmatched SKU on Enter once the catalog search has finished", asy
     .poll(() => changes.at(-1)?.map((row) => row.sku))
     .toEqual(["UNLISTED"]);
 });
+
+it("quote packing edits preserve the quotation quantity when cartons are not part of its UI", async () => {
+  const { screen, changes } = await setup("quote");
+  await screen.getByLabelText("Qty/Ctn", { exact: true }).fill("30");
+  await expect.poll(() => changes.length).toBeGreaterThan(0);
+  expect(changes.at(-1)?.[0].quantity).toBe(1);
+  expect(changes.at(-1)?.[0].packing_snapshot).toMatchObject({ qty_per_carton: "30" });
+});
+
+it("keeps a valid manually entered quote CBM in the staged snapshot before blur", async () => {
+  const { screen, changes } = await setup("quote");
+  await screen.getByLabelText("CBM", { exact: true }).fill("0.150");
+  await expect.poll(() => (changes.at(-1)?.[0].packing_snapshot as Record<string, unknown>)?.carton_cbm).toBe(0.15);
+});

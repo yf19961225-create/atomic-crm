@@ -502,7 +502,8 @@ describe("Product Library item snapshots", () => {
 
     expect(snapshot).toMatchObject({
       product_snapshot: {
-        name: "PACK-DIRECT",
+        name: "",
+        translation_pending: expect.arrayContaining(["name"]),
         image_url: "https://example.com/packing-direct.jpg",
         unit: "PCS",
       },
@@ -574,7 +575,7 @@ describe("Product Library item snapshots", () => {
     });
   });
 
-  it("falls back per parameter field without serialising localization objects", () => {
+  it("marks missing target translations instead of mixing fallback languages", () => {
     const snapshot = createItemSnapshot(
       {
         id: "machine-fallback",
@@ -591,8 +592,9 @@ describe("Product Library item snapshots", () => {
       { documentLanguage: "es" },
     );
     expect(snapshot.product_snapshot).toMatchObject({
-      name: "Drill",
-      specification: "30000 RPM",
+      name: "",
+      specification: "",
+      translation_pending: ["name", "specification"],
     });
     expect(snapshot.product_snapshot.specification).not.toContain(
       "[object Object]",

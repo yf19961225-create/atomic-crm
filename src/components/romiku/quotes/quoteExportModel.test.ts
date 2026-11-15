@@ -128,3 +128,10 @@ it.each([
     expect(snapshot.specification).toBe(raw);
   },
 );
+
+it("does not replace a missing translated specification with Chinese packaging", () => {
+  const model = normalizeQuoteExportModel({}, [{ sku: "MISSING", product_snapshot: { language: "en", name: "Nail Lamp", specification: "" }, packing_snapshot: { description: "彩盒", carton_cbm: 0.15 }, unit_price: 8 }]);
+  expect(model.items[0].specification).toBe("");
+  expect(model.items[0].cartonCbm).toBe(0.15);
+  expect(model.items[0].unitPrice).toBe(8);
+});

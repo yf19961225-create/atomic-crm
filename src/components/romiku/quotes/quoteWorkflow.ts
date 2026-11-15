@@ -227,7 +227,7 @@ export function quoteHeaderWrite(values: Values, previous?: Values) {
   }
   if (write.document_language !== undefined) {
     write.document_language = String(write.document_language).trim();
-    if (!["zh", "en", "es"].includes(String(write.document_language)))
+    if (!["zh", "en", "es", "pt-BR"].includes(String(write.document_language)))
       throw new Error("请选择有效的单据语言。");
   }
   if (

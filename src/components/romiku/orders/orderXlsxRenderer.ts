@@ -178,12 +178,21 @@ export async function prepareProductImage(
 ): Promise<PreparedProductImage | undefined> {
   if (!imageUrl) return undefined;
   try {
+    // Public, configured product CDN supports browser CORS. Never forward CRM credentials.
+    // Keep the server-side proxy's hostname restriction unchanged.
+    const directCdn =
+      /^https:\/\/res\.cloudinary\.com\/dujtss32z\/image\/upload\//.test(
+        imageUrl,
+      );
     const response = await fetch(
-      imageUrl.startsWith("data:")
+      imageUrl.startsWith("data:") || directCdn
         ? imageUrl
         : `/api/order-export-image?url=${encodeURIComponent(imageUrl)}`,
+      directCdn
+        ? { credentials: "omit", referrerPolicy: "no-referrer" }
+        : undefined,
     );
-    if (!response.ok) return;
+    if (!response.ok) throw new Error(`image_http_${response.status}`);
     let blob = await response.blob();
     if (!/^image\/(png|jpe?g)$/i.test(blob.type)) {
       const bitmap = await createImageBitmap(blob);
@@ -212,6 +221,39 @@ export async function prepareProductImage(
     });
     return undefined;
   }
+}
+
+/** Same-SKU image recovery only; never enrich saved names, prices or specifications. */
+export async function prepareSnapshotProductImage(
+  imageUrl: string,
+  sku: string,
+  row: number,
+): Promise<PreparedProductImage | undefined> {
+  const primary = await prepareProductImage(imageUrl, row);
+  if (primary) return primary;
+  if (!sku) return undefined;
+  try {
+    const response = await fetch(
+      `/api/product-images?${new URLSearchParams({ skus: sku })}`,
+    );
+    if (response.ok) {
+      const body = (await response.json()) as {
+        images?: Record<string, string>;
+      };
+      const exact = body.images?.[sku];
+      if (exact && exact !== imageUrl) {
+        const recovered = await prepareProductImage(exact, row);
+        if (recovered) return recovered;
+      }
+    }
+  } catch {
+    /* Preserve the original snapshot; report unavailable pixels below. */
+  }
+  if (imageUrl)
+    throw new Error(
+      `产品 ${sku} 的已保存图片及同货号回退图片无法读取，请检查图片后重试导出。`,
+    );
+  return undefined;
 }
 
 const textPart = async (zip: JSZip, path: string) =>
@@ -564,7 +606,11 @@ export async function renderOrderXlsx(
   const productImages = (
     await Promise.all(
       model.items.map((item, i) =>
-        prepareProductImage(item.imageUrl, layout.productStart + i),
+        prepareSnapshotProductImage(
+          item.imageUrl,
+          item.sku,
+          layout.productStart + i,
+        ),
       ),
     )
   ).filter((image): image is PreparedProductImage => Boolean(image));

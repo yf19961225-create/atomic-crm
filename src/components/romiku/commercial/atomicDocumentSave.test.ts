@@ -140,3 +140,12 @@ it("freezes nested payload before asynchronous identity lookup", async () => {
     header: { notes: "draft" },
   });
 });
+
+it("rejects a partially entered row with its original row number before dispatch", async () => {
+  const { p, dp } = provider();
+  await expect(saveDocumentAtomically(dp, { ...intent, items: [
+    { sku: "VALID", quantity: 0.25, unit_price: 2 },
+    { sku: "SUNYC57", quantity: 0, unit_price: 5 },
+  ] })).rejects.toThrow(/第 2 行.*数量/);
+  expect(p.documentSave).not.toHaveBeenCalled();
+});

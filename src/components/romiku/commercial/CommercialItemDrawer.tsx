@@ -41,10 +41,18 @@ function ItemDetails({
   useAppDraft(dirty);
   const product = (item.product_snapshot ?? {}) as Record<string, unknown>;
   const packing = (item.packing_snapshot ?? {}) as Record<string, unknown>;
-  const keys = ["name", "specification", "packing", "requirement", "notes"];
+  const keys = [
+    "name",
+    "specification",
+    "packing",
+    "requirement",
+    "notes",
+    ...(quote ? ["quantity"] : []),
+  ];
   const [baseline] = useState(() =>
     editableSignature(
       {
+        ...(quote ? { quantity: item.quantity } : {}),
         name: product.name,
         specification: quote
           ? normalizeSpecificationDisplay(product.specification)
@@ -79,6 +87,7 @@ function ItemDetails({
           const values = new FormData(event.currentTarget);
           onSave({
             ...item,
+            ...(quote ? { quantity: Number(values.get("quantity")) } : {}),
             product_snapshot: {
               ...product,
               name: values.get("name"),
@@ -95,6 +104,23 @@ function ItemDetails({
         }}
       >
         <h2 className="font-semibold">产品行详情</h2>
+        {quote && (
+          <label className="block">
+            报价数量
+            <input
+              name="quantity"
+              type="number"
+              required
+              min="0.0001"
+              step="any"
+              className="ml-2 w-full rounded border p-1"
+              defaultValue={String(item.quantity ?? "")}
+            />
+            <span className="text-xs text-muted-foreground">
+              独立于装箱数；支持小数，不会自动补成 1。
+            </span>
+          </label>
+        )}
         <label className="block">
           产品名称
           <input

@@ -200,8 +200,8 @@ it("uses the fixed eight Quote columns and saves a manual CBM only on the Quote 
   expect(screen.getByText("总数量", { exact: true }).all()).toHaveLength(0);
   expect(screen.getByText("总金额", { exact: true }).all()).toHaveLength(0);
   const qtyPerCarton = screen.getByLabelText("Qty/Ctn", { exact: true });
-  await expect.element(qtyPerCarton).toHaveAttribute("min", "1");
-  await expect.element(qtyPerCarton).toHaveAttribute("step", "1");
+  await expect.element(qtyPerCarton).toHaveAttribute("min", "0");
+  await expect.element(qtyPerCarton).toHaveAttribute("step", "any");
   await screen.getByLabelText("CBM", { exact: true }).fill("0.072");
   await screen.getByRole("button", { name: "保存", exact: true }).click();
   expect(

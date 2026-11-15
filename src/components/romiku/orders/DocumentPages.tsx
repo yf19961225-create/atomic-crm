@@ -1,3 +1,5 @@
+import { ProductLanguageSelector } from "../commercial/ProductLanguageSelector";
+import { documentLanguage } from "../commercial/productLanguage";
 import { AtomicSaveRecovery } from "../commercial/AtomicSaveRecovery";
 import {
   readDocumentSnapshot,
@@ -899,6 +901,15 @@ function DocumentEditor({
         修改仅应用于此{config.label}的快照；来源单据保留原始值。
       </p>
       <StatusHistoryPanel resourceType={kind} resourceId={String(record.id)} />
+      <ProductLanguageSelector
+        value={session.values.document_language}
+        editable={session.editing}
+        items={session.items}
+        onChange={(language, nextItems) => {
+          session.setValues({ ...session.values, document_language: language });
+          if (nextItems) session.setItems(nextItems);
+        }}
+      />
       <DocumentHeaderSummary
         kind={kind}
         editable={session.editing}
@@ -967,12 +978,9 @@ function DocumentEditor({
               documentId={String(record.id)}
               items={session.items}
               currency={String(session.values.currency)}
-              documentLanguage={
-                session.values.document_language === "en" ||
-                session.values.document_language === "es"
-                  ? session.values.document_language
-                  : "zh"
-              }
+              documentLanguage={documentLanguage(
+                session.values.document_language,
+              )}
               onChanged={items.refetch}
               editable={session.editing}
               onItemsChange={session.setItems}

@@ -89,7 +89,20 @@ export function atomicDocumentItems(
   items: Record<string, unknown>[] | null,
 ) {
   if (items === null) return null;
-  return items.map((item) => {
+  return items.map((item, index) => {
+    const label = `第 ${index + 1} 行（${String(item.sku || "未填写货号")}）`;
+    if (!String(item.sku ?? "").trim())
+      throw new Error(`${label}：请填写货号；已填写的内容仍保留。`);
+    if (!Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0)
+      throw new Error(
+        `${label}：数量必须大于零，请检查数量及箱数、装箱数（报价可在行操作→更多详情中修改报价数量）；草稿已保留。`,
+      );
+    if (
+      kind !== "packing" &&
+      (!Number.isFinite(Number(item.unit_price ?? 0)) ||
+        Number(item.unit_price ?? 0) < 0)
+    )
+      throw new Error(`${label}：单价必须为非负数；草稿已保留。`);
     const fields =
       kind === "packing"
         ? packingFields

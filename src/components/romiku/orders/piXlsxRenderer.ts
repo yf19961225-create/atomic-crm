@@ -7,7 +7,7 @@ import {
   clearResidualDynamicMerges,
   formatDate,
   moneyFormat,
-  prepareProductImage,
+  prepareSnapshotProductImage,
   preserveTemplatePackage,
   type RowStyle,
   unmerge,
@@ -179,7 +179,11 @@ export async function renderPiXlsx(
   const productImages = (
     await Promise.all(
       model.items.map((item, index) =>
-        prepareProductImage(item.imageUrl, layout.productStart + index),
+        prepareSnapshotProductImage(
+          item.imageUrl,
+          item.sku,
+          layout.productStart + index,
+        ),
       ),
     )
   ).filter((image): image is NonNullable<typeof image> => Boolean(image));

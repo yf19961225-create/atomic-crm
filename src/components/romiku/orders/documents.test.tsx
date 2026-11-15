@@ -174,6 +174,12 @@ it("writes the selected SUN5 Quote machine specification into the item snapshot 
   );
   const { screen } = await setup("/quotes/q");
   await screen.getByRole("button", { name: "编辑", exact: true }).click();
+  await screen
+    .getByLabelText("产品语言 / Product Language")
+    .selectOptions("en");
+  await screen
+    .getByRole("button", { name: "仅用于新产品", exact: true })
+    .click();
   const sku = screen
     .getByLabelText("搜索 SKU 或产品", { exact: true })
     .all()[0];
