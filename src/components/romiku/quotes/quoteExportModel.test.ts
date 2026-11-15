@@ -130,8 +130,64 @@ it.each([
 );
 
 it("does not replace a missing translated specification with Chinese packaging", () => {
-  const model = normalizeQuoteExportModel({}, [{ sku: "MISSING", product_snapshot: { language: "en", name: "Nail Lamp", specification: "" }, packing_snapshot: { description: "彩盒", carton_cbm: 0.15 }, unit_price: 8 }]);
+  const model = normalizeQuoteExportModel({}, [
+    {
+      sku: "MISSING",
+      product_snapshot: {
+        language: "en",
+        name: "Nail Lamp",
+        specification: "",
+      },
+      packing_snapshot: { description: "彩盒", carton_cbm: 0.15 },
+      unit_price: 8,
+    },
+  ]);
   expect(model.items[0].specification).toBe("");
   expect(model.items[0].cartonCbm).toBe(0.15);
   expect(model.items[0].unitPrice).toBe(8);
 });
+
+it.each([undefined, null, "", "   "])(
+  "never substitutes packaging for blank saved specification %s",
+  (specification) => {
+    const cases = [
+      ["RYP010", "散装"],
+      ["RYP031", "散装"],
+      ["RNB001", "10个/OPP袋"],
+      ["NC008", "瓶装"],
+      ["NC010", "彩盒包装"],
+      ["RDT001", "包装描述"],
+      ["MG03", "备用描述"],
+    ];
+    for (const language of [undefined, "zh", "en", "es", "pt-BR"]) {
+      const model = normalizeQuoteExportModel(
+        { document_language: language },
+        cases.map(([sku, description]) => ({
+          sku,
+          unit_price: 8.25,
+          product_snapshot: {
+            name: sku,
+            specification,
+            ...(language ? { language } : {}),
+          },
+          packing_snapshot: {
+            description,
+            qty_per_carton: 24,
+            carton_cbm: 0.15,
+          },
+        })),
+      );
+      expect(model.items.map((item) => item.specification)).toEqual(
+        cases.map(() => ""),
+      );
+      expect(
+        model.items.every(
+          (item) =>
+            item.qtyPerCarton === 24 &&
+            item.cartonCbm === 0.15 &&
+            item.unitPrice === 8.25,
+        ),
+      ).toBe(true);
+    }
+  },
+);

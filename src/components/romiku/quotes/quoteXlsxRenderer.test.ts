@@ -372,3 +372,31 @@ it("retains numeric fractional and whole pack sizes in quote exports", async () 
     );
   });
 });
+
+it("exports blank legacy saved specification as blank DESCRIPTION, never packaging", async () => {
+  const records = ["RYP010", "RYP031", "RNB001", "NC008", "NC010"].map(
+    (sku, index) => ({
+      ...item(index + 1),
+      sku,
+      product_snapshot: {
+        name: sku,
+        specification: index % 2 ? null : "",
+        image_url: "",
+      },
+      packing_snapshot: {
+        description: "DO NOT EXPORT PACKAGING",
+        qty_per_carton: 24,
+        carton_cbm: 0.15,
+      },
+    }),
+  );
+  const model = normalizeQuoteExportModel({}, records);
+  const buffer = await renderQuoteXlsx(
+    model,
+    await fetch(templateUrl).then((r) => r.arrayBuffer()),
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  for (let index = 0; index < records.length; index++)
+    expect(workbook.worksheets[0].getCell(index + 9, 5).value ?? "").toBe("");
+});

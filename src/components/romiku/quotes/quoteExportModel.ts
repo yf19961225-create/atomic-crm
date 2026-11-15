@@ -78,11 +78,7 @@ export function normalizeQuoteExportModel(
         sku: String(item.sku || ""),
         name: String(product.name || ""),
         imageUrl: String(product.image_url || ""),
-        specification: normalizeSpecificationDisplay(
-          product.language
-            ? (product.specification ?? "")
-            : product.specification || packing.description || "",
-        ),
+        specification: normalizeSpecificationDisplay(product.specification),
         qtyPerCarton: numberOrNull(packing.qty_per_carton),
         unitPrice: numberOrNull(item.unit_price) ?? 0,
         requestedQuantity:
